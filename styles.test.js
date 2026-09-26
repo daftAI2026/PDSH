@@ -33,6 +33,8 @@ test('设置分组使用宿主字号和卡片语义，而非浏览器默认段�
 test('头像与昵称横向编排；入口自己承担自动留白，隐藏时不覆盖原生搜索对齐', () => {
   assert.match(css, /\.pdsh-identity\s*\{[^}]*display:\s*flex/);
   assert.match(css, /\.pdsh-profile-copy\s*\{[^}]*flex:\s*1/);
+  assert.match(css, /\.pdsh-profile-copy\s*\{[^}]*flex:\s*1 1 auto/);
+  assert.match(css, /\.pdsh-profile-copy\s*\{[^}]*max-width:\s*calc\(100% - var\(--pdsh-control-size\) - var\(--pdsh-control-size\) - var\(--pdsh-section-inset\)\)/);
   assert.match(css, /\.pdsh-detail-row\s*\{[^}]*justify-content:\s*space-between/);
   assert.match(css, /\.pdsh-avatar-actions\s*\{[^}]*flex-wrap:\s*wrap/);
   assert.match(css, /\.pdsh-avatar-actions\s*\{[^}]*max-width:\s*100%/);

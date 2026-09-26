@@ -59,7 +59,8 @@ var ot=Object.create;var ne=Object.defineProperty;var lt=Object.getOwnPropertyDe
 .pdsh-row { display: flex; align-items: center; justify-content: space-between; gap: var(--pdsh-action-gap); }
 .pdsh-row > :last-child { flex: none; }
 .pdsh-identity { display: flex; align-items: center; flex-wrap: wrap; gap: var(--pdsh-section-inset); padding-block: var(--pdsh-section-inset); }
-.pdsh-profile-copy { flex: 1; }
+/* \u540D\u5B57\u53C2\u4E0E\u539F\u751F\u6362\u884C\u6D4B\u91CF\uFF0C\u5148\u4FDD\u4F4F\u5934\u50CF+\u540D\u5B57\uFF0C\u4E0D\u4E3A\u4E09\u4E2A\u64CD\u4F5C\u6324\u6210\u9010\u5B57\u7AD6\u6392\u3002 */
+.pdsh-profile-copy { flex: 1 1 auto; max-width: calc(100% - var(--pdsh-control-size) - var(--pdsh-control-size) - var(--pdsh-section-inset)); }
 .pdsh-profile-name { overflow-wrap: anywhere; }
 .pdsh-avatar-actions { display: flex; flex: none; flex-wrap: wrap; justify-content: flex-end; gap: var(--pdsh-field-gap); max-width: 100%; margin-left: auto; }
 /* \u6458\u8981\u5934\u50CF\u5360\u4E24\u4E2A\u539F\u751F\u63A7\u4EF6\u9AD8\u5EA6\uFF1B\u6765\u6E90\u4ECD\u662F Input \u63A2\u9488\uFF0C\u4E0D\u51ED\u7A7A\u6307\u5B9A\u5934\u50CF\u5C3A\u5BF8\u3002 */

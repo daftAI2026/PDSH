@@ -152,7 +152,7 @@
       "role": "horizontal display identity editor",
       "file": "packages/client/ui-settings-account/src/client/AccountSection.module.css",
       "selector": ".identity / .identityCopy / .avatar",
-      "acquisition": "参照原生横向摘要与独立昵称行；头像右侧三个来源按钮始终可见，以Host接受字段推导选中态。窄窗按原生字段gap换行，不复制账户邮箱。"
+      "acquisition": "参照原生横向摘要与独立昵称行；头像右侧三个来源按钮始终可见，以Host接受字段推导选中态。窄窗按原生字段gap换行，不复制账户邮箱。 昵称用intrinsic flex basis参与行宽测量；最大宽度由摘要宽减去两个Input高度和原生gap，确保长昵称仍与头像同排，操作组先换行。"
     },
     {
       "role": "account avatar fallback",

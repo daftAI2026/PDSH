@@ -36,7 +36,8 @@
 .pdsh-row { display: flex; align-items: center; justify-content: space-between; gap: var(--pdsh-action-gap); }
 .pdsh-row > :last-child { flex: none; }
 .pdsh-identity { display: flex; align-items: center; flex-wrap: wrap; gap: var(--pdsh-section-inset); padding-block: var(--pdsh-section-inset); }
-.pdsh-profile-copy { flex: 1; }
+/* 名字参与原生换行测量，先保住头像+名字，不为三个操作挤成逐字竖排。 */
+.pdsh-profile-copy { flex: 1 1 auto; max-width: calc(100% - var(--pdsh-control-size) - var(--pdsh-control-size) - var(--pdsh-section-inset)); }
 .pdsh-profile-name { overflow-wrap: anywhere; }
 .pdsh-avatar-actions { display: flex; flex: none; flex-wrap: wrap; justify-content: flex-end; gap: var(--pdsh-field-gap); max-width: 100%; margin-left: auto; }
 /* 摘要头像占两个原生控件高度；来源仍是 Input 探针，不凭空指定头像尺寸。 */
