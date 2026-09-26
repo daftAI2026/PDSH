@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖生成 client.js 的真实 factory、jsdom 与严格的宿主装配合同桩。
- * [OUTPUT]: 验证共享库请求、keyed slot 注册、Host namespace 和停用/重启和卸载资源归属。
+ * [OUTPUT]: 验证共享库请求、keyed slot、搜索入口导航和 Host 停用/重启的资源归属。
  * [POS]: PDSH 构建/装配回归门；样式和 Host 持久化另由真实 Web runtime 验证。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -13,7 +13,7 @@ import { JSDOM } from 'jsdom';
 import { DEFAULTS } from './model.js';
 
 test('lazy factory 装配到包的 keyed 设置页，并清理资源', () => {
-  const dom = new JSDOM('<body><main>原生内容</main></body>');
+  const dom = new JSDOM(`<body><main>原生内容</main><div data-slot="sidebar.workspaces"><div><div><span>工作区</span><div><div><button type="button" class="native-search" aria-label="搜索会话" aria-expanded="false"><svg style="width:14px;height:14px"></svg></button><input type="text" /></div></div><div></div></div></div></div></body>`);
   const document = dom.window.document;
   const before = document.body.outerHTML;
   let factory;
@@ -36,11 +36,13 @@ test('lazy factory 装配到包的 keyed 设置页，并清理资源', () => {
   const scope = { status: 'ready', writable: true, revision: 0, value: DEFAULTS };
   const form = { getSnapshot: () => scope, subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); } };
   let registered = false;
+  let opened;
   let activate;
   let deactivate;
   const ctx = {
     effect(fn) { const off = fn(); if (typeof off === 'function') disposers.push(off); return off; },
-    locale: { register: () => () => {}, bind: () => key => key },
+    locale: { register: () => () => {}, bind: () => key => key, subscribe: () => () => {} },
+    pluginNavigation: { openBundle(name) { opened = name; } },
     configForms: { get(id) { assert.equal(id, 'pdsh'); return form; }, whileServed(ids, fn) {
       assert.equal(ids[0], 'pdsh'); activate = () => { deactivate = fn(); }; activate();
       return () => deactivate();
@@ -55,6 +57,10 @@ test('lazy factory 装配到包的 keyed 设置页，并清理资源', () => {
     entry.apply(ctx);
     assert.equal(registered, true);
     assert.equal(document.body.hasAttribute('data-pdsh-frames'), true);
+    const searchEntry = document.querySelector('[data-pdsh-search-entry]');
+    assert.ok(searchEntry, '启用后应在搜索旁装配入口，而不是只贡献设置页');
+    searchEntry.click();
+    assert.equal(opened, '@daftai/pdsh', '入口必须通过官方服务打开自己的详情，不改会话');
     assert.ok(requested.includes('react'));
     deactivate();
     assert.equal(document.querySelector('style'), null, 'Host 停用必须撤回 CSS');

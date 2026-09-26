@@ -1,12 +1,18 @@
 /**
  * [INPUT]: 依赖宿主共享 React/primitives 与 configForms；model.js 限定显示偏好。
- * [OUTPUT]: 提供插件设置页：开关、昵称、离线头像选择与原子保存。
- * [POS]: PDSH 交互层；未保存草稿不作用于账号，失败或修订冲突保留草稿。
+ * [OUTPUT]: 提供按对话/身份分组的设置页、昵称头像预览、本地图片选择与原子保存。
+ * [POS]: PDSH 交互层；布局遵循宿主字号/卡片，未保存草稿不作用于账号，失败或冲突保留草稿。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Input, Switch, Button } from '@deepseek-ai/dsh-client-ui-primitives';
 import { DEFAULTS, MAX_AVATAR_CHARS, MAX_NAME_CHARS, resolvePreferences } from './model.js';
+
+function ToggleRow({ label, hint, checked, onChange, disabled }) {
+  return <div className="pdsh-row"><div className="pdsh-copy"><span className="pdsh-label">{label}</span><span className="pdsh-hint">{hint}</span></div>
+    <Switch checked={checked} onChange={onChange} label={label} disabled={disabled} />
+  </div>;
+}
 
 export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
   const snapshot = useSyncExternalStore(fn => form.subscribe(fn), () => form.getSnapshot());
@@ -16,6 +22,7 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
   const [error, setError] = useState('');
   const revision = useRef();
   const pendingFile = useRef(0);
+  const fileInput = useRef(null);
   useEffect(() => () => { ++pendingFile.current; }, []);
   if (view === 'summary') return t('description');
   const ready = snapshot.status === 'ready';
@@ -54,20 +61,35 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
     <p className="pdsh-hint">{t('description')}</p>
     {!ready && <p role="status">{t('loading')}</p>}
     {ready && !snapshot.writable && <p role="status">{t('readOnly')}</p>}
-    <p className="pdsh-row"><span>{t('frames')}</span><Switch checked={values.frames} onChange={value => edit('frames', value)} label={t('frames')} disabled={!writable} /></p>
-    <p className="pdsh-row"><span>{t('maskIdentity')}</span><Switch checked={values.maskIdentity} onChange={value => edit('maskIdentity', value)} label={t('maskIdentity')} disabled={!writable} /></p>
-    <p><label htmlFor="pdsh-nickname">{t('nickname')}</label></p>
-    <Input id="pdsh-nickname" value={values.nickname} maxLength={MAX_NAME_CHARS} onChange={event => edit('nickname', event.target.value)} disabled={!writable} />
-    <p className="pdsh-hint">{t('avatarHint')}</p>
-    {resolved && <img className="pdsh-avatar-preview" src={resolved.avatar} alt={t('preview')} />}
-    <p><label htmlFor="pdsh-avatar-file">{t('avatar')}</label> <input id="pdsh-avatar-file" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseAvatar} disabled={!writable} /></p>
-    <Button onClick={() => { ++pendingFile.current; edit('avatar', ''); }} disabled={!writable}>{t('generated')}</Button>
-    <p role="status" className="pdsh-hint">{t(`status.${status}`)}</p>
-    {error && <p role="alert">{error}</p>}
-    {draft !== null && !resolved && <p role="alert">{t('invalid')}</p>}
-    <p className="pdsh-row">
+    <section className="pdsh-group" role="group" aria-labelledby="pdsh-display-title">
+      <h4 id="pdsh-display-title">{t('displayGroup')}</h4>
+      <ToggleRow label={t('frames')} hint={t('framesHint')} checked={values.frames} onChange={value => edit('frames', value)} disabled={!writable} />
+    </section>
+    <section className="pdsh-group" role="group" aria-labelledby="pdsh-identity-title">
+      <h4 id="pdsh-identity-title">{t('identityGroup')}</h4>
+      <ToggleRow label={t('maskIdentity')} hint={t('identityHint')} checked={values.maskIdentity} onChange={value => edit('maskIdentity', value)} disabled={!writable} />
+      <div className="pdsh-identity" aria-label={t('preview')}>
+        {resolved && <img className="pdsh-avatar-preview" src={resolved.avatar} alt={t('preview')} />}
+        <div className="pdsh-copy"><strong className="pdsh-preview-name">{values.nickname}</strong><span className="pdsh-hint">{t('previewNote')}</span></div>
+      </div>
+      <div className="pdsh-field"><label className="pdsh-label" htmlFor="pdsh-nickname">{t('nickname')}</label>
+        <Input id="pdsh-nickname" value={values.nickname} maxLength={MAX_NAME_CHARS} onChange={event => edit('nickname', event.target.value)} disabled={!writable} />
+      </div>
+      <div className="pdsh-field"><span className="pdsh-label">{t('avatarLabel')}</span>
+        <div className="pdsh-actions">
+          <Button variant="outline" onClick={() => fileInput.current?.click()} disabled={!writable}>{t('avatar')}</Button>
+          <Button onClick={() => { ++pendingFile.current; edit('avatar', ''); }} disabled={!writable}>{t('generated')}</Button>
+          <input ref={fileInput} id="pdsh-avatar-file" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseAvatar} disabled={!writable} hidden aria-label={t('avatar')} />
+        </div>
+        <p className="pdsh-hint">{t('avatarHint')}</p>
+      </div>
+      <p role="status" className="pdsh-hint">{t(`status.${status}`)}</p>
+    </section>
+    {error && <p role="alert" className="pdsh-error">{error}</p>}
+    {draft !== null && !resolved && <p role="alert" className="pdsh-error">{t('invalid')}</p>}
+    <footer className="pdsh-footer"><div className="pdsh-actions">
       <Button variant="primary" onClick={save} disabled={!writable || draft === null || !resolved}>{t(saving ? 'saving' : 'save')}</Button>
       <Button onClick={() => { ++pendingFile.current; setDraft(null); setError(''); }} disabled={saving || draft === null}>{t('discard')}</Button>
-    </p>
+    </div><span className="pdsh-hint" role="status">{draft !== null ? t('unsaved') : t('savedHint')}</span></footer>
   </section>;
 }

@@ -1,21 +1,28 @@
 /**
- * [INPUT]: 依赖宿主 slots/locale/configForms、共享 React/primitives 与展示控制器。
- * [OUTPUT]: 提供浏览器插件 apply/inject，设置页、样式探针及可卸载显示增强。
- * [POS]: PDSH Client 装配层；设置/显示资源共同跟随 Host 服务，DOM adapter 仅处理身份视觉。
+ * [INPUT]: 依赖宿主 slots/locale/configForms/pluginNavigation、共享 React/primitives 与展示/入口适配器。
+ * [OUTPUT]: 提供浏览器 apply/inject，设置页、样式探针、搜索邻接入口及可卸载显示增强。
+ * [POS]: PDSH Client 装配层；设置/显示/入口共同跟随 Host 服务，搜索适配与身份控制器独立。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useLayoutEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Input } from '@deepseek-ai/dsh-client-ui-primitives';
+import { Input, SettingsValueField } from '@deepseek-ai/dsh-client-ui-primitives';
 import { mountPresentation } from './presentation.js';
+import { mountSearchEntry } from './search-entry.js';
+import entryIcon from './entry-icon.svg';
 import { SettingsCard } from './settings-card.jsx';
 import { resolvePreferences } from './model.js';
 import css from './styles.css';
 
-export const inject = ['slots', 'locale', 'configForms'];
+export const inject = ['slots', 'locale', 'configForms', 'pluginNavigation'];
 const NS = 'pdsh';
 const dictionaries = {
   zh: {
+    entry: 'PDSH 显示设置（不隔离会话）',
+    displayGroup: '对话显示', identityGroup: '显示身份', framesHint: '使用宿主灰色边线区分用户与助手消息。',
+    identityHint: '仅替换当前侧栏的昵称和头像，不修改真实账户。', previewNote: '显示身份预览，保存后应用',
+    avatarLabel: '头像',
+    unsaved: '有未保存的修改', savedHint: '修改后点击保存，才会应用到当前窗口。',
     title: 'PDSH 显示设置', description: '给每条用户/助手消息加灰框，并可替换侧栏昵称和头像。仅改变本地显示：不隔离、不删除历史，也不修改真实账户。',
     frames: '对话灰框', maskIdentity: '替换侧栏显示身份', nickname: '显示昵称', avatar: '选择本地头像',
     avatarHint: '默认按昵称离线生成头像。也可选 PNG / JPEG / WebP；不会上传图片或请求头像服务。',
@@ -27,6 +34,11 @@ const dictionaries = {
     'status.unsupported': '未识别唯一的原生侧栏身份，本次不替换。',
   },
   en: {
+    entry: 'PDSH display settings (no session isolation)',
+    displayGroup: 'Conversation display', identityGroup: 'Display identity', framesHint: 'Separate user and assistant messages using the host border style.',
+    identityHint: 'Replace the local sidebar nickname and avatar only. Your account remains unchanged.', previewNote: 'Display preview, applied after saving',
+    avatarLabel: 'Avatar',
+    unsaved: 'Unsaved changes', savedHint: 'Save your changes to apply them to the current window.',
     title: 'PDSH display settings', description: 'Outline user/assistant messages and optionally replace the sidebar nickname and avatar. Local display only: no isolation, history deletion or account changes.',
     frames: 'Message outlines', maskIdentity: 'Replace sidebar display identity', nickname: 'Display nickname', avatar: 'Choose a local avatar',
     avatarHint: 'An offline avatar is generated from the nickname. Or choose PNG / JPEG / WebP. No uploads or avatar-service requests.',
@@ -50,8 +62,18 @@ function NativeStyleProbe({ doc }) {
       doc.body.style.setProperty('--pdsh-outline-width', style.borderTopWidth);
       doc.body.style.setProperty('--pdsh-control-size', style.height);
     }
+    const field = ref.current.querySelector('[data-pdsh-field-probe]')?.firstElementChild;
+    if (field) {
+      const fieldStyle = doc.defaultView.getComputedStyle(field);
+      const headStyle = doc.defaultView.getComputedStyle(field.firstElementChild);
+      for (const [key, value] of [['--pdsh-section-inset', fieldStyle.paddingTop], ['--pdsh-field-gap', fieldStyle.gap], ['--pdsh-action-gap', headStyle.gap]]) {
+        if (Number.parseFloat(value) > 0) doc.body.style.setProperty(key, value);
+      }
+    }
   }, [doc]);
-  return <span ref={ref}><Input tabIndex={-1} aria-hidden="true" /></span>;
+  return <span ref={ref}><Input tabIndex={-1} aria-hidden="true" /><span data-pdsh-field-probe>
+    <SettingsValueField id="pdsh-layout-probe" label="" text="" overridden={false} invalid={false} overriddenLabel="" resetLabel="" invalidLabel="" disabled onEdit={() => {}} onReset={() => {}} />
+  </span></span>;
 }
 
 function mountDisplay(ctx, form) {
@@ -59,10 +81,16 @@ function mountDisplay(ctx, form) {
   const style = doc.createElement('style'); style.dataset.plugin = '@daftai/pdsh'; style.textContent = css; doc.head.append(style);
   const probe = doc.createElement('div'); probe.hidden = true; probe.setAttribute('data-pdsh-probe', ''); doc.body.append(probe);
   const root = createRoot(probe);
-  const properties = ['--pdsh-outline-width', '--pdsh-control-size'];
+  const properties = ['--pdsh-outline-width', '--pdsh-control-size', '--pdsh-section-inset', '--pdsh-field-gap', '--pdsh-action-gap'];
   const previous = properties.map(key => [key, doc.body.style.getPropertyValue(key)]);
   root.render(<NativeStyleProbe doc={doc} />);
   const presentation = mountPresentation(doc);
+  const t = ctx.locale.bind(NS);
+  const entry = mountSearchEntry(doc, {
+    icon: entryIcon, label: () => t('entry'),
+    open: () => ctx.pluginNavigation.openBundle('@daftai/pdsh'),
+  });
+  const unbindLocale = ctx.locale.subscribe(entry.refresh);
   function synchronize() {
     const snapshot = form.getSnapshot();
     try {
@@ -77,7 +105,7 @@ function mountDisplay(ctx, form) {
   return {
     presentation,
     dispose() {
-      unsubscribe(); presentation.dispose(); root.unmount(); probe.remove(); style.remove();
+      unsubscribe(); unbindLocale(); entry.dispose(); presentation.dispose(); root.unmount(); probe.remove(); style.remove();
       for (const [key, value] of previous) {
         if (value) doc.body.style.setProperty(key, value); else doc.body.style.removeProperty(key);
       }

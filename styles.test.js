@@ -25,3 +25,8 @@ test('所有 token 有提供文件，不硬编码颜色、尺寸或 fallback', (
     assert.ok(sources.styles.some(entry => entry.variable === variable && entry.file), variable);
   }
 });
+test('设置分组使用宿主字号和卡片语义，而非浏览器默认段落编排', () => {
+  assert.match(css, /\.pdsh-settings\s*\{[^}]*font:\s*var\(--dsw-font-xs-13\)/);
+  assert.match(css, /\.pdsh-group\s*\{[^}]*background:\s*var\(--dsw-alias-settings-card-fill\)/);
+  assert.match(css, /\.pdsh-hint\s*\{[^}]*font:\s*var\(--dsw-font-xxs-12\)/);
+});

@@ -39,14 +39,15 @@ Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatG
 - `cordis.patch.yml`: the bundle's single Cordis insertion layer.
 - `index.js`: Host Config schema with volatile display fields; delegates persistence to Harness settings.
 - `model.js`: shared display defaults, nickname/data-URL validation and pinned offline Blobatar generation.
-- `client-entry.jsx`: Client lifecycle, native Input style probe, configuration projection and `plugins.bundle.config` registration; all display resources follow the Host namespace via `whileServed`.
-- `settings-card.jsx`: staged settings form with atomic revision-fenced save; local avatar selection never uploads.
+- `client-entry.jsx`: Client lifecycle, native Input/SettingsValueField geometry probes, configuration projection and `plugins.bundle.config` registration; all display resources follow the Host namespace via `whileServed`.
+- `settings-card.jsx`: native-token conversation/identity groups, draft identity preview and atomic revision-fenced save; local avatar selection never uploads.
 - `presentation.js`: current-build DOM adapter and owned-marker cleanup; does not overwrite original account text/images.
+- `search-entry.js` / `entry-icon.svg`: version-specific search-adjacent DOM adapter and reused InCodex artwork; opens the official PDSH settings, never creates or claims an isolated session.
 - `styles.css` / `style-sources.json`: minimal presentation rules and the upstream source trail for every rule.
-- `build.mjs`: builds `client.js` / `client.js.map` in the official lazy-CJS module-loader format. React/primitives stay host externals. Commit these prebuilt artifacts for Git/local-directory installs; no install-time prepare/postinstall scripts.
+- `build.mjs`: builds minified production `client.js` / `client.js.map` in the official lazy-CJS module-loader format. React/primitives stay host externals. Commit these prebuilt artifacts for Git/local-directory installs; no install-time prepare/postinstall scripts.
 - `*.test.js`: model, Host validation and actual DOM-selector/lifecycle contract tests. Add a failing test before changing behavior.
 - `pnpm-lock.yaml`: reproducible dependency graph. `output/` and `node_modules/` are generated and ignored.
-- `THIRD_PARTY_NOTICES.md`: bundled Blobatar's license notice; ships with the installable archive.
+- `THIRD_PARTY_NOTICES.md`: bundled Blobatar and reused Lucide/InCodex icon notices; ships with the installable archive.
 
 No additional module directory exists yet. Add one only when a verified boundary needs it; do not create a full InCodex-style CLI/install/signing tree up front.
 
@@ -55,7 +56,7 @@ No additional module directory exists yet. Add one only when a verified boundary
 - Distinguish three boundaries: an installable bundle, a Cordis runtime plugin entry, and a React component. The plugin page's component count describes runtime entries, not the number of React components or features in the bundle.
 - Keep the current single bundle/Host entry. `index.js` owns the configuration contract, `model.js` owns pure validation, `client-entry.jsx` owns assembly and resource lifetime, `settings-card.jsx` owns the staged form, and `presentation.js` owns the account DOM adapter. Message outlines stay in the small stylesheet until they require their own behavior.
 - Split a UI component when it owns meaningful rendering or interaction; split a controller when it owns an independent effect and disposer. Do not create a Cordis plugin per button, a second settings store, or speculative service/provider packages. Use separate runtime entries only for independently enabled capabilities or actual service dependencies.
-- A search-adjacent entry is not implemented in the current MVP. Treat it separately from account presentation: the rc.2 workspace header has no supported child slot. Prefer a supported additive slot when placement is flexible; exact adjacency requires an explicitly documented version-specific adapter or an upstream slot. Never replace/copy the full browser merely to add one button, or label a display-only entry as an active private session.
+- The mvp.5 search-adjacent entry is a version-specific DOM adapter, not a supported child slot. It remains separate from account presentation and opens the official PDSH settings through `pluginNavigation`. Preserve native search, copy only its live style class/geometry, hide the added control during expanded search, and skip unknown/ambiguous structures. Never replace/copy the full browser merely to add one button, or label a display-only entry as an active private session.
 - Every future entry must retain native search behavior, trace its visual dependencies to upstream providers, and dispose only its own nodes/registrations. Test sidebar fold state, search expansion, remount and bundle disable before claiming Desktop compatibility.
 
 ## Workflow and safety
