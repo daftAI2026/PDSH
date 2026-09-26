@@ -45,7 +45,7 @@ Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatG
 - `client-entry.jsx`: Client lifecycle, native Input/SettingsValueField geometry probes, configuration projection and `plugins.bundle.config` registration; all display resources follow the Host namespace via `whileServed`.
 - `locales.js`: complete zh/en namespace dictionaries; follow the Host locale service, never create a second language preference.
 - `locale/en.json` / `locale/zh.json`: official offline-discoverable package title/description; exported and shipped even when the plugin is disabled.
-- `settings-card.jsx`: native-token conversation/identity groups, horizontal avatar/nickname editor with generated/local/native-account avatar sources and atomic revision-fenced save; local avatar selection never uploads.
+- `settings-card.jsx`: native-token conversation/identity groups, profile summary with right-aligned avatar action, independent inline nickname editing and progressively disclosed generated/local/native-account avatar sources and atomic revision-fenced save; local avatar selection never uploads.
 - `presentation.js`: current-build DOM adapter and owned-marker cleanup; does not overwrite original account text/images. Native avatar previews remain renderer memory only, never configuration or logs.
 - `search-entry.js` / `entry-icon.svg`: version-specific search-adjacent DOM adapter and reused InCodex artwork; opens the official PDSH settings, never creates or claims an isolated session.
 - `styles.css` / `style-sources.json`: minimal presentation rules and the upstream source trail for every rule.

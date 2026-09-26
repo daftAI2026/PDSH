@@ -29,7 +29,7 @@
       "file": "packages/client/ui-primitives/src/Input.module.css",
       "selector": ".wrap",
       "property": "height",
-      "acquisition": "与边线共用原生 Input 探针；读取 wrapper 的 computedStyle，不复制尺寸常量"
+      "acquisition": "原生 Input wrapper 的 computed height 是基础几何；设置资料摘要头像为两个控件高度之和，明确区别于原生侧栏紧凑头像，不硬编码像素。"
     },
     {
       "role": "settings label",
@@ -155,12 +155,31 @@
       "role": "horizontal display identity editor",
       "file": "packages/client/ui-settings-account/src/client/AccountSection.module.css",
       "selector": ".identity / .identityCopy / .avatar",
-      "acquisition": "参照原生横向头像与资料布局；复用既有 Input 高度及 SettingsValueField gap，不复制该 CSS 的数字或账户数据。昵称字段替代重复预览，原生按钮提供头像编辑动作。"
+      "acquisition": "参照 AccountSection 横向摘要与独立 row；结合用户结构参考，右侧更换头像、字段按需编辑。不复制账户邮箱。"
     },
     {
       "role": "account avatar fallback",
       "file": "packages/client/ui-settings-account/src/client/AccountAvatar.tsx",
       "acquisition": "与宿主缺失头像时同用 primitives.IconUserOutlineMedium；仅原生已显示图片作为预览来源，不调用账户服务或持久化账户 URL。"
+    },
+    {
+      "role": "profile avatar circular crop",
+      "file": "packages/client/ui-settings-account/src/client/AccountAvatar.module.css",
+      "selector": ".image",
+      "property": "border-radius / corner-shape / object-fit",
+      "acquisition": "使用原生圆形头像的 50% / round / cover；不改变侧栏头像节点。"
+    },
+    {
+      "role": "profile field separator",
+      "variable": "--dsw-alias-border-l2",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "consumer": "packages/client/ui-primitives/src/settings-form/fields.module.css .field + .field"
+    },
+    {
+      "role": "nickname edit affordance",
+      "file": "packages/client/ui-primitives/src/icons/index.tsx",
+      "selector": "IconEditOutlineRegular",
+      "acquisition": "使用宿主默认图标尺寸与原生 Button，不绘制新铅笔图形或复制尺寸。"
     }
   ]
 }
