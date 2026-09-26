@@ -1,0 +1,14 @@
+<!--
+[INPUT]: 依赖 entry-icon.svg 图形和 style-sources.json 图稿色板，由 build.mjs 生成。
+[OUTPUT]: 提供 package.json.icon 的自包含帽子眼镜图稿。
+[POS]: PDSH 官方包标识资产，不手工修改。
+[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="rgb(15, 17, 21)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <rect width="100%" height="100%" fill="rgb(249, 250, 251)" stroke="none"/>
+  <path d="M14 18a2 2 0 0 0-4 0"/>
+  <path d="m19 11-2.11-6.657a2 2 0 0 0-2.752-1.148l-1.276.61A2 2 0 0 1 12 4H8.5a2 2 0 0 0-1.925 1.456L5 11"/>
+  <path d="M2 11h20"/>
+  <circle cx="17" cy="18" r="3"/>
+  <circle cx="7" cy="18" r="3"/>
+</svg>

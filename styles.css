@@ -38,7 +38,7 @@
 .pdsh-identity { display: flex; align-items: center; flex-wrap: wrap; gap: var(--pdsh-section-inset); padding-block: var(--pdsh-section-inset); }
 .pdsh-profile-copy { flex: 1; }
 .pdsh-profile-name { overflow-wrap: anywhere; }
-.pdsh-identity > button { flex: none; margin-left: auto; }
+.pdsh-avatar-actions { display: flex; flex: none; flex-wrap: wrap; justify-content: flex-end; gap: var(--pdsh-field-gap); max-width: 100%; margin-left: auto; }
 /* 摘要头像占两个原生控件高度；来源仍是 Input 探针，不凭空指定头像尺寸。 */
 .pdsh-avatar-preview { flex: none; border-radius: 50%; corner-shape: round; object-fit: cover; width: calc(var(--pdsh-control-size) + var(--pdsh-control-size)); height: calc(var(--pdsh-control-size) + var(--pdsh-control-size)); }
 .pdsh-detail-row { display: flex; align-items: center; justify-content: space-between; gap: var(--pdsh-section-inset); padding-block: var(--pdsh-field-gap); border-top: var(--pdsh-outline-width) solid var(--dsw-alias-border-l2); }
@@ -51,12 +51,8 @@
 .pdsh-inline-editor > span:has(input[aria-invalid="true"]) { border-color: var(--dsw-alias-state-error-primary); }
 .pdsh-inline-editor > button { flex: none; }
 .pdsh-nickname-editor { flex: 0 1 auto; min-width: 0; max-width: 100%; }
-.pdsh-source-value { min-width: 0; text-align: right; overflow-wrap: anywhere; }
-.pdsh-avatar-options { display: flex; flex-direction: column; gap: var(--pdsh-field-gap); }
-.pdsh-avatar-options[hidden] { display: none; }
+.pdsh-avatar-feedback { display: flex; align-items: center; flex-wrap: wrap; gap: var(--pdsh-field-gap); padding-bottom: var(--pdsh-field-gap); }
 .pdsh-avatar-fallback { display: flex; align-items: center; justify-content: center; }
-.pdsh-actions, .pdsh-footer { display: flex; align-items: center; flex-wrap: wrap; gap: var(--pdsh-action-gap); }
-.pdsh-footer { justify-content: space-between; padding-top: var(--pdsh-section-inset); border-top: var(--pdsh-outline-width) solid var(--dsw-alias-border-l2); }
 .pdsh-error { color: var(--dsw-alias-state-error-primary); }
 [data-pdsh-search-entry] { color: var(--pdsh-search-color); }
 [data-pdsh-search-entry][aria-pressed="true"] { background: var(--dsw-alias-interactive-bg-active); }

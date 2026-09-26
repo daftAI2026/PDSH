@@ -1,7 +1,7 @@
 {
   "name": "@daftai/pdsh",
   "description": "DSH Private Mode: sidebar title masking and local display identity, without session isolation",
-  "version": "0.1.0-mvp.13",
+  "version": "0.1.0-mvp.14",
   "private": true,
   "type": "module",
   "main": "./index.js",
@@ -11,6 +11,7 @@
     "client.js",
     "client.js.map",
     "cordis.patch.yml",
+    "plugin-icon.svg",
     "style-sources.json",
     "THIRD_PARTY_NOTICES.md",
     "LICENSE",
@@ -58,5 +59,6 @@
   "bugs": {
     "url": "https://github.com/daftAI2026/PDSH/issues"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "icon": "./plugin-icon.svg"
 }

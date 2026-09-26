@@ -152,7 +152,7 @@
       "role": "horizontal display identity editor",
       "file": "packages/client/ui-settings-account/src/client/AccountSection.module.css",
       "selector": ".identity / .identityCopy / .avatar",
-      "acquisition": "参照 AccountSection 横向摘要与独立 row；结合用户结构参考，右侧更换头像、字段按需编辑。不复制账户邮箱。"
+      "acquisition": "参照原生横向摘要与独立昵称行；头像右侧三个来源按钮始终可见，以Host接受字段推导选中态。窄窗按原生字段gap换行，不复制账户邮箱。"
     },
     {
       "role": "account avatar fallback",
@@ -226,6 +226,26 @@
       "selector": ".md",
       "property": "height",
       "acquisition": "独立图标按钮的宽度等于原生Button高度，形成同一方形命中区；昵称为相邻静态span，铅笔/勾都不包进输入wrapper，不照抄平台网页的虚线。"
+    },
+    {
+      "role": "avatar source action group",
+      "variable": "--pdsh-field-gap",
+      "file": "packages/client/ui-primitives/src/settings-form/fields.module.css",
+      "selector": ".field",
+      "property": "gap",
+      "acquisition": "头像摘要右侧常驻三个原生Button，来源字段和全局footer移除。间隔取原生探针，按钮字号/命中区由Button负责，窄窗自然换行而不裁切。"
     }
-  ]
+  ],
+  "artwork": {
+    "file": "packages/client/ui-theme/src/styles/design-platform.css",
+    "foreground": {
+      "variable": "--dsw-static-neutral-bluish-1000",
+      "value": "rgb(15, 17, 21)"
+    },
+    "background": {
+      "variable": "--dsw-static-neutral-bluish-50",
+      "value": "rgb(249, 250, 251)"
+    },
+    "acquisition": "官方package.json.icon由独立img呈现，不能继承宿主CSS变量。此为固定rc.2原生调色板快照的明底图稿，非运行时UI token；build.mjs复用entry-icon.svg图形生成，侧栏仍使用currentColor实时变量。"
+  }
 }

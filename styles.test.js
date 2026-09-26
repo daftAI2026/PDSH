@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 styles.css 的真实 selector、来源账和 rc.2 ChatNode DOM 合同。
- * [OUTPUT]: 验证旧消息描边选择器、编辑行原生高度与错误边线来源，禁止数值颜色尺寸 fallback。
- * [POS]: PDSH 的样式合同，防止把 Conversation 内部 kind 当作 Chat DOM dispatch kind。
+ * [INPUT]: 依赖 styles.css 的真实 selector 与 rc.2 原生样式来源账。
+ * [OUTPUT]: 验证标题灰条、头像三按钮换行、昵称编辑高度与错误边线来源，禁止数值UI颜色尺寸 fallback。
+ * [POS]: PDSH 的样式合同，保证视觉依赖可追溯，移除来源行和全局footer不破坏原生布局。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
@@ -34,7 +34,9 @@ test('头像与昵称横向编排；入口自己承担自动留白，隐藏时�
   assert.match(css, /\.pdsh-identity\s*\{[^}]*display:\s*flex/);
   assert.match(css, /\.pdsh-profile-copy\s*\{[^}]*flex:\s*1/);
   assert.match(css, /\.pdsh-detail-row\s*\{[^}]*justify-content:\s*space-between/);
-  assert.match(css, /\.pdsh-avatar-options\[hidden\]\s*\{[^}]*display:\s*none/);
+  assert.match(css, /\.pdsh-avatar-actions\s*\{[^}]*flex-wrap:\s*wrap/);
+  assert.match(css, /\.pdsh-avatar-actions\s*\{[^}]*max-width:\s*100%/);
+  assert.doesNotMatch(css, /pdsh-source-value|pdsh-avatar-options|pdsh-footer/);
   assert.match(css, /\[data-pdsh-search-entry="wide"\]\s*\{[^}]*margin-left:\s*auto/);
   assert.match(css, /\[data-pdsh-search-entry="wide"\]:not\(\[hidden\]\) \+ div\s*\{[^}]*margin-left:\s*0/);
 });

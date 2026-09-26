@@ -1,41 +1,23 @@
 /**
- * [INPUT]: 依赖宿主共享 React/primitives 与 ConfigForm；model.js 限定显示偏好。
- * [OUTPUT]: 提供三字段profile草稿与原子保存、独立文本/铅笔/确认勾、Host单路径即时开关、局部取消和可取消头像读取。
- * [POS]: PDSH 交互层；Host 是唯一持久化源，profile冲突不自动合并，开关不污染草稿，迟到图片不复活已取消草稿。
+ * [INPUT]: 依赖宿主共享 React/primitives 与 ConfigForm；model.js 校验昵称及本地图像。
+ * [OUTPUT]: 提供头像三按钮即时原子保存、昵称局部草稿/勾选保存、即时开关与可取消图片读取。
+ * [POS]: PDSH 交互层；Host 接受值拥有来源选中态，字段级基线阻止覆盖外来修改，共用单次写入门。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Input, Switch, Button, IconUserOutlineMedium, IconEditOutlineRegular, IconCheckOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives';
 import { DEFAULTS, MAX_AVATAR_CHARS, MAX_NAME_CHARS, NICKNAME_PATTERN, resolvePreferences } from './model.js';
 
-const PROFILE_FIELDS = ['nickname', 'avatar', 'useAccountAvatar'];
-
-function profileValues(value) {
-  return Object.fromEntries(PROFILE_FIELDS.map(field => [field, value?.[field] ?? DEFAULTS[field]]));
+function avatarValues(value) {
+  return { avatar: value?.avatar ?? DEFAULTS.avatar, useAccountAvatar: value?.useAccountAvatar ?? DEFAULTS.useAccountAvatar };
 }
-
-function sameProfile(left, right) {
-  return Boolean(left && PROFILE_FIELDS.every(field => left[field] === right[field]));
+function sameAvatar(left, right) {
+  return Boolean(left && right && left.avatar === right.avatar && left.useAccountAvatar === right.useAccountAvatar);
 }
-
-function ToggleRow({ field, label, hint, checked, onChange, disabled, pending, error, returnFocus }) {
+function ToggleRow({ label, hint, checked, disabled, pending, error, onChange }) {
   const row = useRef(null);
-  useEffect(() => {
-    if (pending || returnFocus.current?.field !== field) return;
-    const origin = returnFocus.current.node;
-    returnFocus.current = null;
-    const doc = origin.ownerDocument;
-    if (doc.activeElement === doc.body || doc.activeElement === origin) {
-      const control = row.current?.querySelector('[role="switch"]');
-      if (control && !control.disabled) control.focus();
-    }
-  }, [field, pending, returnFocus]);
-  function handleChange() {
-    const control = row.current?.querySelector('[role="switch"]');
-    onChange(control?.ownerDocument.activeElement === control ? control : null);
-  }
-  return <div className="pdsh-row" aria-busy={pending || undefined} ref={row}><div className="pdsh-copy"><span className="pdsh-label">{label}</span>{hint && <span className="pdsh-hint">{hint}</span>}{error && <span className="pdsh-error" role="alert">{error}</span>}</div>
-    <Switch checked={checked} onChange={handleChange} label={label} disabled={disabled} />
+  return <div className="pdsh-row" ref={row} aria-busy={pending || undefined}><div className="pdsh-copy"><span className="pdsh-label">{label}</span><span className="pdsh-hint">{hint}</span>{error && <span className="pdsh-error" role="alert">{error}</span>}</div>
+    <Switch checked={checked} onChange={() => onChange(row.current?.querySelector('[role="switch"]'))} label={label} disabled={disabled} />
   </div>;
 }
 
@@ -43,202 +25,171 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
   const snapshot = useSyncExternalStore(fn => form.subscribe(fn), () => form.getSnapshot());
   const status = useSyncExternalStore(fn => presentation.subscribe(fn), () => presentation.status());
   const accountAvatar = useSyncExternalStore(fn => presentation.subscribe(fn), () => presentation.accountAvatar());
-  const [draft, setDraft] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [editingNickname, setEditingNickname] = useState(false);
-  const [avatarOptionsOpen, setAvatarOptionsOpen] = useState(false);
+  const [nicknameDraft, setNicknameDraft] = useState(null);
+  const [nicknameError, setNicknameError] = useState('');
+  const [avatarError, setAvatarError] = useState('');
+  const [avatarRetry, setAvatarRetry] = useState(null);
   const [readingAvatar, setReadingAvatar] = useState(false);
-  const [togglePending, setTogglePending] = useState(null);
+  const [mutation, setMutation] = useState(null);
   const [toggleFailure, setToggleFailure] = useState('');
+  const nicknameBase = useRef(null);
   const nicknameRow = useRef(null);
-  const returnNicknameFocus = useRef(false);
-  const returnActionFocus = useRef(null);
-  const profileBase = useRef(null);
-  const draftRef = useRef(null);
-  const togglePendingRef = useRef(null);
-  const toggleFocus = useRef(null);
-  const pendingFile = useRef(0);
-  const avatarRequest = useRef(null);
+  const pendingMutation = useRef(null);
+  const returnFocus = useRef(null);
+  const alive = useRef(true);
+  const fileSequence = useRef(0);
   const avatarReader = useRef(null);
-  const nicknameBeforeEdit = useRef('');
   const fileInput = useRef(null);
   function invalidateAvatarRead() {
-    ++pendingFile.current; avatarRequest.current = null;
+    ++fileSequence.current;
     const reader = avatarReader.current; avatarReader.current = null; reader?.abort();
   }
   function cancelAvatarRead() { invalidateAvatarRead(); setReadingAvatar(false); }
-  useEffect(() => () => invalidateAvatarRead(), []);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; invalidateAvatarRead(); }; }, []);
   useEffect(() => {
     if (snapshot.status !== 'ready' || !snapshot.writable) cancelAvatarRead();
   }, [snapshot.status, snapshot.writable]);
   useEffect(() => {
-    if (!editingNickname && returnNicknameFocus.current) { nicknameRow.current?.querySelector('button')?.focus(); returnNicknameFocus.current = false; }
-  }, [editingNickname]);
-  useEffect(() => {
-    const origin = returnActionFocus.current;
-    if (saving || !origin) return;
-    returnActionFocus.current = null;
+    if (mutation || !returnFocus.current) return;
+    const { origin, nickname } = returnFocus.current; returnFocus.current = null;
     const doc = origin.ownerDocument;
-    // 只修复本次按钮禁用后的焦点空洞，不抢回用户已移走的焦点。
+    // 只修复本次禁用/替换产生的焦点空洞，不打断已经移走的焦点。
     if (doc.activeElement === doc.body || doc.activeElement === origin) {
-      (origin.disabled ? nicknameRow.current?.querySelector('button, input') : origin)?.focus();
+      const target = nickname ? nicknameRow.current?.querySelector('input, button') : origin;
+      if (target?.isConnected && !target.disabled) target.focus();
     }
-  }, [saving, draft, readingAvatar]);
+  }, [mutation, nicknameDraft]);
   if (view === 'summary') return t('description');
   const ready = snapshot.status === 'ready';
-  const writable = ready && snapshot.writable && !saving;
-  const values = draft ?? profileValues(snapshot.value);
-  const conflicted = draft !== null && ready && !sameProfile(profileBase.current, profileValues(snapshot.value));
-  const nicknameInvalid = typeof values.nickname !== 'string' || values.nickname.length > MAX_NAME_CHARS || !NICKNAME_PATTERN.test(values.nickname);
-  const avatarSource = values.useAccountAvatar ? 'account' : values.avatar ? 'local' : 'generated';
-  let resolved;
-  try { resolved = resolvePreferences(values); } catch { /* 非法草稿只阻止保存。 */ }
-  let previewAvatar = resolved?.avatar;
-  if (!previewAvatar) {
-    try { previewAvatar = resolvePreferences({ ...values, nickname: (snapshot.value ?? DEFAULTS).nickname }).avatar; } catch { /* 未知配置不渲染任意图片。 */ }
+  const writable = ready && snapshot.writable && mutation === null;
+  const acceptedNickname = snapshot.value?.nickname ?? DEFAULTS.nickname;
+  const displayedNickname = nicknameDraft ?? acceptedNickname;
+  const nicknameInvalid = typeof displayedNickname !== 'string' || displayedNickname.length > MAX_NAME_CHARS || !NICKNAME_PATTERN.test(displayedNickname);
+  const nicknameConflict = nicknameDraft !== null && ready && nicknameBase.current !== acceptedNickname;
+  const acceptedAvatar = avatarValues(snapshot.value);
+  const avatarSource = acceptedAvatar.useAccountAvatar ? 'account' : acceptedAvatar.avatar ? 'local' : 'generated';
+  const avatarConflict = avatarRetry && !sameAvatar(avatarRetry.base, acceptedAvatar);
+  let preview;
+  try { preview = resolvePreferences({ ...acceptedAvatar, nickname: nicknameInvalid ? acceptedNickname : displayedNickname }).avatar; } catch { /* 非法Host配置不渲染任意图片。 */ }
+  function preserveFocus(origin, nickname = false) {
+    returnFocus.current = origin?.ownerDocument.activeElement === origin ? { origin, nickname } : null;
   }
-  function editChanges(changes) {
+  async function mutate(kind, ops, current, origin, nickname = false) {
+    if (pendingMutation.current || current.status !== 'ready' || !current.writable) return false;
+    preserveFocus(origin, nickname); pendingMutation.current = kind; setMutation(kind);
+    try { return await form.mutate(ops, current.revision); }
+    catch { return false; }
+    finally { pendingMutation.current = null; if (alive.current) setMutation(null); }
+  }
+  function beginNickname() {
     const current = form.getSnapshot();
-    if (current.status !== 'ready' || !current.writable || saving) return;
-    const currentProfile = profileValues(current.value);
-    const previous = draftRef.current;
-    const next = { ...(previous ?? currentProfile), ...changes };
-    const unchanged = PROFILE_FIELDS.every(field => next[field] === currentProfile[field]);
-    if (unchanged) {
-      draftRef.current = null; profileBase.current = null; setDraft(null);
-    } else {
-      if (!previous || !profileBase.current) profileBase.current = currentProfile;
-      draftRef.current = next; setDraft(next);
-    }
-    setError('');
+    if (pendingMutation.current || current.status !== 'ready' || !current.writable) return;
+    nicknameBase.current = current.value?.nickname ?? DEFAULTS.nickname;
+    setNicknameDraft(nicknameBase.current); setNicknameError('');
   }
-  function edit(field, value) { editChanges({ [field]: value }); }
+  function cancelNickname(origin) {
+    if (pendingMutation.current === 'nickname') return;
+    preserveFocus(origin, true); setNicknameDraft(null); setNicknameError(''); nicknameBase.current = null;
+  }
+  async function confirmNickname(origin) {
+    const current = form.getSnapshot();
+    if (nicknameDraft === null || nicknameInvalid || readingAvatar || pendingMutation.current || current.status !== 'ready' || !current.writable) return;
+    const currentName = current.value?.nickname ?? DEFAULTS.nickname;
+    if (nicknameBase.current !== currentName) { setNicknameError('nicknameConflict'); return; }
+    if (nicknameDraft === currentName) { cancelNickname(origin); return; }
+    setNicknameError('');
+    const accepted = await mutate('nickname', [{ op: 'set', path: ['nickname'], value: nicknameDraft }], current, origin, true);
+    if (!alive.current) return;
+    if (accepted) { setNicknameDraft(null); nicknameBase.current = null; }
+    else setNicknameError('nicknameSaveFailed');
+  }
   async function toggle(field, origin) {
     const current = form.getSnapshot();
-    if (togglePendingRef.current || saving || current.status !== 'ready' || !current.writable) return;
-    const acceptedValue = current.value?.[field] ?? DEFAULTS[field];
-    if (typeof acceptedValue !== 'boolean') return;
-    toggleFocus.current = origin ? { field, node: origin } : null;
-    togglePendingRef.current = field; setTogglePending(field); setToggleFailure('');
-    try {
-      const accepted = await form.mutate([{ op: 'set', path: [field], value: !acceptedValue }], current.revision);
-      if (!accepted) setToggleFailure(field);
-    } catch { setToggleFailure(field); }
-    finally { togglePendingRef.current = null; setTogglePending(null); }
+    if (pendingMutation.current || readingAvatar || current.status !== 'ready' || !current.writable) return;
+    const value = current.value?.[field] ?? DEFAULTS[field];
+    if (typeof value !== 'boolean') return;
+    setToggleFailure('');
+    const accepted = await mutate(field, [{ op: 'set', path: [field], value: !value }], current, origin);
+    if (alive.current && !accepted) setToggleFailure(field);
   }
-  function finishNicknameEdit() { returnNicknameFocus.current = true; setEditingNickname(false); }
-  function cancelNicknameEdit() {
-    const previous = draftRef.current;
-    if (previous !== null) {
-      const currentProfile = profileValues(form.getSnapshot().value);
-      const restored = { ...previous, nickname: nicknameBeforeEdit.current };
-      if (PROFILE_FIELDS.every(field => restored[field] === currentProfile[field])) {
-        draftRef.current = null; profileBase.current = null; setDraft(null);
-      } else { draftRef.current = restored; setDraft(restored); }
-    }
-    finishNicknameEdit();
-  }
-  function preserveActionFocus(event) {
-    const origin = event.currentTarget;
-    if (origin.ownerDocument.activeElement === origin) returnActionFocus.current = origin;
-  }
-  async function save(event) {
+  async function persistAvatar(value, base, origin) {
     const current = form.getSnapshot();
-    const currentDraft = draftRef.current;
-    if (!writable || !resolved || currentDraft === null || conflicted || avatarRequest.current !== null ||
-        togglePendingRef.current !== null || current.status !== 'ready' || !current.writable ||
-        !sameProfile(profileBase.current, profileValues(current.value))) return;
-    preserveActionFocus(event);
-    setSaving(true); setError('');
-    try {
-      const latest = form.getSnapshot();
-      if (latest.status !== 'ready' || !latest.writable || !sameProfile(profileBase.current, profileValues(latest.value))) return;
-      const latestProfile = profileValues(latest.value);
-      const changed = new Set(PROFILE_FIELDS.filter(field => currentDraft[field] !== latestProfile[field]));
-      // 两个头像字段共同定义来源，必须在同一事务中写；其余继承值不物化。
-      if (changed.has('avatar') || changed.has('useAccountAvatar')) { changed.add('avatar'); changed.add('useAccountAvatar'); }
-      if (!changed.size) { draftRef.current = null; profileBase.current = null; setDraft(null); return; }
-      const accepted = await form.mutate([...changed].map(field => ({ op: 'set', path: [field], value: currentDraft[field] })), latest.revision);
-      if (accepted) { draftRef.current = null; profileBase.current = null; setDraft(null); setEditingNickname(false); setAvatarOptionsOpen(false); } else setError('saveFailed');
-    } catch { setError('saveFailed'); }
-    finally { setSaving(false); }
+    if (pendingMutation.current || current.status !== 'ready' || !current.writable) return;
+    setAvatarError(''); setAvatarRetry(null);
+    if (!sameAvatar(base, avatarValues(current.value))) { setAvatarError('avatarConflict'); return; }
+    if (sameAvatar(value, base)) return;
+    const accepted = await mutate('avatar', ['avatar', 'useAccountAvatar'].map(field => ({ op: 'set', path: [field], value: value[field] })), current, origin);
+    if (alive.current && !accepted) { setAvatarError('avatarSaveFailed'); setAvatarRetry({ value, base }); }
+  }
+  function chooseSource(source, origin) {
+    const current = form.getSnapshot();
+    if (pendingMutation.current || current.status !== 'ready' || !current.writable) return;
+    cancelAvatarRead(); setAvatarRetry(null); setAvatarError('');
+    if (source === 'local') { fileInput.current?.click(); return; }
+    const base = avatarValues(current.value);
+    void persistAvatar(source === 'account' ? { ...base, useAccountAvatar: true } : { avatar: '', useAccountAvatar: false }, base, origin);
   }
   async function chooseAvatar(event) {
     const file = event.target.files?.[0]; event.target.value = '';
-    if (!file || !writable) return;
-    cancelAvatarRead();
-    const request = ++pendingFile.current;
-    avatarRequest.current = request; setReadingAvatar(true); setError('');
+    const current = form.getSnapshot();
+    if (!file || pendingMutation.current || current.status !== 'ready' || !current.writable) return;
+    cancelAvatarRead(); const request = ++fileSequence.current, base = avatarValues(current.value);
+    setReadingAvatar(true); setAvatarRetry(null); setAvatarError('');
     try {
       if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > MAX_AVATAR_CHARS * 3 / 4) throw new Error('avatar');
       const data = await new Promise((resolve, reject) => {
         const reader = new FileReader(); avatarReader.current = reader;
         reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.onabort = reject; reader.readAsDataURL(file);
       });
-      if (request !== pendingFile.current) return;
-      avatarReader.current = null;
-      // 图片验证不依赖尚未完成的昵称草稿。
-      resolvePreferences({ avatar: data });
+      if (!alive.current || request !== fileSequence.current) return;
+      avatarReader.current = null; resolvePreferences({ avatar: data });
       const image = new Image(); image.src = data; await image.decode();
-      if (request === pendingFile.current) editChanges({ avatar: data, useAccountAvatar: false });
-    } catch { if (request === pendingFile.current) setError('avatarFailed'); }
-    finally {
-      if (request === pendingFile.current) { avatarRequest.current = null; avatarReader.current = null; setReadingAvatar(false); }
-    }
+      if (alive.current && request === fileSequence.current) await persistAvatar({ avatar: data, useAccountAvatar: false }, base, null);
+    } catch { if (alive.current && request === fileSequence.current) setAvatarError('avatarFailed'); }
+    finally { if (alive.current && request === fileSequence.current) { avatarReader.current = null; setReadingAvatar(false); } }
+  }
+  function toggleRow(field, hint) {
+    return <ToggleRow label={t(field)} hint={t(hint)} checked={snapshot.value?.[field] ?? DEFAULTS[field]} disabled={!writable || readingAvatar} pending={mutation === field} error={toggleFailure === field ? t('toggleFailed') : ''} onChange={origin => toggle(field, origin)} />;
   }
   return <section className="pdsh-settings" data-pdsh-settings>
     {snapshot.status === 'loading' && <p role="status">{t('loading')}</p>}
     {snapshot.status === 'unavailable' && <p role="status">{t('unavailable')}</p>}
     {ready && !snapshot.writable && <p role="status">{t('readOnly')}</p>}
     <section className="pdsh-group" role="group" aria-labelledby="pdsh-display-title">
-      <h4 id="pdsh-display-title">{t('displayGroup')}</h4>
-      <ToggleRow field="maskTitles" label={t('maskTitles')} hint={t('titlesHint')} checked={snapshot.value?.maskTitles ?? DEFAULTS.maskTitles} onChange={origin => toggle('maskTitles', origin)} disabled={!writable || togglePending !== null} pending={togglePending === 'maskTitles'} error={toggleFailure === 'maskTitles' ? t('toggleFailed') : ''} returnFocus={toggleFocus} />
+      <h4 id="pdsh-display-title">{t('displayGroup')}</h4>{toggleRow('maskTitles', 'titlesHint')}
     </section>
     <section className="pdsh-group" role="group" aria-labelledby="pdsh-identity-title">
-      <h4 id="pdsh-identity-title">{t('identityGroup')}</h4>
-      <ToggleRow field="maskIdentity" label={t('maskIdentity')} hint={t('identityHint')} checked={snapshot.value?.maskIdentity ?? DEFAULTS.maskIdentity} onChange={origin => toggle('maskIdentity', origin)} disabled={!writable || togglePending !== null} pending={togglePending === 'maskIdentity'} error={toggleFailure === 'maskIdentity' ? t('toggleFailed') : ''} returnFocus={toggleFocus} />
+      <h4 id="pdsh-identity-title">{t('identityGroup')}</h4>{toggleRow('maskIdentity', 'identityHint')}
       <div className="pdsh-identity" aria-label={t('identityPreview')}>
         {avatarSource === 'account' && !accountAvatar
           ? <span className="pdsh-avatar-preview pdsh-avatar-fallback" role="img" aria-label={t('accountAvatar')}><IconUserOutlineMedium /></span>
-          : previewAvatar && <img className="pdsh-avatar-preview" src={avatarSource === 'account' ? accountAvatar : previewAvatar} alt={t(avatarSource === 'account' ? 'accountAvatar' : 'preview')} referrerPolicy="no-referrer" />}
-        <div className="pdsh-copy pdsh-profile-copy"><strong className="pdsh-profile-name">{values.nickname}</strong></div>
-        <Button variant="outline" aria-expanded={avatarOptionsOpen} aria-controls="pdsh-avatar-options" onClick={() => setAvatarOptionsOpen(open => !open)} disabled={!writable}>{t('changeAvatar')}</Button>
+          : preview && <img className="pdsh-avatar-preview" src={avatarSource === 'account' ? accountAvatar : preview} alt={t(avatarSource === 'account' ? 'accountAvatar' : 'preview')} referrerPolicy="no-referrer" />}
+        <div className="pdsh-copy pdsh-profile-copy"><strong className="pdsh-profile-name">{displayedNickname}</strong></div>
+        <div className="pdsh-avatar-actions" role="group" aria-label={t('avatarLabel')} aria-describedby={avatarError || avatarConflict ? 'pdsh-avatar-error' : undefined} aria-busy={readingAvatar || mutation === 'avatar' || undefined}>
+          <Button variant={avatarSource === 'generated' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'generated'} onClick={event => chooseSource('generated', event.currentTarget)} disabled={!writable}>{t('generated')}</Button>
+          <Button variant={avatarSource === 'local' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'local'} title={t('avatarHint')} onClick={event => chooseSource('local', event.currentTarget)} disabled={!writable}>{t('avatar')}</Button>
+          <Button variant={avatarSource === 'account' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'account'} title={t('accountAvatarHint')} onClick={event => chooseSource('account', event.currentTarget)} disabled={!writable}>{t('accountAvatar')}</Button>
+        </div>
       </div>
+      {(avatarError || avatarConflict || readingAvatar) && <div className="pdsh-avatar-feedback" data-pdsh-avatar-feedback>
+        {readingAvatar && <span role="status" className="pdsh-hint" data-pdsh-avatar-loading>{t('avatarLoading')}</span>}
+        {(avatarError || avatarConflict) && <span role="alert" id="pdsh-avatar-error" className="pdsh-error">{t(avatarConflict ? 'avatarConflict' : avatarError)}</span>}
+        {avatarRetry && <Button onClick={event => persistAvatar(avatarRetry.value, avatarRetry.base, event.currentTarget)} disabled={!writable || avatarConflict}>{t('retryAvatar')}</Button>}
+      </div>}
       <div className="pdsh-detail-row" ref={nicknameRow}>
         <span className="pdsh-label" id="pdsh-nickname-label">{t('nickname')}</span>
-        {editingNickname ? <div className="pdsh-field pdsh-nickname-editor"><div className="pdsh-inline-editor">
-          <Input id="pdsh-nickname" aria-labelledby="pdsh-nickname-label" aria-invalid={nicknameInvalid} aria-describedby={nicknameInvalid ? 'pdsh-invalid' : undefined} autoFocus value={values.nickname} maxLength={MAX_NAME_CHARS} onChange={event => edit('nickname', event.target.value)} onKeyDown={event => {
+        {nicknameDraft !== null ? <div className="pdsh-field pdsh-nickname-editor"><div className="pdsh-inline-editor">
+          <Input id="pdsh-nickname" aria-labelledby="pdsh-nickname-label" aria-invalid={nicknameInvalid} aria-describedby={nicknameInvalid || nicknameConflict || nicknameError ? 'pdsh-nickname-error' : undefined} autoFocus value={nicknameDraft} maxLength={MAX_NAME_CHARS} onChange={event => { setNicknameDraft(event.target.value); setNicknameError(''); }} onKeyDown={event => {
             if (event.nativeEvent.isComposing) return;
-            if (event.key === 'Enter') { event.preventDefault(); if (!nicknameInvalid) finishNicknameEdit(); }
-            if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); cancelNicknameEdit(); }
+            if (event.key === 'Enter') { event.preventDefault(); void confirmNickname(event.currentTarget); }
+            if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); cancelNickname(event.currentTarget); }
           }} disabled={!writable} />
-          <Button className="pdsh-nickname-action" variant="ghost" aria-label={t('doneEditing')} title={t('doneEditing')} onClick={finishNicknameEdit} disabled={!writable || nicknameInvalid}><IconCheckOutlineRegular /></Button>
-        </div>{nicknameInvalid && <p role="alert" id="pdsh-invalid" className="pdsh-error">{t('invalidNickname')}</p>}</div>
-          : <div className="pdsh-value-action"><span>{values.nickname}</span><Button className="pdsh-nickname-action" variant="ghost" aria-label={`${t('editNickname')}: ${values.nickname}`} title={t('editNickname')} onClick={() => { nicknameBeforeEdit.current = values.nickname; setEditingNickname(true); }} disabled={!writable}><IconEditOutlineRegular /></Button></div>}
-      </div>
-      <div className="pdsh-detail-row">
-        <span className="pdsh-label">{t('avatarLabel')}</span><span className="pdsh-source-value">{t(`source.${avatarSource}`)}</span>
-      </div>
-      <div className="pdsh-avatar-options" id="pdsh-avatar-options" hidden={!avatarOptionsOpen}>
-        <div className="pdsh-actions" role="group" aria-label={t('avatarLabel')}>
-          <Button variant={avatarSource === 'generated' ? "outline" : "ghost"} aria-pressed={avatarSource === 'generated'} onClick={() => { cancelAvatarRead(); editChanges({ avatar: '', useAccountAvatar: false }); }} disabled={!writable}>{t('generated')}</Button>
-          <Button variant={avatarSource === 'local' ? "outline" : "ghost"} aria-pressed={avatarSource === 'local'} onClick={() => { cancelAvatarRead(); fileInput.current?.click(); }} disabled={!writable}>{t('avatar')}</Button>
-          <Button variant={avatarSource === 'account' ? "outline" : "ghost"} aria-pressed={avatarSource === 'account'} onClick={() => { cancelAvatarRead(); edit('useAccountAvatar', true); }} disabled={!writable}>{t('accountAvatar')}</Button>
-        </div>
-        <p className="pdsh-hint">{t(avatarSource === 'account' ? 'accountAvatarHint' : 'avatarHint')}</p>
+          <Button className="pdsh-nickname-action" variant="ghost" aria-label={t('doneEditing')} title={t('doneEditing')} onClick={event => confirmNickname(event.currentTarget)} disabled={!writable || nicknameInvalid || nicknameConflict || readingAvatar}><IconCheckOutlineRegular /></Button>
+        </div>{(nicknameInvalid || nicknameConflict || nicknameError) && <p role="alert" id="pdsh-nickname-error" className="pdsh-error">{t(nicknameInvalid ? 'invalidNickname' : nicknameConflict ? 'nicknameConflict' : nicknameError)}</p>}</div>
+          : <div className="pdsh-value-action"><span>{acceptedNickname}</span><Button className="pdsh-nickname-action" variant="ghost" aria-label={`${t('editNickname')}: ${acceptedNickname}`} title={t('editNickname')} onClick={beginNickname} disabled={!writable}><IconEditOutlineRegular /></Button></div>}
       </div>
       <input ref={fileInput} id="pdsh-avatar-file" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseAvatar} disabled={!writable} hidden aria-label={t('avatar')} />
-      {readingAvatar && <p role="status" className="pdsh-hint" data-pdsh-avatar-loading>{t('avatarLoading')}</p>}
-      {error === 'avatarFailed' && <p role="alert" className="pdsh-error">{t(error)}</p>}
       {['signed-out', 'unsupported'].includes(status) && <p role="status" className="pdsh-hint">{t(`status.${status}`)}</p>}
-      {!saving && conflicted && <p role="alert" className="pdsh-error">{t('saveConflict')}</p>}
-      {error && error !== 'avatarFailed' && !conflicted && <p role="alert" className="pdsh-error">{t(error)}</p>}
-      {draft !== null && !resolved && !(editingNickname && nicknameInvalid) && <p role="alert" className="pdsh-error">{t('invalid')}</p>}
-      <footer className="pdsh-footer"><div className="pdsh-actions">
-        <Button variant="primary" onClick={save} disabled={!writable || draft === null || !resolved || conflicted || readingAvatar || togglePending !== null}>{t(saving ? 'saving' : 'save')}</Button>
-        <Button onClick={event => { preserveActionFocus(event); cancelAvatarRead(); draftRef.current = null; profileBase.current = null; setDraft(null); setError(''); setEditingNickname(false); setAvatarOptionsOpen(false); }} disabled={saving || (draft === null && !readingAvatar)}>{t(conflicted ? 'reloadDiscard' : 'discard')}</Button>
-      </div>{draft !== null && <span className="pdsh-hint" role="status">{t('unsaved')}</span>}</footer>
     </section>
   </section>;
 }

@@ -33,3 +33,17 @@ test('运行文案两种语言键一致，语言提示使用宿主设置而非�
   assert.doesNotMatch(card, /t\('languageHint'\)/, '语言跟随宿主，不重复展示使用说明');
   assert.doesNotMatch(card, /localStorage|setLocale|localePreference/);
 });
+
+test('插件列表图标走官方manifest离线图片入口，复用帽子图形且包含于包', () => {
+  assert.equal(manifest.icon, './plugin-icon.svg');
+  assert.ok(manifest.files.includes('plugin-icon.svg'));
+  const glyph = readFileSync(new URL('./entry-icon.svg', import.meta.url), 'utf8');
+  const icon = readFileSync(new URL(manifest.icon, import.meta.url), 'utf8');
+  const shapes = text => [...text.matchAll(/<(?:path|circle)\b[^>]*>/g)].map(match => match[0]);
+  assert.deepEqual(shapes(icon), shapes(glyph));
+  assert.doesNotMatch(icon, /<script|<foreignObject|href=|currentColor|var\(/i, '官方img不继承宿主变量，不请求外部资源');
+  const palette = JSON.parse(readFileSync(new URL('./style-sources.json', import.meta.url), 'utf8')).artwork;
+  assert.ok(palette.file && palette.foreground.variable && palette.background.variable);
+  assert.ok(icon.includes(palette.foreground.value)); assert.ok(icon.includes(palette.background.value));
+  assert.ok(Buffer.byteLength(icon) < 256 * 1024);
+});

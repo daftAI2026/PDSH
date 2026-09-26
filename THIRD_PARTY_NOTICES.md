@@ -24,9 +24,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-## Search entry artwork
+## Search entry and plugin metadata artwork
 
-The hat-glasses paths are reused from InCodex assets/hat-glasses.svg, derived from [Lucide](https://github.com/lucide-icons/lucide/blob/main/icons/hat-glasses.svg). InCodex's artwork stroke is retained; layout dimensions come from the native Harness search icon.
+The hat-glasses paths are reused from InCodex assets/hat-glasses.svg, derived from [Lucide](https://github.com/lucide-icons/lucide/blob/main/icons/hat-glasses.svg). InCodex's artwork stroke is retained; layout dimensions come from the native Harness search icon. The generated plugin-icon.svg reuses the same geometry with a self-contained background for the official metadata image.
 
 Copyright (c) 2026 daftAI2026 and Incodex contributors. InCodex's MIT notice uses the same permission and warranty terms reproduced above.
 
