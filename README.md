@@ -9,7 +9,7 @@
 
 DeepSeek Harness 的同窗口显示增强插件，沿用 InCodex 的早期显示体验。
 
-> **早期 MVP，仅改变显示。** 不提供隐私会话、历史清除、日志保护或账户隔离。已登录 Desktop 的昵称/头像效果尚待实机验收；不要据此录制敏感账户或对话。
+> **早期 MVP，仅改变显示。** 不提供隐私会话、历史清除、日志保护或账户隔离，也尚未提供搜索旁的入口。已观察到 rc.2 展开侧栏的昵称/头像替换，完整 Desktop 生命周期仍待验收；不要据此录制敏感账户或对话。
 
 ## 功能
 
@@ -81,7 +81,8 @@ dsh plugin --profile <你的profile> add /absolute/path/to/daftai-pdsh-<version>
 - 本地 13 项回归：Config 验证、纯偏好、lazy factory、DOM 覆盖/恢复、消息 selector、样式来源与停用生命周期。
 - 确切 rc.2 提取 runtime 的独立 Web profile：mvp.3 的插件设置、保存/重启恢复、停用/启用，以及离线种子经原生消息组件呈现的浅色/深色灰框通过。
 - 本轮 mvp.4：独立 profile 的本地目录安装/有效配置，以及 GitHub URL 的 CLI 安装通过；真实 Web 插件页也已完成填 URL → 安装 → 立即启用 → 打开设置，版本/默认设置/显示资源均正确。
-- **未验**：真实已登录 Electron Desktop 的昵称/头像、流式长对话、跨版本兼容。未修改主 Desktop profile 或 App 签名。
+- 用户安装的 mvp.4 / rc.2 Desktop：实际展开侧栏已显示配置的演示昵称与头像，设置页状态为“当前侧栏身份已替换显示”。这是当前窗口的视觉检查，不替代完整生命周期验收。
+- **未验**：真实 Desktop 的收起/重挂/停用恢复、流式长对话、跨版本兼容。本轮检查未修改主 Desktop profile 或 App 签名。
 
 ## npm 发布状态
 
@@ -96,6 +97,12 @@ pnpm run bundle
 ```
 
 修改源码后必须重建并同时提交 `client.js` 与 `client.js.map`；Git/本地目录安装依赖这两个预构建文件。React 和官方 UI primitives 是宿主外部模块，不复制宿主，不嵌入第二套 React。
+
+### 一个包，按职责组合组件
+
+安装包、Cordis 插件条目和 React 组件不是同一层。当前一个 PDSH 包、一个 Host 条目组合配置模型、Client 生命周期、设置组件和身份显示适配器；插件页显示“包含 1 个组件”，不表示包内只能有一项功能或一个 React 组件。
+
+先按职责拆文件，只有需要独立启停或独立服务依赖时才增加运行时插件条目。官方也建议不要提前拆分独立包，见[能力分层](https://deepseek-harness.github.io/deepseek-harness/en/develop/practice/)与[组合和生命周期](https://deepseek-harness.github.io/deepseek-harness/en/develop/cordis-tutorial/06-composition-and-hmr)。
 
 ## 许可
 

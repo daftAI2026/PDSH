@@ -50,6 +50,14 @@ Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatG
 
 No additional module directory exists yet. Add one only when a verified boundary needs it; do not create a full InCodex-style CLI/install/signing tree up front.
 
+## Component composition
+
+- Distinguish three boundaries: an installable bundle, a Cordis runtime plugin entry, and a React component. The plugin page's component count describes runtime entries, not the number of React components or features in the bundle.
+- Keep the current single bundle/Host entry. `index.js` owns the configuration contract, `model.js` owns pure validation, `client-entry.jsx` owns assembly and resource lifetime, `settings-card.jsx` owns the staged form, and `presentation.js` owns the account DOM adapter. Message outlines stay in the small stylesheet until they require their own behavior.
+- Split a UI component when it owns meaningful rendering or interaction; split a controller when it owns an independent effect and disposer. Do not create a Cordis plugin per button, a second settings store, or speculative service/provider packages. Use separate runtime entries only for independently enabled capabilities or actual service dependencies.
+- A search-adjacent entry is not implemented in the current MVP. Treat it separately from account presentation: the rc.2 workspace header has no supported child slot. Prefer a supported additive slot when placement is flexible; exact adjacency requires an explicitly documented version-specific adapter or an upstream slot. Never replace/copy the full browser merely to add one button, or label a display-only entry as an active private session.
+- Every future entry must retain native search behavior, trace its visual dependencies to upstream providers, and dispose only its own nodes/registrations. Test sidebar fold state, search expansion, remount and bundle disable before claiming Desktop compatibility.
+
 ## Workflow and safety
 
 1. For plugin mechanics, read the [official first-plugin guide](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/) and [bundle/install guide](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish) for the target version. `dsh plugin add` installs a bundle; it is not a project generator.
