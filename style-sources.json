@@ -111,11 +111,6 @@
       "file": "packages/client/ui-theme/src/styles/base.css"
     },
     {
-      "role": "display identity preview surface",
-      "variable": "--dsw-alias-bg-layer-3",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css"
-    },
-    {
       "role": "settings validation error",
       "variable": "--dsw-alias-state-error-primary",
       "file": "packages/client/ui-theme/src/styles/design-platform.css"
@@ -123,11 +118,6 @@
     {
       "role": "settings card corner",
       "variable": "--dsw-radius-xl",
-      "file": "packages/client/ui-theme/src/styles/base.css"
-    },
-    {
-      "role": "display identity preview corner",
-      "variable": "--dsw-radius-md",
       "file": "packages/client/ui-theme/src/styles/base.css"
     },
     {
@@ -153,6 +143,19 @@
       "selector": ".head",
       "property": "gap",
       "acquisition": "渲染官方 SettingsValueField；读取 root/head 的 computed style，无布局数字 fallback"
+    },
+    {
+      "role": "search left adjacency",
+      "file": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.module.css",
+      "selector": ".sectionHeader / .searchSlot",
+      "property": "margin-left",
+      "acquisition": "自有按钮使用 auto 承担右对齐留白，仅在可见且直接邻接时将原生 slot margin-left 覆盖为 0；不改节点或 inline style。隐藏/样式卸载自动还原，间距仍来自原生 header gap。"
+    },
+    {
+      "role": "horizontal display identity editor",
+      "file": "packages/client/ui-settings-account/src/client/AccountSection.module.css",
+      "selector": ".identity / .identityCopy / .avatar",
+      "acquisition": "参照原生横向头像与资料布局；复用既有 Input 高度及 SettingsValueField gap，不复制该 CSS 的数字或账户数据。昵称字段替代重复预览，原生按钮提供头像编辑动作。"
     }
   ]
 }

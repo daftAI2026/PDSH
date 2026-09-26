@@ -77,7 +77,9 @@ dsh plugin --profile <你的profile> add /absolute/path/to/daftai-pdsh-<version>
 
 目标版本为 **DeepSeek Harness 0.1.7-rc.2**。账号显示适配只识别该版本中唯一、已登录、结构明确的 sidebar launcher；未登录“更多”入口、未知或多重结构不替换，设置页会显示原因。
 
-搜索入口是 **rc.2 版本相关 DOM 适配**，不是官方搜索子 slot；它只读取原生按钮的实时 class/图标尺寸并追加自有节点，不复制或替换整个工作区浏览器。未知或多重结构跳过挂载。展开侧栏紧贴搜索右侧，收起侧栏在搜索上方。
+搜索入口是 **rc.2 版本相关 DOM 适配**，不是官方搜索子 slot；它读取原生按钮的实时 class/图标尺寸并追加自有节点；可见时只通过邻接样式将原生 searchSlot 的自动留白交给自有按钮，隐藏或卸载后原生对齐规则自动恢复，不复制或替换整个工作区浏览器。未知或多重结构跳过挂载。展开侧栏紧贴搜索左侧，收起侧栏在搜索上方。
+
+身份编辑参照宿主账号横向资料行：头像在左、昵称输入在右，头像操作紧随其后；不再重复展示独立昵称预览。
 
 设置字号直接引用宿主 `--dsw-font-*`，间距/边线/头像尺寸从原生 `SettingsValueField` 和 `Input` 读取，不写数字 fallback。
 
@@ -85,7 +87,7 @@ dsh plugin --profile <你的profile> add /absolute/path/to/daftai-pdsh-<version>
 
 ## 验证状态
 
-- 本地 22 项回归：Config 验证、纯偏好、zh/en 字典和包文本、lazy factory、DOM 覆盖/恢复、搜索邻接与重挂、草稿/原子保存、消息 selector、样式来源与停用生命周期。
+- 本地 24 项回归：Config 验证、纯偏好、zh/en 字典和包文本、lazy factory、DOM 覆盖/恢复、搜索邻接与重挂、草稿/原子保存、消息 selector、样式来源与停用生命周期。
 - mvp.5 / 确切 rc.2 runtime 的独立 Web profile：原生入口导航、搜索让位、分组设置，中英文/浅深色/宽窄窗口实绘检查；不等同用户 Desktop 已加载新版本。
 - 确切 rc.2 提取 runtime 的独立 Web profile：mvp.3 的插件设置、保存/重启恢复、停用/启用，以及离线种子经原生消息组件呈现的浅色/深色灰框通过。
 - 本轮 mvp.4：独立 profile 的本地目录安装/有效配置，以及 GitHub URL 的 CLI 安装通过；真实 Web 插件页也已完成填 URL → 安装 → 立即启用 → 打开设置，版本/默认设置/显示资源均正确。
@@ -116,7 +118,7 @@ GitHub 来源可以通过官方“插件 → 添加插件”覆盖安装，填�
 github:daftAI2026/PDSH#<新的完整commit-sha>
 ```
 
-先保存现有草稿；等待安装成功及“需要重启”提示，再在没有进行中任务时正常退出并重新打开 Harness。插件详情版本应变为目标 `0.1.0-mvp.6`。只刷新网页或关闭再开启插件不证明新 JavaScript 已加载。
+先保存现有草稿；等待安装成功及“需要重启”提示，再在没有进行中任务时正常退出并重新打开 Harness。插件详情版本应变为目标 `0.1.0-mvp.7`。只刷新网页或关闭再开启插件不证明新 JavaScript 已加载。
 
 这里刻意固定新 commit，让 pnpm 的依赖记录确实变化；重复同一 Git 地址/commit 不等于查询并升级最新代码。官方管理器复用同一包的配置，PDSH 本轮未改变设置 schema，不要求清空缓存或账户。Desktop profile 由 Electron 独占管理，不用外部 `dsh plugin --profile desktop` 强行修改。
 
@@ -139,6 +141,8 @@ pnpm run bundle
 修改源码后必须重建并同时提交 `client.js` 与 `client.js.map`；Git/本地目录安装依赖这两个预构建文件。React 和官方 UI primitives 是宿主外部模块，不复制宿主，不嵌入第二套 React。
 
 ### 一个包，按职责组合组件
+
+插件页的 `pdsh` 是 Cordis 运行时条目 ID，`@daftai/pdsh` 是 npm 安装包/模块名；是同一个插件的技术标识，不是重复安装。这两个字段由官方插件页呈现，不通过 DOM 遮盖管理信息。
 
 安装包、Cordis 插件条目和 React 组件不是同一层。当前一个 PDSH 包、一个 Host 条目组合配置模型、Client 生命周期、设置组件和身份显示适配器；插件页显示“包含 1 个组件”，不表示包内只能有一项功能或一个 React 组件。
 

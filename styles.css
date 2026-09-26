@@ -19,14 +19,14 @@ body[data-pdsh-frames] [data-slot="conversation.view"] :is([data-chat-flow-kind=
 .pdsh-settings { display: flex; flex-direction: column; gap: var(--pdsh-section-inset); font: var(--dsw-font-xs-13); color: var(--dsw-alias-label-primary); }
 .pdsh-settings :is(p, h4) { margin: 0; }
 .pdsh-group { display: flex; flex-direction: column; gap: var(--pdsh-section-inset); padding: var(--pdsh-section-inset); border: var(--pdsh-outline-width) solid var(--dsw-alias-settings-card-stroke); border-radius: var(--dsw-radius-xl); background: var(--dsw-alias-settings-card-fill); }
-.pdsh-group h4, .pdsh-preview-name { font: var(--dsw-font-s-strong-14); }
+.pdsh-group h4 { font: var(--dsw-font-s-strong-14); }
 .pdsh-hint { font: var(--dsw-font-xxs-12); color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
 .pdsh-label { font: var(--dsw-font-xs-strong-13); }
 .pdsh-copy, .pdsh-field { display: flex; flex-direction: column; gap: var(--pdsh-field-gap); min-width: 0; }
 .pdsh-row { display: flex; align-items: center; justify-content: space-between; gap: var(--pdsh-action-gap); }
 .pdsh-row > :last-child { flex: none; }
-.pdsh-identity { display: flex; align-items: center; gap: var(--pdsh-action-gap); padding: var(--pdsh-section-inset); border-radius: var(--dsw-radius-md); background: var(--dsw-alias-bg-layer-3); }
-.pdsh-preview-name { overflow-wrap: anywhere; }
+.pdsh-identity { display: flex; align-items: center; gap: var(--pdsh-action-gap); }
+.pdsh-identity > .pdsh-field { flex: 1; }
 .pdsh-avatar-preview { flex: none; border-radius: var(--dsw-radius-sm); width: var(--pdsh-control-size); height: var(--pdsh-control-size); }
 .pdsh-actions, .pdsh-footer { display: flex; align-items: center; flex-wrap: wrap; gap: var(--pdsh-action-gap); }
 .pdsh-footer { justify-content: space-between; }
@@ -34,3 +34,6 @@ body[data-pdsh-frames] [data-slot="conversation.view"] :is([data-chat-flow-kind=
 [data-pdsh-search-entry] { color: var(--dsw-alias-label-secondary); }
 [data-pdsh-search-entry="rail"] { color: var(--dsw-alias-label-primary); }
 [data-pdsh-search-entry][hidden] { display: none !important; }
+/* +--- 原生 searchSlot 的自动留白迁至自有左侧入口；隐藏/卸载后规则自动失效 ---+ */
+[data-pdsh-search-entry="wide"] { margin-left: auto; flex: none; }
+[data-pdsh-search-entry="wide"]:not([hidden]) + div { margin-left: 0; }

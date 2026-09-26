@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 rc.2 sidebar.workspaces 的原生搜索结构、实时 class/图标尺寸及调用方的导航/翻译。
- * [OUTPUT]: 提供可撤回的搜索邻接入口；保留搜索节点，不复制整个区域或写原生状态。
+ * [OUTPUT]: 提供可撤回的搜索邻接入口；保留搜索节点；自有入口承担自动留白，样式卸载还原原生对齐，不写搜索状态。
  * [POS]: PDSH 版本相关 DOM 适配边界；非官方 child slot，与身份显示控制器相互独立。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -55,8 +55,8 @@ export function mountSearchEntry(doc, { icon, label, open }) {
     if (button.hidden !== hidden) button.hidden = hidden;
     if (native.wide) {
       if (shell) { button.remove(); shell.remove(); shell = null; }
-      // searchSlot 的 margin-left:auto 归原生所有；放其后才能真正贴邻，不改该布局规则。
-      if (button.parentElement !== native.parent || button.previousElementSibling !== native.anchor) native.parent.insertBefore(button, native.anchor.nextSibling);
+      // +--- 入口在左：留白由自有按钮承担；邻接 CSS 仅在入口可见时撤去 slot 的自动外边距 ---+
+      if (button.parentElement !== native.parent || button.nextElementSibling !== native.anchor) native.parent.insertBefore(button, native.anchor);
     } else {
       if (!shell) { shell = doc.createElement('div'); shell.setAttribute('data-pdsh-entry-shell', ''); }
       attribute(shell, 'class', native.search.className);

@@ -42,8 +42,11 @@ test('原生控件装配的分组预览不提前保存；失败保留、放弃�
   const button = name => buttons().find(node => node.textContent === name);
   try {
     await act(async () => root.render(React.createElement(module.exports.SettingsCard, { preferencesForm: form, presentation, t: key => key })));
-    assert.equal(doc.querySelectorAll('[role="group"]').length, 2);
-    assert.equal(doc.querySelector('.pdsh-preview-name').textContent, model.DEFAULTS.nickname);
+    assert.equal(doc.querySelectorAll('section[role="group"]').length, 2);
+    const identity = doc.querySelector('.pdsh-identity');
+    assert.ok(identity.querySelector('.pdsh-avatar-preview'));
+    assert.ok(identity.querySelector('#pdsh-nickname'), '头像与昵称编辑属于同一个横向资料行');
+    assert.equal(doc.querySelector('.pdsh-preview-name'), null, '不重复展示一个独立昵称预览');
     assert.equal(doc.querySelector('input[type="file"]').hidden, true);
     assert.equal(doc.querySelector('footer').contains(button('save')), true);
     const input = doc.querySelector('#pdsh-nickname');
@@ -53,7 +56,7 @@ test('原生控件装配的分组预览不提前保存；失败保留、放弃�
       input.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
     });
     assert.equal(writes.length, 0);
-    assert.equal(doc.querySelector('.pdsh-preview-name').textContent, '演示访客');
+    assert.equal(input.value, '演示访客');
     assert.equal(button('save').disabled, false);
     await act(async () => root.render(React.createElement(module.exports.SettingsCard, { preferencesForm: form, presentation, t: key => `en:${key}` })));
     assert.equal(doc.querySelector('label[for="pdsh-nickname"]').textContent, 'en:nickname');

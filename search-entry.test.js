@@ -20,13 +20,14 @@ function setup(html = browser()) {
   return { dom, doc, opened, options };
 }
 
-test('展开态紧接搜索后追加；复用 live class/图标尺寸，不改原生搜索', () => {
+test('展开态紧接搜索左侧追加；复用 live class/图标尺寸，不改原生搜索', () => {
   const { dom, doc, options, opened } = setup(), before = doc.body.outerHTML;
   const native = doc.querySelector('button'), input = doc.querySelector('input');
   let searches = 0; native.addEventListener('click', () => ++searches);
   const entry = mountSearchEntry(doc, options), button = doc.querySelector('[data-pdsh-search-entry]');
   assert.ok(button);
-  assert.equal(button.previousElementSibling, doc.querySelector('.native-search-slot'));
+  assert.equal(button.nextElementSibling, doc.querySelector('.native-search-slot'));
+  assert.equal(doc.querySelector('.native-search-slot').hasAttribute('style'), false);
   assert.equal(button.className, native.className);
   assert.equal(button.querySelector('svg').getAttribute('width'), '14px');
   assert.equal(button.hasAttribute('aria-keyshortcuts'), false);
@@ -84,4 +85,23 @@ test('翻译 refresh 使用同一个入口；外部移除后修复；重复 disp
   button.remove(); await tick(); assert.equal(doc.querySelector('[data-pdsh-search-entry]'), button);
   entry.dispose(); entry.dispose(); await tick(); assert.equal(doc.querySelector('[data-pdsh-search-entry]'), null);
   dom.window.close();
+});
+
+test('左侧入口接管自动留白；搜索展开和卸载恢复原生 slot 对齐', () => {
+  const { dom, doc, options } = setup();
+  const sheet = doc.createElement('style');
+  sheet.textContent = '.native-search-slot { margin-left: auto; }' + readFileSync(new URL('./styles.css', import.meta.url), 'utf8');
+  doc.head.append(sheet);
+  const slot = doc.querySelector('.native-search-slot'), native = doc.querySelector('button[aria-expanded]');
+  const style = node => dom.window.getComputedStyle(node);
+  assert.equal(style(slot).marginLeft, 'auto');
+  const entry = mountSearchEntry(doc, options), button = doc.querySelector('[data-pdsh-search-entry]');
+  assert.equal(style(button).marginLeft, 'auto');
+  assert.equal(style(slot).marginLeft, '0px');
+  native.setAttribute('aria-expanded', 'true'); entry.refresh();
+  assert.equal(button.hidden, true); assert.equal(style(slot).marginLeft, 'auto');
+  native.setAttribute('aria-expanded', 'false'); entry.refresh();
+  assert.equal(style(slot).marginLeft, '0px');
+  entry.dispose(); assert.equal(style(slot).marginLeft, 'auto');
+  assert.equal(slot.hasAttribute('style'), false); dom.window.close();
 });
