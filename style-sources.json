@@ -218,6 +218,14 @@
       "file": "packages/client/ui-primitives/src/icons/index.tsx",
       "selector": "IconCheckOutlineRegular",
       "acquisition": "复用官方check图标与默认尺寸ghost Button，以本地化aria-label/title命名；不造svg或固定图标尺寸。"
+    },
+    {
+      "role": "nickname standalone pencil and confirmation hit target",
+      "variable": "--pdsh-action-size",
+      "file": "packages/client/ui-primitives/src/Button.module.css",
+      "selector": ".md",
+      "property": "height",
+      "acquisition": "独立图标按钮的宽度等于原生Button高度，形成同一方形命中区；昵称为相邻静态span，铅笔/勾都不包进输入wrapper，不照抄平台网页的虚线。"
     }
   ]
 }

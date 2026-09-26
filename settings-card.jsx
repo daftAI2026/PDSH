@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖宿主共享 React/primitives 与 ConfigForm；model.js 限定显示偏好。
- * [OUTPUT]: 提供三字段profile草稿与原子保存、Host单路径即时开关、局部取消和可取消头像读取。
+ * [OUTPUT]: 提供三字段profile草稿与原子保存、独立文本/铅笔/确认勾、Host单路径即时开关、局部取消和可取消头像读取。
  * [POS]: PDSH 交互层；Host 是唯一持久化源，profile冲突不自动合并，开关不污染草稿，迟到图片不复活已取消草稿。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -213,9 +213,9 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
             if (event.key === 'Enter') { event.preventDefault(); if (!nicknameInvalid) finishNicknameEdit(); }
             if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); cancelNicknameEdit(); }
           }} disabled={!writable} />
-          <Button variant="ghost" aria-label={t('doneEditing')} title={t('doneEditing')} onClick={finishNicknameEdit} disabled={!writable || nicknameInvalid}><IconCheckOutlineRegular /></Button>
+          <Button className="pdsh-nickname-action" variant="ghost" aria-label={t('doneEditing')} title={t('doneEditing')} onClick={finishNicknameEdit} disabled={!writable || nicknameInvalid}><IconCheckOutlineRegular /></Button>
         </div>{nicknameInvalid && <p role="alert" id="pdsh-invalid" className="pdsh-error">{t('invalidNickname')}</p>}</div>
-          : <Button className="pdsh-value-action" aria-label={`${t('editNickname')}: ${values.nickname}`} onClick={() => { nicknameBeforeEdit.current = values.nickname; setEditingNickname(true); }} disabled={!writable}><span>{values.nickname}</span><IconEditOutlineRegular /></Button>}
+          : <div className="pdsh-value-action"><span>{values.nickname}</span><Button className="pdsh-nickname-action" variant="ghost" aria-label={`${t('editNickname')}: ${values.nickname}`} title={t('editNickname')} onClick={() => { nicknameBeforeEdit.current = values.nickname; setEditingNickname(true); }} disabled={!writable}><IconEditOutlineRegular /></Button></div>}
       </div>
       <div className="pdsh-detail-row">
         <span className="pdsh-label">{t('avatarLabel')}</span><span className="pdsh-source-value">{t(`source.${avatarSource}`)}</span>

@@ -84,6 +84,8 @@ Use the installed build-macos-apps `swiftui-patterns` skill as a desktop-interac
 
 ## Current milestone
 
+mvp.13 separates nickname text from its standalone pencil button; the check is a sibling of the native Input wrapper, never a child inside the field. The two icon actions share the native Button-height square hit target.
+
 mvp.12 separates immediate switches from a three-field identity draft. Save/Discard and profile errors live inside the identity group; no global save is implied. Native Input keeps its intrinsic width rather than filling the row, and the check icon confirms local editing, not account changes. Group gap is zero because fields already own vertical padding; heading, summary and footer each own one spacing layer. Verify geometry before/during/after, normal size and Desktop minimum 520×600 (CDP renderer emulation is not physical window resize).
 
 mvp.11 replaces legacy message outlines/settings navigation with same-window **sidebar workspace/session title grey bars** and the hat toggle. Defaults keep masking off; old `frames` is ignored without rewriting the user's Host document. Search result title/workspace leaves are covered, not snippets. Only safely correlated HoverCard title leaves are covered, not paths, menus, rename inputs, content, clipboard, accessibility text or logs. This is visual redaction, not a fail-closed privacy guarantee.

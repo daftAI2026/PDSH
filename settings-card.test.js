@@ -437,3 +437,18 @@ test('保存等待期间用户主动移走焦点，完成后不能抢回', async
     assert.equal(h.doc.activeElement, elsewhere);
   } finally { await h.close(); }
 });
+
+test('昵称是独立文本，铅笔按钮在文本旁；编辑框外的勾不包进Input', async () => {
+  const h = await mountSettings();
+  try {
+    await h.render();
+    const edit = h.button('editNickname');
+    assert.equal(edit.textContent, '', '铅笔按钮不包裹昵称文字');
+    assert.equal(edit.previousElementSibling.textContent, model.DEFAULTS.nickname);
+    assert.equal(edit.previousElementSibling.tagName, 'SPAN');
+    await act(async () => edit.click());
+    const done = h.button('doneEditing'), input = h.doc.querySelector('#pdsh-nickname');
+    assert.equal(done.previousElementSibling.contains(input), true, '输入控件和确认勾是相邻节点');
+    assert.equal(input.parentElement.contains(done), false, '确认勾不在输入框内部');
+  } finally { await h.close(); }
+});
