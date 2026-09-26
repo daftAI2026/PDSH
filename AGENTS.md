@@ -31,6 +31,7 @@ Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatG
 ## Repository map
 
 - `README.md`: public installation inputs, compatibility and display-only limitations.
+- `PUBLISHING.md`: npm release gates; keep private=true until a deliberate release, then prefer a next channel and OIDC.
 - `LICENSE`: MIT license for PDSH; dependency notices remain separate.
 - `AGENTS.md`: this project contract; follows InCodex's single-guide convention.
 - `CLAUDE.md`: symlink to `AGENTS.md`, not a second document.

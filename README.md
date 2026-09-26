@@ -80,8 +80,12 @@ dsh plugin --profile <你的profile> add /absolute/path/to/daftai-pdsh-<version>
 
 - 本地 13 项回归：Config 验证、纯偏好、lazy factory、DOM 覆盖/恢复、消息 selector、样式来源与停用生命周期。
 - 确切 rc.2 提取 runtime 的独立 Web profile：mvp.3 的插件设置、保存/重启恢复、停用/启用，以及离线种子经原生消息组件呈现的浅色/深色灰框通过。
-- 本轮 mvp.4：本地目录安装与有效配置展开已在独立 profile 通过；GitHub 安装链路尚待验证，完成前不称已通过。
+- 本轮 mvp.4：独立 profile 的本地目录安装/有效配置，以及 GitHub URL 的 CLI 安装通过；真实 Web 插件页也已完成填 URL → 安装 → 立即启用 → 打开设置，版本/默认设置/显示资源均正确。
 - **未验**：真实已登录 Electron Desktop 的昵称/头像、流式长对话、跨版本兼容。未修改主 Desktop profile 或 App 签名。
+
+## npm 发布状态
+
+暂缓 npm 发布，继续保留 `private: true`。包名/scope 权限和目标 Desktop 验收通过后，先按 `next` 预发布，不直接覆盖 `latest`。维护者步骤见 [PUBLISHING.md](PUBLISHING.md)。
 
 ## 开发
 
