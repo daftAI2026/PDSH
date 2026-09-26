@@ -38,3 +38,9 @@ test('可接收本地光栅头像，空头像恢复生成模式', () => {
   assert.equal(resolvePreferences({ avatar }).avatar, avatar);
   assert.match(resolvePreferences({ avatar: '' }).avatar, /^data:image\/svg\+xml/);
 });
+
+test('账号头像选择为独立布尔偏好，不存账户 URL，旧配置默认仍生成或使用本地图片', () => {
+  assert.equal(resolvePreferences({}).useAccountAvatar, false);
+  assert.equal(resolvePreferences({ useAccountAvatar: true }).useAccountAvatar, true);
+  assert.throws(() => resolvePreferences({ useAccountAvatar: 'true' }), /useAccountAvatar/);
+});

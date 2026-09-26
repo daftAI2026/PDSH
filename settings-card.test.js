@@ -20,6 +20,7 @@ test('原生控件装配的分组预览不提前保存；失败保留、放弃�
   const primitives = {
     Input: props => React.createElement('span', {}, React.createElement('input', props)),
     Button: ({ children, variant, ...props }) => React.createElement('button', { type: 'button', ...props }, children),
+    IconUserOutlineMedium: () => React.createElement('svg'),
     Switch: ({ label, checked, onChange, disabled }) => React.createElement('input', { type: 'checkbox', 'aria-label': label, checked, disabled, onChange: event => onChange(event.target.checked) }),
   };
   const module = { exports: {} };
@@ -36,7 +37,7 @@ test('原生控件装配的分组预览不提前保存；失败保留、放弃�
   let snapshot = { status: 'ready', writable: true, revision: 7, value: model.DEFAULTS };
   let accepted = false;
   const form = { getSnapshot: () => snapshot, subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }, async mutate(ops, revision) { writes.push({ ops, revision }); return accepted; } };
-  const presentation = { status: () => 'disabled', subscribe: () => () => {} };
+  const presentation = { accountAvatar: () => 'official.png', status: () => 'disabled', subscribe: () => () => {} };
   const doc = dom.window.document;
   const buttons = () => [...doc.querySelectorAll('button')];
   const button = name => buttons().find(node => node.textContent === name);
@@ -57,6 +58,10 @@ test('原生控件装配的分组预览不提前保存；失败保留、放弃�
     });
     assert.equal(writes.length, 0);
     assert.equal(input.value, '演示访客');
+    await act(async () => button('accountAvatar').click());
+    assert.equal(button('accountAvatar').getAttribute('aria-pressed'), 'true');
+    assert.equal(doc.querySelector('.pdsh-avatar-preview').getAttribute('src'), 'official.png');
+    assert.equal(writes.length, 0, '选择原始头像也必须先保存');
     assert.equal(button('save').disabled, false);
     await act(async () => root.render(React.createElement(module.exports.SettingsCard, { preferencesForm: form, presentation, t: key => `en:${key}` })));
     assert.equal(doc.querySelector('label[for="pdsh-nickname"]').textContent, 'en:nickname');
@@ -67,6 +72,7 @@ test('原生控件装配的分组预览不提前保存；失败保留、放弃�
     await act(async () => button('save').click());
     assert.equal(writes.length, 1); assert.equal(writes[0].revision, 7);
     assert.equal(writes[0].ops.find(op => op.path[0] === 'nickname').value, '演示访客');
+    assert.equal(writes[0].ops.find(op => op.path[0] === 'useAccountAvatar').value, true);
     assert.equal(input.value, '演示访客'); assert.equal(doc.querySelector('[role="alert"]').textContent, 'saveFailed');
     await act(async () => button('discard').click());
     assert.equal(input.value, model.DEFAULTS.nickname); assert.equal(button('save').disabled, true);

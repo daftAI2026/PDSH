@@ -28,6 +28,7 @@ body[data-pdsh-frames] [data-slot="conversation.view"] :is([data-chat-flow-kind=
 .pdsh-identity { display: flex; align-items: center; gap: var(--pdsh-action-gap); }
 .pdsh-identity > .pdsh-field { flex: 1; }
 .pdsh-avatar-preview { flex: none; border-radius: var(--dsw-radius-sm); width: var(--pdsh-control-size); height: var(--pdsh-control-size); }
+.pdsh-avatar-fallback { display: flex; align-items: center; justify-content: center; }
 .pdsh-actions, .pdsh-footer { display: flex; align-items: center; flex-wrap: wrap; gap: var(--pdsh-action-gap); }
 .pdsh-footer { justify-content: space-between; }
 .pdsh-error { color: var(--dsw-alias-state-error-primary); }

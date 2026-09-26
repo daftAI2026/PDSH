@@ -73,3 +73,33 @@ test('收起侧栏没有昵称，仍保留原生头像尺寸容器', () => {
   assert.equal(button.querySelector('[data-pdsh-avatar-image]').parentElement.className, 'native-avatar');
   controller.dispose(); dom.window.close();
 });
+
+test('账号头像模式不创建覆盖图，昵称仍独立；来源切换与宿主图片更新不写账户', async () => {
+  const { dom, doc, button } = fixture();
+  const original = button.querySelector('.native-avatar > img');
+  const controller = mountPresentation(doc);
+  controller.update(resolvePreferences({ maskIdentity: true, useAccountAvatar: true, nickname: '别名' }));
+  assert.equal(button.querySelector('[data-pdsh-avatar-image]'), null);
+  assert.equal(button.querySelector('[data-pdsh-avatar]'), null);
+  assert.equal(button.querySelector('[data-pdsh-name]').textContent, '别名');
+  assert.equal(controller.accountAvatar(), 'official.png');
+  controller.update(resolvePreferences({ maskIdentity: true, useAccountAvatar: false }));
+  assert.ok(button.querySelector('[data-pdsh-avatar-image]'));
+  controller.update(resolvePreferences({ maskIdentity: true, useAccountAvatar: true }));
+  assert.equal(button.querySelector('[data-pdsh-avatar-image]'), null);
+  assert.equal(button.querySelector('.native-avatar > img'), original);
+  original.setAttribute('src', 'updated.png');
+  await new Promise(resolve => dom.window.setTimeout(resolve, 0));
+  assert.equal(controller.accountAvatar(), 'updated.png');
+  controller.dispose(); assert.equal(original.getAttribute('src'), 'updated.png'); dom.window.close();
+});
+
+test('畸形账号结构不暴露预览来源，不因适配器失效损坏宿主', () => {
+  const { dom, doc, button } = fixture();
+  button.querySelector('.native-label').remove();
+  const controller = mountPresentation(doc);
+  assert.doesNotThrow(() => controller.update(resolvePreferences({ maskIdentity: true, useAccountAvatar: true })));
+  assert.equal(controller.status(), 'unsupported'); assert.equal(controller.accountAvatar(), '');
+  assert.equal(doc.querySelector('[data-pdsh-name]'), null);
+  controller.dispose(); dom.window.close();
+});

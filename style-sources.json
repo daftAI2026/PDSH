@@ -156,6 +156,11 @@
       "file": "packages/client/ui-settings-account/src/client/AccountSection.module.css",
       "selector": ".identity / .identityCopy / .avatar",
       "acquisition": "参照原生横向头像与资料布局；复用既有 Input 高度及 SettingsValueField gap，不复制该 CSS 的数字或账户数据。昵称字段替代重复预览，原生按钮提供头像编辑动作。"
+    },
+    {
+      "role": "account avatar fallback",
+      "file": "packages/client/ui-settings-account/src/client/AccountAvatar.tsx",
+      "acquisition": "与宿主缺失头像时同用 primitives.IconUserOutlineMedium；仅原生已显示图片作为预览来源，不调用账户服务或持久化账户 URL。"
     }
   ]
 }

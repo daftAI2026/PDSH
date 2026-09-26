@@ -23,3 +23,9 @@ test('Host 拒绝控制字符、空白昵称与远端或 SVG 头像', () => {
   }
   assert.equal(Config({ nickname: '林纳斯', avatar: 'data:image/png;base64,aGVsbG8=' }).nickname.get(), '林纳斯');
 });
+
+test('Host 接收账号头像来源开关，不接受隐式类型转换', () => {
+  assert.equal(Config({}).useAccountAvatar.get(), false);
+  assert.equal(Config({ useAccountAvatar: true }).useAccountAvatar.get(), true);
+  assert.throws(() => Config({ useAccountAvatar: 'true' }));
+});

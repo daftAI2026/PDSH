@@ -19,7 +19,7 @@ The InCodex repository at `../incodex` is the reference for product behavior and
 - UI language follows Harness Settings → General → Language through `ctx.locale`; metadata comes from exported `locale/*.json`. Never translate the user's configured nickname or add a second language store.
 - Use the official Plugins page for settings and the Host settings document for persistence. Save draft fields atomically; do not persist credentials or real account data.
 - Trace every visual rule to the upstream file, selector and variable in `style-sources.json`. Use semantic `--dsw-*` colors/radii, native React primitives, and runtime-computed native stroke geometry. No numeric color/geometry fallback or copied CSS Modules hash.
-- Identity replacement is only a visual overlay on a uniquely recognized rc.2 sidebar launcher. Keep its native button, account nodes, menus and sign-in/out semantics. Do not mask signed-out More, full settings, account data, model payloads or logs. Unknown/multiple identities skip replacement; this is not a fail-closed privacy system.
+- Identity replacement is only a visual overlay (or preserve the native account avatar when explicitly selected) on a uniquely recognized rc.2 sidebar launcher. Keep its native button, account nodes, menus and sign-in/out semantics. Do not mask signed-out More, full settings, account data, model payloads or logs. Unknown/multiple identities skip replacement; this is not a fail-closed privacy system.
 - Aim for an incognito entry in the existing sidebar extension area. The exact search-icon-adjacent location has no supported child slot in the tested build; do not claim it does.
 - Prove an isolated DSH home **and** Electron user-data root before claiming a private window. The app has a single-instance lock; a second independent instance is a hypothesis until tested against the exact build.
 - Never modify or delete the user's primary `~/.dsh` profile, sessions, credentials, or Chromium data while prototyping isolation.
@@ -45,8 +45,8 @@ Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatG
 - `client-entry.jsx`: Client lifecycle, native Input/SettingsValueField geometry probes, configuration projection and `plugins.bundle.config` registration; all display resources follow the Host namespace via `whileServed`.
 - `locales.js`: complete zh/en namespace dictionaries; follow the Host locale service, never create a second language preference.
 - `locale/en.json` / `locale/zh.json`: official offline-discoverable package title/description; exported and shipped even when the plugin is disabled.
-- `settings-card.jsx`: native-token conversation/identity groups, horizontal avatar/nickname editor and atomic revision-fenced save; local avatar selection never uploads.
-- `presentation.js`: current-build DOM adapter and owned-marker cleanup; does not overwrite original account text/images.
+- `settings-card.jsx`: native-token conversation/identity groups, horizontal avatar/nickname editor with generated/local/native-account avatar sources and atomic revision-fenced save; local avatar selection never uploads.
+- `presentation.js`: current-build DOM adapter and owned-marker cleanup; does not overwrite original account text/images. Native avatar previews remain renderer memory only, never configuration or logs.
 - `search-entry.js` / `entry-icon.svg`: version-specific search-adjacent DOM adapter and reused InCodex artwork; opens the official PDSH settings, never creates or claims an isolated session.
 - `styles.css` / `style-sources.json`: minimal presentation rules and the upstream source trail for every rule.
 - `build.mjs`: builds minified production `client.js` / `client.js.map` in the official lazy-CJS module-loader format. React/primitives stay host externals. Commit these prebuilt artifacts for Git/local-directory installs; no install-time prepare/postinstall scripts.

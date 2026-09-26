@@ -1,11 +1,11 @@
 /**
  * [INPUT]: 依赖宿主共享 React/primitives 与 configForms；model.js 限定显示偏好。
- * [OUTPUT]: 提供按对话/身份分组的设置页、横向头像/昵称编辑、本地图片选择与原子保存。
+ * [OUTPUT]: 提供按对话/身份分组的设置页、横向头像/昵称编辑、生成/本地/原生账号头像来源与原子保存。
  * [POS]: PDSH 交互层；布局遵循宿主字号/卡片，未保存草稿不作用于账号，失败或冲突保留草稿。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Input, Switch, Button } from '@deepseek-ai/dsh-client-ui-primitives';
+import { Input, Switch, Button, IconUserOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives';
 import { DEFAULTS, MAX_AVATAR_CHARS, MAX_NAME_CHARS, resolvePreferences } from './model.js';
 
 function ToggleRow({ label, hint, checked, onChange, disabled }) {
@@ -17,6 +17,7 @@ function ToggleRow({ label, hint, checked, onChange, disabled }) {
 export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
   const snapshot = useSyncExternalStore(fn => form.subscribe(fn), () => form.getSnapshot());
   const status = useSyncExternalStore(fn => presentation.subscribe(fn), () => presentation.status());
+  const accountAvatar = useSyncExternalStore(fn => presentation.subscribe(fn), () => presentation.accountAvatar());
   const [draft, setDraft] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -30,10 +31,11 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
   const values = draft ?? snapshot.value ?? DEFAULTS;
   let resolved;
   try { resolved = resolvePreferences(values); } catch { /* 非法草稿只阻止保存。 */ }
-  function edit(field, value) {
+  function editChanges(changes) {
     if (draft === null) revision.current = snapshot.revision;
-    setDraft(previous => ({ ...(previous ?? snapshot.value ?? DEFAULTS), [field]: value })); setError('');
+    setDraft(previous => ({ ...(previous ?? snapshot.value ?? DEFAULTS), ...changes })); setError('');
   }
+  function edit(field, value) { editChanges({ [field]: value }); }
   async function save() {
     if (!writable || !resolved || draft === null) return;
     setSaving(true); setError('');
@@ -54,7 +56,7 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
       });
       resolvePreferences({ ...values, avatar: data });
       const image = new Image(); image.src = data; await image.decode();
-      if (request === pendingFile.current) edit('avatar', data);
+      if (request === pendingFile.current) editChanges({ avatar: data, useAccountAvatar: false });
     } catch { if (request === pendingFile.current) setError(t('avatarFailed')); }
   }
   return <section className="pdsh-settings" data-pdsh-settings>
@@ -70,18 +72,21 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
       <h4 id="pdsh-identity-title">{t('identityGroup')}</h4>
       <ToggleRow label={t('maskIdentity')} hint={t('identityHint')} checked={values.maskIdentity} onChange={value => edit('maskIdentity', value)} disabled={!writable} />
       <div className="pdsh-identity">
-        {resolved && <img className="pdsh-avatar-preview" src={resolved.avatar} alt={t('preview')} />}
+        {values.useAccountAvatar && !accountAvatar
+          ? <span className="pdsh-avatar-preview pdsh-avatar-fallback" role="img" aria-label={t('accountAvatar')}><IconUserOutlineMedium /></span>
+          : resolved && <img className="pdsh-avatar-preview" src={values.useAccountAvatar ? accountAvatar : resolved.avatar} alt={t(values.useAccountAvatar ? 'accountAvatar' : 'preview')} referrerPolicy="no-referrer" />}
         <div className="pdsh-field"><label className="pdsh-label" htmlFor="pdsh-nickname">{t('nickname')}</label>
           <Input id="pdsh-nickname" value={values.nickname} maxLength={MAX_NAME_CHARS} onChange={event => edit('nickname', event.target.value)} disabled={!writable} />
         </div>
       </div>
       <div className="pdsh-field">
         <div className="pdsh-actions" role="group" aria-label={t('avatarLabel')}>
-          <Button variant="outline" onClick={() => fileInput.current?.click()} disabled={!writable}>{t('avatar')}</Button>
-          <Button onClick={() => { ++pendingFile.current; edit('avatar', ''); }} disabled={!writable}>{t('generated')}</Button>
+          <Button variant={values.avatar && !values.useAccountAvatar ? "outline" : "ghost"} aria-pressed={Boolean(values.avatar && !values.useAccountAvatar)} onClick={() => fileInput.current?.click()} disabled={!writable}>{t('avatar')}</Button>
+          <Button variant={!values.avatar && !values.useAccountAvatar ? "outline" : "ghost"} aria-pressed={!values.avatar && !values.useAccountAvatar} onClick={() => { ++pendingFile.current; editChanges({ avatar: '', useAccountAvatar: false }); }} disabled={!writable}>{t('generated')}</Button>
+          <Button variant={values.useAccountAvatar ? "outline" : "ghost"} aria-pressed={values.useAccountAvatar} onClick={() => { ++pendingFile.current; edit('useAccountAvatar', true); }} disabled={!writable}>{t('accountAvatar')}</Button>
           <input ref={fileInput} id="pdsh-avatar-file" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseAvatar} disabled={!writable} hidden aria-label={t('avatar')} />
         </div>
-        <p className="pdsh-hint">{t('avatarHint')}</p>
+        <p className="pdsh-hint">{t(values.useAccountAvatar ? 'accountAvatarHint' : 'avatarHint')}</p>
       </div>
       <p role="status" className="pdsh-hint">{t(`status.${status}`)}</p>
     </section>
