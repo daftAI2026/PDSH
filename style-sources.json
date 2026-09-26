@@ -234,6 +234,11 @@
       "selector": ".field",
       "property": "gap",
       "acquisition": "头像摘要右侧常驻三个原生Button，来源字段和全局footer移除。间隔取原生探针，按钮字号/命中区由Button负责，窄窗自然换行而不裁切。"
+    },
+    {
+      "role": "single capability heading and switch",
+      "file": "packages/client/ui-primitives/src/Switch.tsx",
+      "acquisition": "原生Switch的label只提供无障碍名字；h4为该组唯一可见功能标题，两者沿已有row对齐。标题范围使用原生title悬停提示；不留下空hint节点或标题margin，摘要padding负责下一层间隔。"
     }
   ],
   "artwork": {

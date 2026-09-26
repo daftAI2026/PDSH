@@ -26,8 +26,7 @@
 .pdsh-settings { display: flex; flex-direction: column; gap: var(--pdsh-section-inset); font: var(--dsw-font-xs-13); color: var(--dsw-alias-label-primary); }
 .pdsh-settings :is(p, h4) { margin: 0; }
 .pdsh-group { display: flex; flex-direction: column; gap: 0; padding: var(--pdsh-section-inset); border: var(--pdsh-outline-width) solid var(--dsw-alias-settings-card-stroke); border-radius: var(--dsw-radius-xl); background: var(--dsw-alias-settings-card-fill); }
-/* 字段已有纵向内边距：组不再叠加gap，标题独立留一层间隔。 */
-.pdsh-group > h4 { margin-bottom: var(--pdsh-section-inset); }
+/* 标题与开关共用一行；摘要自带内边距，不再叠加独立标题间隔。 */
 .pdsh-group > p { margin-top: var(--pdsh-field-gap); }
 .pdsh-group h4, .pdsh-profile-name { font: var(--dsw-font-s-strong-14); }
 .pdsh-hint { font: var(--dsw-font-xxs-12); color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }

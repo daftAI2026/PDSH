@@ -85,6 +85,8 @@ Use the installed build-macos-apps `swiftui-patterns` skill as a desktop-interac
 
 ## Current milestone
 
+mvp.16 has one heading per capability, with its native Switch on the same row: 遮挡侧栏标题 / 替换侧栏身份. No duplicated group labels, separate setting labels or local-display disclaimer appear underneath. The host plugin description remains the single introduction; title-mask scope is the Switch title tooltip, not persistent small text. Conditional mutation errors remain local and accessible. The profile summary owns its spacing below the shared heading.
+
 mvp.15 gives the profile name an intrinsic flex basis and caps its width by the native avatar+gap geometry. At narrow widths the action group wraps as a whole before it squeezes the name into a one-character column; long names still share the top row with the avatar.
 
 mvp.14 removes the source row, expander and global Save/Discard. The three native avatar buttons live at the summary right and wrap at narrow widths. Source changes persist immediately; local images persist only after validation/decode, and a canceled picker never changes source. Nickname check/Enter saves only nickname, Escape discards its local draft. Failed writes retain Host-selected state and expose field-local retry. A field-specific baseline plus latest Host revision prevents overwriting external changes. `package.json.icon` uses the generated, shipped hat/glasses artwork through the official metadata interface, even while the bundle is disabled. Older milestone descriptions below are historical, not current interaction contracts.

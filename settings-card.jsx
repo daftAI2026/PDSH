@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖宿主共享 React/primitives 与 ConfigForm；model.js 校验昵称及本地图像。
- * [OUTPUT]: 提供头像三按钮即时原子保存、昵称局部草稿/勾选保存、即时开关与可取消图片读取。
+ * [OUTPUT]: 提供单标题开关、头像三按钮即时原子保存、昵称局部草稿/勾选保存与可取消图片读取。
  * [POS]: PDSH 交互层；Host 接受值拥有来源选中态，字段级基线阻止覆盖外来修改，共用单次写入门。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -14,11 +14,11 @@ function avatarValues(value) {
 function sameAvatar(left, right) {
   return Boolean(left && right && left.avatar === right.avatar && left.useAccountAvatar === right.useAccountAvatar);
 }
-function ToggleRow({ label, hint, checked, disabled, pending, error, onChange }) {
+function ToggleHeading({ id, label, hint, checked, disabled, pending, error, onChange }) {
   const row = useRef(null);
-  return <div className="pdsh-row" ref={row} aria-busy={pending || undefined}><div className="pdsh-copy"><span className="pdsh-label">{label}</span><span className="pdsh-hint">{hint}</span>{error && <span className="pdsh-error" role="alert">{error}</span>}</div>
-    <Switch checked={checked} onChange={() => onChange(row.current?.querySelector('[role="switch"]'))} label={label} disabled={disabled} />
-  </div>;
+  return <><div className="pdsh-row pdsh-group-header" ref={row} aria-busy={pending || undefined}>
+    <h4 id={id}>{label}</h4><Switch checked={checked} onChange={() => onChange(row.current?.querySelector('[role="switch"]'))} label={label} title={hint} disabled={disabled} />
+  </div>{error && <p className="pdsh-error" role="alert">{error}</p>}</>;
 }
 
 export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
@@ -148,18 +148,18 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
     } catch { if (alive.current && request === fileSequence.current) setAvatarError('avatarFailed'); }
     finally { if (alive.current && request === fileSequence.current) { avatarReader.current = null; setReadingAvatar(false); } }
   }
-  function toggleRow(field, hint) {
-    return <ToggleRow label={t(field)} hint={t(hint)} checked={snapshot.value?.[field] ?? DEFAULTS[field]} disabled={!writable || readingAvatar} pending={mutation === field} error={toggleFailure === field ? t('toggleFailed') : ''} onChange={origin => toggle(field, origin)} />;
+  function toggleHeading(field, id, hint) {
+    return <ToggleHeading id={id} label={t(field)} hint={hint ? t(hint) : undefined} checked={snapshot.value?.[field] ?? DEFAULTS[field]} disabled={!writable || readingAvatar} pending={mutation === field} error={toggleFailure === field ? t('toggleFailed') : ''} onChange={origin => toggle(field, origin)} />;
   }
   return <section className="pdsh-settings" data-pdsh-settings>
     {snapshot.status === 'loading' && <p role="status">{t('loading')}</p>}
     {snapshot.status === 'unavailable' && <p role="status">{t('unavailable')}</p>}
     {ready && !snapshot.writable && <p role="status">{t('readOnly')}</p>}
     <section className="pdsh-group" role="group" aria-labelledby="pdsh-display-title">
-      <h4 id="pdsh-display-title">{t('displayGroup')}</h4>{toggleRow('maskTitles', 'titlesHint')}
+      {toggleHeading('maskTitles', 'pdsh-display-title', 'titlesHint')}
     </section>
     <section className="pdsh-group" role="group" aria-labelledby="pdsh-identity-title">
-      <h4 id="pdsh-identity-title">{t('identityGroup')}</h4>{toggleRow('maskIdentity', 'identityHint')}
+      {toggleHeading('maskIdentity', 'pdsh-identity-title')}
       <div className="pdsh-identity" aria-label={t('identityPreview')}>
         {avatarSource === 'account' && !accountAvatar
           ? <span className="pdsh-avatar-preview pdsh-avatar-fallback" role="img" aria-label={t('accountAvatar')}><IconUserOutlineMedium /></span>
