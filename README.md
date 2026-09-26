@@ -85,7 +85,7 @@ dsh plugin --profile <你的profile> add /absolute/path/to/daftai-pdsh-<version>
 
 ## npm 发布状态
 
-暂缓 npm 发布，继续保留 `private: true`。包名/scope 权限和目标 Desktop 验收通过后，先按 `next` 预发布，不直接覆盖 `latest`。维护者步骤见 [PUBLISHING.md](PUBLISHING.md)。
+暂缓 npm 发布，继续保留 `private: true`。包名/scope 权限和目标 Desktop 验收通过后，先按 `next` 预发布，不直接覆盖 `latest`。维护者步骤见 [PUBLISHING.md](https://github.com/daftAI2026/PDSH/blob/main/PUBLISHING.md)。
 
 ## 开发
 
