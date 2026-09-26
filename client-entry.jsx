@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖宿主 slots/locale/configForms/pluginNavigation、共享 React/primitives 的控件几何与展示/入口适配器。
+ * [INPUT]: 依赖slots/locale/configForms、共享原生控件几何与身份/标题/搜索入口控制器。
  * [OUTPUT]: 提供浏览器 apply/inject，设置页、样式探针、搜索邻接入口及可卸载显示增强。
  * [POS]: PDSH Client 装配层；设置/显示/入口共同跟随 Host 服务，搜索适配与身份控制器独立。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -9,13 +9,15 @@ import { createRoot } from 'react-dom/client';
 import { Input, Button, SettingsValueField } from '@deepseek-ai/dsh-client-ui-primitives';
 import { mountPresentation } from './presentation.js';
 import { mountSearchEntry } from './search-entry.js';
+import { mountSidebarRedaction } from './sidebar-redaction.js';
+import { mountTitleToggle } from './title-toggle.js';
 import entryIcon from './entry-icon.svg';
 import { SettingsCard } from './settings-card.jsx';
 import { resolvePreferences } from './model.js';
 import css from './styles.css';
 import { NS, dictionaries } from './locales.js';
 
-export const inject = ['slots', 'locale', 'configForms', 'pluginNavigation'];
+export const inject = ['slots', 'locale', 'configForms'];
 
 function NativeStyleProbe({ doc }) {
   const ref = useRef(null);
@@ -56,18 +58,23 @@ function mountDisplay(ctx, form) {
   const previous = properties.map(key => [key, doc.body.style.getPropertyValue(key)]);
   root.render(<NativeStyleProbe doc={doc} />);
   const presentation = mountPresentation(doc);
+  const titles = mountSidebarRedaction(doc);
   const t = ctx.locale.bind(NS);
-  const entry = mountSearchEntry(doc, {
-    icon: entryIcon, label: () => t('entry'),
-    open: () => ctx.pluginNavigation.openBundle('@daftai/pdsh'),
+  let entry;
+  const toggle = mountTitleToggle(form, () => entry?.refresh());
+  entry = mountSearchEntry(doc, {
+    icon: entryIcon, state: toggle.state,
+    label: () => `${t(toggle.state().pressed ? 'entryOn' : 'entry')}${toggle.state().failed ? ` · ${t('toggleFailed')}` : ''}`,
+    onActivate: toggle.activate,
   });
   const unbindLocale = ctx.locale.subscribe(entry.refresh);
   function synchronize() {
     const snapshot = form.getSnapshot();
     try {
-      presentation.update(resolvePreferences(snapshot.status === 'ready' ? snapshot.value : { frames: false, maskIdentity: false }));
+      const value = resolvePreferences(snapshot.status === 'ready' ? snapshot.value : { maskTitles: false, maskIdentity: false });
+      presentation.update(value); titles.update(value.maskTitles);
     } catch {
-      presentation.update(resolvePreferences({ frames: false, maskIdentity: false }));
+      presentation.update(resolvePreferences({ maskTitles: false, maskIdentity: false })); titles.update(false);
       ctx.logger.warn('PDSH display configuration rejected; presentation disabled.');
     }
   }
@@ -76,7 +83,7 @@ function mountDisplay(ctx, form) {
   return {
     presentation,
     dispose() {
-      unsubscribe(); unbindLocale(); entry.dispose(); presentation.dispose(); root.unmount(); probe.remove(); style.remove();
+      unsubscribe(); unbindLocale(); toggle.dispose(); entry.dispose(); titles.dispose(); presentation.dispose(); root.unmount(); probe.remove(); style.remove();
       for (const [key, value] of previous) {
         if (value) doc.body.style.setProperty(key, value); else doc.body.style.removeProperty(key);
       }

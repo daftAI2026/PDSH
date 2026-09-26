@@ -8,8 +8,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULTS, resolvePreferences, MAX_NAME_CHARS, MAX_AVATAR_CHARS } from './model.js';
 
-test('默认只框消息，不假装启用账号伪装或隔离', () => {
-  assert.equal(DEFAULTS.frames, true);
+test('标题遮挡默认关闭，不把旧消息框配置解释为新隐私模式', () => {
+  assert.equal(DEFAULTS.maskTitles, false);
+  assert.equal(Object.hasOwn(DEFAULTS, 'frames'), false);
   assert.equal(DEFAULTS.maskIdentity, false);
   const { avatar, ...display } = resolvePreferences({});
   const { avatar: storedAvatar, ...defaults } = DEFAULTS;
@@ -31,7 +32,9 @@ test('不允许远端头像、用户 SVG、控制字符和超长载荷', () => {
     assert.throws(() => resolvePreferences({ nickname }), /nickname/);
   }
   assert.throws(() => resolvePreferences({ avatar: 'a'.repeat(MAX_AVATAR_CHARS + 1) }), /avatar/);
-  assert.throws(() => resolvePreferences({ frames: 'false' }), /frames/);
+  assert.throws(() => resolvePreferences({ maskTitles: 'false' }), /maskTitles/);
+  assert.equal(resolvePreferences({ frames: true }).maskTitles, false);
+  assert.equal(Object.hasOwn(resolvePreferences({ frames: true }), 'frames'), false);
 });
 test('可接收本地光栅头像，空头像恢复生成模式', () => {
   const avatar = 'data:image/png;base64,aGVsbG8=';

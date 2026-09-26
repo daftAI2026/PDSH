@@ -11,12 +11,13 @@ export const MAX_AVATAR_CHARS = 8 * 1024 * 1024;
 export const NICKNAME_PATTERN = /^(?![\s\S]*\p{Cc})(?=[\s\S]*\S)[\s\S]+$/u;
 export const LOCAL_AVATAR_PATTERN = /^(?:|data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2})$/;
 export const DEFAULTS = Object.freeze({
-  frames: true, maskIdentity: false, useAccountAvatar: false, nickname: '临时访客', avatar: '',
+  maskTitles: false, maskIdentity: false, useAccountAvatar: false, nickname: '临时访客', avatar: '',
 });
 
 export function resolvePreferences(input) {
-  const value = { ...DEFAULTS, ...input };
-  for (const field of ['frames', 'maskIdentity', 'useAccountAvatar']) {
+  // 旧frames/未知Host字段保留在Host，仅投影本代拥有的显示设置。
+  const value = { ...DEFAULTS, ...Object.fromEntries(Object.entries(input ?? {}).filter(([field]) => Object.hasOwn(DEFAULTS, field))) };
+  for (const field of ['maskTitles', 'maskIdentity', 'useAccountAvatar']) {
     if (typeof value[field] !== 'boolean') throw new TypeError(field);
   }
   if (typeof value.nickname !== 'string') throw new TypeError('nickname');

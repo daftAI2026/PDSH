@@ -9,7 +9,9 @@ import assert from 'node:assert/strict';
 import { Config } from './index.js';
 test('Host 默认和 live 配置字段', () => {
   const value = Config({});
-  assert.equal(value.frames.get(), true);
+  assert.equal(value.maskTitles.get(), false);
+  assert.equal(Config({ frames: true }).maskTitles.get(), false);
+  assert.throws(() => Config({ maskTitles: 'true' }));
   assert.equal(value.maskIdentity.get(), false);
   assert.equal(value.nickname.get(), '临时访客');
   assert.equal(value.avatar.get(), '');

@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "DSH Private Mode",
-    "description": "An early plugin for private chat. Currently adds message outlines and a display nickname/avatar. Session isolation and history deletion are not implemented; your account is unchanged."
+    "description": "Mask sidebar titles and customize your display nickname and avatar. Local display only."
   }
 }

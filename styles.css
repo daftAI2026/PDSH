@@ -1,12 +1,19 @@
 /*
  * [INPUT]: Harness ui-theme 的语义色/圆角/字号，以及原生 Input/SettingsValueField 探针的几何。
- * [OUTPUT]: 提供消息灰框、身份覆盖、原生语义卡片设置与入口样式，不造独立调色板或间距数字。
+ * [OUTPUT]: 提供标题灰条、身份覆盖、原生设置与入口样式，保留原生点击/编辑，不造独立调色板。
  * [POS]: PDSH 的展示层；来源和使用处记录于 style-sources.json，卸载时整体移除。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-body[data-pdsh-frames] [data-slot="conversation.view"] :is([data-chat-flow-kind="user"], [data-chat-flow-kind="steering"], [data-chat-flow-kind="assistant-step"]):not([hidden]) {
-  outline: var(--pdsh-outline-width) solid var(--dsw-alias-border-l4);
-  border-radius: var(--dsw-radius-sm);
+[data-pdsh-redacted-title] {
+  position: relative; color: transparent !important; -webkit-text-fill-color: transparent !important;
+  text-shadow: none !important; mask-image: none !important;
+  /* 稳定在原生可视标题框内；文字仍可命中，双击交给宿主。 */
+  overflow: clip !important;
+}
+[data-pdsh-redacted-title]::after {
+  content: ""; pointer-events: none; position: absolute;
+  inset-inline: 0; top: 50%; transform: translateY(-50%);
+  height: 50%; background: var(--dsw-alias-bg-skeleton); border-radius: var(--dsw-radius-xs);
 }
 [data-pdsh-original-label] { display: none !important; }
 [data-pdsh-avatar] { position: relative; }
@@ -48,8 +55,8 @@ body[data-pdsh-frames] [data-slot="conversation.view"] :is([data-chat-flow-kind=
 .pdsh-actions, .pdsh-footer { display: flex; align-items: center; flex-wrap: wrap; gap: var(--pdsh-action-gap); }
 .pdsh-footer { justify-content: space-between; }
 .pdsh-error { color: var(--dsw-alias-state-error-primary); }
-[data-pdsh-search-entry] { color: var(--dsw-alias-label-secondary); }
-[data-pdsh-search-entry="rail"] { color: var(--dsw-alias-label-primary); }
+[data-pdsh-search-entry] { color: var(--pdsh-search-color); }
+[data-pdsh-search-entry][aria-pressed="true"] { background: var(--dsw-alias-interactive-bg-active); }
 [data-pdsh-search-entry][hidden] { display: none !important; }
 /* +--- 原生 searchSlot 的自动留白迁至自有左侧入口；隐藏/卸载后规则自动失效 ---+ */
 [data-pdsh-search-entry="wide"] { margin-left: auto; flex: none; }

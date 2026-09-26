@@ -9,13 +9,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 const css = readFileSync(new URL('./styles.css', import.meta.url), 'utf8');
-test('框住 rc.2 的用户/steering/assistant-step，不框工具或隐藏节点', () => {
-  const dom = new JSDOM(`<head><style>${css}</style></head><body data-pdsh-frames><div data-slot="conversation.view"><div id="user" data-chat-flow-kind="user"></div><div id="steering" data-chat-flow-kind="steering"></div><div id="assistant" data-chat-flow-kind="assistant-step"></div><div id="tool" data-chat-flow-kind="tool"></div><div id="hidden" data-chat-flow-kind="assistant-step" hidden></div></div></body>`);
-  const selector = dom.window.document.styleSheets[0].cssRules[0].selectorText;
-  assert.deepEqual([...dom.window.document.querySelectorAll(selector)].map(node => node.id), ['user', 'steering', 'assistant']);
-  dom.window.document.body.removeAttribute('data-pdsh-frames');
-  assert.equal(dom.window.document.querySelectorAll(selector).length, 0);
-  dom.window.close();
+test('灰条仅作用于自有标题标记，不给聊天消息描边或隐藏整行', () => {
+  assert.doesNotMatch(css, /data-chat-flow-kind|data-pdsh-frames|conversation\.view/);
+  assert.match(css, /\[data-pdsh-redacted-title\]/);
+  assert.match(css, /\[data-pdsh-redacted-title\][^}]*color:\s*transparent/);
+  assert.match(css, /\[data-pdsh-redacted-title\]::after\s*\{[^}]*pointer-events:\s*none/);
+  assert.doesNotMatch(css.match(/\[data-pdsh-redacted-title\]\s*\{[^}]*\}/)?.[0] ?? '', /display:\s*none|visibility:\s*hidden/);
 });
 test('所有 token 有提供文件，不硬编码颜色、尺寸或 fallback', () => {
   assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /#[a-f\d]{3,8}\b|rgba?\(|\b\d+(?:\.\d+)?(?:px|rem|em)\b/i);

@@ -1,11 +1,39 @@
 /**
- * [INPUT]: 依赖 rc.2 sidebar.workspaces 的原生搜索结构、实时 class/图标尺寸及调用方的导航/翻译。
+ * [INPUT]: 依赖原生搜索结构、实时class/图标几何/CSS变量表达式，以及Host开关状态/翻译。
  * [OUTPUT]: 提供可撤回的搜索邻接入口；保留搜索节点；自有入口承担自动留白，样式卸载还原原生对齐，不写搜索状态。
  * [POS]: PDSH 版本相关 DOM 适配边界；非官方 child slot，与身份显示控制器相互独立。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 
 const SEARCH = 'button[aria-label="搜索会话"], button[aria-label="Search sessions"]';
+
+// +--- 跟踪实际命中的CSS声明，不把主题颜色冻结为RGB ---+
+function colorReference(doc, element) {
+  const rules = [];
+  function visit(list) {
+    for (const rule of list) {
+      if (rule.selectorText && rule.style) rules.push(rule);
+      else if (rule.cssRules) {
+        if (rule.constructor.name === 'CSSMediaRule' && !doc.defaultView.matchMedia?.(rule.conditionText).matches) continue;
+        if (rule.constructor.name === 'CSSSupportsRule' && !doc.defaultView.CSS?.supports(rule.conditionText)) continue;
+        visit(rule.cssRules);
+      }
+    }
+  }
+  for (const sheet of [...doc.styleSheets, ...(doc.adoptedStyleSheets ?? [])]) {
+    try { visit(sheet.cssRules); } catch { /* 不读跨源样式，不猜颜色。 */ }
+  }
+  for (let node = element; node; node = node.parentElement) {
+    let declaration = '';
+    for (const rule of rules) {
+      try { if (node.matches(rule.selectorText) && rule.style.color) declaration = rule.style.color; } catch { /* 未支持selector跳过。 */ }
+    }
+    declaration = node.style.color || declaration;
+    if (!declaration || declaration === 'inherit' || declaration === 'currentcolor') continue;
+    return /var\(--[\w-]+/.test(declaration) ? declaration : null;
+  }
+  return null;
+}
 
 function locate(doc) {
   const regions = doc.querySelectorAll('[data-slot="sidebar.workspaces"]');
@@ -29,17 +57,17 @@ function attribute(node, name, value) {
   if (node.getAttribute(name) !== value) node.setAttribute(name, value);
 }
 
-export function mountSearchEntry(doc, { icon, label, open }) {
+export function mountSearchEntry(doc, { icon, label, state, onActivate }) {
   const template = doc.createElement('template'); template.innerHTML = icon;
   const svg = template.content.querySelector('svg');
   if (!svg) throw new Error('PDSH trusted entry icon missing');
   svg.removeAttribute('width'); svg.removeAttribute('height');
   svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
   const button = doc.createElement('button'); button.type = 'button'; button.append(svg);
-  // +--- 只调用官方导航；不冒充原生搜索点击或隐私会话 ---+
-  const activate = () => { if (button.isConnected && !button.hidden && !disposed) open(); };
+  // +--- 操作由Host控制器承接；不冒充搜索点击或隔离会话 ---+
+  const activate = () => { if (button.isConnected && !button.hidden && !button.disabled && !disposed) onActivate(); };
   button.addEventListener('click', activate);
-  let shell = null, disposed = false;
+  let shell = null, disposed = false, sampledElement = null, sampledKey = '', sampledColor = null;
   function detach() { button.remove(); shell?.remove(); shell = null; }
   function synchronize() {
     if (disposed) return;
@@ -50,6 +78,18 @@ export function mountSearchEntry(doc, { icon, label, open }) {
     attribute(button, 'class', native.button.className);
     attribute(button, 'data-pdsh-search-entry', native.wide ? 'wide' : 'rail');
     attribute(button, 'aria-label', label()); attribute(button, 'title', label());
+    const current = state();
+    attribute(button, 'aria-pressed', String(current.pressed)); attribute(button, 'aria-busy', String(current.busy));
+    button.disabled = current.disabled;
+    const chain = [];
+    for (let node = native.button; node; node = node.parentElement) chain.push(`${node.getAttribute('class') ?? ''}|${node.style.color}`);
+    const key = `${doc.styleSheets.length}:${chain.join(';')}`;
+    if (sampledElement !== native.button || sampledKey !== key) {
+      sampledElement = native.button; sampledKey = key; sampledColor = colorReference(doc, native.button);
+    }
+    const color = sampledColor;
+    if (color && button.style.getPropertyValue('--pdsh-search-color') !== color) button.style.setProperty('--pdsh-search-color', color);
+    else if (!color) button.style.removeProperty('--pdsh-search-color');
     attribute(svg, 'width', size.width); attribute(svg, 'height', size.height);
     const hidden = native.wide && native.button.getAttribute('aria-expanded') === 'true';
     if (button.hidden !== hidden) button.hidden = hidden;
@@ -64,8 +104,11 @@ export function mountSearchEntry(doc, { icon, label, open }) {
       if (shell.parentElement !== native.parent || shell.nextElementSibling !== native.anchor) native.parent.insertBefore(shell, native.anchor);
     }
   }
-  const observer = new doc.defaultView.MutationObserver(synchronize);
-  observer.observe(doc.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'aria-label', 'aria-expanded', 'style', 'width', 'height'] });
+  const observer = new doc.defaultView.MutationObserver(records => {
+    if (records.some(record => doc.head.contains(record.target))) sampledKey = '';
+    synchronize();
+  });
+  observer.observe(doc.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-theme', 'data-dsw-theme', 'aria-label', 'aria-expanded', 'style', 'width', 'height'] });
   synchronize();
   return {
     refresh: synchronize,

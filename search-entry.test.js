@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 search-entry.js、固定入口资产和 rc.2 搜索展开/收起结构夹具。
- * [OUTPUT]: 验证邻接挂载、导航隔离、原生样式复用、搜索展开退让、重挂与完整释放。
+ * [OUTPUT]: 验证邻接挂载、开关与导航隔离、原生样式复用、搜索展开退让、重挂与完整释放。
  * [POS]: PDSH 入口适配合同；不能替代确切 runtime 的真实 React/布局验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -15,8 +15,8 @@ const search = (wide, language = 'zh') => `<button type="button" class="live-sea
 const browser = (wide = true, language = 'zh') => `<div data-slot="sidebar.workspaces"><div class="browser-root"><div class="native-header">${wide ? `<span>工作区</span><div class="native-search-slot"><div class="native-search">${search(true, language)}<input type="text" value="原生搜索" /></div></div><div class="native-actions"></div>` : '<div class="native-actions"></div>'}</div>${wide ? '' : `<div class="native-rail-search">${search(false, language)}</div>`}<div role="tree"></div></div></div>`;
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 function setup(html = browser()) {
-  const dom = new JSDOM(`<body>${html}</body>`), doc = dom.window.document;
-  const opened = [], options = { icon, label: () => 'PDSH 显示设置（不隔离会话）', open: () => opened.push('settings') };
+  const dom = new JSDOM(`<head><style>.native-search{color:var(--host-search-color)} .native-rail-search{color:var(--host-rail-color)}</style></head><body>${html}</body>`), doc = dom.window.document;
+  const opened = [], options = { icon, label: () => '遮挡侧栏标题', state: () => ({ pressed: false, disabled: false, busy: false }), onActivate: () => opened.push('toggle') };
   return { dom, doc, opened, options };
 }
 
@@ -31,11 +31,28 @@ test('展开态紧接搜索左侧追加；复用 live class/图标尺寸，不�
   assert.equal(button.className, native.className);
   assert.equal(button.querySelector('svg').getAttribute('width'), '14px');
   assert.equal(button.hasAttribute('aria-keyshortcuts'), false);
-  button.click(); assert.deepEqual(opened, ['settings']); assert.equal(searches, 0);
+  assert.equal(button.getAttribute('aria-pressed'), 'false');
+  assert.equal(button.style.getPropertyValue('--pdsh-search-color'), 'var(--host-search-color)');
+  button.click(); assert.deepEqual(opened, ['toggle']); assert.equal(searches, 0);
   native.click(); assert.equal(searches, 1); assert.equal(doc.querySelector('input'), input);
   assert.equal(input.value, '原生搜索');
   entry.dispose(); assert.equal(doc.body.outerHTML, before);
-  button.click(); assert.deepEqual(opened, ['settings']); dom.window.close();
+  button.click(); assert.deepEqual(opened, ['toggle']); dom.window.close();
+});
+
+test('切换状态/忙态同步；颜色保留原生变量表达式并跟随来源变更', () => {
+  const { dom, doc, options } = setup();
+  let state = { pressed: true, disabled: false, busy: false };
+  options.state = () => state;
+  const entry = mountSearchEntry(doc, options), button = doc.querySelector('[data-pdsh-search-entry]');
+  assert.equal(button.getAttribute('aria-pressed'), 'true');
+  state = { ...state, busy: true, disabled: true }; entry.refresh();
+  assert.equal(button.disabled, true); assert.equal(button.getAttribute('aria-busy'), 'true');
+  doc.querySelector('.native-search').style.color = 'var(--updated-search-color)'; entry.refresh();
+  assert.equal(button.style.getPropertyValue('--pdsh-search-color'), 'var(--updated-search-color)');
+  doc.querySelector('.native-search').style.color = 'rgb(1, 2, 3)'; entry.refresh();
+  assert.equal(button.style.getPropertyValue('--pdsh-search-color'), '');
+  entry.dispose(); dom.window.close();
 });
 
 test('搜索展开时隐藏；关闭后复现；翻译和原生 class 改动同步', async () => {

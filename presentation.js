@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖浏览器 DOM/MutationObserver 和 model.js 已验证的显示偏好。
- * [OUTPUT]: 提供可更新、可卸载的灰框标记及 sidebar 身份视觉覆盖控制器及仅内存的原生头像预览来源。
+ * [OUTPUT]: 提供可卸载的sidebar身份视觉覆盖及仅内存的原生头像预览来源，不修改聊天消息。
  * [POS]: PDSH 的 rc.2 DOM 适配边界；保留原生账户节点和行为，未知结构拒绝猜测。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -34,7 +34,6 @@ export function mountPresentation(doc) {
   const owned = new Set();
   const marked = new Set();
   const listeners = new Set();
-  const originalFrames = doc.body.getAttribute('data-pdsh-frames');
 
   function publish(status, accountAvatar = '') {
     if (currentStatus === status && currentAccountAvatar === accountAvatar) return;
@@ -49,9 +48,6 @@ export function mountPresentation(doc) {
   }
   function refresh() {
     if (disposed || !preferences) return;
-    if (preferences.frames) {
-      if (!doc.body.hasAttribute('data-pdsh-frames')) doc.body.setAttribute('data-pdsh-frames', '');
-    } else doc.body.removeAttribute('data-pdsh-frames');
     const identity = locateIdentity(doc);
     // 原生已显示的头像仅供设置预览；不请求账户服务、不写入配置或日志。
     const accountAvatar = identity.avatar?.querySelector(':scope > img:not([data-pdsh-avatar-image])')?.getAttribute('src') ?? '';
@@ -107,8 +103,6 @@ export function mountPresentation(doc) {
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     dispose() {
       disposed = true; observer.disconnect(); clearIdentity(); listeners.clear();
-      if (originalFrames === null) doc.body.removeAttribute('data-pdsh-frames');
-      else doc.body.setAttribute('data-pdsh-frames', originalFrames);
     },
   };
 }

@@ -133,7 +133,7 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
     {ready && !snapshot.writable && <p role="status">{t('readOnly')}</p>}
     <section className="pdsh-group" role="group" aria-labelledby="pdsh-display-title">
       <h4 id="pdsh-display-title">{t('displayGroup')}</h4>
-      <ToggleRow label={t('frames')} hint={t('framesHint')} checked={values.frames} onChange={value => edit('frames', value)} disabled={!writable} />
+      <ToggleRow label={t('maskTitles')} hint={t('titlesHint')} checked={values.maskTitles} onChange={value => edit('maskTitles', value)} disabled={!writable} />
     </section>
     <section className="pdsh-group" role="group" aria-labelledby="pdsh-identity-title">
       <h4 id="pdsh-identity-title">{t('identityGroup')}</h4>

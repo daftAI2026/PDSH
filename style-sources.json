@@ -13,17 +13,6 @@
       "acquisition": "渲染官方默认 Button 并读取 computed height；编辑行最小高度与阅读态编辑按钮相同，不硬编码36px；不假称已实窗量测。"
     },
     {
-      "role": "gray outline",
-      "variable": "--dsw-alias-border-l4",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "consumer": "packages/client/ui-primitives/src/Input.module.css .wrap"
-    },
-    {
-      "role": "message corner",
-      "variable": "--dsw-radius-sm",
-      "file": "packages/client/ui-theme/src/styles/base.css"
-    },
-    {
       "role": "outline stroke",
       "variable": "--pdsh-outline-width",
       "file": "packages/client/ui-primitives/src/Input.module.css",
@@ -188,6 +177,33 @@
       "file": "packages/client/ui-primitives/src/icons/index.tsx",
       "selector": "IconEditOutlineRegular",
       "acquisition": "使用宿主默认图标尺寸与原生 Button，不绘制新铅笔图形或复制尺寸。"
+    },
+    {
+      "role": "sidebar greybar fill",
+      "variable": "--dsw-alias-bg-skeleton",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "consumer": "packages/client/ui-settings-account/src/client/AccountSection.module.css .avatar",
+      "acquisition": "沿用宿主灰色占位角色；实窗变量在body/title作用域，不取documentElement空值，不冻结色值。"
+    },
+    {
+      "role": "sidebar greybar corner",
+      "variable": "--dsw-radius-xs",
+      "file": "packages/client/ui-theme/src/styles/base.css",
+      "acquisition": "条形占位采用最小圆角，灰条高度取原生文字框一半，非像素token；文字框仍由Rows.module.css提供。"
+    },
+    {
+      "role": "entry live search color",
+      "variable": "--pdsh-search-color",
+      "file": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.module.css",
+      "selector": ".search / .searchButton / .rail .search",
+      "acquisition": "从实际搜索节点及祖先命中的同源CSSOM声明寻找var表达式；保留原生变量引用，不存computed RGB。按钮class和SVG几何仍从原生节点获取。"
+    },
+    {
+      "role": "active title mask control",
+      "variable": "--dsw-alias-interactive-bg-active",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "consumer": "packages/client/ui-primitives/src/Button.module.css .ghost:active",
+      "acquisition": "已接受开关开启时用原生交互底色；pressed是Host状态，不是伪隔离声明。"
     }
   ]
 }
