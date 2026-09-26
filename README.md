@@ -5,9 +5,11 @@
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 -->
 
-# PDSH
+# DSH 私密模式
 
-DeepSeek Harness 的同窗口显示增强插件，沿用 InCodex 的早期显示体验。
+项目/仓库标识 **PDSH = Private DeepSeek Harness**；界面展示名为 **DSH 私密模式 / DSH Private Mode**。DSH 指 DeepSeek Harness，名称不重复叠加 Private。`Private` 表示私密，`Preview` 表示预览，不是这里的缩写含义。
+
+面向 DeepSeek Harness 的私密聊天插件，沿用 InCodex 的产品方向；当前早期 MVP 只实现同窗口显示能力。
 
 > **早期 MVP，仅改变显示。** 不提供隐私会话、历史清除、日志保护或账户隔离，搜索旁的帽子眼镜入口打开显示设置，不会创建隐私会话。已观察到 rc.2 展开侧栏的昵称/头像替换，完整 Desktop 生命周期仍待验收；不要据此录制敏感账户或对话。
 
@@ -67,7 +69,7 @@ dsh plugin --profile <你的profile> add /absolute/path/to/daftai-pdsh-<version>
 
 ## 设置与兼容边界
 
-安装并启用后，点击搜索旁的 **帽子眼镜**，或打开 **插件 → @daftai/pdsh**：
+安装并启用后，点击搜索旁的 **帽子眼镜**，或打开 **插件 → DSH 私密模式**（英文为 **DSH Private Mode**，技术包名仍是 `@daftai/pdsh`）：
 
 1. 设置灰框、显示身份开关和昵称/头像。
 2. 点击“保存”，未保存草稿不影响当前显示。
@@ -83,12 +85,43 @@ dsh plugin --profile <你的profile> add /absolute/path/to/daftai-pdsh-<version>
 
 ## 验证状态
 
-- 本地 20 项回归：Config 验证、纯偏好、lazy factory、DOM 覆盖/恢复、搜索邻接与重挂、草稿/原子保存、消息 selector、样式来源与停用生命周期。
+- 本地 22 项回归：Config 验证、纯偏好、zh/en 字典和包文本、lazy factory、DOM 覆盖/恢复、搜索邻接与重挂、草稿/原子保存、消息 selector、样式来源与停用生命周期。
 - mvp.5 / 确切 rc.2 runtime 的独立 Web profile：原生入口导航、搜索让位、分组设置，中英文/浅深色/宽窄窗口实绘检查；不等同用户 Desktop 已加载新版本。
 - 确切 rc.2 提取 runtime 的独立 Web profile：mvp.3 的插件设置、保存/重启恢复、停用/启用，以及离线种子经原生消息组件呈现的浅色/深色灰框通过。
 - 本轮 mvp.4：独立 profile 的本地目录安装/有效配置，以及 GitHub URL 的 CLI 安装通过；真实 Web 插件页也已完成填 URL → 安装 → 立即启用 → 打开设置，版本/默认设置/显示资源均正确。
 - 用户安装的 mvp.4 / rc.2 Desktop：实际展开侧栏已显示配置的演示昵称与头像，设置页状态为“当前侧栏身份已替换显示”。这是当前窗口的视觉检查，不替代完整生命周期验收。
 - **未验**：真实 Desktop 的收起/重挂/停用恢复、流式长对话、跨版本兼容。本轮检查未修改主 Desktop profile 或 App 签名。
+
+## 中英文切换与展示名称
+
+语言跟随 Harness，不在插件里再保存一份语言偏好：
+
+- 中文：**设置 → 通用设置 → 语言 → 中文**。
+- English: **Settings → General → Language → English**。
+
+设置页、提示和搜索入口文案实时切换；不会改写你的显示昵称，也不会因为切换语言丢失未保存草稿。Harness 负责语言偏好的持久化，不需要重装 PDSH。
+
+运行文案通过官方 `ctx.locale.register('pdsh', { zh, en })` 注册，设置 slot 获得框架的 `t`；非 React 搜索入口通过 `ctx.locale.subscribe` 刷新。插件列表、详情和组件名称/简介由导出的 `locale/en.json` / `locale/zh.json` 提供，停用时也可读取，不靠激活插件翻译。安装预览仍展示清单/注册表的技术信息，这是宿主接口的边界。
+
+来源：[官方 Locale 接口](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.7-rc.2/packages/client/locale/README.md)、[插件展示元信息](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.7-rc.2/docs/cookbook/adding-a-package.zh.md#plugin-display-metadata)。
+
+## 已安装插件怎样更新
+
+**推送 GitHub 不会自动更新本机已安装代码。** rc.2 插件管理提供安装/启停/卸载；包代码替换和语言切换不是同一种热更新。
+
+GitHub 来源可以通过官方“插件 → 添加插件”覆盖安装，填入**新的、已审阅 commit**，不要先卸载：
+
+```text
+github:daftAI2026/PDSH#<新的完整commit-sha>
+```
+
+先保存现有草稿；等待安装成功及“需要重启”提示，再在没有进行中任务时正常退出并重新打开 Harness。插件详情版本应变为目标 `0.1.0-mvp.6`。只刷新网页或关闭再开启插件不证明新 JavaScript 已加载。
+
+这里刻意固定新 commit，让 pnpm 的依赖记录确实变化；重复同一 Git 地址/commit 不等于查询并升级最新代码。官方管理器复用同一包的配置，PDSH 本轮未改变设置 schema，不要求清空缓存或账户。Desktop profile 由 Electron 独占管理，不用外部 `dsh plugin --profile desktop` 强行修改。
+
+本地目录开发安装链接 checkout，拉取代码并重建 `client.js` 后仍需重启宿主确认新一代代码。npm 尚未发布，不用包名更新。
+
+来源：[官方管理器的 inspect/installBundle](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.7-rc.2/packages/boot/plugin-manager/src/index.ts)、[官方插件页](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.7-rc.2/packages/client/ui-plugin-manager/README.zh.md)。
 
 ## npm 发布状态
 

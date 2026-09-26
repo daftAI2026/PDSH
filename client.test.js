@@ -36,12 +36,14 @@ test('lazy factory 装配到包的 keyed 设置页，并清理资源', () => {
   const scope = { status: 'ready', writable: true, revision: 0, value: DEFAULTS };
   const form = { getSnapshot: () => scope, subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); } };
   let registered = false;
+  let dictionaries, language = 'zh';
+  const localeListeners = new Set();
   let opened;
   let activate;
   let deactivate;
   const ctx = {
     effect(fn) { const off = fn(); if (typeof off === 'function') disposers.push(off); return off; },
-    locale: { register: () => () => {}, bind: () => key => key, subscribe: () => () => {} },
+    locale: { register(ns, values) { assert.equal(ns, 'pdsh'); dictionaries = values; return () => { dictionaries = undefined; }; }, bind: () => key => dictionaries[language][key], subscribe(fn) { localeListeners.add(fn); return () => localeListeners.delete(fn); } },
     pluginNavigation: { openBundle(name) { opened = name; } },
     configForms: { get(id) { assert.equal(id, 'pdsh'); return form; }, whileServed(ids, fn) {
       assert.equal(ids[0], 'pdsh'); activate = () => { deactivate = fn(); }; activate();
@@ -59,6 +61,10 @@ test('lazy factory 装配到包的 keyed 设置页，并清理资源', () => {
     assert.equal(document.body.hasAttribute('data-pdsh-frames'), true);
     const searchEntry = document.querySelector('[data-pdsh-search-entry]');
     assert.ok(searchEntry, '启用后应在搜索旁装配入口，而不是只贡献设置页');
+    assert.equal(searchEntry.getAttribute('aria-label'), 'PDSH 显示设置（不隔离会话）');
+    language = 'en'; for (const notify of localeListeners) notify();
+    assert.equal(searchEntry.getAttribute('aria-label'), 'PDSH display settings (no session isolation)');
+    assert.equal(document.querySelectorAll('[data-pdsh-search-entry]').length, 1);
     searchEntry.click();
     assert.equal(opened, '@daftai/pdsh', '入口必须通过官方服务打开自己的详情，不改会话');
     assert.ok(requested.includes('react'));
@@ -67,6 +73,7 @@ test('lazy factory 装配到包的 keyed 设置页，并清理资源', () => {
     assert.equal(document.body.outerHTML, before, 'Host 停用必须撤回探针/标记');
     assert.equal(listeners.size, 0);
     assert.equal(registered, false);
+    assert.equal(localeListeners.size, 0);
     activate();
     assert.equal(registered, true);
     assert.equal(document.querySelectorAll('style').length, 1);
@@ -76,6 +83,8 @@ test('lazy factory 装配到包的 keyed 设置页，并清理资源', () => {
     for (const off of disposers.reverse()) off();
   }
   assert.equal(unmounted, true);
+  assert.equal(localeListeners.size, 0);
+  assert.equal(dictionaries, undefined);
   assert.equal(listeners.size, 0);
   assert.equal(registered, false);
   assert.equal(document.querySelector('style'), null);

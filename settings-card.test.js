@@ -55,6 +55,12 @@ test('原生控件装配的分组预览不提前保存；失败保留、放弃�
     assert.equal(writes.length, 0);
     assert.equal(doc.querySelector('.pdsh-preview-name').textContent, '演示访客');
     assert.equal(button('save').disabled, false);
+    await act(async () => root.render(React.createElement(module.exports.SettingsCard, { preferencesForm: form, presentation, t: key => `en:${key}` })));
+    assert.equal(doc.querySelector('label[for="pdsh-nickname"]').textContent, 'en:nickname');
+    assert.equal(input.value, '演示访客', '热切换只改变文案，不翻译用户昵称或丢失草稿');
+    assert.equal(writes.length, 0);
+    await act(async () => root.render(React.createElement(module.exports.SettingsCard, { preferencesForm: form, presentation, t: key => key })));
+    assert.equal(input.value, '演示访客');
     await act(async () => button('save').click());
     assert.equal(writes.length, 1); assert.equal(writes[0].revision, 7);
     assert.equal(writes[0].ops.find(op => op.path[0] === 'nickname').value, '演示访客');

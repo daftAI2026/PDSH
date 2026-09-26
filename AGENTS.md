@@ -6,6 +6,8 @@ This is the shared source of truth for agents working on PDSH. `CLAUDE.md` is a 
 
 Public code repository: `https://github.com/daftAI2026/PDSH` (uppercase repository name). The npm package identifier remains lowercase `@daftai/pdsh`; it is not published to npm.
 
+PDSH means Private DeepSeek Harness; public display names are `DSH 私密模式` / `DSH Private Mode`. The brand does not imply that isolation is implemented.
+
 PDSH is the DeepSeek Harness Desktop adaptation of InCodex's presentation and eventual incognito experience. The official Harness app is the host; PDSH is an out-of-tree Cordis plugin bundle. The current **display-only MVP** outlines user/assistant messages and offers a configurable local sidebar nickname/avatar. It does not isolate sessions, open another DeepSeek instance, transfer credentials, erase history, or provide a privacy guarantee.
 
 The InCodex repository at `../incodex` is the reference for product behavior and safety invariants, not a template to copy wholesale. Its `AGENTS.md` was used as the starting convention for this guide; Codex-specific commands and assumptions do not apply here.
@@ -14,6 +16,7 @@ The InCodex repository at `../incodex` is the reference for product behavior and
 
 - Keep the official DeepSeek Harness app and normal launch path. Prefer its documented plugin interfaces; do not patch or re-sign the app for the standard PDSH installation.
 - For this milestone, stay in the existing window. No CLI product, second app instance, screenshot editor, or session/burn module is needed.
+- UI language follows Harness Settings → General → Language through `ctx.locale`; metadata comes from exported `locale/*.json`. Never translate the user's configured nickname or add a second language store.
 - Use the official Plugins page for settings and the Host settings document for persistence. Save draft fields atomically; do not persist credentials or real account data.
 - Trace every visual rule to the upstream file, selector and variable in `style-sources.json`. Use semantic `--dsw-*` colors/radii, native React primitives, and runtime-computed native stroke geometry. No numeric color/geometry fallback or copied CSS Modules hash.
 - Identity replacement is only a visual overlay on a uniquely recognized rc.2 sidebar launcher. Keep its native button, account nodes, menus and sign-in/out semantics. Do not mask signed-out More, full settings, account data, model payloads or logs. Unknown/multiple identities skip replacement; this is not a fail-closed privacy system.
@@ -40,6 +43,8 @@ Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatG
 - `index.js`: Host Config schema with volatile display fields; delegates persistence to Harness settings.
 - `model.js`: shared display defaults, nickname/data-URL validation and pinned offline Blobatar generation.
 - `client-entry.jsx`: Client lifecycle, native Input/SettingsValueField geometry probes, configuration projection and `plugins.bundle.config` registration; all display resources follow the Host namespace via `whileServed`.
+- `locales.js`: complete zh/en namespace dictionaries; follow the Host locale service, never create a second language preference.
+- `locale/en.json` / `locale/zh.json`: official offline-discoverable package title/description; exported and shipped even when the plugin is disabled.
 - `settings-card.jsx`: native-token conversation/identity groups, draft identity preview and atomic revision-fenced save; local avatar selection never uploads.
 - `presentation.js`: current-build DOM adapter and owned-marker cleanup; does not overwrite original account text/images.
 - `search-entry.js` / `entry-icon.svg`: version-specific search-adjacent DOM adapter and reused InCodex artwork; opens the official PDSH settings, never creates or claims an isolated session.
@@ -49,7 +54,7 @@ Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatG
 - `pnpm-lock.yaml`: reproducible dependency graph. `output/` and `node_modules/` are generated and ignored.
 - `THIRD_PARTY_NOTICES.md`: bundled Blobatar and reused Lucide/InCodex icon notices; ships with the installable archive.
 
-No additional module directory exists yet. Add one only when a verified boundary needs it; do not create a full InCodex-style CLI/install/signing tree up front.
+The `locale/` directory contains package metadata resources, not a second runtime module. No additional runtime module directory exists yet. Add one only when a verified boundary needs it; do not create a full InCodex-style CLI/install/signing tree up front.
 
 ## Component composition
 
@@ -63,10 +68,11 @@ No additional module directory exists yet. Add one only when a verified boundary
 
 1. For plugin mechanics, read the [official first-plugin guide](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/) and [bundle/install guide](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish) for the target version. `dsh plugin add` installs a bundle; it is not a project generator.
 2. Develop against a disposable profile first. Do not install this scaffold into the user's live `desktop` profile merely to smoke-test packaging.
-3. Start behavior changes with a failing contract test; then implement and verify the exact Desktop build. A successful package archive does not prove a working UI contribution or isolation.
-4. Keep `apply` lifecycle-managed. When adding subscriptions, windows, timers, or IPC, register disposal and test unload/restore. Fail closed on ambiguous ownership before cleanup.
-5. Treat each external plugin as trusted executable code; inspect the bundle and explicit dependencies before installing. Never silently copy credentials into a temporary profile.
-6. Ordinary private research and decisions belong in the private docs repo, published with its `private-docs-publish` skill and repository write lock. Do not place private user data here.
+3. Git pushes do not update installed packages. Use the official manager with a new reviewed Git SHA, preserve configuration, then restart after replacing an existing package. Never bypass Electron-exclusive Desktop management through the external CLI.
+4. Start behavior changes with a failing contract test; then implement and verify the exact Desktop build. A successful package archive does not prove a working UI contribution or isolation.
+5. Keep `apply` lifecycle-managed. When adding subscriptions, windows, timers, or IPC, register disposal and test unload/restore. Fail closed on ambiguous ownership before cleanup.
+6. Treat each external plugin as trusted executable code; inspect the bundle and explicit dependencies before installing. Never silently copy credentials into a temporary profile.
+7. Ordinary private research and decisions belong in the private docs repo, published with its `private-docs-publish` skill and repository write lock. Do not place private user data here.
 
 ## Current milestone
 

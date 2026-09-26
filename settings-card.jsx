@@ -59,6 +59,7 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
   }
   return <section className="pdsh-settings" data-pdsh-settings>
     <p className="pdsh-hint">{t('description')}</p>
+    <p className="pdsh-hint">{t('languageHint')}</p>
     {!ready && <p role="status">{t('loading')}</p>}
     {ready && !snapshot.writable && <p role="status">{t('readOnly')}</p>}
     <section className="pdsh-group" role="group" aria-labelledby="pdsh-display-title">
