@@ -1,0 +1,22 @@
+/*
+ * [INPUT]: Harness ui-theme 的语义色/圆角变量，及原生 Input 探针解析的边线宽度。
+ * [OUTPUT]: 提供消息灰框与身份覆盖样式，不提供独立颜色或尺寸调色板。
+ * [POS]: PDSH 的展示层；来源和使用处记录于 style-sources.json，卸载时整体移除。
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
+body[data-pdsh-frames] [data-slot="conversation.view"] :is([data-chat-flow-kind="user"], [data-chat-flow-kind="steering"], [data-chat-flow-kind="assistant-step"]):not([hidden]) {
+  outline: var(--pdsh-outline-width) solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-sm);
+}
+[data-pdsh-original-label] { display: none !important; }
+[data-pdsh-avatar] { position: relative; }
+[data-pdsh-avatar] > :not([data-pdsh-avatar-image]) { visibility: hidden; }
+[data-pdsh-avatar-image] {
+  position: absolute; inset: 0;
+  display: block; width: 100%; height: 100%;
+  border-radius: inherit; object-fit: cover; corner-shape: inherit;
+}
+.pdsh-settings { color: var(--dsw-alias-label-primary); }
+.pdsh-hint { color: var(--dsw-alias-label-secondary); }
+.pdsh-row { display: flex; align-items: center; justify-content: space-between; }
+.pdsh-avatar-preview { border-radius: var(--dsw-radius-sm); width: var(--pdsh-control-size); height: var(--pdsh-control-size); }

@@ -1,0 +1,3 @@
+- insert:
+    - id: pdsh
+      name: "@daftai/pdsh"

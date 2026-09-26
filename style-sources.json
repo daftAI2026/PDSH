@@ -1,0 +1,17 @@
+{
+  "hostVersion": "0.1.7-rc.2",
+  "publicSourceTag": "dsh-v0.1.7-rc.2",
+  "installedBuildCommit": "c1275515b6b97551ec358c926c479ab750c687c0",
+  "note": "安装包的 build commit 在公开仓无法拉取；以确切包内 client.js 为运行证据，公共 tag 为可链接源码。无数值颜色 fallback。",
+  "styles": [
+    { "role": "gray outline", "variable": "--dsw-alias-border-l4", "file": "packages/client/ui-theme/src/styles/design-platform.css", "consumer": "packages/client/ui-primitives/src/Input.module.css .wrap" },
+    { "role": "message corner", "variable": "--dsw-radius-sm", "file": "packages/client/ui-theme/src/styles/base.css" },
+    { "role": "outline stroke", "variable": "--pdsh-outline-width", "file": "packages/client/ui-primitives/src/Input.module.css", "selector": ".wrap", "property": "border-top-width", "acquisition": "渲染官方 Input；读取其真实 wrapper 的 computedStyle，不硬编码 0.5px" },
+    { "role": "avatar preview size", "variable": "--pdsh-control-size", "file": "packages/client/ui-primitives/src/Input.module.css", "selector": ".wrap", "property": "height", "acquisition": "与边线共用原生 Input 探针；读取 wrapper 的 computedStyle，不复制尺寸常量" },
+    { "role": "settings label", "variable": "--dsw-alias-label-primary", "file": "packages/client/ui-theme/src/styles/design-platform.css" },
+    { "role": "settings hint", "variable": "--dsw-alias-label-secondary", "file": "packages/client/ui-theme/src/styles/design-platform.css" },
+    { "role": "avatar geometry", "file": "packages/client/ui-settings-account/src/client/AccountMenu.module.css", "selector": ".avatar", "acquisition": "复用原生 span 容器的尺寸与圆角，不复制常量" },
+    { "role": "nickname truncation", "file": "packages/client/ui-settings-account/src/client/AccountMenu.module.css", "selector": ".label", "acquisition": "从已确认原生 label 获取当前 CSS Modules className，不固定哈希" },
+    { "role": "settings controls", "file": "packages/client/ui-primitives/src/{Input,Switch,Button}.module.css", "acquisition": "直接使用官方 React primitives，由宿主 module table 提供样式" }
+  ]
+}

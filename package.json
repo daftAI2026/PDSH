@@ -1,0 +1,59 @@
+{
+  "name": "@daftai/pdsh",
+  "description": "Same-window message outlines and configurable local sidebar display identity for DeepSeek Harness",
+  "version": "0.1.0-mvp.4",
+  "private": true,
+  "type": "module",
+  "main": "./index.js",
+  "files": [
+    "index.js",
+    "model.js",
+    "client.js",
+    "client.js.map",
+    "cordis.patch.yml",
+    "style-sources.json",
+    "THIRD_PARTY_NOTICES.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "pnpm build && node --test *.test.js",
+    "bundle": "pnpm build && pnpm pack --pack-destination output"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "3.18.4",
+    "blobatar": "2.7.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "jsdom": "26.1.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daftAI2026/PDSH.git"
+  },
+  "homepage": "https://github.com/daftAI2026/PDSH#readme",
+  "bugs": {
+    "url": "https://github.com/daftAI2026/PDSH/issues"
+  },
+  "license": "MIT"
+}
