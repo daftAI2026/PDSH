@@ -46,3 +46,10 @@ test('编辑与阅读态同用原生Button的最小高度；非法输入边线�
   assert.match(css, /\.pdsh-inline-editor\s*\{[^}]*min-height:\s*var\(--pdsh-action-size\)/);
   assert.match(css, /:has\(input\[aria-invalid="true"\]\)[^}]*border-color:\s*var\(--dsw-alias-state-error-primary\)/);
 });
+
+test('字段自带内边距，不与组gap重复叠加；昵称在右侧紧凑编辑', () => {
+  assert.match(css, /\.pdsh-group\s*\{[^}]*gap:\s*0/);
+  assert.match(css, /\.pdsh-group > h4\s*\{[^}]*margin-bottom:\s*var\(--pdsh-section-inset\)/);
+  assert.match(css, /\.pdsh-detail-row\s*\{[^}]*padding-block:\s*var\(--pdsh-field-gap\)/);
+  assert.match(css, /\.pdsh-nickname-editor\s*\{[^}]*flex:\s*0 1 auto/);
+});

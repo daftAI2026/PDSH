@@ -19,10 +19,11 @@ async function mountSettings({ fileReader, imageDecode } = {}) {
   Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
   const primitives = {
     Input: props => React.createElement('span', {}, React.createElement('input', props)),
-    Button: ({ children, variant, ...props }) => React.createElement('button', { type: 'button', ...props }, children),
+    Button: ({ children, variant, size, ...props }) => React.createElement('button', { type: 'button', 'data-variant': variant, 'data-size': size, ...props }, children),
     IconUserOutlineMedium: () => React.createElement('svg'),
     IconEditOutlineRegular: () => React.createElement('svg'),
-    Switch: ({ label, checked, onChange, disabled }) => React.createElement('input', { type: 'checkbox', 'aria-label': label, checked, disabled, onChange: event => onChange(event.target.checked) }),
+    IconCheckOutlineRegular: () => React.createElement('svg'),
+    Switch: ({ label, checked, onChange, disabled }) => React.createElement('input', { type: 'checkbox', role: 'switch', 'aria-label': label, checked, disabled, onChange: event => onChange(event.target.checked) }),
   };
   const module = { exports: {} };
   const code = transformSync(readFileSync(new URL('./settings-card.jsx', import.meta.url), 'utf8'), { loader: 'jsx', format: 'cjs' }).code;
@@ -77,6 +78,8 @@ test('原生控件装配的分组预览不提前保存；失败保留、放弃�
     assert.equal(identity.querySelector('#pdsh-nickname'), null, '摘要不是编辑表单');
     assert.equal(doc.querySelector('#pdsh-nickname'), null, '默认显示字段值，按编辑后才出现输入框');
     assert.equal(doc.querySelector('#pdsh-avatar-options').hidden, true, '头像来源默认渐进披露');
+    assert.ok(doc.querySelector('#pdsh-identity-title').closest('.pdsh-group').contains(doc.querySelector('footer')), 'profile保存动作归属于身份设置组');
+    assert.equal(doc.querySelector('[role="status"]')?.textContent, undefined, '无草稿时不显示重复savedHint');
     await act(async () => button('changeAvatar').click());
     assert.equal(button('changeAvatar').getAttribute('aria-expanded'), 'true');
     assert.equal(doc.querySelector('#pdsh-avatar-options').hidden, false);
@@ -94,6 +97,11 @@ test('原生控件装配的分组预览不提前保存；失败保留、放弃�
     assert.equal(input.value, '演示访客');
     await act(async () => input.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true })));
     assert.ok(doc.querySelector('#pdsh-nickname'), '中文输入法确认字词不应提前结束编辑');
+    assert.equal(button('doneEditing').getAttribute('aria-label'), 'doneEditing');
+    assert.equal(button('doneEditing').getAttribute('title'), 'doneEditing');
+    assert.ok(button('doneEditing').querySelector('svg'), '完成操作应使用原生按钮中的确认图标');
+    assert.equal(button('doneEditing').getAttribute('data-variant'), 'ghost');
+    assert.equal(button('doneEditing').getAttribute('data-size'), null, '图标按钮使用原生默认尺寸，维持稳定行高');
     await act(async () => button('doneEditing').click());
     assert.equal(doc.querySelector('#pdsh-nickname'), null);
     assert.equal(doc.activeElement, button('editNickname'), '结束编辑后键盘焦点回到原入口');
@@ -141,6 +149,107 @@ test('原生控件装配的分组预览不提前保存；失败保留、放弃�
   }
 });
 
+test('两个偏好开关立即写入各自的Host路径，不进入头像昵称草稿', async () => {
+  const h = await mountSettings();
+  try {
+    await h.render(); h.accept(true);
+    const titles = h.doc.querySelector('input[aria-label="maskTitles"]');
+    const identity = h.doc.querySelector('input[aria-label="maskIdentity"]');
+    assert.equal(titles.checked, false); assert.equal(identity.checked, false);
+    assert.equal(h.button('save').disabled, true);
+
+    await act(async () => titles.click());
+    assert.deepEqual(Array.from(h.writes[0].ops, op => op.path[0]), ['maskTitles']);
+    assert.equal(h.writes[0].revision, 7);
+    assert.equal(titles.checked, false, '提交期间不乐观改写，视觉状态只读Host接受值');
+    await h.snapshot({ revision: 8, value: { ...model.DEFAULTS, maskTitles: true } });
+    assert.equal(titles.checked, true);
+    assert.equal(h.button('save').disabled, true, '开关不是profile待保存草稿');
+
+    await act(async () => identity.click());
+    assert.deepEqual(Array.from(h.writes[1].ops, op => op.path[0]), ['maskIdentity']);
+    assert.equal(h.writes[1].revision, 8);
+    await h.snapshot({ revision: 9, value: { ...model.DEFAULTS, maskTitles: true, maskIdentity: true } });
+    assert.equal(identity.checked, true);
+
+    await act(async () => h.button('editNickname').click());
+    await h.input(h.doc.querySelector('#pdsh-nickname'), '保留的profile草稿');
+    await act(async () => titles.click());
+    assert.deepEqual(Array.from(h.writes[2].ops, op => op.path[0]), ['maskTitles']);
+    await h.snapshot({ revision: 10, value: { ...model.DEFAULTS, maskIdentity: true, futureField: 'host-owned' } });
+    assert.equal(h.doc.querySelector('#pdsh-nickname').value, '保留的profile草稿');
+    assert.equal(h.button('save').disabled, false, '开关revision变化不能造成profile假冲突');
+
+    await act(async () => h.button('save').click());
+    assert.equal(h.writes[3].revision, 10, 'profile提交使用最新Host revision');
+    assert.deepEqual(Array.from(h.writes[3].ops, op => op.path[0]), ['nickname']);
+  } finally { await h.close(); }
+});
+
+test('开关pending时拒绝重复mutate；失败本地化且不污染profile草稿', async () => {
+  const h = await mountSettings();
+  let settle;
+  const pending = new Promise(resolve => { settle = resolve; });
+  try {
+    await h.render(); await act(async () => h.button('editNickname').click());
+    await h.input(h.doc.querySelector('#pdsh-nickname'), '仍可保存的草稿');
+    h.form.mutate = (ops, revision) => { h.writes.push({ ops, revision }); return pending; };
+    const titles = h.doc.querySelector('input[aria-label="maskTitles"]');
+    await act(async () => titles.click());
+    assert.equal(titles.disabled, true, '请求未完成时控件禁用');
+    await act(async () => titles.click());
+    assert.equal(h.writes.length, 1, 'pending请求不会重复提交');
+    assert.equal(titles.checked, false, 'pending不乐观切换已接受值');
+    assert.equal(h.button('save').disabled, true, 'Host mutation进行中不与profile保存竞争');
+
+    await act(async () => settle(false));
+    assert.equal(titles.disabled, false);
+    assert.equal(titles.checked, false, '失败后依然显示Host接受值');
+    assert.equal(h.doc.querySelector('[role="alert"]').textContent, 'toggleFailed');
+    assert.equal(h.doc.querySelector('#pdsh-nickname').value, '仍可保存的草稿');
+    assert.equal(h.button('save').disabled, false, '开关失败不让profile草稿失效');
+  } finally { await h.close(); }
+});
+
+test('开关提交结算后只在焦点未移动时恢复原Switch焦点', async () => {
+  for (const { result, moveFocus } of [{ result: true, moveFocus: false }, { result: false, moveFocus: false }, { result: true, moveFocus: true }]) {
+    const h = await mountSettings();
+    let settle;
+    const pending = new Promise(resolve => { settle = resolve; });
+    try {
+      await h.render(); h.form.mutate = () => pending;
+      const titles = h.doc.querySelector('input[role="switch"][aria-label="maskTitles"]');
+      await act(async () => { titles.focus(); titles.click(); });
+      assert.equal(titles.disabled, true);
+      let elsewhere;
+      if (moveFocus) {
+        elsewhere = h.doc.createElement('button'); elsewhere.textContent = '其他控件'; h.doc.body.append(elsewhere); elsewhere.focus();
+      } else { h.doc.body.tabIndex = -1; h.doc.body.focus(); }
+      await act(async () => settle(result));
+      assert.ok(h.doc.activeElement === (moveFocus ? elsewhere : titles), '只填补disable导致的焦点空洞，不打断用户已移走的焦点');
+    } finally { settle(false); await h.close(); }
+  }
+});
+
+test('profile冲突只由三字段基线判定，外来头像来源变化保留未提交昵称', async () => {
+  const h = await mountSettings();
+  try {
+    await h.render(); await act(async () => h.button('editNickname').click());
+    await h.input(h.doc.querySelector('#pdsh-nickname'), '本地昵称草稿');
+    const changedAvatar = 'data:image/png;base64,Yg==';
+    await h.snapshot({ revision: 8, value: { ...model.DEFAULTS, avatar: changedAvatar, useAccountAvatar: true, futureField: 'host-owned' } });
+    assert.equal(h.doc.querySelector('#pdsh-nickname').value, '本地昵称草稿', '不自动重基或丢弃昵称草稿');
+    assert.equal(h.button('save').disabled, true, 'avatar/source属于profile基线，外来变化必须阻止覆盖');
+    assert.equal(h.doc.querySelector('[role="alert"]').textContent, 'saveConflict');
+    assert.equal(h.writes.length, 0);
+
+    await act(async () => h.button('reloadDiscard').click());
+    assert.equal(h.doc.querySelector('.pdsh-profile-name').textContent, model.DEFAULTS.nickname);
+    assert.equal(h.button('accountAvatar').getAttribute('aria-pressed'), 'true', '放弃草稿后采用Host的头像来源');
+    assert.equal(h.doc.querySelector('.pdsh-avatar-preview').getAttribute('src'), 'official.png', '账号来源仍由Host展示，不拿本地头像覆盖');
+  } finally { await h.close(); }
+});
+
 function deferredReader() {
   const readers = [];
   class Reader {
@@ -185,6 +294,9 @@ test('昵称无效不把合法图片误报；字段错误有可访问关联；Es
     assert.ok(![...h.doc.querySelectorAll('[role="alert"]')].some(node => node.textContent === 'avatarFailed'));
     await act(async () => input.dispatchEvent(new h.dom.window.KeyboardEvent('keydown', { key: 'Escape', isComposing: true, bubbles: true })));
     assert.ok(h.doc.querySelector('#pdsh-nickname'), 'IME阶段的Esc不退出编辑');
+    await act(async () => input.dispatchEvent(new h.dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+    assert.ok(h.doc.querySelector('#pdsh-nickname'), '非法昵称不能通过Enter关闭编辑并隐藏字段错误');
+    assert.equal(h.button('doneEditing').disabled, true, '非法昵称禁用完成编辑');
     await act(async () => input.dispatchEvent(new h.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
     assert.equal(h.doc.querySelector('#pdsh-nickname'), null);
     assert.equal(h.doc.querySelector('.pdsh-profile-name').textContent, model.DEFAULTS.nickname);

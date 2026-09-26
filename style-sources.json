@@ -204,6 +204,20 @@
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
       "consumer": "packages/client/ui-primitives/src/Button.module.css .ghost:active",
       "acquisition": "已接受开关开启时用原生交互底色；pressed是Host状态，不是伪隔离声明。"
+    },
+    {
+      "role": "profile row spacing and compact editor",
+      "variable": "--pdsh-field-gap",
+      "file": "packages/client/ui-primitives/src/settings-form/fields.module.css",
+      "selector": ".field",
+      "property": "gap",
+      "acquisition": "共用原生字段间隔作为轻量row纵向inset，与AccountSection.module.css .row的紧凑纵向留白方向一致；取消组gap避免两层padding再叠加。编辑器靠右用原生Input自然固有宽度，不造固定宽度。"
+    },
+    {
+      "role": "nickname confirmation affordance",
+      "file": "packages/client/ui-primitives/src/icons/index.tsx",
+      "selector": "IconCheckOutlineRegular",
+      "acquisition": "复用官方check图标与默认尺寸ghost Button，以本地化aria-label/title命名；不造svg或固定图标尺寸。"
     }
   ]
 }

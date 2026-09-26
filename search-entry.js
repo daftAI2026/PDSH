@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖原生搜索结构、实时class/图标几何/CSS变量表达式，以及Host开关状态/翻译。
- * [OUTPUT]: 提供可撤回的搜索邻接入口；保留搜索节点；自有入口承担自动留白，样式卸载还原原生对齐，不写搜索状态。
+ * [OUTPUT]: 提供可撤回的搜索邻接入口与请求后局部焦点修复；保留搜索节点；自有入口承担自动留白，样式卸载还原原生对齐，不写搜索状态。
  * [POS]: PDSH 版本相关 DOM 适配边界；非官方 child slot，与身份显示控制器相互独立。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -67,8 +67,9 @@ export function mountSearchEntry(doc, { icon, label, state, onActivate }) {
   // +--- 操作由Host控制器承接；不冒充搜索点击或隔离会话 ---+
   const activate = () => { if (button.isConnected && !button.hidden && !button.disabled && !disposed) onActivate(); };
   button.addEventListener('click', activate);
+  let pendingFocus = false, wasBusy = false;
   let shell = null, disposed = false, sampledElement = null, sampledKey = '', sampledColor = null;
-  function detach() { button.remove(); shell?.remove(); shell = null; }
+  function detach() { pendingFocus = false; button.remove(); shell?.remove(); shell = null; }
   function synchronize() {
     if (disposed) return;
     const native = locate(doc);
@@ -79,6 +80,7 @@ export function mountSearchEntry(doc, { icon, label, state, onActivate }) {
     attribute(button, 'data-pdsh-search-entry', native.wide ? 'wide' : 'rail');
     attribute(button, 'aria-label', label()); attribute(button, 'title', label());
     const current = state();
+    if (current.busy && !wasBusy) pendingFocus = doc.activeElement === button;
     attribute(button, 'aria-pressed', String(current.pressed)); attribute(button, 'aria-busy', String(current.busy));
     button.disabled = current.disabled;
     const chain = [];
@@ -103,6 +105,13 @@ export function mountSearchEntry(doc, { icon, label, state, onActivate }) {
       if (button.parentElement !== shell) shell.append(button);
       if (shell.parentElement !== native.parent || shell.nextElementSibling !== native.anchor) native.parent.insertBefore(shell, native.anchor);
     }
+    if (wasBusy && !current.busy) {
+      // 只修复请求禁用造成的焦点空洞，用户移焦或搜索展开时不抢回。
+      if (pendingFocus && !button.disabled && !button.hidden && button.isConnected
+        && (doc.activeElement === doc.body || doc.activeElement === button)) button.focus();
+      pendingFocus = false;
+    }
+    wasBusy = current.busy;
   }
   const observer = new doc.defaultView.MutationObserver(records => {
     if (records.some(record => doc.head.contains(record.target))) sampledKey = '';

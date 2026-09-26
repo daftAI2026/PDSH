@@ -122,3 +122,19 @@ test('左侧入口接管自动留白；搜索展开和卸载恢复原生 slot �
   entry.dispose(); assert.equal(style(slot).marginLeft, 'auto');
   assert.equal(slot.hasAttribute('style'), false); dom.window.close();
 });
+
+test('帽子开关请求后修复自己的焦点空洞，不抢回用户移走的焦点', () => {
+  const { dom, doc, options } = setup();
+  let state = { pressed: false, busy: false, disabled: false };
+  options.state = () => state;
+  const entry = mountSearchEntry(doc, options), button = doc.querySelector('[data-pdsh-search-entry]');
+  doc.body.tabIndex = -1;
+  button.focus(); state = { ...state, busy: true, disabled: true }; entry.refresh(); doc.body.focus();
+  state = { ...state, busy: false, disabled: false }; entry.refresh();
+  assert.equal(doc.activeElement, button);
+  button.focus(); state = { ...state, busy: true, disabled: true }; entry.refresh();
+  const elsewhere = doc.createElement('button'); doc.body.append(elsewhere); elsewhere.focus();
+  state = { ...state, busy: false, disabled: false }; entry.refresh();
+  assert.equal(doc.activeElement, elsewhere);
+  entry.dispose(); dom.window.close();
+});

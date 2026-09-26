@@ -9,8 +9,8 @@ export const dictionaries = {
   zh: {
     entry: '遮挡侧栏标题', entryOn: '显示侧栏标题', toggleFailed: '未能保存切换，请重试',
     languageHint: '界面语言跟随 Harness。可在“设置 → 通用设置 → 语言”切换中文 / English。',
-    displayGroup: '侧栏隐私', identityGroup: '显示身份', titlesHint: '工作区与会话名称',
-    identityHint: '仅替换当前侧栏的昵称和头像，不修改真实账户。',
+    displayGroup: '侧栏显示', identityGroup: '显示身份', titlesHint: '工作区与会话名称',
+    identityHint: '只在本机显示，不修改真实账户。',
     identityPreview: '显示身份摘要', identityPreviewHint: '本地显示身份，保存后应用', changeAvatar: '更换头像', editNickname: '编辑显示昵称', doneEditing: '完成编辑',
     'source.generated': '按昵称生成', 'source.local': '本地图片', 'source.account': '账号原始头像',
     avatarLabel: '头像来源', accountAvatar: '使用账号头像', accountAvatarHint: '保留账号原始头像，包括宿主默认头像；显示昵称仍可独立修改。原始头像可能暴露你的身份。',
@@ -30,8 +30,8 @@ export const dictionaries = {
   en: {
     entry: 'Mask sidebar titles', entryOn: 'Show sidebar titles', toggleFailed: 'Toggle was not saved. Try again',
     languageHint: 'Language follows Harness. Switch in Settings → General → Language: 中文 / English.',
-    displayGroup: 'Sidebar privacy', identityGroup: 'Display identity', titlesHint: 'Workspace and session names',
-    identityHint: 'Replace the local sidebar nickname and avatar only. Your account remains unchanged.',
+    displayGroup: 'Sidebar display', identityGroup: 'Display identity', titlesHint: 'Workspace and session names',
+    identityHint: 'Local display only. Your account stays unchanged.',
     identityPreview: 'Display identity summary', identityPreviewHint: 'Local display identity, applied after saving', changeAvatar: 'Change avatar', editNickname: 'Edit display nickname', doneEditing: 'Done editing',
     'source.generated': 'Generated from nickname', 'source.local': 'Local image', 'source.account': 'Original account avatar',
     avatarLabel: 'Avatar source', accountAvatar: 'Use account avatar', accountAvatarHint: 'Keep the native account picture, including its default icon. Display nickname remains independent. Your original picture may identify you.',

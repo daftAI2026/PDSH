@@ -1,7 +1,7 @@
 {
   "name": "@daftai/pdsh",
   "description": "DSH Private Mode: sidebar title masking and local display identity, without session isolation",
-  "version": "0.1.0-mvp.11",
+  "version": "0.1.0-mvp.12",
   "private": true,
   "type": "module",
   "main": "./index.js",
