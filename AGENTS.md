@@ -74,6 +74,10 @@ The `locale/` directory contains package metadata resources, not a second runtim
 6. Treat each external plugin as trusted executable code; inspect the bundle and explicit dependencies before installing. Never silently copy credentials into a temporary profile.
 7. Ordinary private research and decisions belong in the private docs repo, published with its `private-docs-publish` skill and repository write lock. Do not place private user data here.
 
+## Desktop debugging
+
+Prefer an already enabled loopback CDP connection. Do not activate or steal the user's foreground window; do not silently restart Desktop just to enable CDP. A Host HTTP listener is not a CDP endpoint. If CUA is unavailable and CDP is not enabled, background inspection may establish the remaining gap, but cannot substitute for real Desktop verification.
+
 ## Current milestone
 
 The requested slice is same-window message outlines plus local identity display settings. Validate the exact installed runtime with a disposable profile; record which checks are real Host/UI, DOM fixtures, or still unverified. `pnpm test`, `pnpm build`, and `pnpm run bundle` are the local checks. Do not install into the live Desktop profile implicitly. Isolated sessions and InCodex session/owner/burn remain future work requiring separate proofs.

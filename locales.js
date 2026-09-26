@@ -7,13 +7,13 @@
 export const NS = 'pdsh';
 export const dictionaries = {
   zh: {
-    entry: 'PDSH 显示设置（不隔离会话）',
+    entry: 'DSH 私密模式设置（尚未隔离会话）',
     languageHint: '界面语言跟随 Harness。可在“设置 → 通用设置 → 语言”切换中文 / English。',
     displayGroup: '对话显示', identityGroup: '显示身份', framesHint: '使用宿主灰色边线区分用户与助手消息。',
     identityHint: '仅替换当前侧栏的昵称和头像，不修改真实账户。', previewNote: '显示身份预览，保存后应用',
     avatarLabel: '头像',
     unsaved: '有未保存的修改', savedHint: '修改后点击保存，才会应用到当前窗口。',
-    title: 'PDSH 显示设置', description: '给每条用户/助手消息加灰框，并可替换侧栏昵称和头像。仅改变本地显示：不隔离、不删除历史，也不修改真实账户。',
+    title: 'DSH 私密模式设置', description: '给每条用户/助手消息加灰框，并可替换侧栏昵称和头像。仅改变本地显示：不隔离、不删除历史，也不修改真实账户。',
     frames: '对话灰框', maskIdentity: '替换侧栏显示身份', nickname: '显示昵称', avatar: '选择本地头像',
     avatarHint: '默认按昵称离线生成头像。也可选 PNG / JPEG / WebP；不会上传图片或请求头像服务。',
     generated: '恢复生成头像', preview: '显示头像预览', save: '保存', saving: '保存中…', discard: '放弃修改',
@@ -24,13 +24,13 @@ export const dictionaries = {
     'status.unsupported': '未识别唯一的原生侧栏身份，本次不替换。',
   },
   en: {
-    entry: 'PDSH display settings (no session isolation)',
+    entry: 'DSH Private Mode settings (no session isolation)',
     languageHint: 'Language follows Harness. Switch in Settings → General → Language: 中文 / English.',
     displayGroup: 'Conversation display', identityGroup: 'Display identity', framesHint: 'Separate user and assistant messages using the host border style.',
     identityHint: 'Replace the local sidebar nickname and avatar only. Your account remains unchanged.', previewNote: 'Display preview, applied after saving',
     avatarLabel: 'Avatar',
     unsaved: 'Unsaved changes', savedHint: 'Save your changes to apply them to the current window.',
-    title: 'PDSH display settings', description: 'Outline user/assistant messages and optionally replace the sidebar nickname and avatar. Local display only: no isolation, history deletion or account changes.',
+    title: 'DSH Private Mode settings', description: 'Outline user/assistant messages and optionally replace the sidebar nickname and avatar. Local display only: no isolation, history deletion or account changes.',
     frames: 'Message outlines', maskIdentity: 'Replace sidebar display identity', nickname: 'Display nickname', avatar: 'Choose a local avatar',
     avatarHint: 'An offline avatar is generated from the nickname. Or choose PNG / JPEG / WebP. No uploads or avatar-service requests.',
     generated: 'Use generated avatar', preview: 'Display avatar preview', save: 'Save', saving: 'Saving…', discard: 'Discard changes',

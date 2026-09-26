@@ -61,9 +61,9 @@ test('lazy factory 装配到包的 keyed 设置页，并清理资源', () => {
     assert.equal(document.body.hasAttribute('data-pdsh-frames'), true);
     const searchEntry = document.querySelector('[data-pdsh-search-entry]');
     assert.ok(searchEntry, '启用后应在搜索旁装配入口，而不是只贡献设置页');
-    assert.equal(searchEntry.getAttribute('aria-label'), 'PDSH 显示设置（不隔离会话）');
+    assert.equal(searchEntry.getAttribute('aria-label'), 'DSH 私密模式设置（尚未隔离会话）');
     language = 'en'; for (const notify of localeListeners) notify();
-    assert.equal(searchEntry.getAttribute('aria-label'), 'PDSH display settings (no session isolation)');
+    assert.equal(searchEntry.getAttribute('aria-label'), 'DSH Private Mode settings (no session isolation)');
     assert.equal(document.querySelectorAll('[data-pdsh-search-entry]').length, 1);
     searchEntry.click();
     assert.equal(opened, '@daftai/pdsh', '入口必须通过官方服务打开自己的详情，不改会话');
