@@ -81,8 +81,10 @@ test('原生控件装配的分组预览不提前保存；失败保留、放弃�
     await act(async () => button('generated').click());
     await act(async () => button('save').click());
     assert.equal(writes.length, 2); assert.equal(button('save').disabled, true);
+    assert.equal(writes[1].ops.find(op => op.path[0] === 'useAccountAvatar').value, false, '恢复生成头像同时撤销原始头像来源');
     await act(async () => { snapshot = { ...snapshot, writable: false }; for (const fn of listeners) fn(); });
     assert.equal(input.disabled, true); assert.equal(button('avatar').disabled, true);
+    assert.equal(button('accountAvatar').disabled, true);
   } finally {
     await act(async () => root.unmount()); dom.window.close();
     for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; }
