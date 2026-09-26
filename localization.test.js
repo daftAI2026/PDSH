@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖发布清单、官方 locale 资源入口与 Client 的语言字典。
- * [OUTPUT]: 验证包文本可离线发现、zh/en 键齐全、提示归属宿主语言而非第二套偏好。
+ * [OUTPUT]: 验证包文本可离线发现、zh/en 键齐全，语言跟随宿主且不重复渲染使用说明。
  * [POS]: PDSH 本地化合同；实际宿主热切换/草稿保留由独立 runtime 另验。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -30,6 +30,6 @@ test('运行文案两种语言键一致，语言提示使用宿主设置而非�
   assert.match(dictionaries.zh.languageHint, /Harness.*设置.*语言/);
   assert.match(dictionaries.en.languageHint, /Harness.*Settings.*Language/);
   const card = readFileSync(new URL('./settings-card.jsx', import.meta.url), 'utf8');
-  assert.match(card, /t\('languageHint'\)/);
+  assert.doesNotMatch(card, /t\('languageHint'\)/, '语言跟随宿主，不重复展示使用说明');
   assert.doesNotMatch(card, /localStorage|setLocale|localePreference/);
 });

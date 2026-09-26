@@ -1,7 +1,7 @@
 {
   "name": "@daftai/pdsh",
   "description": "DSH Private Mode: early private-chat plugin; currently local message outlines and display identity only, without session isolation",
-  "version": "0.1.0-mvp.9",
+  "version": "0.1.0-mvp.10",
   "private": true,
   "type": "module",
   "main": "./index.js",

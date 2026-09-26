@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 styles.css 的真实 selector、来源账和 rc.2 ChatNode DOM 合同。
- * [OUTPUT]: 验证助手节点能命中灰框、工具/隐藏节点不误框，样式无数值颜色尺寸 fallback。
+ * [OUTPUT]: 验证旧消息描边选择器、编辑行原生高度与错误边线来源，禁止数值颜色尺寸 fallback。
  * [POS]: PDSH 的样式合同，防止把 Conversation 内部 kind 当作 Chat DOM dispatch kind。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -38,4 +38,12 @@ test('头像与昵称横向编排；入口自己承担自动留白，隐藏时�
   assert.match(css, /\.pdsh-avatar-options\[hidden\]\s*\{[^}]*display:\s*none/);
   assert.match(css, /\[data-pdsh-search-entry="wide"\]\s*\{[^}]*margin-left:\s*auto/);
   assert.match(css, /\[data-pdsh-search-entry="wide"\]:not\(\[hidden\]\) \+ div\s*\{[^}]*margin-left:\s*0/);
+});
+
+test('编辑与阅读态同用原生Button的最小高度；非法输入边线使用宿主错误token', () => {
+  const source = readFileSync(new URL('./client-entry.jsx', import.meta.url), 'utf8');
+  assert.match(source, /<Button[^>]*data-pdsh-button-probe/);
+  assert.match(source, /--pdsh-action-size/);
+  assert.match(css, /\.pdsh-inline-editor\s*\{[^}]*min-height:\s*var\(--pdsh-action-size\)/);
+  assert.match(css, /:has\(input\[aria-invalid="true"\]\)[^}]*border-color:\s*var\(--dsw-alias-state-error-primary\)/);
 });

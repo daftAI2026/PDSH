@@ -36,9 +36,11 @@ body[data-pdsh-frames] [data-slot="conversation.view"] :is([data-chat-flow-kind=
 .pdsh-value-action { min-width: 0; max-width: 100%; padding-inline: 0; font: var(--dsw-font-xs-13); }
 .pdsh-value-action > span { min-width: 0; overflow-wrap: anywhere; text-align: right; }
 .pdsh-value-action > svg { flex: none; }
-.pdsh-inline-editor { display: flex; flex: 1; min-width: 0; align-items: center; gap: var(--pdsh-field-gap); }
+.pdsh-inline-editor { display: flex; flex: 1; min-width: 0; min-height: var(--pdsh-action-size); align-items: center; gap: var(--pdsh-field-gap); }
 .pdsh-inline-editor > span { flex: 1; min-width: 0; }
+.pdsh-inline-editor > span:has(input[aria-invalid="true"]) { border-color: var(--dsw-alias-state-error-primary); }
 .pdsh-inline-editor > button { flex: none; }
+.pdsh-nickname-editor { flex: 1; }
 .pdsh-source-value { min-width: 0; text-align: right; overflow-wrap: anywhere; }
 .pdsh-avatar-options { display: flex; flex-direction: column; gap: var(--pdsh-field-gap); }
 .pdsh-avatar-options[hidden] { display: none; }

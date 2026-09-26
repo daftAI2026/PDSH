@@ -5,6 +5,14 @@
   "note": "安装包的 build commit 在公开仓无法拉取；以确切包内 client.js 为运行证据，公共 tag 为可链接源码。无数值颜色 fallback。",
   "styles": [
     {
+      "role": "nickname editor stable action height",
+      "variable": "--pdsh-action-size",
+      "file": "packages/client/ui-primitives/src/Button.module.css",
+      "selector": ".md",
+      "property": "height",
+      "acquisition": "渲染官方默认 Button 并读取 computed height；编辑行最小高度与阅读态编辑按钮相同，不硬编码36px；不假称已实窗量测。"
+    },
+    {
       "role": "gray outline",
       "variable": "--dsw-alias-border-l4",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
