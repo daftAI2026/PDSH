@@ -25,4 +25,6 @@ if (existing) {
   if (tagged !== head) throw new Error(`${tag} already points to another commit`);
 }
 if (execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim()) throw new Error('release working tree must be clean');
-process.stdout.write(`${tag} matches package.json, embedded client version and HEAD.\n`);
+process.stdout.write(existing
+  ? `${tag} matches package.json, embedded client version and HEAD.\n`
+  : `${tag} candidate matches package.json and embedded client version; tag not created.\n`);
