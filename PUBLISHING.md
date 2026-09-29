@@ -11,6 +11,8 @@ PDSH 的默认分发是 **GitHub 仓库中的 Harness bundle**。`package.json.v
 
 ## 每个版本
 
+`v0.2.0` 的已知验收缺口：安装后的 Desktop 工作台完整交互仍待验证；当前证据覆盖源码合同、独立 Web profile 的 Host route 和归档原生探针执行。此版本按明确披露该限制的版本锚点分发，不把打 tag 视为 Desktop 兼容证明，也不豁免后续版本的正常验收门。
+
 1. 修改 `package.json.version`，完成代码、翻译、文档和测试；不要手改生成的版本常量。
 2. `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm run bundle`；审查 `.tgz` 成员，确认没有凭据、profile、日志或私有研究资料；验证 `native/window-id` 为源文件可复现的 arm64/x86_64 产物，归档即使剥离执行位也能通过私有临时副本运行。
 3. 在目标 Harness 版本的**独立 profile** 用官方插件管理器安装同一 Git 提交/归档，检查新会话标题、搜索与折叠、设置字段、更新入口、停用撤回；含截图的版本还须检查 macOS 权限成功/失败、相机位置、明暗主题、重拍/复制/保存与临时像素清理。DOM fixture 和成功打包不算 Desktop 验收。

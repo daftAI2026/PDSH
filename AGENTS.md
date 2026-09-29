@@ -8,7 +8,7 @@ Public code repository: `https://github.com/daftAI2026/PDSH` (uppercase reposito
 
 PDSH means Private DeepSeek Harness; public display names are `DSH 私密模式` / `DSH Private Mode`. The brand does not imply that isolation is implemented.
 
-PDSH is the DeepSeek Harness Desktop adaptation of InCodex's presentation and eventual incognito experience. The official Harness app is the host; PDSH is an out-of-tree Cordis plugin bundle. The **0.1.1 stable release** masks recognized sidebar titles and offers a local nickname/avatar. The **0.2.0-rc.1 branch** adds a local macOS window-capture workbench. Neither release isolates sessions, opens another DeepSeek instance, transfers credentials, erases history, or provides a privacy guarantee.
+PDSH is the DeepSeek Harness Desktop adaptation of InCodex's presentation and eventual incognito experience. The official Harness app is the host; PDSH is an out-of-tree Cordis plugin bundle. The **0.2.0 release** adds a local macOS window-capture workbench to 0.1.1's sidebar masking and local nickname/avatar. Its full installed Desktop workbench acceptance remains outstanding and must not be claimed from the tag alone. PDSH does not isolate sessions, open another DeepSeek instance, transfer credentials, erase history, or provide a privacy guarantee.
 
 The InCodex repository at `../incodex` is the reference for product behavior and safety invariants, not a template to copy wholesale. Its `AGENTS.md` was used as the starting convention for this guide; Codex-specific commands and assumptions do not apply here.
 
@@ -76,11 +76,13 @@ Prefer an already enabled loopback CDP connection. Do not activate or steal the 
 
 Use the installed build-macos-apps `swiftui-patterns` skill as a desktop-interaction reference for editing, cancellation, focus and discoverability, not as a framework dependency. Harness owns the settings surface, controls, persistence and commands; do not add a SwiftUI window, AppStorage, a second settings store or global shortcuts merely to mimic native macOS.
 
-## 0.2.0-rc.1 capture contract
+## 0.2.0 release contract
 
 The camera is macOS Desktop-only. It captures the current uniquely identified DSH window *before* showing the workbench, then supports local background composition, manual/recognized-region redaction, retake and PNG copy/save. Screen Recording permission may be required. Recognized-region suggestions are narrow; other pixels can contain sensitive data. The pre-capture placeholder is best-effort visual masking, not a forensic privacy promise. No system-wallpaper action appears without an adapter.
 
-Run `pnpm test`, `pnpm build`, `pnpm run bundle`, inspect the archived native helper and verify exact Desktop behavior before a stable tag. DOM, Host route and direct system screenshot tests are separate evidence; none alone proves the installed UI.
+The 0.2.0 version tag is published with an explicit installed-Desktop acceptance gap. Reused 0.2.0-rc.1 evidence covers source contracts, the authenticated route in an independent Web profile and execution of the packed native helper; it does not cover the installed workbench's theme, interaction, copy/save or permission-denied behavior. Keep this limitation visible in README and do not silently replace or restart the user's live Desktop to close it.
+
+Run `pnpm test`, `pnpm build`, `pnpm run bundle` and inspect the archived native helper for each version. Full Desktop acceptance remains a normal release gate; 0.2.0's recorded exception does not waive that gate for later releases. DOM, Host route and direct system screenshot tests are separate evidence; none alone proves the installed UI.
 
 ## 0.1.1 stable release contract
 
