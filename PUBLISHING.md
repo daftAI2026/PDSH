@@ -7,7 +7,7 @@
 
 # 发布
 
-PDSH 的默认分发是 **GitHub 仓库中的 Harness bundle**。`package.json.version` 是唯一手写版本号；`build.mjs` 把它注入 `client.js`，包元信息也从同一清单读取。`v<version>` Git tag 是不可变的发布锚点，供安装和插件内更新发现。GitHub Release 是可选的发布说明页面，**不是 Harness 安装要求**。npm 仍为 `private: true`，没有 npm 发布流程。
+PDSH 的默认分发是 **GitHub 仓库中的 Harness bundle**。`package.json.version` 是唯一手写版本号；`build.ts` 把它注入 `client.js`，包元信息也从同一清单读取。`v<version>` Git tag 是不可变的发布锚点，供安装和插件内更新发现。GitHub Release 是可选的发布说明页面，**不是 Harness 安装要求**。npm 仍为 `private: true`，没有 npm 发布流程。
 
 ## 每个版本
 

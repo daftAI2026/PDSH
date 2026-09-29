@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 src/host/index.ts，由 build.mjs 生成。
+ * [INPUT]: 依赖 src/host/index.ts，由 build.ts 生成。
  * [OUTPUT]: 提供 Cordis Host 的 Config/name/apply。
  * [POS]: PDSH 安装入口；TypeScript 源码是唯一手写实现。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

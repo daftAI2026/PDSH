@@ -92,6 +92,8 @@ test('摘要右侧常驻三个头像按钮，没有来源字段、展开按钮�
     assert.equal(h.doc.querySelectorAll('.pdsh-detail-row').length, 1);
     assert.equal(h.button('changeAvatar'), undefined); assert.equal(h.button('save'), undefined);
     assert.equal(h.button('discard'), undefined); assert.equal(h.doc.querySelector('footer'), null);
+    assert.ok(h.doc.querySelector('#pdsh-update-title'));
+    assert.equal(h.doc.querySelector('.pdsh-update p'), null, '正常状态不展示常驻更新来源说明');
     assert.equal(h.writes.length, 0);
   } finally { await h.close(); }
 });

@@ -1,17 +1,18 @@
 /**
- * [INPUT]: 依赖官方 remote.pluginManager 的包清单/安装能力与经校验的 GitHub tag 数据。
+ * [INPUT]: 依赖官方 remote.pluginManager 的 {ok,value} 调用封套与经校验的 GitHub tag 数据。
  * [OUTPUT]: 提供只由用户触发检查、确认安装和可订阅状态的更新控制器。
  * [POS]: Client 更新决策层；固定提交安装、保留配置，不自行重启或推断安装来源。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 export interface ReleaseTag { name: string; commit: { sha: string } }
 interface Bundle { name: string; version: string; installed: boolean; enabled: boolean }
+type RemoteReply<T> = { ok: true; value: T } | { ok: false; error?: { message?: string } };
 interface Manager {
-  listBundles(): Promise<Bundle[]>;
-  installBundle(spec: string, options: { enabled: boolean }): Promise<{ changed: boolean; application?: string }>;
+  listBundles(): Promise<RemoteReply<Bundle[]>>;
+  installBundle(spec: string, options: { enabled: boolean }): Promise<RemoteReply<{ changed: boolean; application?: string }>>;
 }
 type Phase = 'idle' | 'checking' | 'current' | 'available' | 'installing' | 'installed' | 'restart' | 'failed';
-export interface UpdateState { phase: Phase; version?: string }
+export interface UpdateState { phase: Phase; version?: string; operation?: 'check' | 'install' }
 const PACKAGE = '@daftai/pdsh';
 const REPOSITORY = 'github:daftAI2026/PDSH#';
 
@@ -50,7 +51,9 @@ export function createUpdateController(manager: Manager, loadTags: () => Promise
     for (const notify of listeners) notify();
   }
   async function ownBundle() {
-    const bundles = await manager.listBundles();
+    const reply = await manager.listBundles();
+    if (!reply.ok || !Array.isArray(reply.value)) throw new Error('bundle inventory unavailable');
+    const bundles = reply.value;
     const matches = bundles.filter(bundle => bundle.name === PACKAGE && bundle.installed);
     return matches.length === 1 && matches[0].version === version ? matches[0] : null;
   }
@@ -66,7 +69,7 @@ export function createUpdateController(manager: Manager, loadTags: () => Promise
         if (disposed) return;
         candidate = next;
         setState(next ? { phase: 'available', version: next.version } : { phase: 'current' });
-      } catch { setState({ phase: 'failed' }); }
+      } catch { setState({ phase: 'failed', operation: 'check' }); }
       finally { busy = false; }
     },
     async install() {
@@ -76,11 +79,11 @@ export function createUpdateController(manager: Manager, loadTags: () => Promise
       setState({ phase: 'installing', version: target.version });
       try {
         if (!await ownBundle()) throw new Error('installed bundle changed');
-        const result = await manager.installBundle(`${REPOSITORY}${target.sha}`, { enabled: true });
-        if (!result?.changed || !['restart-required', 'applied'].includes(result.application ?? '')) throw new Error('installation not accepted');
+        const reply = await manager.installBundle(`${REPOSITORY}${target.sha}`, { enabled: true });
+        if (!reply.ok || !reply.value?.changed || !['restart-required', 'applied'].includes(reply.value.application ?? '')) throw new Error('installation not accepted');
         candidate = null;
-        setState({ phase: result.application === 'applied' ? 'installed' : 'restart', version: target.version });
-      } catch { setState({ phase: 'failed' }); }
+        setState({ phase: reply.value.application === 'applied' ? 'installed' : 'restart', version: target.version });
+      } catch { setState({ phase: 'failed', operation: 'install' }); }
       finally { busy = false; }
     },
     dispose() { disposed = true; candidate = null; listeners.clear(); },

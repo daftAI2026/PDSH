@@ -47,7 +47,7 @@ src/shared/     Host/Client 共用的偏好验证与文案
 src/client/     设置组件、侧栏 DOM 适配器、入口与样式
 locale/         宿主离线发现的中英文包元信息
 tests/          DOM、配置、生命周期和产物合同测试
-build.mjs       将 TypeScript 源码构建为宿主可加载的 JavaScript
+build.ts       将 TypeScript 源码构建为宿主可加载的 JavaScript
 ```
 
 源码和测试使用 TypeScript/TSX。根目录 `index.js`、`client.js`、`client.js.map` 是**生成并随包提交的运行产物**：Harness 按 JavaScript 入口加载，不能把它们简单改名为 `.ts`。`styles.css` 的宿主变量与视觉来源见 [`style-sources.json`](style-sources.json)。项目约定见 [`AGENTS.md`](AGENTS.md)。

@@ -13,7 +13,8 @@
 - `sidebar-redaction.test.ts`: 普通/空白会话、搜索与 HoverCard 标记和恢复。
 - `styles.test.ts`: 视觉规则与上游 token 来源。
 - `title-toggle.test.ts`: Host 单路径切换及失败状态。
-- `updater.test.ts`: 稳定 tag、固定提交、显式安装和失败保留旧包。
+- `updater.test.ts`: 稳定 tag、固定提交、官方 Remote 回包封套、显式安装与失败分类。
 - `update-source.test.ts`: 公共 GitHub tag 请求的无凭据网络边界；不冒充 Desktop CSP 证明。
+- `source-layout.test.ts`: 手写 TypeScript 与宿主所需生成 JavaScript 的边界。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

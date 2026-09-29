@@ -48,7 +48,7 @@ test('lazy factory 装配标题开关与keyed设置页，并清理资源', async
     effect(fn) { const off = fn(); if (typeof off === 'function') disposers.push(off); return off; },
     locale: { register(ns, values) { assert.equal(ns, 'pdsh'); dictionaries = values; return () => { dictionaries = undefined; }; }, bind: () => key => dictionaries[language][key], subscribe(fn) { localeListeners.add(fn); return () => localeListeners.delete(fn); } },
     pluginNavigation: { openBundle(name) { opened = name; } },
-    remote: { pluginManager: { async listBundles() { return [{ name: '@daftai/pdsh', version: '0.1.0', installed: true, enabled: true }]; }, async installBundle() { assert.fail('更新只能由用户确认触发'); } } },
+    remote: { pluginManager: { async listBundles() { return { ok: true, value: [{ name: '@daftai/pdsh', version: '0.1.0', installed: true, enabled: true }] }; }, async installBundle() { assert.fail('更新只能由用户确认触发'); } } },
     configForms: { get(id) { assert.equal(id, 'pdsh'); return form; }, whileServed(ids, fn) {
       assert.equal(ids[0], 'pdsh'); activate = () => { deactivate = fn(); }; activate();
       return () => deactivate();

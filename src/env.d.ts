@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖宿主在 Client Loader 中注入的组件与 esbuild 文本资源加载器。
  * [OUTPUT]: 声明仅在构建/宿主边界存在的模块形状。
- * [POS]: TypeScript 编译边界；运行时仍由 Harness 与 build.mjs 提供实际实现。
+ * [POS]: TypeScript 编译边界；运行时仍由 Harness 与 build.ts 提供实际实现。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 declare module '*.css' { const value: string; export default value; }

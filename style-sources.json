@@ -267,6 +267,6 @@
       "variable": "--dsw-static-neutral-bluish-50",
       "value": "rgb(249, 250, 251)"
     },
-    "acquisition": "官方package.json.icon由独立img呈现，不能继承宿主CSS变量。此为固定rc.2原生调色板快照的明底图稿，非运行时UI token；build.mjs复用InCodex/Lucide的24×24可调线宽图形生成，侧栏仍使用currentColor实时变量。"
+    "acquisition": "官方package.json.icon由独立img呈现，不能继承宿主CSS变量。此为固定rc.2原生调色板快照的明底图稿，非运行时UI token；build.ts复用InCodex/Lucide的24×24可调线宽图形生成，侧栏仍使用currentColor实时变量。"
   }
 }

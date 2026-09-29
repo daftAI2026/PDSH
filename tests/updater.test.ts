@@ -20,10 +20,10 @@ test('只接受仓库稳定 semver tag 与40位 SHA，排序不信任 API 返回
 test('仅显式安装高版本，调用官方管理器固定 SHA，不自行重启或改配置', async () => {
   const installs: Array<{spec: string; options: unknown}> = [];
   const manager = {
-    async listBundles() { return [{ name: '@daftai/pdsh', version: '0.1.0', installed: true, enabled: true }]; },
+    async listBundles() { return { ok: true, value: [{ name: '@daftai/pdsh', version: '0.1.0', installed: true, enabled: true }] }; },
     async installBundle(spec: string, options: unknown) {
       installs.push({ spec, options });
-      return { changed: true, application: 'restart-required', stage: 'enable', bundle: '@daftai/pdsh' };
+      return { ok: true, value: { changed: true, application: 'restart-required', stage: 'enable', bundle: '@daftai/pdsh' } };
     },
   };
   const update = createUpdateController(manager, async () => [newer, old], '0.1.0');
@@ -38,10 +38,11 @@ test('仅显式安装高版本，调用官方管理器固定 SHA，不自行重�
 
 test('宿主没有唯一已安装自身时拒绝更新；失败不报告成功', async () => {
   let called = 0;
-  const manager = { async listBundles() { return []; }, async installBundle() { ++called; return { changed: false }; } };
+  const manager = { async listBundles() { return { ok: true, value: [] }; }, async installBundle() { ++called; return { ok: true, value: { changed: false } }; } };
   const update = createUpdateController(manager, async () => [newer], '0.1.0');
   await update.check();
   assert.equal(update.getSnapshot().phase, 'failed');
+  assert.equal(update.getSnapshot().operation, 'check');
   await update.install();
   assert.equal(called, 0);
   update.dispose();
@@ -49,18 +50,24 @@ test('宿主没有唯一已安装自身时拒绝更新；失败不报告成功',
 
 test('宿主即时应用、安装失败与卸载期间异步返回均不假报重启', async () => {
   const manager = {
-    async listBundles() { return [{ name: '@daftai/pdsh', version: '0.1.0', installed: true, enabled: true }]; },
-    async installBundle() { return { changed: true, application: 'applied' }; },
+    async listBundles() { return { ok: true, value: [{ name: '@daftai/pdsh', version: '0.1.0', installed: true, enabled: true }] }; },
+    async installBundle() { return { ok: true, value: { changed: true, application: 'applied' } }; },
   };
   const update = createUpdateController(manager, async () => [newer], '0.1.0');
   await update.check(); await update.install();
   assert.deepEqual(update.getSnapshot(), { phase: 'installed', version: '0.2.0' });
   update.dispose();
-  const failed = createUpdateController({ ...manager, async installBundle() { return { changed: false, application: 'failed' }; } }, async () => [newer], '0.1.0');
-  await failed.check(); await failed.install(); assert.equal(failed.getSnapshot().phase, 'failed'); failed.dispose();
+  const failed = createUpdateController({ ...manager, async installBundle() { return { ok: true, value: { changed: false, application: 'failed' } }; } }, async () => [newer], '0.1.0');
+  await failed.check(); await failed.install(); assert.deepEqual(failed.getSnapshot(), { phase: 'failed', operation: 'install' }); failed.dispose();
   let finish: (value: (typeof newer)[]) => void;
   const held = new Promise<(typeof newer)[]>(resolve => { finish = resolve; });
   const pending = createUpdateController(manager, () => held, '0.1.0');
   const check = pending.check(); pending.dispose(); finish([newer]); await check;
   assert.equal(pending.getSnapshot().phase, 'checking');
+});
+
+test('远端封套失败不能误判为已安装；不访问网络', async () => {
+  const manager = { async listBundles() { return { ok: false, error: { message: 'offline' } }; }, async installBundle() { throw new Error('must not install'); } };
+  const update = createUpdateController(manager, async () => { throw new Error('must not fetch'); }, '0.1.0');
+  await update.check(); assert.equal(update.getSnapshot().phase, 'failed'); update.dispose();
 });

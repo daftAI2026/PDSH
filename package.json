@@ -23,11 +23,11 @@
     "./locale/*.json": "./locale/*.json"
   },
   "scripts": {
-    "build": "node build.mjs",
+    "build": "node --experimental-strip-types build.ts",
     "typecheck": "tsc --noEmit",
     "test": "pnpm typecheck && pnpm build && node --experimental-strip-types --test tests/*.test.ts",
     "bundle": "pnpm build && pnpm pack --pack-destination output",
-    "release:check": "node check-release.mjs"
+    "release:check": "node --experimental-strip-types check-release.ts"
   },
   "dsh": {
     "client": {

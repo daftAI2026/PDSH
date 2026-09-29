@@ -195,11 +195,10 @@ export function SettingsCard({ view, preferencesForm: form, presentation, update
     </section>
     <section className="pdsh-group pdsh-update" role="group" aria-labelledby="pdsh-update-title">
       <h4 id="pdsh-update-title">{t('updateTitle')}</h4>
-      <p className="pdsh-hint">{t('updateSource')}</p>
       {update.phase === 'available'
-        ? <Button onClick={() => void updater.install()}>{t('installUpdate')} {update.version}</Button>
+        ? <Button title={t('installSourceHint')} aria-label={`${t('installUpdate')} ${update.version}；${t('installSourceHint')}`} onClick={() => void updater.install()}>{t('installUpdate')} {update.version}</Button>
         : <Button onClick={() => void updater.check()} disabled={['checking', 'installing', 'installed', 'restart'].includes(update.phase)}>{t('checkUpdate')}</Button>}
-      {update.phase !== 'idle' && <p role={update.phase === 'failed' ? 'alert' : 'status'} className={update.phase === 'failed' ? 'pdsh-error' : 'pdsh-hint'}>{t(`update.${update.phase}`)}{['restart', 'installed'].includes(update.phase) ? ` ${update.version}` : ''}</p>}
+      {update.phase !== 'idle' && <p role={update.phase === 'failed' ? 'alert' : 'status'} className={update.phase === 'failed' ? 'pdsh-error' : 'pdsh-hint'}>{t(update.phase === 'failed' ? `update.${update.operation === 'install' ? 'installFailed' : 'checkFailed'}` : `update.${update.phase}`)}{['restart', 'installed'].includes(update.phase) ? ` ${update.version}` : ''}</p>}
     </section>
   </section>;
 }

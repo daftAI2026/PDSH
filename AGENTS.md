@@ -33,15 +33,15 @@ Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatG
 
 ## Repository map
 
-- `src/host/`: Cordis configuration entry; `build.mjs` emits root `index.js` for the official loader.
+- `src/host/`: Cordis configuration entry; `build.ts` emits root `index.js` for the official loader.
 - `src/shared/`: validated display preferences and Host-language dictionaries shared by both runtimes.
-- `src/client/`: TypeScript React settings, lifecycle assembly, search/identity/title DOM adapters, CSS and entry artwork. `build.mjs` emits root `client.js` and map in the lazy-CJS loader format.
+- `src/client/`: TypeScript React settings, lifecycle assembly, search/identity/title DOM adapters, CSS and entry artwork. `build.ts` emits root `client.js` and map in the lazy-CJS loader format.
 - `tests/`: TypeScript contracts for configuration, DOM recognition, lifecycle, settings, localization, style provenance and generated entries.
 - `locale/`: exported zh/en package metadata, available even when disabled.
 - `README.md`: public product contract and installation; `PUBLISHING.md`: channel/release gates; `style-sources.json`: upstream visual rule provenance.
-- `check-release.mjs`: rejects tag/version/generated-artifact drift and dirty release trees; `package.json.version` is the sole authored version.
+- `check-release.ts`: rejects tag/version/generated-artifact drift and dirty release trees; `package.json.version` is the sole authored version.
 - `package.json`/`pnpm-lock.yaml`: bundle manifest and reproducible dependencies; `cordis.patch.yml`: the sole Cordis insertion layer.
-- `build.mjs`/`tsconfig.json`: TypeScript-to-Host build and source typecheck; runtime JavaScript is generated, not separately authored.
+- `build.ts`/`tsconfig.json`: TypeScript-to-Host build and source typecheck; runtime JavaScript is generated, not separately authored.
 - `plugin-icon.svg`: generated manifest artwork; `THIRD_PARTY_NOTICES.md` and `LICENSE`: distribution notices.
 - `AGENTS.md`/root `CLAUDE.md`: one project constitution; module `CLAUDE.md` files are navigational maps, not competing policy sources.
 - `output/` and `node_modules/` are generated/ignored. Generated runtime JavaScript is committed for Git/local installs; hand-authored behavior stays in TypeScript.

@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 package.json 的唯一版本号、Git 工作树和 build.mjs 生成的 Client 产物。
+ * [INPUT]: 依赖 package.json 的唯一版本号、Git 工作树和 build.ts 生成的 Client 产物。
  * [OUTPUT]: 校验候选 tag 与包版本相同、产物嵌入该版本且工作树无未提交变更。
  * [POS]: 发布前防漂移门；不自行推送、打 tag、发布 npm 或修改任何版本号。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
-const manifest = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+const manifest = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
 const expected = `v${manifest.version}`;
 const tag = process.argv[2] ?? expected;
 if (tag !== expected) throw new Error(`tag ${tag} does not match package.json ${expected}`);
