@@ -16,7 +16,7 @@ const client = readFileSync(new URL('./client.js', import.meta.url), 'utf8');
 if (!client.includes(JSON.stringify(manifest.version))) throw new Error('client.js does not embed the package version; rebuild');
 const readme = readFileSync(new URL('./README.md', import.meta.url), 'utf8');
 const guide = readFileSync(new URL('./AGENTS.md', import.meta.url), 'utf8');
-if (!readme.includes(`tree/${tag}`) || !readme.includes(`**${manifest.version} `)) throw new Error('README active release does not match package.json');
+if (!readme.includes(tag) || !readme.includes(`**${manifest.version} `)) throw new Error('README active release does not match package.json');
 if (!guide.includes(`## ${manifest.version} release contract`)) throw new Error('AGENTS release contract does not match package.json');
 const existing = execFileSync('git', ['tag', '--list', tag], { encoding: 'utf8' }).trim();
 if (existing) {

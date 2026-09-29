@@ -28,7 +28,7 @@ PDSH（Private DeepSeek Harness）是 DeepSeek Harness 的第三方显示插件�
 https://github.com/daftAI2026/PDSH
 ```
 
-建议固定 [`v0.1.0`](https://github.com/daftAI2026/PDSH/tree/v0.1.0) 对应的已审阅提交，而不是让安装来源随 `main` 漂移。包标识 `@daftai/pdsh` 用于宿主识别，**不代表它已在 npm 发布**。安装第三方插件等同运行其代码，请先检查来源和依赖。官方机制见[打包与安装指南](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish)。
+建议固定已审阅的 Git 提交，而不是让安装来源随 `main` 漂移。`v0.1.0` tag 会在目标桌面端验收后建立；建立前不要把 `main` 当作不可变发布版。包标识 `@daftai/pdsh` 用于宿主识别，**不代表它已在 npm 发布**。安装第三方插件等同运行其代码，请先检查来源和依赖。官方机制见[打包与安装指南](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish)。
 
 开发者也可以在“本地插件目录”填写本仓库 checkout 的绝对路径，或运行 `pnpm run bundle` 生成 `.tgz`，在独立 profile 使用官方 `dsh plugin --profile <name> add <tgz路径>`。不要用外部 CLI 改正在由 Desktop 独占的 `desktop` profile。
 
