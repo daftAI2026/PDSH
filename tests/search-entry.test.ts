@@ -55,7 +55,7 @@ test('切换状态/忙态同步；颜色保留原生变量表达式并跟随来�
   entry.dispose(); dom.window.close();
 });
 
-test('透明度只作用于完整SVG，跟随原生图标而不逐笔加深交叠', () => {
+test('透明度只作用于完整SVG，跟随原生图标而不逐笔加深交叠', async () => {
   const { dom, doc, options } = setup();
   const nativeSvg = doc.querySelector('button[aria-label="搜索会话"] svg');
   nativeSvg.style.opacity = '0.42';
@@ -64,6 +64,13 @@ test('透明度只作用于完整SVG，跟随原生图标而不逐笔加深交�
   assert.match(doc.querySelector('[data-pdsh-search-entry]').innerHTML, /stroke-width="1\.5"/);
   nativeSvg.style.opacity = '0.7'; entry.refresh();
   assert.equal(svg.style.getPropertyValue('--pdsh-icon-opacity'), '0.7');
+  await tick();
+  const changes = [];
+  const observer = new dom.window.MutationObserver(records => changes.push(...records));
+  observer.observe(svg, { attributes: true, attributeFilter: ['style'] });
+  entry.refresh(); await tick();
+  assert.equal(changes.length, 0, '相同透明度不重写style，避免观察器反馈循环');
+  observer.disconnect();
   entry.dispose(); dom.window.close();
 });
 

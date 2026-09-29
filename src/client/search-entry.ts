@@ -78,8 +78,9 @@ export function mountSearchEntry(doc, { icon, label, state, onActivate }) {
     if (!(Number.parseFloat(size.width) > 0 && Number.parseFloat(size.height) > 0)) { detach(); return; }
     // +--- 只对整枚 SVG 合成透明度；逐 path 的半透明会让笔画交叠处加深 ---+
     const opacity = Number.parseFloat(size.opacity);
-    if (Number.isFinite(opacity) && opacity >= 0 && opacity <= 1) svg.style.setProperty('--pdsh-icon-opacity', String(opacity));
-    else svg.style.removeProperty('--pdsh-icon-opacity');
+    if (Number.isFinite(opacity) && opacity >= 0 && opacity <= 1) {
+      if (svg.style.getPropertyValue('--pdsh-icon-opacity') !== String(opacity)) svg.style.setProperty('--pdsh-icon-opacity', String(opacity));
+    } else if (svg.style.getPropertyValue('--pdsh-icon-opacity')) svg.style.removeProperty('--pdsh-icon-opacity');
     attribute(button, 'class', native.button.className);
     attribute(button, 'data-pdsh-search-entry', native.wide ? 'wide' : 'rail');
     attribute(button, 'aria-label', label()); attribute(button, 'title', label());
