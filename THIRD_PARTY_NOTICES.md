@@ -45,3 +45,10 @@ ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
 WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+
+## Capture workbench and camera artwork
+
+The capture editor TypeScript, CSS, and five bundled preset wallpaper JPEGs were adapted from InCodex Shot (the `feature/capture-generated-gradients` worktree). UI theme chrome was remapped to DeepSeek Harness semantic tokens. The camera glyph is Lucide-derived line artwork.
+
+Copyright (c) 2026 daftAI2026 and InCodex contributors. The MIT and Lucide ISC terms reproduced above apply.

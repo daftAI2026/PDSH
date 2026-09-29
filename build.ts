@@ -19,7 +19,7 @@ await build({
 });
 await build({
   entryPoints: ['src/client/client-entry.tsx'], outfile: 'client.js', bundle: true, format: 'cjs', platform: 'browser',
-  target: 'es2022', sourcemap: true, minify: true, loader: { '.css': 'text', '.svg': 'text' },
+  target: 'es2022', sourcemap: true, minify: true, loader: { '.css': 'text', '.svg': 'text', '.jpg': 'dataurl' },
   define: { __PDSH_VERSION__: JSON.stringify(version) },
   external: ['react', 'react/jsx-runtime', 'react-dom/client', '@deepseek-ai/dsh-client-ui-primitives'],
   banner: { js: `/**\n * [INPUT]: 依赖 src/client/client-entry.tsx 及宿主共享 module table；由 build.ts 生成。\n * [OUTPUT]: 提供 @daftai/pdsh 的浏览器 lazy factory，不手工修改此产物。\n * [POS]: PDSH 安装入口；提交预构建产物，使 Git/目录安装不需要运行构建脚本。\n * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n */\nwindow.__ModuleLoader__.load({id:${JSON.stringify(name)},factory:(require)=>{var module={exports:{}};var exports=module.exports;` },

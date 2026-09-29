@@ -23,6 +23,7 @@ async function mountSettings({ fileReader, imageDecode } = {}) {
     IconUserOutlineMedium: () => React.createElement('svg'),
     IconEditOutlineRegular: () => React.createElement('svg'),
     IconCheckOutlineRegular: () => React.createElement('svg'),
+    Tooltip: ({ children, label, side, delayMs, focusDelayMs, portal }) => React.cloneElement(children, { 'data-native-tooltip': label, 'data-side': side, 'data-delay-ms': delayMs, 'data-focus-delay-ms': focusDelayMs, 'data-portal': String(portal) }),
     Switch: ({ label, checked, onChange, disabled, title }) => React.createElement('input', { type: 'checkbox', role: 'switch', 'aria-label': label, checked, disabled, title, onChange: event => onChange(event.target.checked) }),
   };
   const module = { exports: {} };
@@ -79,12 +80,17 @@ function readerFixture() {
   return { Reader, readers };
 }
 
-test('摘要右侧常驻三个头像按钮，没有来源字段、展开按钮或全局保存', async () => {
+test('摘要右侧有可见头像来源标签与三个按钮，没有额外字段或全局保存', async () => {
   const h = await mountSettings();
   try {
     await h.render();
     const actions = h.doc.querySelector('.pdsh-identity .pdsh-avatar-actions');
     assert.ok(actions); assert.equal(actions.querySelectorAll('button').length, 3);
+    assert.equal(actions.querySelector('#pdsh-avatar-source-label')?.textContent, 'avatarLabel');
+    assert.equal(actions.getAttribute('aria-labelledby'), 'pdsh-avatar-source-label');
+    assert.equal(actions.querySelector('[data-native-tooltip="avatarHint"]')?.getAttribute('data-side'), 'bottom');
+    assert.equal(actions.querySelector('[data-native-tooltip="accountAvatarHint"]')?.getAttribute('data-delay-ms'), '500');
+    assert.equal(h.doc.querySelector('[role="switch"][aria-label="maskTitles"]').getAttribute('title'), null);
     for (const key of ['generated', 'avatar', 'accountAvatar']) assert.ok(actions.contains(h.button(key)));
     assert.equal(h.button('generated').getAttribute('aria-pressed'), 'true');
     assert.equal(h.doc.querySelectorAll('.pdsh-detail-row').length, 1);
@@ -362,7 +368,8 @@ test('每组只有一次功能标题并与开关同排，遮挡范围只在悬�
     assert.equal(rows.length, 2);
     assert.equal(rows[0].querySelector('h4').textContent, 'maskTitles');
     assert.equal(rows[1].querySelector('h4').textContent, 'maskIdentity');
-    assert.equal(rows[0].querySelector('[role="switch"]').getAttribute('title'), 'titlesHint');
+    assert.equal(rows[0].querySelector('[data-native-tooltip]').getAttribute('data-native-tooltip'), 'titlesHint');
+    assert.equal(rows[0].querySelector('[role="switch"]').getAttribute('title'), null);
     assert.equal(rows[1].querySelector('[role="switch"]').getAttribute('title'), null);
     assert.equal(h.doc.querySelectorAll('.pdsh-row .pdsh-hint, .pdsh-row .pdsh-label').length, 0);
     assert.equal(h.doc.querySelectorAll('h4').length, 2, '更新徽标不再占用设置分组');

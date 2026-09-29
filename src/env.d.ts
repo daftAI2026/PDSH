@@ -8,6 +8,6 @@ declare module '*.css' { const value: string; export default value; }
 declare module '*.svg' { const value: string; export default value; }
 declare const __PDSH_VERSION__: string;
 declare module '@deepseek-ai/dsh-client-ui-primitives' {
-  export const Input: any, Button: any, SettingsValueField: any, Switch: any;
+  export const Input: any, Button: any, SettingsValueField: any, Switch: any, Tooltip: any;
   export const IconUserOutlineMedium: any, IconEditOutlineRegular: any, IconCheckOutlineRegular: any;
 }

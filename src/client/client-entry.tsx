@@ -1,17 +1,25 @@
 /**
- * [INPUT]: 依赖slots/locale/configForms/官方remote.pluginManager、共享原生控件几何和独立控制器。
- * [OUTPUT]: 提供浏览器 apply/inject、设置页、版本旁更新徽标、搜索邻接入口及可卸载显示增强。
- * [POS]: PDSH Client 装配层；更新探针与视觉控制器均跟随 Host namespace，不私建包安装通道。
+ * [INPUT]: 依赖slots/locale/configForms/官方remote.pluginManager、共享原生控件几何与截图工作台控制器。
+ * [OUTPUT]: 提供设置、更新徽标、帽子右侧相机、非 React 提示层与可卸载的显示/截图增强。
+ * [POS]: PDSH Client 装配层；相机通过认证 Host route 截图，所有资源跟随 Host namespace。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useLayoutEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Input, Button, SettingsValueField } from '@deepseek-ai/dsh-client-ui-primitives';
+import { Input, Button, Switch, SettingsValueField } from '@deepseek-ai/dsh-client-ui-primitives';
 import { mountPresentation } from './presentation.ts';
 import { mountSearchEntry } from './search-entry.ts';
 import { mountSidebarRedaction } from './sidebar-redaction.ts';
 import { mountTitleToggle } from './title-toggle.ts';
 import entryIcon from './entry-icon.svg';
+import cameraIcon from './camera-icon.svg';
+import { mountCaptureController } from './capture/controller.ts';
+import { mountDomTooltips } from './dom-tooltip.ts';
+import tooltipCss from './dom-tooltip.css';
+import { presetAssets } from './capture/assets.ts';
+import captureCss from './capture/capture-window.css';
+import capturePickerCss from './capture/background-picker.css';
+import captureColorCss from './capture/color-popover.css';
 import { SettingsCard } from './settings-card.tsx';
 import { resolvePreferences } from '../shared/model.ts';
 import css from './styles.css';
@@ -38,6 +46,14 @@ function NativeStyleProbe({ doc }) {
       const height = doc.defaultView.getComputedStyle(nativeButton).height;
       if (Number.parseFloat(height) > 0) doc.body.style.setProperty('--pdsh-action-size', height);
     }
+    const nativeSwitch = ref.current.querySelector('[role="switch"]');
+    if (nativeSwitch) {
+      const track = doc.defaultView.getComputedStyle(nativeSwitch);
+      const thumb = doc.defaultView.getComputedStyle(nativeSwitch.firstElementChild);
+      for (const [key, value] of [['--pdsh-switch-width', track.width], ['--pdsh-switch-height', track.height], ['--pdsh-switch-thumb-size', thumb.width]]) {
+        if (Number.parseFloat(value) > 0) doc.body.style.setProperty(key, value);
+      }
+    }
     const field = ref.current.querySelector('[data-pdsh-field-probe]')?.firstElementChild;
     if (field) {
       const fieldStyle = doc.defaultView.getComputedStyle(field);
@@ -47,17 +63,17 @@ function NativeStyleProbe({ doc }) {
       }
     }
   }, [doc]);
-  return <span ref={ref}><Input tabIndex={-1} aria-hidden="true" /><Button data-pdsh-button-probe tabIndex={-1} aria-hidden="true" /><span data-pdsh-field-probe>
+  return <span ref={ref}><Input tabIndex={-1} aria-hidden="true" /><Button data-pdsh-button-probe tabIndex={-1} aria-hidden="true" /><Switch checked={false} onChange={() => {}} label="" disabled /><span data-pdsh-field-probe>
     <SettingsValueField id="pdsh-layout-probe" label="" text="" overridden={false} invalid={false} overriddenLabel="" resetLabel="" invalidLabel="" disabled onEdit={() => {}} onReset={() => {}} />
   </span></span>;
 }
 
 function mountDisplay(ctx, form) {
   const doc = document;
-  const style = doc.createElement('style'); style.dataset.plugin = '@daftai/pdsh'; style.textContent = css; doc.head.append(style);
+  const style = doc.createElement('style'); style.dataset.plugin = '@daftai/pdsh'; style.textContent = `${css}\n${tooltipCss}\n${captureCss}\n${capturePickerCss}\n${captureColorCss}`; doc.head.append(style);
   const probe = doc.createElement('div'); probe.hidden = true; probe.setAttribute('data-pdsh-probe', ''); doc.body.append(probe);
   const root = createRoot(probe);
-  const properties = ['--pdsh-outline-width', '--pdsh-control-size', '--pdsh-action-size', '--pdsh-section-inset', '--pdsh-field-gap', '--pdsh-action-gap'];
+  const properties = ['--pdsh-outline-width', '--pdsh-control-size', '--pdsh-action-size', '--pdsh-section-inset', '--pdsh-field-gap', '--pdsh-action-gap', '--pdsh-switch-width', '--pdsh-switch-height', '--pdsh-switch-thumb-size'];
   const previous = properties.map(key => [key, doc.body.style.getPropertyValue(key)]);
   root.render(<NativeStyleProbe doc={doc} />);
   const presentation = mountPresentation(doc);
@@ -66,10 +82,14 @@ function mountDisplay(ctx, form) {
   const t = ctx.locale.bind(NS);
   let entry;
   const toggle = mountTitleToggle(form, () => entry?.refresh());
+  const canCapture = (doc.defaultView as any).dshDesktop?.protocolVersion === 1 && doc.defaultView.navigator.platform.startsWith('Mac');
+  const capture = canCapture ? mountCaptureController(doc, { onState: () => entry?.refresh(), presetAssets }) : null;
+  const disposeTooltips = mountDomTooltips(doc);
   entry = mountSearchEntry(doc, {
     icon: entryIcon, state: toggle.state,
     label: () => `${t(toggle.state().pressed ? 'entryOn' : 'entry')}${toggle.state().failed ? ` · ${t('toggleFailed')}` : ''}`,
     onActivate: toggle.activate,
+    capture: capture ? { icon: cameraIcon, label: () => t('capture'), state: capture.state, onActivate: capture.activate } : null,
   });
   const unbindLocale = ctx.locale.subscribe(entry.refresh);
   function synchronize() {
@@ -87,7 +107,7 @@ function mountDisplay(ctx, form) {
   return {
     presentation, updater,
     dispose() {
-      updater.dispose(); unsubscribe(); unbindLocale(); toggle.dispose(); entry.dispose(); titles.dispose(); presentation.dispose(); root.unmount(); probe.remove(); style.remove();
+      updater.dispose(); unsubscribe(); unbindLocale(); toggle.dispose(); capture?.dispose(); disposeTooltips(); entry.dispose(); titles.dispose(); presentation.dispose(); root.unmount(); probe.remove(); style.remove();
       for (const [key, value] of previous) {
         if (value) doc.body.style.setProperty(key, value); else doc.body.style.removeProperty(key);
       }

@@ -23,7 +23,10 @@ async function mountBadge(subject = { kind: 'bundle', pkg: { name: '@daftai/pdsh
     require(id) {
       if (id === 'react') return React;
       if (id === 'react/jsx-runtime') return requireJsx;
-      if (id === '@deepseek-ai/dsh-client-ui-primitives') return { Button: ({ children, variant, size, ...props }) => React.createElement('button', { type: 'button', ...props }, children) };
+      if (id === '@deepseek-ai/dsh-client-ui-primitives') return {
+        Button: ({ children, variant, size, ...props }) => React.createElement('button', { type: 'button', ...props }, children),
+        Tooltip: ({ children, label, side, delayMs, focusDelayMs, portal }) => React.cloneElement(children, { 'data-native-tooltip': label, 'data-side': side, 'data-delay-ms': delayMs, 'data-focus-delay-ms': focusDelayMs, 'data-portal': String(portal) }),
+      };
       throw new Error(id);
     },
   });
@@ -70,6 +73,9 @@ test('新版本图标只展开确认；确认按钮才安装固定提交，失�
     await h.render(); await h.state({ phase: 'available', version: '0.1.2' });
     const trigger = h.doc.querySelector('[data-pdsh-update-trigger]');
     assert.ok(trigger); assert.ok(trigger.querySelector('svg circle'));
+    assert.equal(trigger.getAttribute('title'), null);
+    assert.equal(trigger.getAttribute('data-native-tooltip'), 'update.available v0.1.2');
+    assert.equal(trigger.getAttribute('data-delay-ms'), '500');
     assert.equal(trigger.querySelector('svg path')?.getAttribute('d'), 'm16 12-4-4-4 4');
     assert.equal(h.installs(), 0);
     await act(async () => trigger.click()); assert.equal(h.installs(), 0);

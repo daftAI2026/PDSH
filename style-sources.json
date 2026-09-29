@@ -255,6 +255,232 @@
       "selector": "plugins.detail.badge / .titleRow",
       "property": "flex-wrap / gap",
       "acquisition": "使用官方 detail.badge slot 排在原生版本Tag之后，不碰启用Switch；自动探测有新稳定版才贡献 Button 图标，展开后的来源提示与确认操作沿用 titleRow 换行和原生字段gap。"
+    },
+    {
+      "role": "capture failure notice",
+      "variable": "--dsw-alias-bg-layer-2",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "acquisition": "截图失败提示与工作台外壳使用宿主语义色；不冻结主题 RGB。"
+    },
+    {
+      "role": "capture workbench theme",
+      "variable": "--dsw-alias-bg-base",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
+    },
+    {
+      "role": "capture workbench theme",
+      "variable": "--dsw-alias-bg-layer-1",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
+    },
+    {
+      "role": "capture workbench theme",
+      "variable": "--dsw-alias-bg-layer-3",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
+    },
+    {
+      "role": "capture workbench theme",
+      "variable": "--dsw-alias-bg-mask-drop",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
+    },
+    {
+      "role": "capture workbench theme",
+      "variable": "--dsw-alias-border-l3",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
+    },
+    {
+      "role": "capture workbench theme",
+      "variable": "--dsw-alias-brand-primary",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
+    },
+    {
+      "role": "capture workbench theme",
+      "variable": "--dsw-alias-button-primary-fill",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
+    },
+    {
+      "role": "capture workbench theme",
+      "variable": "--dsw-alias-interactive-bg-hover",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
+    },
+    {
+      "role": "capture workbench theme",
+      "variable": "--dsw-alias-label-dimmed",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
+    },
+    {
+      "role": "capture workbench theme",
+      "variable": "--dsw-alias-label-primary-inverted",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
+    },
+    {
+      "role": "capture workbench theme",
+      "variable": "--dsw-alias-label-tertiary",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
+    },
+    {
+      "role": "capture workbench theme",
+      "variable": "--dsw-radius-lg",
+      "file": "packages/client/ui-theme/src/styles/base.css",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
+    },
+    {
+      "role": "capture workbench theme",
+      "variable": "--dsw-radius-md",
+      "file": "packages/client/ui-theme/src/styles/base.css",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
+    },
+    {
+      "role": "capture workbench theme",
+      "variable": "--dsw-radius-panel",
+      "file": "packages/client/ui-theme/src/styles/base.css",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
+    },
+    {
+      "role": "capture workbench theme",
+      "variable": "--dsw-radius-sm",
+      "file": "packages/client/ui-theme/src/styles/base.css",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
+    },
+    {
+      "role": "capture workbench native theme",
+      "variable": "--ds-ease-in-out",
+      "file": "packages/client/ui-theme/src/styles/base.css",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
+    },
+    {
+      "role": "capture workbench native theme",
+      "variable": "--ds-font-family-code",
+      "file": "packages/client/ui-theme/src/styles/base.css",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
+    },
+    {
+      "role": "capture workbench native theme",
+      "variable": "--ds-transition-duration-fast",
+      "file": "packages/client/ui-theme/src/styles/base.css",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
+    },
+    {
+      "role": "capture workbench native theme",
+      "variable": "--dsw-alias-border-inverted",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
+    },
+    {
+      "role": "capture workbench native theme",
+      "variable": "--dsw-elevation-panel",
+      "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
+    },
+    {
+      "role": "capture workbench native theme",
+      "variable": "--dsw-elevation-prominent",
+      "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
+    },
+    {
+      "role": "capture workbench native theme",
+      "variable": "--dsw-font-family",
+      "file": "packages/client/ui-theme/src/styles/base.css",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
+    },
+    {
+      "role": "capture workbench native theme",
+      "variable": "--dsw-font-s-14-font-size",
+      "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
+    },
+    {
+      "role": "capture workbench native theme",
+      "variable": "--dsw-font-s-strong-14-font-weight",
+      "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
+    },
+    {
+      "role": "capture workbench native theme",
+      "variable": "--dsw-font-xs-13-font-size",
+      "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
+    },
+    {
+      "role": "capture workbench native theme",
+      "variable": "--dsw-font-xs-strong-13-font-weight",
+      "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
+    },
+    {
+      "role": "capture workbench native theme",
+      "variable": "--dsw-font-xxs-12-font-size",
+      "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
+    },
+    {
+      "role": "native capture control or tooltip",
+      "variable": "--pdsh-switch-width",
+      "file": "packages/client/ui-primitives/src/Switch.module.css",
+      "selector": ".switch",
+      "acquisition": "读取隐藏原生 Switch 的实时 computed width；工作台 checkbox 与原生轨道同宽。",
+      "property": "width"
+    },
+    {
+      "role": "native capture control or tooltip",
+      "variable": "--pdsh-switch-height",
+      "file": "packages/client/ui-primitives/src/Switch.module.css",
+      "selector": ".switch",
+      "acquisition": "读取隐藏原生 Switch 的实时 computed height；工作台 checkbox 与原生轨道同高。",
+      "property": "height"
+    },
+    {
+      "role": "native capture control or tooltip",
+      "variable": "--pdsh-switch-thumb-size",
+      "file": "packages/client/ui-primitives/src/Switch.module.css",
+      "selector": ".thumb",
+      "acquisition": "读取隐藏原生 Switch 拇指的实时 computed width；不以字段间距猜尺寸。",
+      "property": "width"
+    },
+    {
+      "role": "native capture control or tooltip",
+      "variable": "--dsw-alias-state-business-primary",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "selector": "body theme scope",
+      "acquisition": "原生 Switch 的键盘焦点颜色；与编辑区域选中态分离。"
+    },
+    {
+      "role": "native capture control or tooltip",
+      "variable": "--dsw-font-xxs-strong-12",
+      "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
+      "selector": "body theme scope",
+      "acquisition": "检查器标题采用宿主完整 12px 强调字体、行高和字重。"
+    },
+    {
+      "role": "native capture control or tooltip",
+      "variable": "--dsw-alias-tooltip-bg",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "selector": "body theme scope",
+      "acquisition": "非 React DOM 控件提示复用宿主 Tooltip 背景。"
+    },
+    {
+      "role": "native capture control or tooltip",
+      "variable": "--dsw-static-neutral-bluish-00",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "selector": "body theme scope",
+      "acquisition": "非 React DOM 控件提示复用宿主 Tooltip 前景。"
+    },
+    {
+      "role": "DOM tooltip exact behavior",
+      "file": "packages/client/ui-primitives/src/Tooltip.tsx / Tooltip.module.css",
+      "selector": "Tooltip side=bottom delayMs=500 focusDelayMs=0 portal / .bubble[data-portal]",
+      "acquisition": "React 设置和更新入口直接用官方 Tooltip；原生 DOM 工作台/侧栏入口用相同延时、方位、间距、主题色、圆角和 portal 层级，不使用浏览器 title。"
     }
   ],
   "artwork": {

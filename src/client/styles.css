@@ -1,6 +1,6 @@
 /*
  * [INPUT]: Harness ui-theme 的语义色/圆角/字号，以及原生 Input/SettingsValueField 探针的几何。
- * [OUTPUT]: 提供标题灰条、身份覆盖、原生设置、版本旁更新徽标与入口样式。
+ * [OUTPUT]: 提供标题灰条、身份覆盖、可见头像来源、原生设置/提示、版本徽标与入口样式。
  * [POS]: PDSH 的展示层；来源和使用处记录于 style-sources.json，卸载时整体移除。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -37,11 +37,13 @@
 .pdsh-copy, .pdsh-field { display: flex; flex-direction: column; gap: var(--pdsh-field-gap); min-width: 0; }
 .pdsh-row { display: flex; align-items: center; justify-content: space-between; gap: var(--pdsh-action-gap); }
 .pdsh-row > :last-child { flex: none; }
+.pdsh-switch-tooltip { display: inline-flex; }
 .pdsh-identity { display: flex; align-items: center; flex-wrap: wrap; gap: var(--pdsh-section-inset); padding-block: var(--pdsh-section-inset); }
 /* 名字参与原生换行测量，先保住头像+名字，不为三个操作挤成逐字竖排。 */
 .pdsh-profile-copy { flex: 1 1 auto; max-width: calc(100% - var(--pdsh-control-size) - var(--pdsh-control-size) - var(--pdsh-section-inset)); }
 .pdsh-profile-name { overflow-wrap: anywhere; }
 .pdsh-avatar-actions { display: flex; flex: none; flex-wrap: wrap; justify-content: flex-end; gap: var(--pdsh-field-gap); max-width: 100%; margin-left: auto; }
+.pdsh-avatar-source-label { align-self: center; color: var(--dsw-alias-label-secondary); white-space: nowrap; }
 /* 摘要头像占两个原生控件高度；来源仍是 Input 探针，不凭空指定头像尺寸。 */
 .pdsh-avatar-preview { flex: none; border-radius: 50%; corner-shape: round; object-fit: cover; width: calc(var(--pdsh-control-size) + var(--pdsh-control-size)); height: calc(var(--pdsh-control-size) + var(--pdsh-control-size)); }
 .pdsh-detail-row { display: flex; align-items: center; justify-content: space-between; gap: var(--pdsh-section-inset); padding-block: var(--pdsh-field-gap); border-top: var(--pdsh-outline-width) solid var(--dsw-alias-border-l2); }
@@ -57,10 +59,19 @@
 .pdsh-avatar-feedback { display: flex; align-items: center; flex-wrap: wrap; gap: var(--pdsh-field-gap); padding-bottom: var(--pdsh-field-gap); }
 .pdsh-avatar-fallback { display: flex; align-items: center; justify-content: center; }
 .pdsh-error { color: var(--dsw-alias-state-error-primary); }
-[data-pdsh-search-entry] { color: var(--pdsh-search-color); }
-[data-pdsh-search-entry] svg { opacity: var(--pdsh-icon-opacity); }
+[data-pdsh-search-entry], [data-pdsh-capture-entry] { color: var(--pdsh-search-color); }
+[data-pdsh-search-entry] svg, [data-pdsh-capture-entry] svg { opacity: var(--pdsh-icon-opacity); }
 [data-pdsh-search-entry][aria-pressed="true"] { background: var(--dsw-alias-interactive-bg-active); }
-[data-pdsh-search-entry][hidden] { display: none !important; }
+[data-pdsh-search-entry][hidden], [data-pdsh-capture-entry][hidden] { display: none !important; }
 /* +--- 原生 searchSlot 的自动留白迁至自有左侧入口；隐藏/卸载后规则自动失效 ---+ */
 [data-pdsh-search-entry="wide"] { margin-left: auto; flex: none; }
 [data-pdsh-search-entry="wide"]:not([hidden]) + div { margin-left: 0; }
+[data-pdsh-capture-entry="wide"]:not([hidden]) + div { margin-left: 0; }
+/* 截图失败保留在相机附近可读，不把原生侧栏按钮伪装成已完成截图。 */
+[data-pdsh-capture-notice]:not([hidden]) {
+  position: fixed; inset-inline-end: var(--pdsh-section-inset); inset-block-end: var(--pdsh-section-inset);
+  z-index: 1101; max-width: 90vw; padding: var(--pdsh-field-gap);
+  color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-2);
+  border: var(--pdsh-outline-width) solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-xl);
+  font: var(--dsw-font-xs-13);
+}

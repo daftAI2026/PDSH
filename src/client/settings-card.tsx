@@ -1,11 +1,11 @@
 /**
  * [INPUT]: 依赖宿主 React/primitives、ConfigForm；shared/model.ts 校验昵称/图像。
- * [OUTPUT]: 提供设置字段局部提交与可取消图片读取，不混入版本更新入口。
+ * [OUTPUT]: 提供带可见来源标签的设置字段、原生 Tooltip、局部提交与可取消图片读取。
  * [POS]: PDSH 偏好交互层；Host 接受值拥有设置态，版本提示由相邻 detail badge slot 独立负责。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Input, Switch, Button, IconUserOutlineMedium, IconEditOutlineRegular, IconCheckOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives';
+import { Input, Switch, Button, Tooltip, IconUserOutlineMedium, IconEditOutlineRegular, IconCheckOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives';
 import { DEFAULTS, MAX_AVATAR_CHARS, MAX_NAME_CHARS, NICKNAME_PATTERN, resolvePreferences } from '../shared/model.ts';
 
 function avatarValues(value) {
@@ -14,10 +14,15 @@ function avatarValues(value) {
 function sameAvatar(left, right) {
   return Boolean(left && right && left.avatar === right.avatar && left.useAccountAvatar === right.useAccountAvatar);
 }
+function Hint({ label, children }) {
+  return <Tooltip label={label} side="bottom" delayMs={500} focusDelayMs={0} portal>{children}</Tooltip>;
+}
 function ToggleHeading({ id, label, hint, checked, disabled, pending, error, onChange }) {
   const row = useRef(null);
   return <><div className="pdsh-row pdsh-group-header" ref={row} aria-busy={pending || undefined}>
-    <h4 id={id}>{label}</h4><Switch checked={checked} onChange={() => onChange(row.current?.querySelector('[role="switch"]'))} label={label} title={hint} disabled={disabled} />
+    <h4 id={id}>{label}</h4>{hint
+      ? <Hint label={hint}><span className="pdsh-switch-tooltip"><Switch checked={checked} onChange={() => onChange(row.current?.querySelector('[role="switch"]'))} label={label} disabled={disabled} /></span></Hint>
+      : <Switch checked={checked} onChange={() => onChange(row.current?.querySelector('[role="switch"]'))} label={label} disabled={disabled} />}
   </div>{error && <p className="pdsh-error" role="alert">{error}</p>}</>;
 }
 
@@ -166,10 +171,11 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
           ? <span className="pdsh-avatar-preview pdsh-avatar-fallback" role="img" aria-label={t('accountAvatar')}><IconUserOutlineMedium /></span>
           : preview && <img className="pdsh-avatar-preview" src={avatarSource === 'account' ? accountAvatar : preview} alt={t(avatarSource === 'account' ? 'accountAvatar' : 'preview')} referrerPolicy="no-referrer" />}
         <div className="pdsh-copy pdsh-profile-copy"><strong className="pdsh-profile-name">{displayedNickname}</strong></div>
-        <div className="pdsh-avatar-actions" role="group" aria-label={t('avatarLabel')} aria-describedby={avatarError || avatarConflict ? 'pdsh-avatar-error' : undefined} aria-busy={readingAvatar || mutation === 'avatar' || undefined}>
+        <div className="pdsh-avatar-actions" role="group" aria-labelledby="pdsh-avatar-source-label" aria-describedby={avatarError || avatarConflict ? 'pdsh-avatar-error' : undefined} aria-busy={readingAvatar || mutation === 'avatar' || undefined}>
+          <span className="pdsh-avatar-source-label pdsh-label" id="pdsh-avatar-source-label">{t('avatarLabel')}</span>
           <Button variant={avatarSource === 'generated' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'generated'} onClick={event => chooseSource('generated', event.currentTarget)} disabled={!writable}>{t('generated')}</Button>
-          <Button variant={avatarSource === 'local' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'local'} title={t('avatarHint')} onClick={event => chooseSource('local', event.currentTarget)} disabled={!writable}>{t('avatar')}</Button>
-          <Button variant={avatarSource === 'account' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'account'} title={t('accountAvatarHint')} onClick={event => chooseSource('account', event.currentTarget)} disabled={!writable}>{t('accountAvatar')}</Button>
+          <Hint label={t('avatarHint')}><Button variant={avatarSource === 'local' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'local'} onClick={event => chooseSource('local', event.currentTarget)} disabled={!writable}>{t('avatar')}</Button></Hint>
+          <Hint label={t('accountAvatarHint')}><Button variant={avatarSource === 'account' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'account'} onClick={event => chooseSource('account', event.currentTarget)} disabled={!writable}>{t('accountAvatar')}</Button></Hint>
         </div>
       </div>
       {(avatarError || avatarConflict || readingAvatar) && <div className="pdsh-avatar-feedback" data-pdsh-avatar-feedback>
@@ -185,9 +191,9 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
             if (event.key === 'Enter') { event.preventDefault(); void confirmNickname(event.currentTarget); }
             if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); cancelNickname(event.currentTarget); }
           }} disabled={!writable} />
-          <Button className="pdsh-nickname-action" variant="ghost" aria-label={t('doneEditing')} title={t('doneEditing')} onClick={event => confirmNickname(event.currentTarget)} disabled={!writable || nicknameInvalid || nicknameConflict || readingAvatar}><IconCheckOutlineRegular /></Button>
+          <Hint label={t('doneEditing')}><Button className="pdsh-nickname-action" variant="ghost" aria-label={t('doneEditing')} onClick={event => confirmNickname(event.currentTarget)} disabled={!writable || nicknameInvalid || nicknameConflict || readingAvatar}><IconCheckOutlineRegular /></Button></Hint>
         </div>{(nicknameInvalid || nicknameConflict || nicknameError) && <p role="alert" id="pdsh-nickname-error" className="pdsh-error">{t(nicknameInvalid ? 'invalidNickname' : nicknameConflict ? 'nicknameConflict' : nicknameError)}</p>}</div>
-          : <div className="pdsh-value-action"><span>{acceptedNickname}</span><Button className="pdsh-nickname-action" variant="ghost" aria-label={`${t('editNickname')}: ${acceptedNickname}`} title={t('editNickname')} onClick={beginNickname} disabled={!writable}><IconEditOutlineRegular /></Button></div>}
+          : <div className="pdsh-value-action"><span>{acceptedNickname}</span><Hint label={t('editNickname')}><Button className="pdsh-nickname-action" variant="ghost" aria-label={`${t('editNickname')}: ${acceptedNickname}`} onClick={beginNickname} disabled={!writable}><IconEditOutlineRegular /></Button></Hint></div>}
       </div>
       <input ref={fileInput} id="pdsh-avatar-file" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseAvatar} disabled={!writable} hidden aria-label={t('avatar')} />
       {['signed-out', 'unsupported'].includes(status) && <p role="status" className="pdsh-hint">{t(`status.${status}`)}</p>}

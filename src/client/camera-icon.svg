@@ -1,0 +1,7 @@
+<!--
+[INPUT]: 依赖 InCodex Shot 的 Lucide 相机线条图形；宿主入口提供实时尺寸、颜色和整体透明度。
+[OUTPUT]: 提供帽子右侧的独立相机图标，不内置像素尺寸或单笔透明度。
+[POS]: PDSH 截图入口资产；构建期内联，不改变原生搜索 SVG。
+[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖生成 client.js 的真实 factory、jsdom 与严格的宿主装配合同桩。
- * [OUTPUT]: 验证配置与版本徽标双 slot、搜索入口导航和 Host 停用/重启的资源归属。
+ * [OUTPUT]: 验证配置/版本双 slot、桌面帽子与相机、Host 停用/重启的资源归属。
  * [POS]: PDSH 构建/装配回归门；样式和 Host 持久化另由真实 Web runtime 验证。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -16,11 +16,13 @@ import { DEFAULTS } from '../src/shared/model.ts';
 test('lazy factory 装配标题开关、设置页与版本徽标，并清理资源', async () => {
   const dom = new JSDOM(`<body><main>原生内容</main><div data-slot="sidebar.workspaces"><div><div><span>工作区</span><div><div><button type="button" class="native-search" aria-label="搜索会话" aria-expanded="false"><svg style="width:14px;height:14px"></svg></button><input type="text" /></div></div><div></div></div></div></div></body>`);
   const document = dom.window.document;
+  Object.defineProperty(dom.window, 'dshDesktop', { value: { protocolVersion: 1 } });
+  Object.defineProperty(dom.window.navigator, 'platform', { value: 'MacIntel' });
   const before = document.body.outerHTML;
   let factory;
   runInNewContext(readFileSync(new URL('../client.js', import.meta.url), 'utf8'), {
     window: { __ModuleLoader__: { load(row) { assert.equal(row.id, '@daftai/pdsh'); factory = row.factory; } } },
-    document, TextEncoder,
+    document, TextEncoder, fetch: async () => { throw new Error('未点击相机时不得截图'); },
   });
   assert.equal(document.querySelector('style'), null, 'materialize 前不允许副作用');
   const requested = [];
@@ -72,6 +74,10 @@ test('lazy factory 装配标题开关、设置页与版本徽标，并清理资�
     const searchEntry = document.querySelector('[data-pdsh-search-entry]');
     assert.ok(searchEntry, '启用后应在搜索旁装配入口，而不是只贡献设置页');
     assert.equal(searchEntry.getAttribute('aria-label'), '遮挡侧栏标题');
+    const camera = document.querySelector('[data-pdsh-capture-entry]');
+    assert.ok(camera, 'Desktop 相机必须与帽子同时装配');
+    assert.equal(searchEntry.nextElementSibling, camera);
+    assert.equal(camera.getAttribute('aria-label'), '截取当前窗口');
     language = 'en'; for (const notify of localeListeners) notify();
     assert.equal(searchEntry.getAttribute('aria-label'), 'Mask sidebar titles');
     assert.equal(document.querySelectorAll('[data-pdsh-search-entry]').length, 1);

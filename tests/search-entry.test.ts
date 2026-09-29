@@ -54,6 +54,17 @@ test('切换状态/忙态同步；颜色保留原生变量表达式并跟随来�
   assert.equal(button.style.getPropertyValue('--pdsh-search-color'), '');
   entry.dispose(); dom.window.close();
 });
+test('主题属性切换后重新解析原生搜索颜色声明', () => {
+  const { dom, doc, options } = setup();
+  const style = doc.createElement('style');
+  style.textContent = 'html[data-theme="dark"] .native-search{color:var(--dark-search-color)}';
+  doc.head.append(style);
+  const entry = mountSearchEntry(doc, options), button = doc.querySelector('[data-pdsh-search-entry]');
+  assert.equal(button.style.getPropertyValue('--pdsh-search-color'), 'var(--host-search-color)');
+  doc.documentElement.setAttribute('data-theme', 'dark'); entry.refresh();
+  assert.equal(button.style.getPropertyValue('--pdsh-search-color'), 'var(--dark-search-color)');
+  entry.dispose(); dom.window.close();
+});
 
 test('透明度只作用于完整SVG，跟随原生图标而不逐笔加深交叠', async () => {
   const { dom, doc, options } = setup();
@@ -156,4 +167,25 @@ test('帽子开关请求后修复自己的焦点空洞，不抢回用户移走�
   state = { ...state, busy: false, disabled: false }; entry.refresh();
   assert.equal(doc.activeElement, elsewhere);
   entry.dispose(); dom.window.close();
+});
+
+test('相机位于帽子右侧、搜索左侧；整枚图标透明度与原生同步，点击只走截图', async () => {
+  const { dom, doc, options, opened } = setup();
+  const cameraIcon = readFileSync(new URL('../src/client/camera-icon.svg', import.meta.url), 'utf8');
+  const shots = [];
+  options.capture = { icon: cameraIcon, label: () => '截取窗口', state: () => ({ busy: false, disabled: false }), onActivate: () => shots.push('capture') };
+  const nativeSvg = doc.querySelector('button[aria-label="搜索会话"] svg'); nativeSvg.style.opacity = '0.44';
+  const entry = mountSearchEntry(doc, options);
+  const hat = doc.querySelector('[data-pdsh-search-entry]'), camera = doc.querySelector('[data-pdsh-capture-entry]');
+  assert.equal(hat.nextElementSibling, camera);
+  assert.equal(camera.nextElementSibling, doc.querySelector('.native-search-slot'));
+  assert.equal(camera.querySelector('svg').style.getPropertyValue('--pdsh-icon-opacity'), '0.44');
+  assert.equal(camera.querySelector('svg').getAttribute('width'), '14px');
+  camera.click(); assert.deepEqual(shots, ['capture']); assert.deepEqual(opened, []);
+  nativeSvg.style.opacity = '0.7'; entry.refresh();
+  assert.equal(camera.querySelector('svg').style.getPropertyValue('--pdsh-icon-opacity'), '0.7');
+  doc.querySelector('button[aria-expanded]').setAttribute('aria-expanded', 'true'); await tick();
+  assert.equal(camera.hidden, true); camera.click(); assert.deepEqual(shots, ['capture']);
+  entry.dispose(); assert.equal(doc.querySelector('[data-pdsh-capture-entry]'), null);
+  dom.window.close();
 });

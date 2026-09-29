@@ -7,14 +7,14 @@
 export const NS = 'pdsh';
 export const dictionaries = {
   zh: {
-    entry: '遮挡侧栏标题', entryOn: '显示侧栏标题', toggleFailed: '未能保存切换，请重试',
+    entry: '遮挡侧栏标题', entryOn: '显示侧栏标题', toggleFailed: '未能保存切换，请重试', capture: '截取当前窗口',
     languageHint: '界面语言跟随 Harness。可在“设置 → 通用设置 → 语言”切换中文 / English。',
     titlesHint: '工作区与会话名称',
     identityPreview: '显示身份摘要', editNickname: '编辑显示昵称', doneEditing: '保存昵称',
     avatarLabel: '头像来源', accountAvatar: '账号头像', accountAvatarHint: '保留账号原始头像，包括宿主默认头像；显示昵称仍可独立修改。原始头像可能暴露你的身份。',
     nicknameSaveFailed: '昵称未能保存，点击勾重试。', nicknameConflict: '昵称已在别处更新，按 Esc 撤回后重新编辑。',
     avatarSaveFailed: '头像未能保存，原头像保持不变。', avatarConflict: '头像已在别处更新，请重新选择。', retryAvatar: '重试',
-    title: 'DSH 私密模式设置', description: '遮挡侧栏标题，自定义显示昵称与头像。仅改变本地显示。',
+    title: 'DSH 私密模式设置', description: '遮挡侧栏标题、自定义本地身份；macOS 可截取并编辑当前窗口。',
     maskTitles: '遮挡侧栏标题', maskIdentity: '替换侧栏身份', nickname: '显示昵称', avatar: '选择图片',
     avatarHint: '默认按昵称离线生成头像。也可选 PNG / JPEG / WebP；不会上传图片或请求头像服务。',
     generated: '按昵称生成', preview: '显示头像预览',
@@ -30,14 +30,14 @@ export const dictionaries = {
     'update.installFailed': '安装结果未确认；请在官方插件页核对状态后重试。',
   },
   en: {
-    entry: 'Mask sidebar titles', entryOn: 'Show sidebar titles', toggleFailed: 'Toggle was not saved. Try again',
+    entry: 'Mask sidebar titles', entryOn: 'Show sidebar titles', toggleFailed: 'Toggle was not saved. Try again', capture: 'Capture current window',
     languageHint: 'Language follows Harness. Switch in Settings → General → Language: 中文 / English.',
     titlesHint: 'Workspace and session names',
     identityPreview: 'Display identity summary', editNickname: 'Edit display nickname', doneEditing: 'Save nickname',
     avatarLabel: 'Avatar source', accountAvatar: 'Account avatar', accountAvatarHint: 'Keep the native account picture, including its default icon. Display nickname remains independent. Your original picture may identify you.',
     nicknameSaveFailed: 'Nickname was not saved. Click the check to retry.', nicknameConflict: 'Nickname changed elsewhere. Press Esc, then edit again.',
     avatarSaveFailed: 'Avatar was not saved. Your previous avatar is unchanged.', avatarConflict: 'Avatar changed elsewhere. Choose again.', retryAvatar: 'Retry',
-    title: 'DSH Private Mode settings', description: 'Mask sidebar titles and customize your display nickname and avatar. Local display only.',
+    title: 'DSH Private Mode settings', description: 'Mask sidebar titles and customize local identity; capture and edit this window on macOS.',
     maskTitles: 'Mask sidebar titles', maskIdentity: 'Replace sidebar identity', nickname: 'Display nickname', avatar: 'Choose image',
     avatarHint: 'An offline avatar is generated from the nickname. Or choose PNG / JPEG / WebP. No uploads or avatar-service requests.',
     generated: 'Generate', preview: 'Display avatar preview',

@@ -1,0 +1,189 @@
+/**
+ * [INPUT]: 依赖 capture-window.css 定义的 DSH 语义令牌与检查器底纹
+ * [OUTPUT]: 为渐变、壁纸与纯色提供适应类别密度的正方形色板、选中环及交互态
+ * [POS]: capture-window 的背景选择器样式边界，与编辑器壳层及颜色弹层样式按职责分离
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
+.pdsh-capture-background-sections {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--pdsh-capture-space) * 3);
+  margin-top: calc(var(--pdsh-capture-space) * 2);
+}
+
+.pdsh-capture-background-section {
+  min-width: 0;
+}
+
+.pdsh-capture-background-section-title {
+  color: var(--pdsh-capture-text-secondary);
+  font: var(--dsw-font-xxs-strong-12);
+  margin: 0 0 calc(var(--pdsh-capture-space) * 2);
+}
+
+.pdsh-capture-background-section-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: calc(var(--pdsh-capture-space) * 2);
+}
+
+.pdsh-capture-background-section-heading .pdsh-capture-background-section-title {
+  margin-bottom: 0;
+}
+
+.pdsh-capture-background-expand {
+  background: none;
+  border: 0;
+  color: var(--pdsh-capture-text-secondary);
+  font: inherit;
+  font-size: var(--pdsh-capture-font-xs);
+  padding: 0;
+}
+
+.pdsh-capture-background-expand:hover {
+  color: var(--pdsh-capture-text);
+}
+
+.pdsh-capture-background-grid {
+  display: grid;
+  gap: calc(var(--pdsh-capture-space) * 2);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  justify-items: stretch;
+  padding: var(--pdsh-capture-space);
+  width: 100%;
+}
+
+.pdsh-capture-background-grid-plain {
+  gap: calc(var(--pdsh-capture-space) * 2);
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+.pdsh-capture-background-grid-plain .pdsh-capture-background-option {
+  border-radius: 9999px;
+}
+
+
+.pdsh-capture-background-option {
+  aspect-ratio: 1;
+  background: var(--capture-swatch);
+  background-clip: border-box;
+  background-origin: border-box;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--pdsh-capture-radius-sm);
+  height: auto;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  width: 100%;
+}
+
+.pdsh-capture-background-option[aria-pressed="true"],
+.pdsh-capture-background-option[data-selected="true"] {
+  box-shadow: 0 0 0 2px var(--pdsh-capture-surface), 0 0 0 4px var(--pdsh-capture-ring);
+}
+
+.pdsh-capture-background-option svg {
+  color: inherit;
+  height: var(--pdsh-capture-icon-sm);
+  inset: 50% auto auto 50%;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: var(--pdsh-capture-icon-sm);
+}
+
+.pdsh-capture-color-label[data-selected="false"] {
+  background: var(--pdsh-capture-surface-tertiary);
+  color: var(--pdsh-capture-text);
+}
+
+.pdsh-capture-color-label,
+.pdsh-capture-wallpaper-label {
+  align-items: center;
+  color: var(--pdsh-capture-text-tertiary);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+}
+
+.pdsh-capture-wallpaper-label {
+  background: transparent;
+  border-style: dashed;
+  color: var(--pdsh-capture-text-secondary);
+}
+
+.pdsh-capture-wallpaper-label:hover {
+  color: var(--pdsh-capture-text);
+}
+
+.pdsh-capture-wallpaper-label[data-selected="true"] {
+  border-style: solid;
+}
+
+.pdsh-capture-wallpaper-label img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.pdsh-capture-wallpaper-label [data-wallpaper-placeholder] {
+  inset: 0;
+  position: absolute;
+}
+
+.pdsh-capture-wallpaper-label [data-wallpaper-placeholder] > svg {
+  color: inherit;
+}
+
+.pdsh-capture-color-label:focus-visible,
+.pdsh-capture-wallpaper-label:focus-visible {
+  outline: 2px solid var(--pdsh-capture-focus);
+  outline-offset: 2px;
+}
+
+.pdsh-capture-wallpaper-input {
+  display: none;
+}
+
+.pdsh-capture-change-wallpaper {
+  background: transparent;
+  border: 0;
+  color: var(--pdsh-capture-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--pdsh-capture-font-xs);
+  margin-top: calc(var(--pdsh-capture-space) * 2);
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pdsh-capture-change-wallpaper:hover {
+  color: var(--pdsh-capture-text);
+}
+
+/* 等待原图时保留唯一已应用选中态，目标项只显示处理中。 */
+.pdsh-capture-background-option[aria-busy="true"] {
+  cursor: progress;
+  opacity: 0.5;
+}
+
+/* -------------------- 系统资源加载占位 -------------------- */
+.pdsh-capture-skeleton {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--pdsh-capture-surface-tertiary);
+  animation: pdsh-capture-loading 1.6s ease-in-out infinite;
+}
+@keyframes pdsh-capture-loading {
+  50% { opacity: 0.45; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pdsh-capture-skeleton { animation: none; }
+}

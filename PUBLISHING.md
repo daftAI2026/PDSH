@@ -12,8 +12,8 @@ PDSH 的默认分发是 **GitHub 仓库中的 Harness bundle**。`package.json.v
 ## 每个版本
 
 1. 修改 `package.json.version`，完成代码、翻译、文档和测试；不要手改生成的版本常量。
-2. `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm run bundle`；审查 `.tgz` 成员，确认没有凭据、profile、日志或私有研究资料。
-3. 在目标 Harness 版本的**独立 profile** 用官方插件管理器安装同一 Git 提交/归档，检查新会话标题、搜索与折叠、设置字段、更新入口、停用撤回。DOM fixture 和成功打包不算 Desktop 验收。
+2. `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm run bundle`；审查 `.tgz` 成员，确认没有凭据、profile、日志或私有研究资料；验证 `native/window-id` 为源文件可复现的 arm64/x86_64 产物，归档即使剥离执行位也能通过私有临时副本运行。
+3. 在目标 Harness 版本的**独立 profile** 用官方插件管理器安装同一 Git 提交/归档，检查新会话标题、搜索与折叠、设置字段、更新入口、停用撤回；含截图的版本还须检查 macOS 权限成功/失败、相机位置、明暗主题、重拍/复制/保存与临时像素清理。DOM fixture 和成功打包不算 Desktop 验收。
 4. 提交源码及预构建 `index.js`、`client.js`、`client.js.map`、`plugin-icon.svg`。工作树清洁后运行 `pnpm release:check`，再用 `v$(node -p "require('./package.json').version")` 打带注释的 Git tag。脚本拒绝版本不符、文档未同步、旧 tag 指向其他提交、缺少嵌入版本或脏工作树。
 5. 推送提交与 **明确的 tag**；不要只推 `main` 并假设已安装插件会自动更新。发布说明可以写在 tag 信息或另建 GitHub Release，但不重复维护版本号。
 

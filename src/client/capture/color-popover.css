@@ -1,0 +1,110 @@
+/**
+ * [INPUT]: 依赖共享表面/文字 token 与颜色模型提供的色相；色谱中的黑白是颜色空间端点，不是主题文字。
+ * [OUTPUT]: 提供颜色浮层、色谱和输入控件样式。
+ * [POS]: capture-window 的选色视觉边界，与背景选择器共用表面语义。
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
+.pdsh-capture-color-popover {
+  background: var(--pdsh-capture-surface);
+  border: 1px solid var(--pdsh-capture-border);
+  border-radius: var(--pdsh-capture-radius-md);
+  box-shadow: var(--dsw-elevation-panel);
+  box-sizing: border-box;
+  color: var(--pdsh-capture-text);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--pdsh-capture-space) * 3);
+  padding: calc(var(--pdsh-capture-space) * 3);
+  position: fixed;
+  width: auto;
+  z-index: 50;
+}
+
+.react-colorful {
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+  height: 200px;
+  position: relative;
+  user-select: none;
+  width: 200px;
+}
+
+.react-colorful__saturation {
+  /* 色谱底部纯黑是颜色空间端点，不是主题边框。 */
+  background-color: var(--capture-picker-hue);
+  background-image: linear-gradient(0deg, #000, transparent), linear-gradient(90deg, #fff, rgb(255 255 255 / 0%));
+  border-bottom: 12px solid #000;
+  border-radius: 8px 8px 0 0;
+  box-shadow: inset 0 0 0 1px var(--dsw-alias-border-l2);
+  flex-grow: 1;
+  position: relative;
+}
+
+.react-colorful__hue {
+  background: linear-gradient(90deg, red 0, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, red);
+  height: 24px;
+  position: relative;
+}
+
+.react-colorful__last-control {
+  border-radius: 0 0 8px 8px;
+}
+
+.react-colorful__interactive {
+  border-radius: inherit;
+  inset: 0;
+  outline: none;
+  position: absolute;
+  touch-action: none;
+}
+
+.react-colorful__pointer {
+  background: var(--dsw-alias-bg-layer-1);
+  border: 2px solid var(--dsw-alias-border-inverted);
+  border-radius: 50%;
+  box-shadow: var(--dsw-elevation-panel);
+  box-sizing: border-box;
+  height: 28px;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  z-index: 1;
+}
+
+.react-colorful__interactive:focus .react-colorful__pointer {
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.react-colorful__pointer-fill {
+  border-radius: inherit;
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.react-colorful__saturation-pointer {
+  z-index: 3;
+}
+
+.react-colorful__hue-pointer {
+  z-index: 2;
+}
+
+.pdsh-capture-color-hex {
+  background: var(--pdsh-capture-surface);
+  border: 1px solid var(--pdsh-capture-border);
+  border-radius: var(--pdsh-capture-radius-md);
+  box-sizing: border-box;
+  color: var(--pdsh-capture-text);
+  font-family: var(--ds-font-family-code);
+  font-size: var(--dsw-font-xs-13-font-size);
+  height: calc(var(--pdsh-capture-space) * 8);
+  outline: none;
+  padding: calc(var(--pdsh-capture-space) * 1) calc(var(--pdsh-capture-space) * 3);
+  width: 100%;
+}
+
+.pdsh-capture-color-hex:focus-visible {
+  box-shadow: 0 0 0 2px var(--pdsh-capture-focus);
+}

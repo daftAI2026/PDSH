@@ -1,0 +1,763 @@
+/**
+ * [INPUT]: 依赖 view.ts 输出的 capture-window DOM、DSH 主题 token 与原生字段间距探针
+ * [OUTPUT]: 对外提供截图模态框、背景语义分层、工具栏、画布、检查器与隐私捕获态样式；外壳底色只绘制一次，仅窗口尺寸放大，控件密度不变，位图尺寸服从 fitted frame，滑块装饰刻度复用主题前景与间距
+ * [POS]: capture-window 的视觉契约，和 color-popover.css 分工维护主编辑器与浮层样式
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
+[data-pdsh-capture],
+[data-pdsh-capture-preview] {
+  --pdsh-capture-window-scale: 1.2;
+  /* 原布局非画布高度：header 14 格 + footer 14 格 + 工具栏及留白 13 格。
+     控件不缩放，窗口新增的高度全部让给画布。 */
+  --pdsh-capture-chrome-height: calc(var(--pdsh-capture-space) * (14 + 14 + 13));
+  --pdsh-capture-stage-height: calc((50vh + var(--pdsh-capture-chrome-height)) * var(--pdsh-capture-window-scale) - var(--pdsh-capture-chrome-height));
+  --pdsh-capture-space: calc(var(--pdsh-field-gap) / 2);
+  --pdsh-capture-surface: var(--dsw-alias-bg-layer-2);
+  --pdsh-capture-surface-secondary: var(--dsw-alias-bg-layer-1);
+  --pdsh-capture-surface-tertiary: var(--dsw-alias-bg-layer-3);
+  --pdsh-capture-surface-under: var(--dsw-alias-bg-base);
+  --pdsh-capture-text: var(--dsw-alias-label-primary);
+  --pdsh-capture-text-secondary: var(--dsw-alias-label-secondary);
+  --pdsh-capture-text-tertiary: var(--dsw-alias-label-tertiary);
+  --pdsh-capture-text-disabled: var(--dsw-alias-label-dimmed);
+  --pdsh-capture-border: var(--dsw-alias-border-l2);
+  --pdsh-capture-border-strong: var(--dsw-alias-border-l3);
+  --pdsh-capture-hover: var(--dsw-alias-interactive-bg-hover);
+  --pdsh-capture-active: var(--dsw-alias-interactive-bg-active);
+  --pdsh-capture-primary: var(--dsw-alias-button-primary-fill);
+  --pdsh-capture-primary-text: var(--dsw-alias-label-primary-inverted);
+  --pdsh-capture-ring: var(--dsw-alias-brand-primary);
+  --pdsh-capture-focus: var(--dsw-alias-state-business-primary);
+  --pdsh-capture-danger: var(--dsw-alias-state-error-primary);
+  --pdsh-capture-font-base: var(--dsw-font-s-14-font-size);
+  --pdsh-capture-font-sm: var(--dsw-font-xs-13-font-size);
+  --pdsh-capture-font-xs: var(--dsw-font-xxs-12-font-size);
+  --pdsh-capture-icon-sm: calc(var(--pdsh-capture-space) * 3.5);
+  --pdsh-capture-icon-base: calc(var(--pdsh-capture-space) * 4);
+  --pdsh-capture-radius-sm: var(--dsw-radius-sm);
+  --pdsh-capture-radius-md: var(--dsw-radius-md);
+  --pdsh-capture-radius-lg: var(--dsw-radius-lg);
+  --pdsh-capture-radius-xl: var(--dsw-radius-xl);
+  --pdsh-capture-radius-2xl: var(--dsw-radius-panel);
+  --pdsh-capture-radius-dialog: var(--dsw-radius-xl);
+  --pdsh-capture-shadow: var(--dsw-elevation-prominent);
+  --pdsh-capture-control-height: var(--pdsh-action-size);
+  --pdsh-capture-toolbar-height: calc(var(--pdsh-action-size) + var(--pdsh-field-gap));
+  --pdsh-capture-duration: var(--ds-transition-duration-fast);
+  --pdsh-capture-ease: var(--ds-ease-in-out);
+  color: var(--pdsh-capture-text);
+  font-family: var(--dsw-font-family);
+}
+
+[data-pdsh-capture] *,
+[data-pdsh-capture] *::before,
+[data-pdsh-capture] *::after,
+[data-pdsh-capture-preview] *,
+[data-pdsh-capture-preview] *::before,
+[data-pdsh-capture-preview] *::after {
+  box-sizing: border-box;
+}
+
+html.pdsh-capturing [data-pdsh-capture-hide],
+html.pdsh-capturing [data-pdsh-capture-hide] * {
+  transition: none !important;
+  visibility: hidden !important;
+}
+
+html.pdsh-capture-redact [data-pdsh-capture-redact] {
+  position: relative;
+  transition: none !important;
+  visibility: hidden !important;
+}
+
+html.pdsh-capture-redact [data-pdsh-capture-redact] * {
+  transition: none !important;
+  visibility: inherit !important;
+}
+
+html.pdsh-capture-redact [data-pdsh-capture-redact]::after {
+  background: var(--dsw-alias-bg-skeleton);
+  border-radius: 9999px;
+  content: "";
+  height: .55em;
+  inset: 50% auto auto 0;
+  position: absolute;
+  transform: translateY(-50%);
+  visibility: visible;
+  width: 62%;
+}
+
+html.pdsh-capture-redact [data-pdsh-capture-redact-profile] > img {
+  filter: grayscale(1) contrast(0);
+  opacity: .32;
+}
+
+html.pdsh-capture-redact [data-pdsh-capture-redact="blank"]::after {
+  display: none;
+}
+
+html.pdsh-capture-redact [data-pdsh-capture-redact="center"]::after {
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40%;
+}
+
+html.pdsh-capture-redact [data-pdsh-capture-redact="project"]::after {
+  width: 100%;
+}
+
+html.pdsh-capture-redact [data-index]:nth-child(4n+1) [data-pdsh-capture-redact]:not([data-pdsh-capture-redact="project"])::after {
+  width: 46%;
+}
+
+html.pdsh-capture-redact [data-index]:nth-child(4n+2) [data-pdsh-capture-redact]:not([data-pdsh-capture-redact="project"])::after {
+  width: 74%;
+}
+
+html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]:not([data-pdsh-capture-redact="project"])::after {
+  width: 55%;
+}
+
+.pdsh-capture-root {
+  align-items: center;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: calc(var(--pdsh-capture-space) * 4);
+  position: fixed;
+  z-index: 1000;
+}
+
+.pdsh-capture-backdrop {
+  backdrop-filter: blur(3px);
+  background: var(--dsw-alias-bg-mask-drop);
+  inset: 0;
+  position: absolute;
+}
+
+.pdsh-capture-dialog {
+  background: var(--pdsh-capture-surface);
+  border: 1px solid var(--pdsh-capture-border);
+  border-radius: var(--pdsh-capture-radius-dialog);
+  box-shadow: var(--pdsh-capture-shadow);
+  display: grid;
+  grid-template-rows: auto auto auto;
+  isolation: isolate;
+  max-height: calc(100dvh - var(--pdsh-capture-space) * 8);
+  max-width: calc(100vw - var(--pdsh-capture-space) * 8);
+  overflow: hidden;
+  position: relative;
+  width: calc(clamp(56rem, 60vw, 64rem) * var(--pdsh-capture-window-scale));
+  container-type: inline-size;
+}
+
+.pdsh-capture-header,
+.pdsh-capture-footer {
+  align-items: center;
+  display: flex;
+  gap: calc(var(--pdsh-capture-space) * 3);
+}
+
+.pdsh-capture-header {
+  min-width: 0;
+  padding: calc(var(--pdsh-capture-space) * 4) calc(var(--pdsh-capture-space) * 5) calc(var(--pdsh-capture-space) * 3);
+}
+
+.pdsh-capture-heading {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  gap: calc(var(--pdsh-capture-space) * 2);
+  min-width: 0;
+}
+
+.pdsh-capture-heading > svg {
+  height: var(--pdsh-capture-icon-base);
+  width: var(--pdsh-capture-icon-base);
+}
+
+.pdsh-capture-title {
+  font-size: var(--pdsh-capture-font-base);
+  font-weight: var(--dsw-font-s-strong-14-font-weight);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.pdsh-capture-workspace {
+  display: grid;
+  gap: calc(var(--pdsh-capture-space) * 5);
+  grid-template-columns: minmax(0, 1fr) calc(var(--pdsh-capture-space) * 60);
+  min-height: 0;
+  padding: 0 calc(var(--pdsh-capture-space) * 5) calc(var(--pdsh-capture-space) * 4);
+}
+
+.pdsh-capture-preview-pane {
+  display: grid;
+  gap: calc(var(--pdsh-capture-space) * 2);
+  grid-template-rows: var(--pdsh-capture-toolbar-height) var(--pdsh-capture-stage-height);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pdsh-capture-toolbar {
+  align-items: center;
+  display: flex;
+  gap: calc(var(--pdsh-capture-space) * 2);
+  min-height: var(--pdsh-capture-control-height);
+}
+
+.pdsh-capture-region-hint {
+  color: var(--pdsh-capture-text-tertiary);
+  flex: 1;
+  font-size: var(--pdsh-capture-font-xs);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdsh-capture-toolbar-controls {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: calc(var(--pdsh-capture-space) * .5);
+}
+
+.pdsh-capture-toolbar-divider {
+  background: var(--pdsh-capture-border);
+  height: var(--pdsh-capture-icon-base);
+  margin-inline: calc(var(--pdsh-capture-space) * .5);
+  width: 1px;
+}
+
+.pdsh-capture-zoom-reset {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--pdsh-capture-text-tertiary);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--pdsh-capture-font-xs);
+  font-variant-numeric: tabular-nums;
+  height: var(--pdsh-capture-control-height);
+  min-width: calc(var(--pdsh-capture-space) * 10);
+  padding-inline: var(--pdsh-capture-space);
+}
+
+.pdsh-capture-button,
+.pdsh-capture-icon-button,
+.pdsh-capture-background-option {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  outline: none;
+  transition:
+    background-color var(--pdsh-capture-duration) var(--pdsh-capture-ease),
+    border-color var(--pdsh-capture-duration) var(--pdsh-capture-ease),
+    color var(--pdsh-capture-duration) var(--pdsh-capture-ease),
+    transform var(--pdsh-capture-duration) var(--pdsh-capture-ease);
+}
+
+.pdsh-capture-button:focus-visible,
+.pdsh-capture-icon-button:focus-visible,
+.pdsh-capture-background-option:focus-visible,
+.pdsh-capture-switch:focus-visible,
+.pdsh-capture-range:focus-visible {
+  box-shadow: 0 0 0 2px var(--pdsh-capture-surface), 0 0 0 4px var(--pdsh-capture-focus);
+}
+
+.pdsh-capture-icon-button {
+  align-items: center;
+  background: transparent;
+  border-radius: 9999px;
+  display: inline-flex;
+  height: var(--pdsh-capture-control-height);
+  justify-content: center;
+  padding: 0;
+  width: var(--pdsh-capture-control-height);
+}
+
+.pdsh-capture-icon-button > svg {
+  height: var(--pdsh-capture-icon-sm);
+  width: var(--pdsh-capture-icon-sm);
+}
+
+.pdsh-capture-icon-button[data-action="close"] {
+  height: var(--pdsh-capture-control-height);
+  width: var(--pdsh-capture-control-height);
+}
+
+.pdsh-capture-icon-button[aria-pressed="true"] {
+  background: var(--pdsh-capture-surface-tertiary);
+  color: var(--pdsh-capture-text);
+}
+
+.pdsh-capture-icon-button:hover:not(:disabled),
+.pdsh-capture-button:hover:not(:disabled) {
+  background: var(--pdsh-capture-hover);
+}
+
+.pdsh-capture-icon-button:active:not(:disabled),
+.pdsh-capture-button:active:not(:disabled) {
+  background: var(--pdsh-capture-active);
+  transform: scale(.98);
+}
+
+.pdsh-capture-icon-button:disabled,
+.pdsh-capture-button:disabled {
+  color: var(--pdsh-capture-text-disabled);
+  cursor: default;
+}
+
+.pdsh-capture-stage {
+  align-items: center;
+  background-color: var(--pdsh-capture-surface-secondary);
+  border: 1px solid color-mix(in srgb, var(--pdsh-capture-border) 50%, transparent);
+  border-radius: var(--pdsh-capture-radius-md);
+  cursor: grab;
+  display: flex;
+  justify-content: center;
+  height: var(--pdsh-capture-stage-height);
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  touch-action: none;
+}
+
+.pdsh-capture-stage,
+.pdsh-capture-checker {
+  background-image:
+    linear-gradient(45deg, rgb(128 128 128 / 16%) 25%, transparent 25%, transparent 75%, rgb(128 128 128 / 16%) 75%),
+    linear-gradient(45deg, rgb(128 128 128 / 16%) 25%, transparent 25%, transparent 75%, rgb(128 128 128 / 16%) 75%);
+  background-position: 0 0, 8px 8px;
+  background-size: 16px 16px;
+}
+
+.pdsh-capture-stage[data-tool="redact"] {
+  cursor: crosshair;
+}
+
+.pdsh-capture-stage[data-panning="true"] {
+  cursor: grabbing;
+}
+
+.pdsh-capture-canvas-frame {
+  line-height: 0;
+  max-height: 100%;
+  max-width: 100%;
+  position: relative;
+  transform-origin: center;
+  transition: transform var(--pdsh-capture-duration) var(--pdsh-capture-ease);
+  user-select: none;
+}
+
+.pdsh-capture-canvas {
+  display: block;
+  height: auto;
+  /* fitCanvas 独占尺寸计算；位图不能再被旧像素上限二次压缩。 */
+  max-height: none;
+  max-width: none;
+  pointer-events: none;
+  width: auto;
+}
+
+.pdsh-capture-region-layer {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.pdsh-capture-region {
+  border: 1px solid transparent;
+  border-radius: var(--dsw-radius-xs);
+  position: absolute;
+}
+
+.pdsh-capture-region-candidate {
+  border-color: color-mix(in srgb, var(--pdsh-capture-ring) 55%, transparent);
+  border-style: dashed;
+}
+
+.pdsh-capture-region-candidate[data-interactive="true"] {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.pdsh-capture-region-candidate[data-interactive="true"]:hover {
+  background: color-mix(in srgb, var(--pdsh-capture-ring) 10%, transparent);
+  border-color: var(--pdsh-capture-ring);
+}
+
+.pdsh-capture-region-candidate[data-interactive="false"] {
+  opacity: .6;
+}
+
+.pdsh-capture-region-confirmed[data-interactive="true"] {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.pdsh-capture-region-confirmed[data-interactive="true"]:hover {
+  border-color: color-mix(in srgb, var(--pdsh-capture-ring) 70%, transparent);
+}
+
+.pdsh-capture-region-remove {
+  align-items: center;
+  background: var(--pdsh-capture-primary-text);
+  border: 1px solid color-mix(in srgb, var(--pdsh-capture-primary) 70%, transparent);
+  border-radius: 9999px;
+  color: var(--pdsh-capture-primary);
+  display: none;
+  font-family: var(--dsw-font-family);
+  font-size: var(--pdsh-capture-font-xs);
+  font-weight: var(--dsw-font-xs-strong-13-font-weight);
+  height: var(--pdsh-capture-icon-base);
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  right: -8px;
+  top: -8px;
+  width: var(--pdsh-capture-icon-base);
+}
+
+.pdsh-capture-region-confirmed[data-interactive="true"]:hover .pdsh-capture-region-remove {
+  display: flex;
+}
+
+.pdsh-capture-draft-region {
+  background: color-mix(in srgb, var(--pdsh-capture-ring) 10%, transparent);
+  border: 1px dashed var(--pdsh-capture-ring);
+  border-radius: var(--pdsh-capture-radius-sm);
+  pointer-events: none;
+  position: fixed;
+  z-index: 1;
+}
+
+.pdsh-capture-inspector {
+  max-height: calc(var(--pdsh-capture-stage-height) + var(--pdsh-capture-space) * 9);
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--pdsh-capture-space) * 2);
+  min-height: 0;
+  overflow: hidden;
+  padding-block: var(--pdsh-capture-space);
+}
+
+.pdsh-capture-inspector > .pdsh-capture-section-title { flex-shrink: 0; }
+
+.pdsh-capture-inspector-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.pdsh-capture-inspector-scroll::-webkit-scrollbar { display: none; }
+
+.pdsh-capture-inspector-content {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--pdsh-capture-space) * 5);
+  padding-block: var(--pdsh-capture-space);
+}
+
+/* 只借用 alpha 遮罩算法；currentColor 仅提供不透明度，不在内容上绘制颜色。 */
+.pdsh-capture-inspector-scroll[data-overflowing="true"] {
+  --capture-fade-top: calc(var(--pdsh-capture-space) * 3);
+  --capture-fade-bottom: calc(var(--pdsh-capture-space) * 3);
+  mask-image: linear-gradient(to bottom, transparent, currentColor var(--capture-fade-top), currentColor calc(100% - var(--capture-fade-bottom)), transparent);
+  mask-mode: alpha;
+  mask-repeat: no-repeat;
+}
+.pdsh-capture-inspector-scroll[data-at-start="true"] { --capture-fade-top: 0px; }
+.pdsh-capture-inspector-scroll[data-at-end="true"] { --capture-fade-bottom: 0px; }
+
+.pdsh-capture-section + .pdsh-capture-section {
+  margin: 0;
+}
+
+.pdsh-capture-section-heading,
+.pdsh-capture-row {
+  align-items: center;
+  display: flex;
+  gap: calc(var(--pdsh-capture-space) * 2);
+  justify-content: space-between;
+}
+
+.pdsh-capture-section-title {
+  color: var(--pdsh-capture-text-secondary);
+  font: var(--dsw-font-xxs-strong-12);
+  margin: 0;
+}
+
+.pdsh-capture-section-description {
+  color: var(--pdsh-capture-text-tertiary);
+  font: var(--dsw-font-xxs-12);
+  margin: 2px 0 0;
+}
+
+.pdsh-capture-privacy-copy {
+  min-width: 0;
+  padding-right: calc(var(--pdsh-capture-space) * 2);
+}
+
+.pdsh-capture-padding-heading {
+  margin-bottom: calc(var(--pdsh-capture-space) * 2);
+}
+
+.pdsh-capture-switch {
+  appearance: none;
+  background: var(--pdsh-capture-surface-tertiary);
+  border: 1px solid var(--pdsh-capture-border-strong);
+  border-radius: 9999px;
+  cursor: pointer;
+  flex: none;
+  height: var(--pdsh-switch-height);
+  margin: 0;
+  padding: calc((var(--pdsh-switch-height) - var(--pdsh-switch-thumb-size)) / 2);
+  position: relative;
+  transition: background-color var(--pdsh-capture-duration) var(--pdsh-capture-ease);
+  width: var(--pdsh-switch-width);
+}
+
+.pdsh-capture-switch::after {
+  background: var(--pdsh-capture-surface);
+  border-radius: 50%;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--pdsh-capture-text) 20%, transparent);
+  content: "";
+  display: block;
+  height: var(--pdsh-switch-thumb-size);
+  transform: translateX(0);
+  transition: transform var(--pdsh-capture-duration) var(--pdsh-capture-ease);
+  width: var(--pdsh-switch-thumb-size);
+}
+
+.pdsh-capture-switch:checked {
+  background: var(--pdsh-capture-primary);
+  border-color: var(--pdsh-capture-primary);
+}
+
+.pdsh-capture-switch:checked::after {
+  transform: translateX(calc(var(--pdsh-switch-width) - var(--pdsh-switch-height)));
+}
+
+.pdsh-capture-solid-color:focus-visible {
+  outline: 2px solid var(--pdsh-capture-focus);
+  outline-offset: 2px;
+}
+
+.pdsh-capture-solid-color {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  display: flex;
+  height: var(--pdsh-capture-control-height);
+  justify-content: center;
+  padding: 0;
+  position: relative;
+  width: var(--pdsh-capture-control-height);
+}
+
+.pdsh-capture-solid-color > span {
+  background: var(--capture-solid-color);
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 9999px;
+  height: var(--pdsh-capture-icon-sm);
+  pointer-events: none;
+  width: var(--pdsh-capture-icon-sm);
+}
+
+.pdsh-capture-range {
+  accent-color: var(--pdsh-capture-primary);
+  cursor: pointer;
+  width: 100%;
+}
+
+/* 十等分视觉参照不参与命中或量化，数值输入继续交给原生 range。 */
+.pdsh-capture-range-field .pdsh-capture-range { margin: 0; }
+.pdsh-capture-range-ticks {
+  color: var(--pdsh-capture-text-tertiary);
+  height: var(--pdsh-capture-space);
+  margin-inline: calc(var(--pdsh-capture-space) * 2);
+  pointer-events: none;
+  position: relative;
+}
+.pdsh-capture-range-ticks > i {
+  background: currentColor;
+  border-radius: 9999px;
+  height: calc(var(--pdsh-capture-space) * .5);
+  left: var(--capture-tick-position);
+  position: absolute;
+  transform: translateX(-50%);
+  width: calc(var(--pdsh-capture-space) * .5);
+}
+
+.pdsh-capture-value {
+  color: var(--pdsh-capture-text-secondary);
+  font-size: var(--pdsh-capture-font-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdsh-capture-footer {
+  justify-content: flex-end;
+  padding: var(--pdsh-capture-space) calc(var(--pdsh-capture-space) * 5) calc(var(--pdsh-capture-space) * 4);
+}
+
+.pdsh-capture-footer-spacer {
+  flex: 1;
+  margin-right: auto;
+}
+
+.pdsh-capture-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--pdsh-capture-radius-md);
+  display: inline-flex;
+  font-size: var(--pdsh-capture-font-sm);
+  font-weight: var(--dsw-font-s-strong-14-font-weight);
+  gap: calc(var(--pdsh-capture-space) * 2);
+  height: var(--pdsh-capture-control-height);
+  justify-content: center;
+  padding-inline: calc(var(--pdsh-capture-space) * 3);
+}
+
+.pdsh-capture-button > svg {
+  height: var(--pdsh-capture-icon-sm);
+  width: var(--pdsh-capture-icon-sm);
+}
+
+.pdsh-capture-button-secondary {
+  border-color: var(--pdsh-capture-border);
+}
+
+.pdsh-capture-button-primary {
+  background: var(--pdsh-capture-primary);
+  color: var(--pdsh-capture-primary-text);
+}
+
+.pdsh-capture-button-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--pdsh-capture-primary) 88%, var(--pdsh-capture-surface));
+}
+
+.pdsh-capture-toast {
+  align-items: center;
+  background: var(--pdsh-capture-primary);
+  border-radius: var(--pdsh-capture-radius-xl);
+  bottom: calc(var(--pdsh-capture-space) * 4);
+  box-shadow: var(--pdsh-capture-shadow);
+  color: var(--pdsh-capture-primary-text);
+  display: flex;
+  font-size: var(--pdsh-capture-font-sm);
+  gap: calc(var(--pdsh-capture-space) * 2);
+  left: 50%;
+  max-width: min(360px, calc(100vw - var(--pdsh-capture-space) * 8));
+  padding: calc(var(--pdsh-capture-space) * 2.5) calc(var(--pdsh-capture-space) * 3);
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.pdsh-capture-preview-shell {
+  background: var(--pdsh-capture-surface-secondary);
+  color: var(--pdsh-capture-text);
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.pdsh-capture-preview-app {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  height: 100%;
+}
+
+.pdsh-capture-preview-sidebar {
+  background: var(--pdsh-capture-surface-tertiary);
+  border-right: 1px solid var(--pdsh-capture-border);
+  padding: calc(var(--pdsh-capture-space) * 4);
+}
+
+.pdsh-capture-preview-main {
+  align-items: center;
+  background: var(--pdsh-capture-surface);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--pdsh-capture-space) * 6);
+  justify-content: center;
+  padding: calc(var(--pdsh-capture-space) * 8);
+}
+
+.pdsh-capture-preview-card {
+  background: var(--pdsh-capture-surface-secondary);
+  border: 1px solid var(--pdsh-capture-border);
+  border-radius: var(--pdsh-capture-radius-2xl);
+  max-width: 560px;
+  padding: calc(var(--pdsh-capture-space) * 5);
+  width: 100%;
+}
+
+.pdsh-capture-preview-controls {
+  align-items: center;
+  display: flex;
+  gap: calc(var(--pdsh-capture-space) * 2);
+  position: fixed;
+  right: calc(var(--pdsh-capture-space) * 4);
+  top: calc(var(--pdsh-capture-space) * 4);
+  z-index: calc(2147480000 + 1);
+}
+
+@media (max-width: 719px) {
+  .pdsh-capture-preview-controls {
+    display: none;
+  }
+
+  .pdsh-capture-root {
+    padding: 0;
+  }
+
+  .pdsh-capture-dialog {
+    border: 0;
+    border-radius: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 0;
+    width: 100vw;
+  }
+
+  [data-pdsh-capture-preview] .pdsh-capture-dialog {
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+
+  .pdsh-capture-footer .pdsh-capture-button {
+    flex: 1;
+  }
+}
+
+@media (max-height: 639px) and (min-width: 720px) {
+  .pdsh-capture-dialog {
+    min-height: 0;
+  }
+}
+
+@supports (corner-shape: superellipse(1.5)) {
+  .pdsh-capture-dialog,
+  .pdsh-capture-button,
+  .pdsh-capture-icon-button {
+    corner-shape: superellipse(1.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-pdsh-capture] *,
+  [data-pdsh-capture] *::before,
+  [data-pdsh-capture] *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}

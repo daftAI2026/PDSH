@@ -1,7 +1,7 @@
 {
   "name": "@daftai/pdsh",
-  "description": "Same-window sidebar title masking and local display identity for DeepSeek Harness; display-only, no session isolation.",
-  "version": "0.1.1",
+  "description": "Same-window presentation and local capture workbench for DeepSeek Harness; no session isolation.",
+  "version": "0.2.0-rc.1",
   "private": true,
   "type": "module",
   "main": "./index.js",
@@ -11,6 +11,7 @@
     "client.js.map",
     "cordis.patch.yml",
     "plugin-icon.svg",
+    "native/window-id",
     "style-sources.json",
     "THIRD_PARTY_NOTICES.md",
     "LICENSE",

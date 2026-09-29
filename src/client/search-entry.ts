@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖原生搜索结构、实时class/图标几何/根透明度/CSS变量，以及Host开关状态/翻译。
- * [OUTPUT]: 提供可撤回的线条入口与局部焦点修复；透明度在整枚SVG合成，卸载还原原生搜索。
+ * [INPUT]: 依赖原生搜索结构、实时class/图标几何/根透明度/CSS变量、遮挡状态与可选截图控制器。
+ * [OUTPUT]: 提供帽子及其右侧相机入口与局部焦点修复；两枚SVG整体合成透明度，卸载还原原生搜索。
  * [POS]: PDSH 版本相关 DOM 适配边界；非官方 child slot，与身份显示控制器相互独立。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -57,19 +57,28 @@ function attribute(node, name, value) {
   if (node.getAttribute(name) !== value) node.setAttribute(name, value);
 }
 
-export function mountSearchEntry(doc, { icon, label, state, onActivate }) {
-  const template = doc.createElement('template'); template.innerHTML = icon;
-  const svg = template.content.querySelector('svg');
-  if (!svg) throw new Error('PDSH trusted entry icon missing');
-  svg.removeAttribute('width'); svg.removeAttribute('height');
-  svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
-  const button = doc.createElement('button'); button.type = 'button'; button.append(svg);
+export function mountSearchEntry(doc, { icon, label, state, onActivate, capture = null }) {
+  function makeButton(source) {
+    const template = doc.createElement('template'); template.innerHTML = source;
+    const image = template.content.querySelector('svg');
+    if (!image) throw new Error('PDSH trusted entry icon missing');
+    image.removeAttribute('width'); image.removeAttribute('height');
+    image.setAttribute('aria-hidden', 'true'); image.setAttribute('focusable', 'false');
+    const control = doc.createElement('button'); control.type = 'button'; control.append(image);
+    return [control, image];
+  }
+  const [button, svg] = makeButton(icon);
+  button.setAttribute('data-pdsh-capture-hide', '');
+  const [camera, cameraSvg] = capture ? makeButton(capture.icon) : [null, null];
+  camera?.setAttribute('data-pdsh-capture-hide', '');
   // +--- 操作由Host控制器承接；不冒充搜索点击或隔离会话 ---+
   const activate = () => { if (button.isConnected && !button.hidden && !button.disabled && !disposed) onActivate(); };
   button.addEventListener('click', activate);
+  const take = () => { if (camera?.isConnected && !camera.hidden && !camera.disabled && !disposed) capture.onActivate(); };
+  camera?.addEventListener('click', take);
   let pendingFocus = false, wasBusy = false;
   let shell = null, disposed = false, sampledElement = null, sampledKey = '', sampledColor = null;
-  function detach() { pendingFocus = false; button.remove(); shell?.remove(); shell = null; }
+  function detach() { pendingFocus = false; button.remove(); camera?.remove(); shell?.remove(); shell = null; }
   function synchronize() {
     if (disposed) return;
     const native = locate(doc);
@@ -80,34 +89,53 @@ export function mountSearchEntry(doc, { icon, label, state, onActivate }) {
     const opacity = Number.parseFloat(size.opacity);
     if (Number.isFinite(opacity) && opacity >= 0 && opacity <= 1) {
       if (svg.style.getPropertyValue('--pdsh-icon-opacity') !== String(opacity)) svg.style.setProperty('--pdsh-icon-opacity', String(opacity));
+      if (cameraSvg && cameraSvg.style.getPropertyValue('--pdsh-icon-opacity') !== String(opacity)) cameraSvg.style.setProperty('--pdsh-icon-opacity', String(opacity));
     } else if (svg.style.getPropertyValue('--pdsh-icon-opacity')) svg.style.removeProperty('--pdsh-icon-opacity');
+    if (cameraSvg && !(Number.isFinite(opacity) && opacity >= 0 && opacity <= 1)) cameraSvg.style.removeProperty('--pdsh-icon-opacity');
     attribute(button, 'class', native.button.className);
     attribute(button, 'data-pdsh-search-entry', native.wide ? 'wide' : 'rail');
-    attribute(button, 'aria-label', label()); attribute(button, 'title', label());
+    attribute(button, 'aria-label', label()); attribute(button, 'data-pdsh-tooltip', label());
     const current = state();
     if (current.busy && !wasBusy) pendingFocus = doc.activeElement === button;
     attribute(button, 'aria-pressed', String(current.pressed)); attribute(button, 'aria-busy', String(current.busy));
     button.disabled = current.disabled;
+    if (camera) {
+      const shot = capture.state();
+      attribute(camera, 'class', native.button.className);
+      attribute(camera, 'data-pdsh-capture-entry', native.wide ? 'wide' : 'rail');
+      attribute(camera, 'aria-label', capture.label()); attribute(camera, 'data-pdsh-tooltip', capture.label());
+      attribute(camera, 'aria-busy', String(shot.busy));
+      camera.disabled = shot.disabled;
+    }
     const chain = [];
     for (let node = native.button; node; node = node.parentElement) chain.push(`${node.getAttribute('class') ?? ''}|${node.style.color}`);
-    const key = `${doc.styleSheets.length}:${chain.join(';')}`;
+    const theme = [doc.documentElement, doc.body].map(node => `${node.className}|${node.getAttribute('data-theme')}|${node.getAttribute('data-dsw-theme')}|${node.style.cssText}`).join(';');
+    const key = `${doc.styleSheets.length}:${theme}:${chain.join(';')}`;
     if (sampledElement !== native.button || sampledKey !== key) {
       sampledElement = native.button; sampledKey = key; sampledColor = colorReference(doc, native.button);
     }
     const color = sampledColor;
     if (color && button.style.getPropertyValue('--pdsh-search-color') !== color) button.style.setProperty('--pdsh-search-color', color);
     else if (!color) button.style.removeProperty('--pdsh-search-color');
+    if (camera) {
+      if (color && camera.style.getPropertyValue('--pdsh-search-color') !== color) camera.style.setProperty('--pdsh-search-color', color);
+      else if (!color) camera.style.removeProperty('--pdsh-search-color');
+    }
     attribute(svg, 'width', size.width); attribute(svg, 'height', size.height);
+    if (cameraSvg) { attribute(cameraSvg, 'width', size.width); attribute(cameraSvg, 'height', size.height); }
     const hidden = native.wide && native.button.getAttribute('aria-expanded') === 'true';
     if (button.hidden !== hidden) button.hidden = hidden;
+    if (camera && camera.hidden !== hidden) camera.hidden = hidden;
     if (native.wide) {
-      if (shell) { button.remove(); shell.remove(); shell = null; }
+      if (shell) { button.remove(); camera?.remove(); shell.remove(); shell = null; }
       // +--- 入口在左：留白由自有按钮承担；邻接 CSS 仅在入口可见时撤去 slot 的自动外边距 ---+
-      if (button.parentElement !== native.parent || button.nextElementSibling !== native.anchor) native.parent.insertBefore(button, native.anchor);
+      if (button.parentElement !== native.parent || button.nextElementSibling !== (camera ?? native.anchor)) native.parent.insertBefore(button, camera?.parentElement === native.parent ? camera : native.anchor);
+      if (camera && (camera.parentElement !== native.parent || camera.previousElementSibling !== button || camera.nextElementSibling !== native.anchor)) native.parent.insertBefore(camera, native.anchor);
     } else {
       if (!shell) { shell = doc.createElement('div'); shell.setAttribute('data-pdsh-entry-shell', ''); }
       attribute(shell, 'class', native.search.className);
       if (button.parentElement !== shell) shell.append(button);
+      if (camera && (camera.parentElement !== shell || camera.previousElementSibling !== button)) shell.append(camera);
       if (shell.parentElement !== native.parent || shell.nextElementSibling !== native.anchor) native.parent.insertBefore(shell, native.anchor);
     }
     if (wasBusy && !current.busy) {
@@ -126,6 +154,6 @@ export function mountSearchEntry(doc, { icon, label, state, onActivate }) {
   synchronize();
   return {
     refresh: synchronize,
-    dispose() { disposed = true; observer.disconnect(); button.removeEventListener('click', activate); detach(); },
+    dispose() { disposed = true; observer.disconnect(); button.removeEventListener('click', activate); camera?.removeEventListener('click', take); detach(); },
   };
 }

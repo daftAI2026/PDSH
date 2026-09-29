@@ -23,6 +23,58 @@ var DEFAULTS = Object.freeze({
 });
 
 // src/host/index.ts
+import { fileURLToPath } from "node:url";
+
+// src/host/capture.ts
+import { execFile } from "node:child_process";
+import { readFile, mkdtemp, rm, copyFile, chmod, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
+var run = promisify(execFile);
+var PNG_SIGNATURE = Buffer.from("89504e470d0a1a0a", "hex");
+var MAX_PNG_BYTES = 64 * 1024 * 1024;
+async function captureMacWindow({ pid, helper, signal, exec = run, temp = () => mkdtemp(join(tmpdir(), "pdsh-capture-")), read = readFile, size = stat, copy = copyFile, makeExecutable = chmod, remove = (path) => rm(path, { recursive: true, force: true }) }) {
+  if (signal?.aborted) throw new Error("\u622A\u56FE\u5DF2\u53D6\u6D88");
+  const directory = await temp();
+  try {
+    if (signal?.aborted) throw new Error("\u622A\u56FE\u5DF2\u53D6\u6D88");
+    const probe = join(directory, "window-id");
+    await copy(helper, probe);
+    await makeExecutable(probe, 448);
+    const result = await exec(probe, [String(pid)], { timeout: 5e3, maxBuffer: 4096, signal });
+    const id = result.stdout.trim();
+    if (!/^[1-9]\d{0,9}$/.test(id)) throw new Error("\u672A\u627E\u5230\u552F\u4E00\u7684 DSH \u7A97\u53E3");
+    const path = join(directory, "window.png");
+    await exec("/usr/sbin/screencapture", ["-x", "-o", "-l", id, "-t", "png", path], { timeout: 15e3, maxBuffer: 4096, signal });
+    if ((await size(path)).size > MAX_PNG_BYTES) throw new Error("PNG \u622A\u56FE\u8FC7\u5927");
+    const bytes = await read(path, { signal });
+    if (bytes.length > MAX_PNG_BYTES || !bytes.subarray(0, 8).equals(PNG_SIGNATURE)) throw new Error("\u672A\u5F97\u5230\u6709\u6548 PNG \u622A\u56FE");
+    return bytes;
+  } finally {
+    await remove(directory);
+  }
+}
+function createCaptureRoute({ platform = process.platform, capture }) {
+  return {
+    path: "/api/pdsh/capture",
+    methods: ["POST"],
+    requestBody: "buffered",
+    async fetch(request) {
+      const headers = { "cache-control": "no-store" };
+      if (platform !== "darwin") return new Response("unsupported platform", { status: 501, headers });
+      if (request.signal.aborted) return new Response("cancelled", { status: 499, headers });
+      try {
+        const bytes = await capture(request.signal);
+        return new Response(new Uint8Array(bytes), { status: 200, headers: { ...headers, "content-type": "image/png", "x-content-type-options": "nosniff" } });
+      } catch {
+        return new Response("capture failed", { status: 503, headers });
+      }
+    }
+  };
+}
+
+// src/host/index.ts
 var name = "pdsh";
 var Config = z.object({
   maskTitles: z.boolean().default(DEFAULTS.maskTitles).description("Mask sidebar titles / \u906E\u6321\u4FA7\u680F\u6807\u9898").volatile(),
@@ -33,6 +85,9 @@ var Config = z.object({
 });
 function apply(ctx) {
   ctx.inject(["settings"], (child) => child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)));
+  ctx.inject(["connection"], (child) => child.effect(() => child.connection.fetch.register(createCaptureRoute({
+    capture: (signal) => captureMacWindow({ pid: process.ppid, helper: fileURLToPath(new URL("./native/window-id", import.meta.url)), signal })
+  })), "pdsh: capture route"));
 }
 export {
   Config,

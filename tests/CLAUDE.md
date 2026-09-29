@@ -3,7 +3,12 @@
 
 这些 TypeScript 合同运行在 Node/jsdom；只能证明源码和生成产物，不替代 Desktop 实窗验收。
 
-- `client.test.ts`: lazy-CJS 双槽位装配、Host 停用和资源归还。
+- `client.test.ts`: lazy-CJS 双槽位与 Desktop 帽子/相机装配、Host 停用和资源归还。
+- `capture-controller.test.ts`: 相机点击后截图才打开工作台、重拍、失败与卸载清理。
+- `capture-host.test.ts`: 唯一窗口、PNG 读取前大小限制、子进程取消信号、临时目录清理及认证 route 响应。
+- `capture-privacy.test.ts`: DSH 标题/身份占位和候选区域比例守卫。
+- `capture-styles.test.ts`: 整套工作台 DSH token 来源与遗留 Codex 主题规则禁入。
+- `capture-view.test.ts`: 双语编辑器操作面板与无系统壁纸 adapter 的显示合同。
 - `host.test.ts`: 真实 Schemastery 配置边界。
 - `localization.test.ts`: 离线包元信息、运行字典和图标资源。
 - `model.test.ts`: 昵称、头像和旧字段投影验证。
@@ -16,6 +21,7 @@
 - `updater.test.ts`: 稳定 tag、固定提交、官方 Remote 回包封套、显式安装与失败分类。
 - `update-badge.test.ts`: 官方详情徽标仅自身自动探测、仅新版展示图标及安装二次确认。
 - `update-source.test.ts`: 公共 GitHub tag 请求的无凭据网络边界；不冒充 Desktop CSP 证明。
+- `dom-tooltip.test.ts`: 非 React 控件跟随宿主 Tooltip 延时与方位参数，卸载彻底清理。
 - `source-layout.test.ts`: 手写 TypeScript 与宿主所需生成 JavaScript 的边界。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

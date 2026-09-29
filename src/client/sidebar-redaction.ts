@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 rc.2 `sidebar.workspaces` 与 Rows.tsx 的普通/空白会话行、搜索结果结构及 HoverCard portal。
- * [OUTPUT]: 提供可撤销的 workspace/session（含新会话占位）/search 标题 marker 与受 owner 匹配约束的 portal marker。
+ * [OUTPUT]: 提供可撤销标题 marker 及同源识别结果，供截图隐私占位复用而不复制选择器。
  * [POS]: 侧栏标题遮罩 DOM 适配器；只标记文本叶，不改原文、命中区域、事件或滚动状态。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -80,6 +80,13 @@ function scanRows(region) {
     }
   }
   return { rows, searches };
+}
+
+export function recognizedSidebarTitles(doc) {
+  const region = locateRegion(doc);
+  if (!region) return [];
+  const { rows, searches } = scanRows(region);
+  return [...rows.map(item => item.title), ...searches.flatMap(item => [item.title, item.workspace])];
 }
 
 function asElement(node, view) {

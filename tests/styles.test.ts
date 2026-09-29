@@ -44,8 +44,8 @@ test('头像与昵称横向编排；入口自己承担自动留白，隐藏时�
 });
 
 test('线条图标透明度在SVG根合成，不在path/circle分别混色', () => {
-  assert.match(css, /\[data-pdsh-search-entry\] svg\s*\{[^}]*opacity:\s*var\(--pdsh-icon-opacity\)/);
-  assert.doesNotMatch(css, /stroke-opacity|fill-opacity|\[data-pdsh-search-entry\]\s+(?:path|circle)/);
+  assert.match(css, /\[data-pdsh-search-entry\] svg, \[data-pdsh-capture-entry\] svg\s*\{[^}]*opacity:\s*var\(--pdsh-icon-opacity\)/);
+  assert.doesNotMatch(css, /stroke-opacity|fill-opacity|\[data-pdsh-(?:search|capture)-entry\]\s+(?:path|circle)/);
 });
 
 test('编辑与阅读态同用原生Button的最小高度；非法输入边线使用宿主错误token', () => {
