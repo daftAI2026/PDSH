@@ -6,7 +6,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mountTitleToggle } from './title-toggle.js';
+import { mountTitleToggle } from '../src/client/title-toggle.ts';
 
 test('帽子只切换一个Host路径，串行期间禁用，失败不假装开启', async () => {
   let snapshot = { status: 'ready', writable: true, revision: 4, value: { maskTitles: false } };

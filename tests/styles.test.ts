@@ -8,7 +8,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
-const css = readFileSync(new URL('./styles.css', import.meta.url), 'utf8');
+const css = readFileSync(new URL('../src/client/styles.css', import.meta.url), 'utf8');
 test('灰条仅作用于自有标题标记，不给聊天消息描边或隐藏整行', () => {
   assert.doesNotMatch(css, /data-chat-flow-kind|data-pdsh-frames|conversation\.view/);
   assert.match(css, /\[data-pdsh-redacted-title\]/);
@@ -19,7 +19,7 @@ test('灰条仅作用于自有标题标记，不给聊天消息描边或隐藏�
 test('所有 token 有提供文件，不硬编码颜色、尺寸或 fallback', () => {
   assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /#[a-f\d]{3,8}\b|rgba?\(|\b\d+(?:\.\d+)?(?:px|rem|em)\b/i);
   assert.doesNotMatch(css, /var\([^)]*,/);
-  const sources = JSON.parse(readFileSync(new URL('./style-sources.json', import.meta.url), 'utf8'));
+  const sources = JSON.parse(readFileSync(new URL('../style-sources.json', import.meta.url), 'utf8'));
   for (const [, variable] of css.matchAll(/var\((--[\w-]+)\)/g)) {
     assert.ok(sources.styles.some(entry => entry.variable === variable && entry.file), variable);
   }
@@ -43,8 +43,13 @@ test('头像与昵称横向编排；入口自己承担自动留白，隐藏时�
   assert.match(css, /\[data-pdsh-search-entry="wide"\]:not\(\[hidden\]\) \+ div\s*\{[^}]*margin-left:\s*0/);
 });
 
+test('线条图标透明度在SVG根合成，不在path/circle分别混色', () => {
+  assert.match(css, /\[data-pdsh-search-entry\] svg\s*\{[^}]*opacity:\s*var\(--pdsh-icon-opacity\)/);
+  assert.doesNotMatch(css, /stroke-opacity|fill-opacity|\[data-pdsh-search-entry\]\s+(?:path|circle)/);
+});
+
 test('编辑与阅读态同用原生Button的最小高度；非法输入边线使用宿主错误token', () => {
-  const source = readFileSync(new URL('./client-entry.jsx', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../src/client/client-entry.tsx', import.meta.url), 'utf8');
   assert.match(source, /<Button[^>]*data-pdsh-button-probe/);
   assert.match(source, /--pdsh-action-size/);
   assert.match(css, /\.pdsh-inline-editor\s*\{[^}]*min-height:\s*var\(--pdsh-action-size\)/);
@@ -54,7 +59,7 @@ test('编辑与阅读态同用原生Button的最小高度；非法输入边线�
 test('字段自带内边距，不与组gap重复叠加；昵称在右侧紧凑编辑', () => {
   assert.match(css, /\.pdsh-group\s*\{[^}]*gap:\s*0/);
   assert.doesNotMatch(css, /\.pdsh-group > h4/);
-  const source = readFileSync(new URL('./settings-card.jsx', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../src/client/settings-card.tsx', import.meta.url), 'utf8');
   assert.match(source, /className="pdsh-row pdsh-group-header"/);
   assert.match(css, /\.pdsh-detail-row\s*\{[^}]*padding-block:\s*var\(--pdsh-field-gap\)/);
   assert.match(css, /\.pdsh-nickname-editor\s*\{[^}]*flex:\s*0 1 auto/);

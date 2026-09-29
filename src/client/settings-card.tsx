@@ -1,12 +1,12 @@
 /**
- * [INPUT]: 依赖宿主共享 React/primitives 与 ConfigForm；model.js 校验昵称及本地图像。
- * [OUTPUT]: 提供单标题开关、头像三按钮即时原子保存、昵称局部草稿/勾选保存与可取消图片读取。
- * [POS]: PDSH 交互层；Host 接受值拥有来源选中态，字段级基线阻止覆盖外来修改，共用单次写入门。
+ * [INPUT]: 依赖宿主 React/primitives、ConfigForm、更新控制器；shared/model.ts 校验昵称/图像。
+ * [OUTPUT]: 提供设置字段局部提交、可取消图片读取及手动检查/确认安装更新入口。
+ * [POS]: PDSH 交互层；Host 接受值拥有设置态，更新另由官方管理器安装，不混入偏好写入门。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Input, Switch, Button, IconUserOutlineMedium, IconEditOutlineRegular, IconCheckOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives';
-import { DEFAULTS, MAX_AVATAR_CHARS, MAX_NAME_CHARS, NICKNAME_PATTERN, resolvePreferences } from './model.js';
+import { DEFAULTS, MAX_AVATAR_CHARS, MAX_NAME_CHARS, NICKNAME_PATTERN, resolvePreferences } from '../shared/model.ts';
 
 function avatarValues(value) {
   return { avatar: value?.avatar ?? DEFAULTS.avatar, useAccountAvatar: value?.useAccountAvatar ?? DEFAULTS.useAccountAvatar };
@@ -21,10 +21,11 @@ function ToggleHeading({ id, label, hint, checked, disabled, pending, error, onC
   </div>{error && <p className="pdsh-error" role="alert">{error}</p>}</>;
 }
 
-export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
+export function SettingsCard({ view, preferencesForm: form, presentation, updater, t }) {
   const snapshot = useSyncExternalStore(fn => form.subscribe(fn), () => form.getSnapshot());
   const status = useSyncExternalStore(fn => presentation.subscribe(fn), () => presentation.status());
   const accountAvatar = useSyncExternalStore(fn => presentation.subscribe(fn), () => presentation.accountAvatar());
+  const update = useSyncExternalStore(fn => updater.subscribe(fn), () => updater.getSnapshot());
   const [nicknameDraft, setNicknameDraft] = useState(null);
   const [nicknameError, setNicknameError] = useState('');
   const [avatarError, setAvatarError] = useState('');
@@ -137,9 +138,10 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
     setReadingAvatar(true); setAvatarRetry(null); setAvatarError('');
     try {
       if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > MAX_AVATAR_CHARS * 3 / 4) throw new Error('avatar');
-      const data = await new Promise((resolve, reject) => {
+      const data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader(); avatarReader.current = reader;
-        reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.onabort = reject; reader.readAsDataURL(file);
+        reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('avatar'));
+        reader.onerror = reject; reader.onabort = reject; reader.readAsDataURL(file);
       });
       if (!alive.current || request !== fileSequence.current) return;
       avatarReader.current = null; resolvePreferences({ avatar: data });
@@ -148,7 +150,7 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
     } catch { if (alive.current && request === fileSequence.current) setAvatarError('avatarFailed'); }
     finally { if (alive.current && request === fileSequence.current) { avatarReader.current = null; setReadingAvatar(false); } }
   }
-  function toggleHeading(field, id, hint) {
+  function toggleHeading(field, id, hint = '') {
     return <ToggleHeading id={id} label={t(field)} hint={hint ? t(hint) : undefined} checked={snapshot.value?.[field] ?? DEFAULTS[field]} disabled={!writable || readingAvatar} pending={mutation === field} error={toggleFailure === field ? t('toggleFailed') : ''} onChange={origin => toggle(field, origin)} />;
   }
   return <section className="pdsh-settings" data-pdsh-settings>
@@ -190,6 +192,14 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
       </div>
       <input ref={fileInput} id="pdsh-avatar-file" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseAvatar} disabled={!writable} hidden aria-label={t('avatar')} />
       {['signed-out', 'unsupported'].includes(status) && <p role="status" className="pdsh-hint">{t(`status.${status}`)}</p>}
+    </section>
+    <section className="pdsh-group pdsh-update" role="group" aria-labelledby="pdsh-update-title">
+      <h4 id="pdsh-update-title">{t('updateTitle')}</h4>
+      <p className="pdsh-hint">{t('updateSource')}</p>
+      {update.phase === 'available'
+        ? <Button onClick={() => void updater.install()}>{t('installUpdate')} {update.version}</Button>
+        : <Button onClick={() => void updater.check()} disabled={['checking', 'installing', 'installed', 'restart'].includes(update.phase)}>{t('checkUpdate')}</Button>}
+      {update.phase !== 'idle' && <p role={update.phase === 'failed' ? 'alert' : 'status'} className={update.phase === 'failed' ? 'pdsh-error' : 'pdsh-hint'}>{t(`update.${update.phase}`)}{['restart', 'installed'].includes(update.phase) ? ` ${update.version}` : ''}</p>}
     </section>
   </section>;
 }

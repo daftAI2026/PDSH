@@ -1,169 +1,66 @@
 <!--
-[INPUT]: 依赖 package.json 的 bundle/Client 入口、预构建产物及目标版本的验收事实
-[OUTPUT]: 提供三种安装来源的准确填写方式、设置入口、开发步骤和显示-only 边界
-[POS]: PDSH 的公开使用契约；安装状态与未验范围分列，不把 GitHub 公开等同 npm 发布
+[INPUT]: 依赖 0.1.0 安装包、DeepSeek Harness 官方插件管理接口与当前声明的显示边界
+[OUTPUT]: 提供产品定位、安装/使用、兼容范围和开发入口，不记录逐次试验过程
+[POS]: PDSH 公开使用契约；版本证据留在测试和维护记录，不把视觉遮挡误写为会话隔离
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 -->
 
 # DSH 私密模式
 
-项目/仓库标识 **PDSH = Private DeepSeek Harness**；界面展示名为 **DSH 私密模式 / DSH Private Mode**。DSH 指 DeepSeek Harness，名称不重复叠加 Private。`Private` 表示私密，`Preview` 表示预览，不是这里的缩写含义。
+PDSH（Private DeepSeek Harness）是 DeepSeek Harness 的第三方显示插件。**0.1.0 只改变本机窗口的呈现，不创建隔离会话。** 它适合临时演示、录屏或共屏时降低侧栏标题和账号外观的可见度；不适合保护敏感资料免遭读取。
 
-面向 DeepSeek Harness 的私密聊天插件，沿用 InCodex 的产品方向；当前早期 MVP 只实现同窗口显示能力。
+## 能做什么
 
-> **早期 MVP，仅改变显示。** 不提供隐私会话、历史清除、日志保护或账户隔离，搜索左侧的帽子眼镜只切换标题遮挡，不创建隐私会话。原文仍在 DOM；不要把它当作防泄露系统。
+- 用跟随宿主主题的灰条遮挡已识别的工作区、会话标题，**包括尚未发送消息的“新会话”占位行**；搜索结果只遮标题与工作区名。
+- 在搜索按钮旁提供帽子眼镜开关；开启、关闭均即时写入宿主设置，不替换搜索按钮。
+- 在插件设置中选择本地昵称和头像：离线生成、校验后的本地 PNG/JPEG/WebP，或保留原账号头像。昵称由勾选/Enter 单独保存，Esc 放弃本次编辑。
+- 停用插件时撤回自有节点、样式与遮罩标记，不改真实账号资料或原生会话数据。
 
-## 功能
+> **边界：** 标题原文仍在 DOM、无障碍树和宿主数据中。菜单、路径、搜索摘要、重命名输入框、聊天内容、剪贴板、请求、日志与历史均不遮挡或清除。未知/歧义结构会跳过，不是防泄露保证。选“账号头像”会展示真实头像。帽子开关不启动私密窗口。
 
-- 侧栏工作区、会话标题灰条；识别到的搜索结果标题与工作区名一起遮挡，跟随 Harness 主题。
-- 搜索左侧帽子眼镜是遮挡开关，没有菜单、不跳设置；保留原生搜索，搜索展开时主动让位。
-- 插件设置按“侧栏显示、显示身份”编排；昵称与头像组合预览，支持离线生成、本地 PNG/JPEG/WebP 图片或保留账号原始头像。
-- 开关与头像来源切换立即保存；昵称点击勾或按 Enter 保存，没有全局“保存／放弃修改”。停用时撤回自有显示资源，不改真实账户资料和原生菜单。
-- 使用宿主样式变量与原生控件；每条视觉依赖的提供文件/变量见 [`style-sources.json`](style-sources.json)。
+## 安装
 
-## 在“添加插件”中填什么
+目标版本：**DeepSeek Harness 0.1.7-rc.2**。侧栏入口与标题识别依赖该版本的 DOM；其他版本尚未声明兼容。PDSH 是 out-of-tree Cordis bundle，不修改或重签官方应用。
 
-三种来源是**任选一种**，不是需要依次填写的三个步骤。
-
-| 入口 | 填写内容 | 当前状态 |
-| --- | --- | --- |
-| 包名 | `@daftai/pdsh` | npm 包标识，但**尚未发布到 npm**，暂时不要使用此安装入口。 |
-| GitHub 仓库地址 | `https://github.com/daftAI2026/PDSH` | 源码和预构建 Client 随仓库提供；安装验证状态见下方。 |
-| 本地插件目录 | 本机 PDSH checkout 的绝对路径，例如 `/absolute/path/to/PDSH` | 先在本机准备开发依赖，再通过 Harness 添加；不是 `.tgz` 文件路径。 |
-
-仓库名是大写 **PDSH**；npm 包名保留合法的小写 **`@daftai/pdsh`**。GitHub 公开不等于 npm 已发布。
-
-### GitHub 入口
-
-在 Harness 的插件页选择“添加插件 → GitHub 仓库地址”，填写上面的 URL。为避免后续 main 改动，审阅后可固定到某个 commit；安装工具等价写法为：
-
-```sh
-dsh plugin --profile <你的profile> add github:daftAI2026/PDSH#<commit-sha>
-```
-
-仓库提交 `client.js` / `client.js.map`，Host 使用原生 ESM，不需要安装时运行 `prepare` 或构建脚本。不会要求放行编译脚本来下载另一个运行时。**插件加载本身仍会以你的权限执行代码**，请先确认来源可信。
-
-### 本地目录入口
-
-开发者克隆项目后：
-
-```sh
-git clone https://github.com/daftAI2026/PDSH.git
-cd PDSH
-pnpm install --frozen-lockfile
-pnpm test
-```
-
-然后在“本地插件目录”填写当前 checkout 的绝对路径。Harness 会链接目录；不要在它仍启用时搬走或删除 checkout。
-
-### 安装包备用方式
-
-```sh
-pnpm run bundle
-# 生成 output/daftai-pdsh-<version>.tgz
-# 若使用 Harness 的开发安装命令：
-dsh plugin --profile <你的profile> add /absolute/path/to/daftai-pdsh-<version>.tgz
-```
-
-这是 Harness 自带的安装命令，不是 PDSH 新增产品 CLI。官方机制见[打包与安装文档](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish)。
-
-## 设置与兼容边界
-
-安装并启用后，点击搜索左侧的 **帽子眼镜** 切换标题遮挡。身份等设置请打开 **插件 → DSH 私密模式**（英文为 **DSH Private Mode**，技术包名仍是 `@daftai/pdsh`）：
-
-1. 标题遮挡、显示身份两个开关立即写入宿主配置，不用再次保存。
-2. 头像摘要右侧的“按昵称生成／选择图片／账号头像”立即保存；图片需校验成功，取消选图不改变原状态。
-3. 昵称点独立铅笔编辑，勾或 Enter 直接保存昵称，Esc 撤回本次输入。
-4. 不需要时关闭开关，或停用整个插件。
-
-目标版本为 **DeepSeek Harness 0.1.7-rc.2**。账号显示适配只识别该版本中唯一、已登录、结构明确的 sidebar launcher；未登录“更多”入口、未知或多重结构不替换，设置页会显示原因。
-
-搜索入口是 **rc.2 版本相关 DOM 适配**，不是官方搜索子 slot；它读取原生按钮的实时 class/图标尺寸并追加自有节点；可见时只通过邻接样式将原生 searchSlot 的自动留白交给自有按钮，隐藏或卸载后原生对齐规则自动恢复，不复制或替换整个工作区浏览器。未知或多重结构跳过挂载。展开侧栏紧贴搜索左侧，收起侧栏在搜索上方。
-
-身份区采用横向资料摘要：左侧头像与昵称，右侧三个常驻头像按钮，下方只保留独立昵称行。不再显示重复的“头像来源”字段、展开按钮或全局保存操作。来源选中态由宿主已接受的头像和来源字段推导，不新增第二套来源状态。切换生成／账号头像原子保存两个头像字段；本地图片读取、校验及解码完成后才保存，取消或失败保留原头像。窄窗口按原生间距换行。账号头像预览只复用已显示图片，不把账户 URL 写入配置。**原始头像可能暴露身份**，该选项不提供匿名保证。
-
-昵称为静态文本，旁边独立铅笔才展开右侧输入框，保存勾在输入框外。有效 Enter 或勾直接写入昵称，失败留在字段供重试；无效输入不关闭编辑。Esc 只撤回昵称草稿，输入法组合阶段不确认或撤回。头像切换不提交或丢弃未确认昵称，昵称保存不回写头像。各字段对照开始操作时的基线，若该字段已在别处改变则阻止覆盖；无关开关或字段更新不制造假冲突。整个表单共用单次写入门，读取迟到和卸载不复活旧请求。
-
-设置字号直接引用宿主 `--dsw-font-*`，间距/边线/头像尺寸从原生 `SettingsValueField` 和 `Input` 读取；编辑行最小高度读取原生 `Button`，不写数字 fallback。组间隙与行 padding 不重复累加；昵称输入靠右保持原生固有宽度，不拉伸成整行大输入。
-
-标题与真实昵称/头像原始节点仍留在 DOM 中；本功能不是防泄露或匿名化系统。只遮挡确认的文字叶，不覆盖整行、时间、状态、图标或点击区域。搜索 snippet、工作区路径、菜单、重命名输入、对话内容、复制文本与无障碍文本不在遮挡范围内。HoverCard 没有公开 owner 链接，仅在结构及指针来源可确认时遮挡标题，未知结构保守跳过。原生账号菜单、网络、会话和文件访问行为不变。
-
-## 验证状态
-
-- mvp.16：每组只显示“遮挡侧栏标题／替换侧栏身份”一次，原生开关放同一标题行，删除重复组名、字段标签及本地显示声明；遮挡范围改为悬停提示。头像三按钮、昵称勾保存与局部错误保留；60项回归和构建/打包通过，官方固定SHA安装到rc.2 Desktop，Client摘要匹配；中英文正常/520×600模拟窄窗已实测，两个标题各出现一次且开关同排，无常驻范围/账户声明。1280×820设置高242.5px（mvp.15为354.5px），英文窄窗设置宽467px且无横向溢出。原视口/中文/展开侧栏和原昵称编辑状态已恢复，配置文件字节未变。
-
-- mvp.15 / rc.2 Desktop：官方固定SHA覆盖安装，Client摘要匹配，59项回归与打包通过。列表/详情/组件行采用帽子眼镜元信息图片，停用时仍可读取，运行时入口/设置/样式撤回，再启用恢复唯一入口。1280×820设置宽898.5px、高354.5px，昵称行48.5px；520×600渲染器模拟下宽467px，中文/英文深色和64字符草稿无横向溢出，英文按钮组先换行而不挤压昵称。最后正常重启恢复原视口、中文、浅色与展开侧栏，原先昵称编辑状态已还原但未提交；最终配置文件字节与测试前一致。
-- mvp.14：59项本地回归、生产构建和打包通过；覆盖头像即时原子保存、昵称勾/Enter保存、局部撤回/失败重试、外来字段冲突、异步图片取消/只读/卸载、焦点与官方图标资源入口。rc.2 Desktop已验证：切换账号来源立即落Host，未确认昵称不提交；勾独立保存昵称并回焦铅笔，本地PNG解码后自动保存，无效Enter留在字段，Esc撤回。测试原昵称/头像已还原。
-
-- mvp.11：本地回归覆盖 Host 配置/旧字段兼容、标题叶与搜索结果选择、HoverCard owner、原文与 marker 恢复、开关忙态/失败/只读、身份覆盖、设置草稿/原子保存/头像取消/昵称键盘/焦点/冲突、zh/en 与样式来源。
-- mvp.11 / rc.2 Desktop：官方固定提交覆盖安装、Client SHA一致；安装时原有配置文件逐字节未改。帽子切换不导航，三条原生标题被遮挡且原文/行框尺寸不变；搜索结果两类文字叶、搜索退让、展开/rail实时颜色变量、工作区HoverCard标题通过。Native双击仍打开重命名，长文字临时DOM探针验证overflow:clip令scrollLeft保持0，不创建测试会话。
-- mvp.12 / rc.2 Desktop：官方固定提交更新、Client SHA匹配。标题与身份开关立即写入，Save仍禁用；切换时昵称草稿保留且无假冲突。实际昵称保存与还原后，原有Host字段全部相同，仅新增maskTitles。编辑/阅读行同为48.5px（旧版60.5px）；右侧编辑器227px，行873.5px。非法Enter留在字段、确认禁用，焦点在请求完成后回到原生编辑入口。
-- mvp.13 / rc.2 Desktop：安装与Client摘要匹配；读态静态昵称+独立铅笔、框外勾已实绘检查。1280×820读/编辑行均48.5px，紧凑编辑器219px；同一Electron渲染器模拟520×600、宿主折叠完成后设置宽467px，zh/English、64字符昵称与头像选项无横向溢出。本地PNG加载和账号来源选择/放弃通过；整包停用撤回入口、marker、头像、style、probe，启用恢复唯一入口。正常重启已清除视口模拟，回中文/浅色/展开侧栏，并还原原先身份草稿为未保存状态，未代用户保存。
-- mvp.13 当时本地56项回归通过；异常/只读/IME竞态主要为契约测试，未做真实Host故障注入。截图只保存在ignored output，不提交用户数据。调试启动仍仅监听本机CDP，自动化已detach。
-- 先前 mvp.8 / rc.2 Desktop 已验官方覆盖更新、搜索左侧入口、横向身份编辑、三种来源、图片读取与放弃、zh/en、搜索退让、折叠重挂和整包停用恢复。
-- 未承诺：会话隔离、历史/日志清除、DOM/剪贴板匿名化、跨版本兼容或无遗漏的录屏隐私。无需改 App 签名，不清缓存、不卸载其他插件。
-
-## 中英文切换与展示名称
-
-语言跟随 Harness，不在插件里再保存一份语言偏好：
-
-- 中文：**设置 → 通用设置 → 语言 → 中文**。
-- English: **Settings → General → Language → English**。
-
-设置页、提示和搜索入口文案实时切换；不会改写你的显示昵称，也不会因为切换语言丢失未保存草稿。Harness 负责语言偏好的持久化，不需要重装 PDSH。
-
-插件列表、包详情和组件行通过官方 `package.json.icon` 展示同一帽子眼镜图形；停用时也可读取。`plugin-icon.svg` 从入口图形生成，采用来源账中的固定原生明底图稿色板，因为官方独立图片不能继承页面 CSS；侧栏入口仍实时使用宿主搜索颜色。
-
-运行文案通过官方 `ctx.locale.register('pdsh', { zh, en })` 注册，设置 slot 获得框架的 `t`；非 React 搜索入口通过 `ctx.locale.subscribe` 刷新。插件列表、详情和组件名称/简介由导出的 `locale/en.json` / `locale/zh.json` 提供，停用时也可读取，不靠激活插件翻译。安装预览仍展示清单/注册表的技术信息，这是宿主接口的边界。
-
-来源：[官方 Locale 接口](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.7-rc.2/packages/client/locale/README.md)、[插件展示元信息](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.7-rc.2/docs/cookbook/adding-a-package.zh.md#plugin-display-metadata)。
-
-## 已安装插件怎样更新
-
-**推送 GitHub 不会自动更新本机已安装代码。** rc.2 插件管理提供安装/启停/卸载；包代码替换和语言切换不是同一种热更新。
-
-GitHub 来源可以通过官方“插件 → 添加插件”覆盖安装，填入**新的、已审阅 commit**，不要先卸载：
+在 Harness **插件 → 添加插件 → GitHub 仓库地址**填写：
 
 ```text
-github:daftAI2026/PDSH#<新的完整commit-sha>
+https://github.com/daftAI2026/PDSH
 ```
 
-先确认或撤回正在编辑的昵称；等待安装成功及“需要重启”提示，再在没有进行中任务时正常退出并重新打开 Harness。插件详情版本应变为所选提交的目标版本。只刷新网页或关闭再开启插件不证明新 JavaScript 已加载。
+建议固定 [`v0.1.0`](https://github.com/daftAI2026/PDSH/tree/v0.1.0) 对应的已审阅提交，而不是让安装来源随 `main` 漂移。包标识 `@daftai/pdsh` 用于宿主识别，**不代表它已在 npm 发布**。安装第三方插件等同运行其代码，请先检查来源和依赖。官方机制见[打包与安装指南](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish)。
 
-这里刻意固定新 commit，让 pnpm 的依赖记录确实变化；重复同一 Git 地址/commit 不等于查询并升级最新代码。官方管理器复用同一包的配置，mvp.11 新增 `maskTitles`，移除旧 `frames` 的使用；不会把旧开关解释成新模式，也不要求清空缓存或账户。Desktop profile 由 Electron 独占管理，不用外部 `dsh plugin --profile desktop` 强行修改。
+开发者也可以在“本地插件目录”填写本仓库 checkout 的绝对路径，或运行 `pnpm run bundle` 生成 `.tgz`，在独立 profile 使用官方 `dsh plugin --profile <name> add <tgz路径>`。不要用外部 CLI 改正在由 Desktop 独占的 `desktop` profile。
 
-本地目录开发安装链接 checkout，拉取代码并重建 `client.js` 后仍需重启宿主确认新一代代码。npm 尚未发布，不用包名更新。
+## 使用与更新
 
-来源：[官方管理器的 inspect/installBundle](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.7-rc.2/packages/boot/plugin-manager/src/index.ts)、[官方插件页](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.7-rc.2/packages/client/ui-plugin-manager/README.zh.md)。
+- 搜索左侧帽子眼镜：立即切换**侧栏标题遮挡**，不会导航到设置。
+- **插件 → DSH 私密模式**：配置“遮挡侧栏标题”和“替换侧栏身份”。开关与头像操作即时保存；昵称有独立编辑草稿。
+- 设置页的“插件更新”可手动检查 GitHub 稳定版本；确认“安装版本”后由 Harness 官方插件管理器安装固定提交。不会自动重启；若宿主提示需要重启，请在没有进行中任务时自行重启。从本地目录等来源安装的用户确认后将切换为 GitHub 来源。GitHub 推送本身不会替换已安装代码。
+- 语言跟随 **Harness 设置 → 通用设置 → 语言**；插件不另存语言偏好，也不翻译自定义昵称。
 
-## 内置更新的可行性
+## 结构与开发
 
-尚未实现自更新按钮。官方 Remote 可以让本插件调用覆盖安装，省去手填地址；Git inspect 不查询最新版，需要另外提供可靠版本比较与用户确认。包替换仍需正常重启，不能叫“无重启刷新”。不通过 App 本体 updater 更新插件，不自动批准依赖脚本，不用外部 CLI 绕过桌面 profile 管理。
+```text
+src/host/       Cordis 配置入口
+src/shared/     Host/Client 共用的偏好验证与文案
+src/client/     设置组件、侧栏 DOM 适配器、入口与样式
+locale/         宿主离线发现的中英文包元信息
+tests/          DOM、配置、生命周期和产物合同测试
+build.mjs       将 TypeScript 源码构建为宿主可加载的 JavaScript
+```
 
-来源：[官方 Plugin manager](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.7-rc.2/packages/boot/plugin-manager/README.md)、[包替换与 HMR 边界](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.7-rc.2/packages/boot/hmr/README.md)。
-
-## npm 发布状态
-
-暂缓 npm 发布，继续保留 `private: true`。包名/scope 权限和目标 Desktop 验收通过后，先按 `next` 预发布，不直接覆盖 `latest`。维护者步骤见 [PUBLISHING.md](https://github.com/daftAI2026/PDSH/blob/main/PUBLISHING.md)。
-
-## 开发
+源码和测试使用 TypeScript/TSX。根目录 `index.js`、`client.js`、`client.js.map` 是**生成并随包提交的运行产物**：Harness 按 JavaScript 入口加载，不能把它们简单改名为 `.ts`。`styles.css` 的宿主变量与视觉来源见 [`style-sources.json`](style-sources.json)。项目约定见 [`AGENTS.md`](AGENTS.md)。
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm test
 pnpm run bundle
+pnpm release:check # 提交完成且工作树清洁时运行
 ```
 
-修改源码后必须重建并同时提交 `client.js` 与 `client.js.map`；Git/本地目录安装依赖这两个预构建文件。React 和官方 UI primitives 是宿主外部模块，不复制宿主，不嵌入第二套 React。
-
-### 一个包，按职责组合组件
-
-插件页的 `pdsh` 是 Cordis 运行时条目 ID，`@daftai/pdsh` 是 npm 安装包/模块名；是同一个插件的技术标识，不是重复安装。这两个字段由官方插件页呈现，不通过 DOM 遮盖管理信息。
-
-安装包、Cordis 插件条目和 React 组件不是同一层。当前一个 PDSH 包、一个 Host 条目组合配置模型、Client 生命周期、设置组件、身份适配器、标题适配器与开关控制器；插件页显示“包含 1 个组件”，不表示包内只能有一项功能或一个 React 组件。
-
-先按职责拆文件，只有需要独立启停或独立服务依赖时才增加运行时插件条目。官方也建议不要提前拆分独立包，见[能力分层](https://deepseek-harness.github.io/deepseek-harness/en/develop/practice/)与[组合和生命周期](https://deepseek-harness.github.io/deepseek-harness/en/develop/cordis-tutorial/06-composition-and-hmr)。
+本地 DOM 测试不能替代真实 Desktop 验收。发布前须在目标版本检查新会话遮挡、搜索/侧栏折叠、停用恢复和设置写入；不要在用户主 profile 上做破坏性试验。
 
 ## 许可
 
-PDSH 使用 [MIT](LICENSE)。内嵌 Blobatar 的独立许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。PDSH 不是 DeepSeek 官方插件。
+PDSH 使用 [MIT](LICENSE)；内嵌与复用资源的许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。PDSH 不是 DeepSeek 官方插件。

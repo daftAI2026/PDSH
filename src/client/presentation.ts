@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖浏览器 DOM/MutationObserver 和 model.js 已验证的显示偏好。
+ * [INPUT]: 依赖浏览器 DOM/MutationObserver 和 shared/model.ts 已验证的显示偏好。
  * [OUTPUT]: 提供可卸载的sidebar身份视觉覆盖及仅内存的原生头像预览来源，不修改聊天消息。
  * [POS]: PDSH 的 rc.2 DOM 适配边界；保留原生账户节点和行为，未知结构拒绝猜测。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -8,8 +8,8 @@ const LAUNCHER = '[data-slot="settings.launcher"] button[aria-haspopup="menu"][d
 const OWNED = '[data-pdsh-name], [data-pdsh-avatar-image]';
 const MARKERS = ['data-pdsh-original-label', 'data-pdsh-avatar'];
 
-function locateIdentity(doc) {
-  const triggers = [...doc.querySelectorAll(LAUNCHER)];
+function locateIdentity(doc: Document) {
+  const triggers = [...doc.querySelectorAll<HTMLButtonElement>(LAUNCHER)];
   if (triggers.length !== 1) return { status: 'unsupported' };
   const trigger = triggers[0];
   if (trigger.dataset.signedOut === 'true') return { status: 'signed-out' };
@@ -26,14 +26,14 @@ function locateIdentity(doc) {
   return { status: 'masked', trigger, wide, avatar, label };
 }
 
-export function mountPresentation(doc) {
+export function mountPresentation(doc: Document) {
   let preferences;
   let currentStatus = 'disabled';
   let currentAccountAvatar = '';
   let disposed = false;
-  const owned = new Set();
-  const marked = new Set();
-  const listeners = new Set();
+  const owned = new Set<Element>();
+  const marked = new Set<Element>();
+  const listeners = new Set<() => void>();
 
   function publish(status, accountAvatar = '') {
     if (currentStatus === status && currentAccountAvatar === accountAvatar) return;
@@ -60,7 +60,7 @@ export function mountPresentation(doc) {
       for (const attr of MARKERS) node.removeAttribute(attr);
       marked.delete(node);
     }
-    let image = avatar.querySelector(':scope > [data-pdsh-avatar-image]');
+    let image = avatar.querySelector<HTMLImageElement>(':scope > [data-pdsh-avatar-image]');
     if (preferences.useAccountAvatar) {
       if (image) { image.remove(); owned.delete(image); }
       avatar.removeAttribute('data-pdsh-avatar'); marked.delete(avatar);

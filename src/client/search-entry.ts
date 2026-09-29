@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖原生搜索结构、实时class/图标几何/CSS变量表达式，以及Host开关状态/翻译。
- * [OUTPUT]: 提供可撤回的搜索邻接入口与请求后局部焦点修复；保留搜索节点；自有入口承担自动留白，样式卸载还原原生对齐，不写搜索状态。
+ * [INPUT]: 依赖原生搜索结构、实时class/图标几何/根透明度/CSS变量，以及Host开关状态/翻译。
+ * [OUTPUT]: 提供可撤回的线条入口与局部焦点修复；透明度在整枚SVG合成，卸载还原原生搜索。
  * [POS]: PDSH 版本相关 DOM 适配边界；非官方 child slot，与身份显示控制器相互独立。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -76,6 +76,10 @@ export function mountSearchEntry(doc, { icon, label, state, onActivate }) {
     if (!native) { detach(); return; }
     const size = doc.defaultView.getComputedStyle(native.button.querySelector('svg'));
     if (!(Number.parseFloat(size.width) > 0 && Number.parseFloat(size.height) > 0)) { detach(); return; }
+    // +--- 只对整枚 SVG 合成透明度；逐 path 的半透明会让笔画交叠处加深 ---+
+    const opacity = Number.parseFloat(size.opacity);
+    if (Number.isFinite(opacity) && opacity >= 0 && opacity <= 1) svg.style.setProperty('--pdsh-icon-opacity', String(opacity));
+    else svg.style.removeProperty('--pdsh-icon-opacity');
     attribute(button, 'class', native.button.className);
     attribute(button, 'data-pdsh-search-entry', native.wide ? 'wide' : 'rail');
     attribute(button, 'aria-label', label()); attribute(button, 'title', label());

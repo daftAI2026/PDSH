@@ -1,7 +1,7 @@
 <!--
-[INPUT]: 复用 InCodex assets/hat-glasses.svg 的固定 Lucide 图形，不读取用户输入。
-[OUTPUT]: 提供 PDSH 标题遮挡入口及插件标识共用的帽子眼镜图形，入口尺寸由宿主搜索图标提供。
-[POS]: PDSH 图形源；build.mjs 为官方 img 元信息生成自包含明底版本，不代表隔离会话。
+[INPUT]: 复用 InCodex assets/hat-glasses.svg 的 Lucide 线条图形；不读取用户输入。
+[OUTPUT]: 提供可调 stroke-width 的标题入口与插件标识共用图形。
+[POS]: PDSH 单一图形源；线条保持不透明，运行时只在整枚 SVG 根上合成透明度。
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">

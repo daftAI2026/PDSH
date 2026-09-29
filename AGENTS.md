@@ -1,6 +1,6 @@
 # PDSH Agent Guide
 
-This is the shared source of truth for agents working on PDSH. `CLAUDE.md` is a symlink to this file, following the InCodex project convention. PDSH does not use a new GEB document tree; keep project guidance here and put research evidence in the private `daftAI-project-docs/pdsh/` repository.
+This is the project constitution for PDSH; root `CLAUDE.md` links here. Module `CLAUDE.md` files map the TypeScript source and tests. Private research evidence belongs in the private `daftAI-project-docs/pdsh/` repository.
 
 ## Project
 
@@ -8,7 +8,7 @@ Public code repository: `https://github.com/daftAI2026/PDSH` (uppercase reposito
 
 PDSH means Private DeepSeek Harness; public display names are `DSH 私密模式` / `DSH Private Mode`. The brand does not imply that isolation is implemented.
 
-PDSH is the DeepSeek Harness Desktop adaptation of InCodex's presentation and eventual incognito experience. The official Harness app is the host; PDSH is an out-of-tree Cordis plugin bundle. The current **display-only MVP** masks recognized sidebar workspace/session titles and offers a configurable local sidebar nickname/avatar. It does not isolate sessions, open another DeepSeek instance, transfer credentials, erase history, or provide a privacy guarantee.
+PDSH is the DeepSeek Harness Desktop adaptation of InCodex's presentation and eventual incognito experience. The official Harness app is the host; PDSH is an out-of-tree Cordis plugin bundle. The **0.1.0 display-only release** masks recognized sidebar workspace/session titles, including the provisional New Session row, and offers a configurable local sidebar nickname/avatar. It does not isolate sessions, open another DeepSeek instance, transfer credentials, erase history, or provide a privacy guarantee.
 
 The InCodex repository at `../incodex` is the reference for product behavior and safety invariants, not a template to copy wholesale. Its `AGENTS.md` was used as the starting convention for this guide; Codex-specific commands and assumptions do not apply here.
 
@@ -33,36 +33,24 @@ Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatG
 
 ## Repository map
 
-- `README.md`: public installation inputs, compatibility and display-only limitations.
-- `PUBLISHING.md`: npm release gates; keep private=true until a deliberate release, then prefer a next channel and OIDC.
-- `LICENSE`: MIT license for PDSH; dependency notices remain separate.
-- `AGENTS.md`: this project contract; follows InCodex's single-guide convention.
-- `CLAUDE.md`: symlink to `AGENTS.md`, not a second document.
-- `package.json`: official installable `dsh.bundle` / `dsh.client` manifest, exact dependencies and build/test scripts.
-- `cordis.patch.yml`: the bundle's single Cordis insertion layer.
-- `index.js`: Host Config schema with volatile display fields; delegates persistence to Harness settings.
-- `model.js`: shared display defaults, nickname/data-URL validation and pinned offline Blobatar generation.
-- `client-entry.jsx`: Client lifecycle, native Input/Button/SettingsValueField geometry probes, configuration projection and `plugins.bundle.config` registration; all display resources follow the Host namespace via `whileServed`.
-- `locales.js`: complete zh/en namespace dictionaries; follow the Host locale service, never create a second language preference.
-- `locale/en.json` / `locale/zh.json`: official offline-discoverable package title/description; exported and shipped even when the plugin is disabled.
-- `settings-card.jsx`: native settings and horizontal identity summary. Three always-visible avatar actions derive pressed state only from accepted Host avatar/source fields, persist both atomically and do not submit nickname drafts. Local image selection saves only after validation/decode; cancellation and late callbacks cannot restore abandoned requests. Nickname has a field-local draft, saved by its separate check or valid Enter; Escape discards only this edit. Field baselines reject external conflicts, a single mutation gate prevents repeat writes, and pending focus repair never steals moved focus. No global Save/Discard or separate source row exists. Account avatar URLs stay renderer-only.
-- `presentation.js`: current-build DOM adapter and owned-marker cleanup; does not overwrite original account text/images. Native avatar previews remain renderer memory only, never configuration or logs.
-- `search-entry.js` / `entry-icon.svg`: version-specific search-adjacent DOM adapter and reused InCodex artwork; toggles sidebar title masking, never navigates to settings or claims an isolated session.
-- `title-toggle.js`: single-path Host mutation, revision fence, pending/failed state; accepted Host values own pressed state.
-- `sidebar-redaction.js`: exact rc.2 workspace/session/search text-leaf recognition and narrowly owner-correlated HoverCard titles; original text, events and row geometry remain native.
-- `styles.css` / `style-sources.json`: minimal presentation rules and the upstream source trail for every rule.
-- `plugin-icon.svg`: generated self-contained manifest artwork, reuses the entry SVG geometry on a fixed native-palette light background because official image metadata cannot inherit page CSS. It is not the sidebar live-color icon.
-- `build.mjs`: generates the manifest artwork and builds minified production `client.js` / `client.js.map` in the official lazy-CJS module-loader format. React/primitives stay host externals. Commit these prebuilt artifacts for Git/local-directory installs; no install-time prepare/postinstall scripts.
-- `*.test.js`: model, Host validation and actual DOM-selector/lifecycle contract tests. Add a failing test before changing behavior.
-- `pnpm-lock.yaml`: reproducible dependency graph. `output/` and `node_modules/` are generated and ignored.
-- `THIRD_PARTY_NOTICES.md`: bundled Blobatar and reused Lucide/InCodex icon notices; ships with the installable archive.
-
-The `locale/` directory contains package metadata resources, not a second runtime module. No additional runtime module directory exists yet. Add one only when a verified boundary needs it; do not create a full InCodex-style CLI/install/signing tree up front.
+- `src/host/`: Cordis configuration entry; `build.mjs` emits root `index.js` for the official loader.
+- `src/shared/`: validated display preferences and Host-language dictionaries shared by both runtimes.
+- `src/client/`: TypeScript React settings, lifecycle assembly, search/identity/title DOM adapters, CSS and entry artwork. `build.mjs` emits root `client.js` and map in the lazy-CJS loader format.
+- `tests/`: TypeScript contracts for configuration, DOM recognition, lifecycle, settings, localization, style provenance and generated entries.
+- `locale/`: exported zh/en package metadata, available even when disabled.
+- `README.md`: public product contract and installation; `PUBLISHING.md`: channel/release gates; `style-sources.json`: upstream visual rule provenance.
+- `check-release.mjs`: rejects tag/version/generated-artifact drift and dirty release trees; `package.json.version` is the sole authored version.
+- `package.json`/`pnpm-lock.yaml`: bundle manifest and reproducible dependencies; `cordis.patch.yml`: the sole Cordis insertion layer.
+- `build.mjs`/`tsconfig.json`: TypeScript-to-Host build and source typecheck; runtime JavaScript is generated, not separately authored.
+- `plugin-icon.svg`: generated manifest artwork; `THIRD_PARTY_NOTICES.md` and `LICENSE`: distribution notices.
+- `AGENTS.md`/root `CLAUDE.md`: one project constitution; module `CLAUDE.md` files are navigational maps, not competing policy sources.
+- `output/` and `node_modules/` are generated/ignored. Generated runtime JavaScript is committed for Git/local installs; hand-authored behavior stays in TypeScript.
 
 ## Component composition
 
 - Distinguish three boundaries: an installable bundle, a Cordis runtime plugin entry, and a React component. The plugin page's component count describes runtime entries, not the number of React components or features in the bundle.
-- Keep the current single bundle/Host entry. `index.js` owns the configuration contract, `model.js` owns pure validation, `client-entry.jsx` owns assembly and resource lifetime, `settings-card.jsx` owns field-local editing and immediate mutations, `presentation.js` owns the account DOM adapter, `sidebar-redaction.js` owns title markers, and `title-toggle.js` owns the hat mutation. No message outlines remain.
+- Keep the current single bundle/Host entry. `src/host/index.ts` owns the configuration contract, `src/shared/model.ts` owns pure validation, `src/client/client-entry.tsx` owns assembly and resource lifetime, `settings-card.tsx` owns field-local editing and immediate mutations, `presentation.ts` owns the account DOM adapter, `sidebar-redaction.ts` owns title markers, and `title-toggle.ts` owns the hat mutation. No message outlines remain.
+- `src/client/updater.ts` owns manual check/install state, and `update-source.ts` is its only public GitHub HTTP boundary. The updater uses the official Host manager, pins a SHA, never auto-restarts, and states source migration explicitly. Do not add a second installer or write the update state into preferences.
 - Split a UI component when it owns meaningful rendering or interaction; split a controller when it owns an independent effect and disposer. Do not create a Cordis plugin per button, a second settings store, or speculative service/provider packages. Use separate runtime entries only for independently enabled capabilities or actual service dependencies.
 - The search-adjacent entry is a version-specific DOM adapter, not a supported child slot. It remains separate from account presentation and toggles one Host `maskTitles` path with pending/read-only guards. Preserve native search, copy only its live style class/geometry, place the wide entry immediately left of search using owned auto spacing and a visibility-scoped adjacent slot margin rule, hide the added control during expanded search, and skip unknown/ambiguous structures. Never replace/copy the full browser merely to add one button, or label a display-only entry as an active private session.
 - Every future entry must retain native search behavior, trace its visual dependencies to upstream providers, and dispose only its own nodes/registrations. Test sidebar fold state, search expansion, remount and bundle disable before claiming Desktop compatibility.
@@ -83,20 +71,12 @@ Prefer an already enabled loopback CDP connection. Do not activate or steal the 
 
 Use the installed build-macos-apps `swiftui-patterns` skill as a desktop-interaction reference for editing, cancellation, focus and discoverability, not as a framework dependency. Harness owns the settings surface, controls, persistence and commands; do not add a SwiftUI window, AppStorage, a second settings store or global shortcuts merely to mimic native macOS.
 
-## Current milestone
+## 0.1.0 release contract
 
-mvp.16 has one heading per capability, with its native Switch on the same row: 遮挡侧栏标题 / 替换侧栏身份. No duplicated group labels, separate setting labels or local-display disclaimer appear underneath. The host plugin description remains the single introduction; title-mask scope is the Switch title tooltip, not persistent small text. Conditional mutation errors remain local and accessible. The profile summary owns its spacing below the shared heading.
+0.1.0 remains display-only: it masks recognized workspace titles, persisted session titles, the two-cell provisional New Session title, search result title/workspace leaves, and only owner-correlated HoverCard titles. The two-cell exception requires a nonempty `session:` row key, an empty leading slot and a text-only second span; malformed/ambiguous rows still skip. Original DOM text, native events, account state and profile data remain untouched.
 
-mvp.15 gives the profile name an intrinsic flex basis and caps its width by the native avatar+gap geometry. At narrow widths the action group wraps as a whole before it squeezes the name into a one-character column; long names still share the top row with the avatar.
+The hat immediately toggles Host `maskTitles`. The settings card has one heading and Switch per capability; avatar source actions persist atomically, nickname owns a local draft with check/Enter and Escape, and all writes respect Host acceptance and revision fences. Do not reintroduce a global Save, separate language store or session-isolation claim.
 
-mvp.14 removes the source row, expander and global Save/Discard. The three native avatar buttons live at the summary right and wrap at narrow widths. Source changes persist immediately; local images persist only after validation/decode, and a canceled picker never changes source. Nickname check/Enter saves only nickname, Escape discards its local draft. Failed writes retain Host-selected state and expose field-local retry. A field-specific baseline plus latest Host revision prevents overwriting external changes. `package.json.icon` uses the generated, shipped hat/glasses artwork through the official metadata interface, even while the bundle is disabled. Older milestone descriptions below are historical, not current interaction contracts.
+The settings page also has a manual two-step updater. `package.json.version` is the sole version source, `v<version>` is the GitHub distribution anchor, and npm remains private. A GitHub Release page is optional, not a bundle requirement.
 
-mvp.13 separates nickname text from its standalone pencil button; the check is a sibling of the native Input wrapper, never a child inside the field. The two icon actions share the native Button-height square hit target.
-
-mvp.12 separates immediate switches from a three-field identity draft. Save/Discard and profile errors live inside the identity group; no global save is implied. Native Input keeps its intrinsic width rather than filling the row, and the check icon confirms local editing, not account changes. Group gap is zero because fields already own vertical padding; heading, summary and footer each own one spacing layer. Verify geometry before/during/after, normal size and Desktop minimum 520×600 (CDP renderer emulation is not physical window resize).
-
-mvp.11 replaces legacy message outlines/settings navigation with same-window **sidebar workspace/session title grey bars** and the hat toggle. Defaults keep masking off; old `frames` is ignored without rewriting the user's Host document. Search result title/workspace leaves are covered, not snippets. Only safely correlated HoverCard title leaves are covered, not paths, menus, rename inputs, content, clipboard, accessibility text or logs. This is visual redaction, not a fail-closed privacy guarantee.
-
-Grey bars use native `--dsw-alias-bg-skeleton` / `--dsw-radius-xs`, anchored to the original title frame. Native search color remains a CSS variable expression from live CSSOM, not copied RGB; live classes and SVG size follow native search. Do not copy or replace the entire browser. The settings card retains cancellable avatar loading, field-local cancellation, atomic field writes, conflict recovery and focus discipline; no redundant top introduction or normal-state status paragraphs.
-
-Run `pnpm test`, `pnpm build`, and `pnpm run bundle`. Local DOM contracts are not Electron evidence. Validate the exact installed runtime through the official manager, preserve account/profile data and any unsaved draft, distinguish fixture coverage from actual Desktop checks, and record the verification in README/private evidence. Isolated sessions and InCodex session/owner/burn require separate proofs.
+Run `pnpm test`, `pnpm build`, and `pnpm run bundle`; run TypeScript typecheck as part of tests. Fixture coverage is not Electron evidence. Validate the exact installed artifact through the official manager on a disposable profile before claiming Desktop compatibility; preserve account/profile data and any unsaved draft. The public README is a product/user guide, not an mvp-by-mvp chronological lab notebook.

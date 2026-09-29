@@ -199,6 +199,14 @@
       "acquisition": "从实际搜索节点及祖先命中的同源CSSOM声明寻找var表达式；保留原生变量引用，不存computed RGB。按钮class和SVG几何仍从原生节点获取。"
     },
     {
+      "role": "entry whole-icon opacity",
+      "variable": "--pdsh-icon-opacity",
+      "file": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx",
+      "selector": "IconSearchOutlineRegular",
+      "property": "opacity",
+      "acquisition": "读取原生搜索 SVG 的 computed opacity，仅赋给自有 SVG 根；路径自身始终不透明，笔画重叠处不会因逐笔半透明而加深。"
+    },
+    {
       "role": "active title mask control",
       "variable": "--dsw-alias-interactive-bg-active",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
@@ -239,6 +247,14 @@
       "role": "single capability heading and switch",
       "file": "packages/client/ui-primitives/src/Switch.tsx",
       "acquisition": "原生Switch的label只提供无障碍名字；h4为该组唯一可见功能标题，两者沿已有row对齐。标题范围使用原生title悬停提示；不留下空hint节点或标题margin，摘要padding负责下一层间隔。"
+    },
+    {
+      "role": "manual update action spacing",
+      "variable": "--pdsh-field-gap",
+      "file": "packages/client/ui-primitives/src/settings-form/fields.module.css",
+      "selector": ".field",
+      "property": "gap",
+      "acquisition": "更新按钮沿用官方Button的固有高度/字号，只以原生字段间距从来源说明分离；不让flex子项默认拉满整张卡。"
     }
   ],
   "artwork": {
@@ -251,6 +267,6 @@
       "variable": "--dsw-static-neutral-bluish-50",
       "value": "rgb(249, 250, 251)"
     },
-    "acquisition": "官方package.json.icon由独立img呈现，不能继承宿主CSS变量。此为固定rc.2原生调色板快照的明底图稿，非运行时UI token；build.mjs复用entry-icon.svg图形生成，侧栏仍使用currentColor实时变量。"
+    "acquisition": "官方package.json.icon由独立img呈现，不能继承宿主CSS变量。此为固定rc.2原生调色板快照的明底图稿，非运行时UI token；build.mjs复用InCodex/Lucide的24×24可调线宽图形生成，侧栏仍使用currentColor实时变量。"
   }
 }

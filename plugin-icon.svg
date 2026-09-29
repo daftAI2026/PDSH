@@ -1,5 +1,5 @@
 <!--
-[INPUT]: 依赖 entry-icon.svg 图形和 style-sources.json 图稿色板，由 build.mjs 生成。
+[INPUT]: 依赖 src/client/entry-icon.svg 图形和 style-sources.json 图稿色板，由 build.mjs 生成。
 [OUTPUT]: 提供 package.json.icon 的自包含帽子眼镜图稿。
 [POS]: PDSH 官方包标识资产，不手工修改。
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

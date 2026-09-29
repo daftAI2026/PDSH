@@ -1,22 +1,41 @@
 /**
- * [INPUT]: 依赖 schemastery 的 volatile Config 与 Harness settings 服务；model.js 负责输入验证。
- * [OUTPUT]: 提供 @daftai/pdsh 的 name/Config/apply，将显示偏好交给官方设置持久化。
- * [POS]: PDSH 的 Host 边界；只注册显示配置，不访问账户、会话内容或启动第二实例。
+ * [INPUT]: 依赖 src/host/index.ts，由 build.mjs 生成。
+ * [OUTPUT]: 提供 Cordis Host 的 Config/name/apply。
+ * [POS]: PDSH 安装入口；TypeScript 源码是唯一手写实现。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import z from '@deepseek-ai/schemastery';
-import { DEFAULTS, MAX_AVATAR_CHARS, MAX_NAME_CHARS, NICKNAME_PATTERN, LOCAL_AVATAR_PATTERN } from './model.js';
 
-export const name = 'pdsh';
-export const Config = z.object({
-  maskTitles: z.boolean().default(DEFAULTS.maskTitles).description('Mask sidebar titles / 遮挡侧栏标题').volatile(),
-  maskIdentity: z.boolean().default(DEFAULTS.maskIdentity).description('Local display alias only / 仅替换显示身份').volatile(),
-  useAccountAvatar: z.boolean().default(DEFAULTS.useAccountAvatar).description('Keep native account avatar / 使用账号原始头像').volatile(),
-  nickname: z.string().max(MAX_NAME_CHARS).pattern(NICKNAME_PATTERN).default(DEFAULTS.nickname).description('Display nickname / 显示昵称').volatile(),
-  avatar: z.string().max(MAX_AVATAR_CHARS).pattern(LOCAL_AVATAR_PATTERN).default('').description('Local raster data URL; empty generates avatar / 本地图片，留空生成头像').volatile(),
+// src/host/index.ts
+import z from "@deepseek-ai/schemastery";
+
+// src/shared/model.ts
+import { blobatarUri } from "blobatar/uri";
+var MAX_NAME_CHARS = 64;
+var MAX_AVATAR_CHARS = 8 * 1024 * 1024;
+var NICKNAME_PATTERN = /^(?![\s\S]*\p{Cc})(?=[\s\S]*\S)[\s\S]+$/u;
+var LOCAL_AVATAR_PATTERN = /^(?:|data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2})$/;
+var DEFAULTS = Object.freeze({
+  maskTitles: false,
+  maskIdentity: false,
+  useAccountAvatar: false,
+  nickname: "\u4E34\u65F6\u8BBF\u5BA2",
+  avatar: ""
 });
 
-export function apply(ctx) {
-  // +--- 只由产品设置页展示，不让通用编辑器成为第二套 UI ---+
-  ctx.inject(['settings'], child => child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)));
+// src/host/index.ts
+var name = "pdsh";
+var Config = z.object({
+  maskTitles: z.boolean().default(DEFAULTS.maskTitles).description("Mask sidebar titles / \u906E\u6321\u4FA7\u680F\u6807\u9898").volatile(),
+  maskIdentity: z.boolean().default(DEFAULTS.maskIdentity).description("Local display alias only / \u4EC5\u66FF\u6362\u663E\u793A\u8EAB\u4EFD").volatile(),
+  useAccountAvatar: z.boolean().default(DEFAULTS.useAccountAvatar).description("Keep native account avatar / \u4F7F\u7528\u8D26\u53F7\u539F\u59CB\u5934\u50CF").volatile(),
+  nickname: z.string().max(MAX_NAME_CHARS).pattern(NICKNAME_PATTERN).default(DEFAULTS.nickname).description("Display nickname / \u663E\u793A\u6635\u79F0").volatile(),
+  avatar: z.string().max(MAX_AVATAR_CHARS).pattern(LOCAL_AVATAR_PATTERN).default("").description("Local raster data URL; empty generates avatar / \u672C\u5730\u56FE\u7247\uFF0C\u7559\u7A7A\u751F\u6210\u5934\u50CF").volatile()
+});
+function apply(ctx) {
+  ctx.inject(["settings"], (child) => child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)));
 }
+export {
+  Config,
+  apply,
+  name
+};

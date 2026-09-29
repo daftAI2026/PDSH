@@ -6,7 +6,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Config } from './index.js';
+import { Config } from '../index.js';
 test('Host 默认和 live 配置字段', () => {
   const value = Config({});
   assert.equal(value.maskTitles.get(), false);

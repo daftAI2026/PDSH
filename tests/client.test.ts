@@ -9,15 +9,16 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import React from 'react';
+import * as jsxRuntime from 'react/jsx-runtime';
 import { JSDOM } from 'jsdom';
-import { DEFAULTS } from './model.js';
+import { DEFAULTS } from '../src/shared/model.ts';
 
 test('lazy factory 装配标题开关与keyed设置页，并清理资源', async () => {
   const dom = new JSDOM(`<body><main>原生内容</main><div data-slot="sidebar.workspaces"><div><div><span>工作区</span><div><div><button type="button" class="native-search" aria-label="搜索会话" aria-expanded="false"><svg style="width:14px;height:14px"></svg></button><input type="text" /></div></div><div></div></div></div></div></body>`);
   const document = dom.window.document;
   const before = document.body.outerHTML;
   let factory;
-  runInNewContext(readFileSync(new URL('./client.js', import.meta.url), 'utf8'), {
+  runInNewContext(readFileSync(new URL('../client.js', import.meta.url), 'utf8'), {
     window: { __ModuleLoader__: { load(row) { assert.equal(row.id, '@daftai/pdsh'); factory = row.factory; } } },
     document, TextEncoder,
   });
@@ -27,6 +28,7 @@ test('lazy factory 装配标题开关与keyed设置页，并清理资源', async
   const entry = factory(id => {
     requested.push(id);
     if (id === 'react') return React;
+    if (id === 'react/jsx-runtime') return jsxRuntime;
     if (id === 'react-dom/client') return { createRoot: () => ({ render() {}, unmount() { unmounted = true; } }) };
     if (id === '@deepseek-ai/dsh-client-ui-primitives') return { Input() {}, Button() {}, Switch() {} };
     throw new Error(`unexpected module ${id}`);
@@ -46,13 +48,14 @@ test('lazy factory 装配标题开关与keyed设置页，并清理资源', async
     effect(fn) { const off = fn(); if (typeof off === 'function') disposers.push(off); return off; },
     locale: { register(ns, values) { assert.equal(ns, 'pdsh'); dictionaries = values; return () => { dictionaries = undefined; }; }, bind: () => key => dictionaries[language][key], subscribe(fn) { localeListeners.add(fn); return () => localeListeners.delete(fn); } },
     pluginNavigation: { openBundle(name) { opened = name; } },
+    remote: { pluginManager: { async listBundles() { return [{ name: '@daftai/pdsh', version: '0.1.0', installed: true, enabled: true }]; }, async installBundle() { assert.fail('更新只能由用户确认触发'); } } },
     configForms: { get(id) { assert.equal(id, 'pdsh'); return form; }, whileServed(ids, fn) {
       assert.equal(ids[0], 'pdsh'); activate = () => { deactivate = fn(); }; activate();
       return () => deactivate();
     } },
     slots: { inject(key, fn) { assert.equal(key, 'plugins.bundle.config'); return fn(); }, register(options) {
       assert.equal(options.key, '@daftai/pdsh', 'keyed slot 需要 key，不是 list slot 的 id');
-      assert.equal(options.inject().preferencesForm, form); registered = true; return () => { registered = false; };
+      assert.equal(options.inject().preferencesForm, form); assert.ok(options.inject().updater); registered = true; return () => { registered = false; };
     } },
     logger: { warn() { assert.fail('valid config rejected'); } },
   };

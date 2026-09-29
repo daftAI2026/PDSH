@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 search-entry.js、固定入口资产和 rc.2 搜索展开/收起结构夹具。
+ * [INPUT]: 依赖 search-entry.ts、固定线条入口资产和 rc.2 搜索展开/收起结构夹具。
  * [OUTPUT]: 验证邻接挂载、开关与导航隔离、原生样式复用、搜索展开退让、重挂与完整释放。
  * [POS]: PDSH 入口适配合同；不能替代确切 runtime 的真实 React/布局验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -8,9 +8,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
-import { mountSearchEntry } from './search-entry.js';
+import { mountSearchEntry } from '../src/client/search-entry.ts';
 
-const icon = readFileSync(new URL('./entry-icon.svg', import.meta.url), 'utf8');
+const icon = readFileSync(new URL('../src/client/entry-icon.svg', import.meta.url), 'utf8');
 const search = (wide, language = 'zh') => `<button type="button" class="live-search-class" aria-label="${language === 'zh' ? '搜索会话' : 'Search sessions'}" ${wide ? 'aria-expanded="false"' : ''}><svg style="width:${wide ? '14px' : '18px'};height:${wide ? '14px' : '18px'}"></svg></button>`;
 const browser = (wide = true, language = 'zh') => `<div data-slot="sidebar.workspaces"><div class="browser-root"><div class="native-header">${wide ? `<span>工作区</span><div class="native-search-slot"><div class="native-search">${search(true, language)}<input type="text" value="原生搜索" /></div></div><div class="native-actions"></div>` : '<div class="native-actions"></div>'}</div>${wide ? '' : `<div class="native-rail-search">${search(false, language)}</div>`}<div role="tree"></div></div></div>`;
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
@@ -52,6 +52,18 @@ test('切换状态/忙态同步；颜色保留原生变量表达式并跟随来�
   assert.equal(button.style.getPropertyValue('--pdsh-search-color'), 'var(--updated-search-color)');
   doc.querySelector('.native-search').style.color = 'rgb(1, 2, 3)'; entry.refresh();
   assert.equal(button.style.getPropertyValue('--pdsh-search-color'), '');
+  entry.dispose(); dom.window.close();
+});
+
+test('透明度只作用于完整SVG，跟随原生图标而不逐笔加深交叠', () => {
+  const { dom, doc, options } = setup();
+  const nativeSvg = doc.querySelector('button[aria-label="搜索会话"] svg');
+  nativeSvg.style.opacity = '0.42';
+  const entry = mountSearchEntry(doc, options), svg = doc.querySelector('[data-pdsh-search-entry] svg');
+  assert.equal(svg.style.getPropertyValue('--pdsh-icon-opacity'), '0.42');
+  assert.match(doc.querySelector('[data-pdsh-search-entry]').innerHTML, /stroke-width="1\.5"/);
+  nativeSvg.style.opacity = '0.7'; entry.refresh();
+  assert.equal(svg.style.getPropertyValue('--pdsh-icon-opacity'), '0.7');
   entry.dispose(); dom.window.close();
 });
 
@@ -107,7 +119,7 @@ test('翻译 refresh 使用同一个入口；外部移除后修复；重复 disp
 test('左侧入口接管自动留白；搜索展开和卸载恢复原生 slot 对齐', () => {
   const { dom, doc, options } = setup();
   const sheet = doc.createElement('style');
-  sheet.textContent = '.native-search-slot { margin-left: auto; }' + readFileSync(new URL('./styles.css', import.meta.url), 'utf8');
+  sheet.textContent = '.native-search-slot { margin-left: auto; }' + readFileSync(new URL('../src/client/styles.css', import.meta.url), 'utf8');
   doc.head.append(sheet);
   const slot = doc.querySelector('.native-search-slot'), native = doc.querySelector('button[aria-expanded]');
   const style = node => dom.window.getComputedStyle(node);

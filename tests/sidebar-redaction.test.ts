@@ -7,7 +7,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { mountSidebarRedaction } from './sidebar-redaction.js';
+import { mountSidebarRedaction } from '../src/client/sidebar-redaction.ts';
 
 function rowFixtures() {
   const dom = new JSDOM(`<body>
@@ -27,8 +27,11 @@ function rowFixtures() {
         <div role="treeitem" data-row-key="session:s-partial" aria-selected="false">
           <span></span><span>Incomplete Row</span><span>time</span>
         </div>
-        <div role="treeitem" data-row-key="session:blank" aria-selected="false">
+        <div role="treeitem" data-row-key="session:s-new" aria-selected="false">
           <span></span><span>New Session</span>
+        </div>
+        <div role="treeitem" data-row-key="session:s-unknown" aria-selected="false">
+          <span>unexpected</span><span>Unknown shape</span>
         </div>
         <div role="treeitem" data-row-key="overflow:ws-1"><span>Show more</span></div>
         <div role="treeitem" data-row-key="workspace:"><span>Unknown</span></div>
@@ -73,7 +76,7 @@ function searchRow(doc, { title = 'Search Secret', workspace = 'Project Beta', s
 
 const tick = (dom) => new Promise(resolve => dom.window.setTimeout(resolve, 0));
 
-test('只标记唯一侧栏中的真实 workspace/session 标题叶，不改原文、滚动或事件结构', () => {
+test('只标记唯一侧栏中的 workspace/session 标题叶，包含原生空白新会话行', () => {
   const { dom, doc, workspace, workspaceTitle, session, sessionTitle } = rowFixtures();
   sessionTitle.scrollLeft = 19;
   sessionTitle.setAttribute('data-scrolled', '');
@@ -90,7 +93,8 @@ test('只标记唯一侧栏中的真实 workspace/session 标题叶，不改原�
   assert.equal(sessionTitle.scrollLeft, 19);
   assert.equal(sessionTitle.textContent, 'Session Secret');
   assert.equal(sessionTitle.hasAttribute('data-scrolled'), true);
-  assert.equal(doc.querySelector('[data-row-key="session:blank"] [data-pdsh-redacted-title]'), null);
+  assert.equal(doc.querySelector('[data-row-key="session:s-new"] > span:nth-child(2)').getAttribute('data-pdsh-redacted-title'), 'session');
+  assert.equal(doc.querySelector('[data-row-key="session:s-unknown"] [data-pdsh-redacted-title]'), null);
   assert.equal(doc.querySelector('[data-row-key^="overflow:"] [data-pdsh-redacted-title]'), null);
   assert.equal(doc.querySelector('[data-row-key="workspace:"] [data-pdsh-redacted-title]'), null);
   workspace.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));

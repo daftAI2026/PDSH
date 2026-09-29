@@ -7,8 +7,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { mountPresentation } from './presentation.js';
-import { resolvePreferences } from './model.js';
+import { mountPresentation } from '../src/client/presentation.ts';
+import { resolvePreferences } from '../src/shared/model.ts';
 
 function fixture() {
   const dom = new JSDOM(`<body><div data-slot="settings.launcher"><button type="button" data-collapsed="false" data-signed-out="false" aria-haspopup="menu" aria-expanded="false"><span class="native-avatar"><img src="official.png" alt=""></span><span class="native-label">真实名称</span></button></div><section data-slot="settings.section"><span>真实名称</span></section></body>`);

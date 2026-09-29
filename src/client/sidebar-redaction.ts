@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 rc.2 `sidebar.workspaces` 与 Rows.tsx 的树行/搜索结果结构、原生 HoverCard portal。
- * [OUTPUT]: 提供可撤销的 workspace/session/search 标题 marker 与受 owner 匹配约束的 portal marker。
+ * [INPUT]: 依赖 rc.2 `sidebar.workspaces` 与 Rows.tsx 的普通/空白会话行、搜索结果结构及 HoverCard portal。
+ * [OUTPUT]: 提供可撤销的 workspace/session（含新会话占位）/search 标题 marker 与受 owner 匹配约束的 portal marker。
  * [POS]: 侧栏标题遮罩 DOM 适配器；只标记文本叶，不改原文、命中区域、事件或滚动状态。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -16,7 +16,7 @@ function locateRegion(doc) {
   return regions.length === 1 ? regions[0] : null;
 }
 
-function directSpans(node, min, max = min) {
+function directSpans(node: Element, min: number, max = min) {
   const children = Array.from(node.children);
   return children.length >= min && children.length <= max
     && children.every(child => child.tagName === 'SPAN');
@@ -41,7 +41,9 @@ function identifyTreeRow(row) {
     }
   }
   if (key.startsWith('session:') && key.length > 'session:'.length
-    && directSpans(row, 4, 5) && textLeaf(row.children[1])) {
+    && (directSpans(row, 4, 5)
+      || (directSpans(row, 2) && row.children[0].childNodes.length === 0))
+    && textLeaf(row.children[1])) {
     return { row, title: row.children[1], kind: 'session' };
   }
   return null;
@@ -94,7 +96,7 @@ function matchingRowFrom(target, region, view) {
   return identifyTreeRow(row);
 }
 
-function cardTitle(card, kind, view) {
+function cardTitle(card: Element, kind, view) {
   if (card.tagName !== 'DIV' || card.childElementCount !== 1) return null;
   if (view.getComputedStyle(card).position !== 'fixed') return null;
   const content = card.firstElementChild;
@@ -116,7 +118,7 @@ function cardTitle(card, kind, view) {
 export function mountSidebarRedaction(doc) {
   const view = doc.defaultView;
   const ownedMarkers = new Map();
-  const portalListeners = new Map();
+  const portalListeners = new Map<Element, EventListener>();
   let enabled = false;
   let disposed = false;
   let region = null;
@@ -253,8 +255,8 @@ export function mountSidebarRedaction(doc) {
     }
   }
 
-  function syncPortalListeners(targets) {
-    const nextCards = new Set(targets.map(target => target.card));
+  function syncPortalListeners(targets: Array<{ card: Element }>) {
+    const nextCards = new Set<Element>(targets.map(target => target.card));
     for (const [card, listener] of portalListeners) {
       if (!nextCards.has(card)) {
         card.removeEventListener('pointerout', listener);

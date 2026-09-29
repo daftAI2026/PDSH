@@ -26,9 +26,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ## Search entry and plugin metadata artwork
 
-The hat-glasses paths are reused from InCodex assets/hat-glasses.svg, derived from [Lucide](https://github.com/lucide-icons/lucide/blob/main/icons/hat-glasses.svg). InCodex's artwork stroke is retained; layout dimensions come from the native Harness search icon. The generated plugin-icon.svg reuses the same geometry with a self-contained background for the official metadata image.
+The stroke-based hat-glasses geometry is reused from InCodex `assets/hat-glasses.svg`, derived from [Lucide](https://github.com/lucide-icons/lucide/blob/main/icons/hat-glasses.svg). Its stroke width remains adjustable. Runtime opacity is applied to the complete SVG rather than individual overlapping paths. The generated plugin-icon.svg reuses the geometry with a self-contained background for official package metadata.
 
-Copyright (c) 2026 daftAI2026 and Incodex contributors. InCodex's MIT notice uses the same permission and warranty terms reproduced above.
+Copyright (c) 2026 daftAI2026 and InCodex contributors. Applicable MIT terms are reproduced above.
 
 ISC License
 

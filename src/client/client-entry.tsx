@@ -1,23 +1,25 @@
 /**
- * [INPUT]: 依赖slots/locale/configForms、共享原生控件几何与身份/标题/搜索入口控制器。
- * [OUTPUT]: 提供浏览器 apply/inject，设置页、样式探针、搜索邻接入口及可卸载显示增强。
- * [POS]: PDSH Client 装配层；设置/显示/入口共同跟随 Host 服务，搜索适配与身份控制器独立。
+ * [INPUT]: 依赖slots/locale/configForms/官方remote.pluginManager、共享原生控件几何和独立控制器。
+ * [OUTPUT]: 提供浏览器 apply/inject、设置页、搜索邻接入口、手动更新及可卸载显示增强。
+ * [POS]: PDSH Client 装配层；视觉与更新控制器均跟随 Host namespace，不私建包安装通道。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useLayoutEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Input, Button, SettingsValueField } from '@deepseek-ai/dsh-client-ui-primitives';
-import { mountPresentation } from './presentation.js';
-import { mountSearchEntry } from './search-entry.js';
-import { mountSidebarRedaction } from './sidebar-redaction.js';
-import { mountTitleToggle } from './title-toggle.js';
+import { mountPresentation } from './presentation.ts';
+import { mountSearchEntry } from './search-entry.ts';
+import { mountSidebarRedaction } from './sidebar-redaction.ts';
+import { mountTitleToggle } from './title-toggle.ts';
 import entryIcon from './entry-icon.svg';
-import { SettingsCard } from './settings-card.jsx';
-import { resolvePreferences } from './model.js';
+import { SettingsCard } from './settings-card.tsx';
+import { resolvePreferences } from '../shared/model.ts';
 import css from './styles.css';
-import { NS, dictionaries } from './locales.js';
+import { NS, dictionaries } from '../shared/locales.ts';
+import { createUpdateController } from './updater.ts';
+import { loadReleaseTags } from './update-source.ts';
 
-export const inject = ['slots', 'locale', 'configForms'];
+export const inject = ['slots', 'locale', 'configForms', 'remote', 'remote.pluginManager'];
 
 function NativeStyleProbe({ doc }) {
   const ref = useRef(null);
@@ -59,6 +61,7 @@ function mountDisplay(ctx, form) {
   root.render(<NativeStyleProbe doc={doc} />);
   const presentation = mountPresentation(doc);
   const titles = mountSidebarRedaction(doc);
+  const updater = createUpdateController(ctx.remote.pluginManager, loadReleaseTags, __PDSH_VERSION__);
   const t = ctx.locale.bind(NS);
   let entry;
   const toggle = mountTitleToggle(form, () => entry?.refresh());
@@ -81,9 +84,9 @@ function mountDisplay(ctx, form) {
   synchronize();
   const unsubscribe = form.subscribe(synchronize);
   return {
-    presentation,
+    presentation, updater,
     dispose() {
-      unsubscribe(); unbindLocale(); toggle.dispose(); entry.dispose(); titles.dispose(); presentation.dispose(); root.unmount(); probe.remove(); style.remove();
+      updater.dispose(); unsubscribe(); unbindLocale(); toggle.dispose(); entry.dispose(); titles.dispose(); presentation.dispose(); root.unmount(); probe.remove(); style.remove();
       for (const [key, value] of previous) {
         if (value) doc.body.style.setProperty(key, value); else doc.body.style.removeProperty(key);
       }
@@ -103,7 +106,7 @@ export function apply(ctx) {
     try {
       unregister = ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
         name: 'plugins.bundle.config', key: '@daftai/pdsh', locale: NS,
-        inject: () => ({ preferencesForm: form, presentation: display.presentation }),
+        inject: () => ({ preferencesForm: form, presentation: display.presentation, updater: display.updater }),
       }, SettingsCard));
     } catch (error) { display.dispose(); throw error; }
     return () => { try { unregister(); } finally { display.dispose(); } };

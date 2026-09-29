@@ -1,12 +1,12 @@
 /**
- * [INPUT]: 依赖 node:test、model.js 的配置与本地头像解析合同。
+ * [INPUT]: 依赖 node:test、shared/model.ts 的配置与本地头像解析合同。
  * [OUTPUT]: 验证显示偏好不接收远端图片、非法昵称或隐式类型转换。
- * [POS]: PDSH MVP 的输入边界回归测试，与 DOM 生命周期测试分离。
+ * [POS]: PDSH 共享输入边界回归测试，与 DOM 生命周期测试分离。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULTS, resolvePreferences, MAX_NAME_CHARS, MAX_AVATAR_CHARS } from './model.js';
+import { DEFAULTS, resolvePreferences, MAX_NAME_CHARS, MAX_AVATAR_CHARS } from '../src/shared/model.ts';
 
 test('标题遮挡默认关闭，不把旧消息框配置解释为新隐私模式', () => {
   assert.equal(DEFAULTS.maskTitles, false);

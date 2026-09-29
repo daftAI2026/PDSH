@@ -28,6 +28,7 @@
 .pdsh-group { display: flex; flex-direction: column; gap: 0; padding: var(--pdsh-section-inset); border: var(--pdsh-outline-width) solid var(--dsw-alias-settings-card-stroke); border-radius: var(--dsw-radius-xl); background: var(--dsw-alias-settings-card-fill); }
 /* 标题与开关共用一行；摘要自带内边距，不再叠加独立标题间隔。 */
 .pdsh-group > p { margin-top: var(--pdsh-field-gap); }
+.pdsh-update > button { align-self: flex-start; margin-top: var(--pdsh-field-gap); }
 .pdsh-group h4, .pdsh-profile-name { font: var(--dsw-font-s-strong-14); }
 .pdsh-hint { font: var(--dsw-font-xxs-12); color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
 .pdsh-label { font: var(--dsw-font-xs-strong-13); }
@@ -55,6 +56,7 @@
 .pdsh-avatar-fallback { display: flex; align-items: center; justify-content: center; }
 .pdsh-error { color: var(--dsw-alias-state-error-primary); }
 [data-pdsh-search-entry] { color: var(--pdsh-search-color); }
+[data-pdsh-search-entry] svg { opacity: var(--pdsh-icon-opacity); }
 [data-pdsh-search-entry][aria-pressed="true"] { background: var(--dsw-alias-interactive-bg-active); }
 [data-pdsh-search-entry][hidden] { display: none !important; }
 /* +--- 原生 searchSlot 的自动留白迁至自有左侧入口；隐藏/卸载后规则自动失效 ---+ */

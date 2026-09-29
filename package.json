@@ -1,13 +1,12 @@
 {
   "name": "@daftai/pdsh",
-  "description": "DSH Private Mode: sidebar title masking and local display identity, without session isolation",
-  "version": "0.1.0-mvp.16",
+  "description": "Same-window sidebar title masking and local display identity for DeepSeek Harness; display-only, no session isolation.",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./index.js",
   "files": [
     "index.js",
-    "model.js",
     "client.js",
     "client.js.map",
     "cordis.patch.yml",
@@ -25,8 +24,10 @@
   },
   "scripts": {
     "build": "node build.mjs",
-    "test": "pnpm build && node --test *.test.js",
-    "bundle": "pnpm build && pnpm pack --pack-destination output"
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm typecheck && pnpm build && node --experimental-strip-types --test tests/*.test.ts",
+    "bundle": "pnpm build && pnpm pack --pack-destination output",
+    "release:check": "node check-release.mjs"
   },
   "dsh": {
     "client": {
@@ -46,10 +47,14 @@
     "blobatar": "2.7.0"
   },
   "devDependencies": {
+    "@types/node": "22",
+    "@types/react": "18",
+    "@types/react-dom": "18",
     "esbuild": "0.25.12",
     "jsdom": "26.1.0",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "typescript": "6.0.3"
   },
   "repository": {
     "type": "git",
