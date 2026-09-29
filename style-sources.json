@@ -123,7 +123,7 @@
       "file": "packages/client/ui-primitives/src/settings-form/fields.module.css",
       "selector": ".field",
       "property": "padding-top",
-      "acquisition": "渲染官方 SettingsValueField；读取 root/head 的 computed style，无布局数字 fallback"
+      "acquisition": "渲染官方 SettingsValueField；读取 root/head 的 computed style，无布局数字 fallback；身份卡片不叠加底内边距，昵称行对称承担上下留白，整体高度不变。"
     },
     {
       "role": "settings label/control gap",
@@ -246,7 +246,7 @@
     {
       "role": "single capability heading and switch",
       "file": "packages/client/ui-primitives/src/Switch.tsx",
-      "acquisition": "原生Switch的label只提供无障碍名字；h4为该组唯一可见功能标题，两者沿已有row对齐。标题范围使用原生title悬停提示；不留下空hint节点或标题margin，摘要padding负责下一层间隔。"
+      "acquisition": "原生Switch的label只提供无障碍名字；h4为该组唯一可见功能标题，两者沿已有row对齐。标题范围使用官方Tooltip悬停提示；不留下空hint节点或标题margin，摘要padding负责下一层间隔。"
     },
     {
       "role": "version-adjacent update affordance",
@@ -255,6 +255,18 @@
       "selector": "plugins.detail.badge / .titleRow",
       "property": "flex-wrap / gap",
       "acquisition": "使用官方 detail.badge slot 排在原生版本Tag之后，不碰启用Switch；自动探测有新稳定版才贡献 Button 图标，展开后的来源提示与确认操作沿用 titleRow 换行和原生字段gap。"
+    },
+    {
+      "role": "available update positive affordance",
+      "variable": "--dsw-alias-state-success-primary",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "acquisition": "确切安装包的运行状态标记也使用该成功色；仅为自有升级SVG指定此语义色，不冻结绿色RGB，不覆盖原生Button悬停与焦点状态。"
+    },
+    {
+      "role": "update arrow stroke geometry",
+      "file": "src/client/entry-icon.svg / src/client/update-badge.tsx",
+      "property": "stroke-width",
+      "acquisition": "按视觉要求将24×24圆形上箭头线宽从2减至1.5，与已有帽子眼镜线条资产一致；圆与箭头共享SVG根线宽，不另造CSS控件几何。"
     },
     {
       "role": "capture failure notice",
@@ -481,6 +493,14 @@
       "file": "packages/client/ui-primitives/src/Tooltip.tsx / Tooltip.module.css",
       "selector": "Tooltip side=bottom delayMs=500 focusDelayMs=0 portal / .bubble[data-portal]",
       "acquisition": "React 设置和更新入口直接用官方 Tooltip；原生 DOM 工作台/侧栏入口用相同延时、方位、间距、主题色、圆角和 portal 层级，不使用浏览器 title。"
+    },
+    {
+      "role": "avatar source text gap",
+      "variable": "--pdsh-button-inset",
+      "file": "packages/client/ui-primitives/src/Button.module.css",
+      "selector": ".md",
+      "property": "padding-inline-start",
+      "acquisition": "由原生 Button computed style 取单侧文字内边距；昵称到来源标签的可视间距等于两个按钮内边距加原生 field gap。来源标签留在昵称旁，不跟随右侧按钮的自动留白。"
     }
   ],
   "artwork": {

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 styles.css 的真实 selector 与 rc.2 原生样式来源账。
- * [OUTPUT]: 验证标题灰条、头像三按钮换行、昵称编辑高度与错误边线来源，禁止数值UI颜色尺寸 fallback。
- * [POS]: PDSH 的样式合同，保证视觉依赖可追溯，移除来源行和全局footer不破坏原生布局。
+ * [OUTPUT]: 验证标题灰条、头像换行、控件几何及更新成功色来源，禁止数值UI颜色尺寸 fallback。
+ * [POS]: PDSH 的样式合同，保证视觉依赖可追溯，来源标签邻接昵称与单层对称留白不破坏原生布局。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
@@ -29,11 +29,14 @@ test('设置分组使用宿主字号和卡片语义，而非浏览器默认段�
   assert.match(css, /\.pdsh-group\s*\{[^}]*background:\s*var\(--dsw-alias-settings-card-fill\)/);
   assert.match(css, /\.pdsh-hint\s*\{[^}]*font:\s*var\(--dsw-font-xxs-12\)/);
 });
+test('升级箭头采用宿主成功色，限定在自有 SVG 而不覆盖原生按钮状态', () => {
+  assert.match(css, /\.pdsh-update-trigger svg\s*\{[^}]*color:\s*var\(--dsw-alias-state-success-primary\)/);
+});
 
 test('头像与昵称横向编排；入口自己承担自动留白，隐藏时不覆盖原生搜索对齐', () => {
   assert.match(css, /\.pdsh-identity\s*\{[^}]*display:\s*flex/);
-  assert.match(css, /\.pdsh-profile-copy\s*\{[^}]*flex:\s*1/);
-  assert.match(css, /\.pdsh-profile-copy\s*\{[^}]*flex:\s*1 1 auto/);
+  assert.match(css, /\.pdsh-profile-copy\s*\{[^}]*flex:\s*0 1 auto/);
+  assert.match(css, /\.pdsh-profile-copy\s*\{[^}]*gap:\s*calc\(var\(--pdsh-field-gap\) \+ var\(--pdsh-button-inset\) \+ var\(--pdsh-button-inset\)\)/);
   assert.match(css, /\.pdsh-profile-copy\s*\{[^}]*max-width:\s*calc\(100% - var\(--pdsh-control-size\) - var\(--pdsh-control-size\) - var\(--pdsh-section-inset\)\)/);
   assert.match(css, /\.pdsh-detail-row\s*\{[^}]*justify-content:\s*space-between/);
   assert.match(css, /\.pdsh-avatar-actions\s*\{[^}]*flex-wrap:\s*wrap/);
@@ -52,6 +55,8 @@ test('编辑与阅读态同用原生Button的最小高度；非法输入边线�
   const source = readFileSync(new URL('../src/client/client-entry.tsx', import.meta.url), 'utf8');
   assert.match(source, /<Button[^>]*data-pdsh-button-probe/);
   assert.match(source, /--pdsh-action-size/);
+  assert.match(source, /buttonStyle\.paddingInlineStart/);
+  assert.match(source, /const properties = \[[^\]]*'--pdsh-button-inset'/);
   assert.match(css, /\.pdsh-inline-editor\s*\{[^}]*min-height:\s*var\(--pdsh-action-size\)/);
   assert.match(css, /:has\(input\[aria-invalid="true"\]\)[^}]*border-color:\s*var\(--dsw-alias-state-error-primary\)/);
 });
@@ -61,6 +66,8 @@ test('字段自带内边距，不与组gap重复叠加；昵称在右侧紧凑�
   assert.doesNotMatch(css, /\.pdsh-group > h4/);
   const source = readFileSync(new URL('../src/client/settings-card.tsx', import.meta.url), 'utf8');
   assert.match(source, /className="pdsh-row pdsh-group-header"/);
-  assert.match(css, /\.pdsh-detail-row\s*\{[^}]*padding-block:\s*var\(--pdsh-field-gap\)/);
+  assert.match(css, /\.pdsh-detail-row\s*\{[^}]*padding-block:\s*var\(--pdsh-section-inset\)/);
+  assert.match(css, /\.pdsh-group\.pdsh-identity-group\s*\{[^}]*padding-bottom:\s*0/);
+  assert.match(css, /\.pdsh-identity-group > p:last-child\s*\{[^}]*padding-bottom:\s*var\(--pdsh-section-inset\)/);
   assert.match(css, /\.pdsh-nickname-editor\s*\{[^}]*flex:\s*0 1 auto/);
 });

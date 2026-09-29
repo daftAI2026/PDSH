@@ -80,13 +80,16 @@ function readerFixture() {
   return { Reader, readers };
 }
 
-test('摘要右侧有可见头像来源标签与三个按钮，没有额外字段或全局保存', async () => {
+test('头像来源紧邻左侧昵称，仍关联右侧三个按钮，没有额外字段或全局保存', async () => {
   const h = await mountSettings();
   try {
     await h.render();
     const actions = h.doc.querySelector('.pdsh-identity .pdsh-avatar-actions');
     assert.ok(actions); assert.equal(actions.querySelectorAll('button').length, 3);
-    assert.equal(actions.querySelector('#pdsh-avatar-source-label')?.textContent, 'avatarLabel');
+    const sourceLabel = h.doc.querySelector('#pdsh-avatar-source-label');
+    assert.equal(sourceLabel?.textContent, 'avatarLabel');
+    assert.equal(sourceLabel?.previousElementSibling?.className, 'pdsh-profile-name');
+    assert.equal(actions.contains(sourceLabel), false);
     assert.equal(actions.getAttribute('aria-labelledby'), 'pdsh-avatar-source-label');
     assert.equal(actions.querySelector('[data-native-tooltip="avatarHint"]')?.getAttribute('data-side'), 'bottom');
     assert.equal(actions.querySelector('[data-native-tooltip="accountAvatarHint"]')?.getAttribute('data-delay-ms'), '500');

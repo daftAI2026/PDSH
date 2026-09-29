@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖slots/locale/configForms/官方remote.pluginManager、共享原生控件几何与截图工作台控制器。
+ * [INPUT]: 依赖slots/locale/configForms/官方remote.pluginManager、共享原生控件尺寸/文字内边距几何与截图工作台控制器。
  * [OUTPUT]: 提供设置、更新徽标、帽子右侧相机、非 React 提示层与可卸载的显示/截图增强。
- * [POS]: PDSH Client 装配层；相机通过认证 Host route 截图，所有资源跟随 Host namespace。
+ * [POS]: PDSH Client 装配层；相机在当前渲染器栅格化整个可见页面，所有资源跟随 Host namespace。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useLayoutEffect, useRef } from 'react';
@@ -43,8 +43,10 @@ function NativeStyleProbe({ doc }) {
     }
     const nativeButton = ref.current.querySelector('[data-pdsh-button-probe]');
     if (nativeButton) {
-      const height = doc.defaultView.getComputedStyle(nativeButton).height;
-      if (Number.parseFloat(height) > 0) doc.body.style.setProperty('--pdsh-action-size', height);
+      const buttonStyle = doc.defaultView.getComputedStyle(nativeButton);
+      for (const [key, value] of [['--pdsh-action-size', buttonStyle.height], ['--pdsh-button-inset', buttonStyle.paddingInlineStart]]) {
+        if (Number.parseFloat(value) > 0) doc.body.style.setProperty(key, value);
+      }
     }
     const nativeSwitch = ref.current.querySelector('[role="switch"]');
     if (nativeSwitch) {
@@ -73,7 +75,7 @@ function mountDisplay(ctx, form) {
   const style = doc.createElement('style'); style.dataset.plugin = '@daftai/pdsh'; style.textContent = `${css}\n${tooltipCss}\n${captureCss}\n${capturePickerCss}\n${captureColorCss}`; doc.head.append(style);
   const probe = doc.createElement('div'); probe.hidden = true; probe.setAttribute('data-pdsh-probe', ''); doc.body.append(probe);
   const root = createRoot(probe);
-  const properties = ['--pdsh-outline-width', '--pdsh-control-size', '--pdsh-action-size', '--pdsh-section-inset', '--pdsh-field-gap', '--pdsh-action-gap', '--pdsh-switch-width', '--pdsh-switch-height', '--pdsh-switch-thumb-size'];
+  const properties = ['--pdsh-outline-width', '--pdsh-control-size', '--pdsh-action-size', '--pdsh-button-inset', '--pdsh-section-inset', '--pdsh-field-gap', '--pdsh-action-gap', '--pdsh-switch-width', '--pdsh-switch-height', '--pdsh-switch-thumb-size'];
   const previous = properties.map(key => [key, doc.body.style.getPropertyValue(key)]);
   root.render(<NativeStyleProbe doc={doc} />);
   const presentation = mountPresentation(doc);

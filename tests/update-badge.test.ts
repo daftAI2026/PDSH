@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实 UpdateBadge JSX、React/jsdom 与可订阅的更新控制器桩。
- * [OUTPUT]: 验证仅自身 Bundle 自动探测、有新版才显示版本旁图标、二次确认才安装。
+ * [OUTPUT]: 验证仅自身 Bundle 自动探测、有新版才显示细线版本旁图标、二次确认才安装。
  * [POS]: 官方 detail.badge slot 的交互合同；不把 fixture 结果当成 Desktop 网络证明。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -73,6 +73,7 @@ test('新版本图标只展开确认；确认按钮才安装固定提交，失�
     await h.render(); await h.state({ phase: 'available', version: '0.1.2' });
     const trigger = h.doc.querySelector('[data-pdsh-update-trigger]');
     assert.ok(trigger); assert.ok(trigger.querySelector('svg circle'));
+    assert.equal(trigger.querySelector('svg')?.getAttribute('stroke-width'), '1.5');
     assert.equal(trigger.getAttribute('title'), null);
     assert.equal(trigger.getAttribute('data-native-tooltip'), 'update.available v0.1.2');
     assert.equal(trigger.getAttribute('data-delay-ms'), '500');

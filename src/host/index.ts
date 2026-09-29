@@ -1,13 +1,11 @@
 /**
- * [INPUT]: 依赖 schemastery 的 volatile Config、Harness settings/Connection 与 macOS 截图适配层。
- * [OUTPUT]: 提供 @daftai/pdsh 的配置及认证截图 route，偏好仍由官方设置持久化。
- * [POS]: PDSH Host 装配边界；截图仅限当前 Electron 主进程的唯一窗口，不访问账户或会话目录。
+ * [INPUT]: 依赖 schemastery 的 volatile Config、shared/model.ts 的默认值与 Harness settings 注入。
+ * [OUTPUT]: 提供 @daftai/pdsh 的显示偏好配置，由官方设置页负责编辑与持久化。
+ * [POS]: PDSH Host 配置边界；只声明 Host 配置并启用设置表单，不接触连接、截图或账户/会话数据。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import z from '@deepseek-ai/schemastery';
 import { DEFAULTS, MAX_AVATAR_CHARS, MAX_NAME_CHARS, NICKNAME_PATTERN, LOCAL_AVATAR_PATTERN } from '../shared/model.ts';
-import { fileURLToPath } from 'node:url';
-import { captureMacWindow, createCaptureRoute } from './capture.ts';
 
 export const name = 'pdsh';
 export const Config = z.object({
@@ -21,7 +19,4 @@ export const Config = z.object({
 export function apply(ctx) {
   // +--- 只由产品设置页展示，不让通用编辑器成为第二套 UI ---+
   ctx.inject(['settings'], child => child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)));
-  ctx.inject(['connection'], child => child.effect(() => child.connection.fetch.register(createCaptureRoute({
-    capture: signal => captureMacWindow({ pid: process.ppid, helper: fileURLToPath(new URL('./native/window-id', import.meta.url)), signal }),
-  })), 'pdsh: capture route'));
 }

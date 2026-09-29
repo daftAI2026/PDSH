@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖宿主 React/primitives、ConfigForm；shared/model.ts 校验昵称/图像。
- * [OUTPUT]: 提供带可见来源标签的设置字段、原生 Tooltip、局部提交与可取消图片读取。
+ * [OUTPUT]: 提供昵称邻接来源标签、居中昵称行的设置字段、原生 Tooltip、局部提交与可取消图片读取。
  * [POS]: PDSH 偏好交互层；Host 接受值拥有设置态，版本提示由相邻 detail badge slot 独立负责。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -164,15 +164,16 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
     <section className="pdsh-group" role="group" aria-labelledby="pdsh-display-title">
       {toggleHeading('maskTitles', 'pdsh-display-title', 'titlesHint')}
     </section>
-    <section className="pdsh-group" role="group" aria-labelledby="pdsh-identity-title">
+    <section className="pdsh-group pdsh-identity-group" role="group" aria-labelledby="pdsh-identity-title">
       {toggleHeading('maskIdentity', 'pdsh-identity-title')}
       <div className="pdsh-identity" aria-label={t('identityPreview')}>
         {avatarSource === 'account' && !accountAvatar
           ? <span className="pdsh-avatar-preview pdsh-avatar-fallback" role="img" aria-label={t('accountAvatar')}><IconUserOutlineMedium /></span>
           : preview && <img className="pdsh-avatar-preview" src={avatarSource === 'account' ? accountAvatar : preview} alt={t(avatarSource === 'account' ? 'accountAvatar' : 'preview')} referrerPolicy="no-referrer" />}
-        <div className="pdsh-copy pdsh-profile-copy"><strong className="pdsh-profile-name">{displayedNickname}</strong></div>
-        <div className="pdsh-avatar-actions" role="group" aria-labelledby="pdsh-avatar-source-label" aria-describedby={avatarError || avatarConflict ? 'pdsh-avatar-error' : undefined} aria-busy={readingAvatar || mutation === 'avatar' || undefined}>
+        <div className="pdsh-copy pdsh-profile-copy"><strong className="pdsh-profile-name">{displayedNickname}</strong>
           <span className="pdsh-avatar-source-label pdsh-label" id="pdsh-avatar-source-label">{t('avatarLabel')}</span>
+        </div>
+        <div className="pdsh-avatar-actions" role="group" aria-labelledby="pdsh-avatar-source-label" aria-describedby={avatarError || avatarConflict ? 'pdsh-avatar-error' : undefined} aria-busy={readingAvatar || mutation === 'avatar' || undefined}>
           <Button variant={avatarSource === 'generated' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'generated'} onClick={event => chooseSource('generated', event.currentTarget)} disabled={!writable}>{t('generated')}</Button>
           <Hint label={t('avatarHint')}><Button variant={avatarSource === 'local' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'local'} onClick={event => chooseSource('local', event.currentTarget)} disabled={!writable}>{t('avatar')}</Button></Hint>
           <Hint label={t('accountAvatarHint')}><Button variant={avatarSource === 'account' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'account'} onClick={event => chooseSource('account', event.currentTarget)} disabled={!writable}>{t('accountAvatar')}</Button></Hint>

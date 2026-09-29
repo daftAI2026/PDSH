@@ -11,11 +11,11 @@ PDSH 的默认分发是 **GitHub 仓库中的 Harness bundle**。`package.json.v
 
 ## 每个版本
 
-`v0.2.0` 的已知验收缺口：安装后的 Desktop 工作台完整交互仍待验证；当前证据覆盖源码合同、独立 Web profile 的 Host route 和归档原生探针执行。此版本按明确披露该限制的版本锚点分发，不把打 tag 视为 Desktop 兼容证明，也不豁免后续版本的正常验收门。
+`v0.2.0` 引入的已知验收缺口：安装后的 Desktop 工作台完整交互仍待验证；当前证据覆盖源码合同、独立 Web profile 的 Host route 和归档原生探针执行。`v0.2.1` 开发中修正升级箭头、来源标签位置、昵称垂直对齐与错误归因；系统截图路线已退休，改为整个可见页面的 DOM 栅格化；安装后的验收完成前不发布 tag。继续披露该缺口，不把打 tag 视为 Desktop 兼容证明，也不豁免后续功能版本的正常验收门。
 
 1. 修改 `package.json.version`，完成代码、翻译、文档和测试；不要手改生成的版本常量。
-2. `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm run bundle`；审查 `.tgz` 成员，确认没有凭据、profile、日志或私有研究资料；验证 `native/window-id` 为源文件可复现的 arm64/x86_64 产物，归档即使剥离执行位也能通过私有临时副本运行。
-3. 在目标 Harness 版本的**独立 profile** 用官方插件管理器安装同一 Git 提交/归档，检查新会话标题、搜索与折叠、设置字段、更新入口、停用撤回；含截图的版本还须检查 macOS 权限成功/失败、相机位置、明暗主题、重拍/复制/保存与临时像素清理。DOM fixture 和成功打包不算 Desktop 验收。
+2. `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm run bundle`；审查 `.tgz` 成员，确认没有凭据、profile、日志或私有研究资料；确认旧 native helper 不再进入归档，新增 DOM 栅格化依赖的许可完整。
+3. 在目标 Harness 版本的**独立 profile** 用官方插件管理器安装同一 Git 提交/归档，检查新会话标题、搜索与折叠、设置字段、更新入口、停用撤回；含截图的版本还须检查 全视口侧栏展开/收起、字体/滚动保真、可见嵌入内容拒绝及失败恢复、相机位置、明暗主题、重拍/复制/保存与临时像素清理。DOM fixture 和成功打包不算 Desktop 验收。
 4. 提交源码及预构建 `index.js`、`client.js`、`client.js.map`、`plugin-icon.svg`。工作树清洁后运行 `pnpm release:check`，再用 `v$(node -p "require('./package.json').version")` 打带注释的 Git tag。脚本拒绝版本不符、文档未同步、旧 tag 指向其他提交、缺少嵌入版本或脏工作树。
 5. 推送提交与 **明确的 tag**；不要只推 `main` 并假设已安装插件会自动更新。发布说明可以写在 tag 信息或另建 GitHub Release，但不重复维护版本号。
 
