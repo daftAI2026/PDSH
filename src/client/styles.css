@@ -1,6 +1,6 @@
 /*
  * [INPUT]: Harness ui-theme 的语义色/圆角/字号，以及原生 Input/SettingsValueField 探针的几何。
- * [OUTPUT]: 提供标题灰条、身份覆盖、原生设置与入口样式，保留原生点击/编辑，不造独立调色板。
+ * [OUTPUT]: 提供标题灰条、身份覆盖、原生设置、版本旁更新徽标与入口样式。
  * [POS]: PDSH 的展示层；来源和使用处记录于 style-sources.json，卸载时整体移除。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -28,7 +28,9 @@
 .pdsh-group { display: flex; flex-direction: column; gap: 0; padding: var(--pdsh-section-inset); border: var(--pdsh-outline-width) solid var(--dsw-alias-settings-card-stroke); border-radius: var(--dsw-radius-xl); background: var(--dsw-alias-settings-card-fill); }
 /* 标题与开关共用一行；摘要自带内边距，不再叠加独立标题间隔。 */
 .pdsh-group > p { margin-top: var(--pdsh-field-gap); }
-.pdsh-update > button { align-self: flex-start; margin-top: var(--pdsh-field-gap); }
+.pdsh-update-badge, .pdsh-update-confirm { display: inline-flex; align-items: center; flex-wrap: wrap; gap: var(--pdsh-field-gap); }
+.pdsh-update-trigger { flex: none; }
+.pdsh-update-confirm { font: var(--dsw-font-xxs-12); color: var(--dsw-alias-label-secondary); }
 .pdsh-group h4, .pdsh-profile-name { font: var(--dsw-font-s-strong-14); }
 .pdsh-hint { font: var(--dsw-font-xxs-12); color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
 .pdsh-label { font: var(--dsw-font-xs-strong-13); }

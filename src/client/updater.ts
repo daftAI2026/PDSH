@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖官方 remote.pluginManager 的 {ok,value} 调用封套与经校验的 GitHub tag 数据。
- * [OUTPUT]: 提供只由用户触发检查、确认安装和可订阅状态的更新控制器。
- * [POS]: Client 更新决策层；固定提交安装、保留配置，不自行重启或推断安装来源。
+ * [OUTPUT]: 提供详情挂载自动探测、用户确认安装和可订阅状态的更新控制器。
+ * [POS]: Client 更新决策层；探测无副作用，固定提交安装需确认，不自行重启或推断安装来源。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 export interface ReleaseTag { name: string; commit: { sha: string } }

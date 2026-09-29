@@ -8,7 +8,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadReleaseTags } from '../src/client/update-source.ts';
 
-test('手动版本查询只访问固定公共 tags URL，不发送凭据', async () => {
+test('自动版本探测只访问固定公共 tags URL，不发送凭据', async () => {
   const tags = [{ name: 'v0.1.0', commit: { sha: 'a'.repeat(40) } }];
   const actual = await loadReleaseTags(async (url, options) => {
     assert.equal(url, 'https://api.github.com/repos/daftAI2026/PDSH/tags?per_page=100');

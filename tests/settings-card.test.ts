@@ -41,15 +41,13 @@ async function mountSettings({ fileReader, imageDecode } = {}) {
   let accepted = false;
   const form = { getSnapshot: () => snapshot, subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }, async mutate(ops, revision) { writes.push({ ops, revision }); if (accepted) { snapshot = { ...snapshot, revision: snapshot.revision + 1, value: { ...snapshot.value, ...Object.fromEntries(ops.map(op => [op.path[0], op.value])) } }; for (const fn of listeners) fn(); } return accepted; } };
   const presentation = { accountAvatar: () => 'official.png', status: () => 'disabled', subscribe: () => () => {} };
-  const idleUpdate = { phase: 'idle' };
-  const updater = { getSnapshot: () => idleUpdate, subscribe: () => () => {}, check() {}, install() {} };
   const doc = dom.window.document;
   const buttons = () => [...doc.querySelectorAll('button')];
   const button = name => buttons().find(node => node.textContent === name || node.getAttribute('aria-label') === name || node.getAttribute('aria-label')?.startsWith(`${name}: `));
   return { doc, dom, root, button, writes, form, presentation, listeners,
     accept(value) { accepted = value; },
     async snapshot(changes) { await act(async () => { snapshot = { ...snapshot, ...changes }; for (const fn of listeners) fn(); }); },
-    async render() { await act(async () => root.render(React.createElement(module.exports.SettingsCard, { preferencesForm: form, presentation, updater, t: key => key }))); },
+    async render() { await act(async () => root.render(React.createElement(module.exports.SettingsCard, { preferencesForm: form, presentation, t: key => key }))); },
     async input(node, value) { await act(async () => {
       Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, 'value').set.call(node, value);
       node.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
@@ -92,8 +90,8 @@ test('摘要右侧常驻三个头像按钮，没有来源字段、展开按钮�
     assert.equal(h.doc.querySelectorAll('.pdsh-detail-row').length, 1);
     assert.equal(h.button('changeAvatar'), undefined); assert.equal(h.button('save'), undefined);
     assert.equal(h.button('discard'), undefined); assert.equal(h.doc.querySelector('footer'), null);
-    assert.ok(h.doc.querySelector('#pdsh-update-title'));
-    assert.equal(h.doc.querySelector('.pdsh-update p'), null, '正常状态不展示常驻更新来源说明');
+    assert.equal(h.doc.querySelector('#pdsh-update-title'), null, '更新入口属于官方详情标题槽位，不在设置卡片');
+    assert.equal(h.button('checkUpdate'), undefined);
     assert.equal(h.writes.length, 0);
   } finally { await h.close(); }
 });
@@ -367,8 +365,8 @@ test('每组只有一次功能标题并与开关同排，遮挡范围只在悬�
     assert.equal(rows[0].querySelector('[role="switch"]').getAttribute('title'), 'titlesHint');
     assert.equal(rows[1].querySelector('[role="switch"]').getAttribute('title'), null);
     assert.equal(h.doc.querySelectorAll('.pdsh-row .pdsh-hint, .pdsh-row .pdsh-label').length, 0);
-    assert.equal(h.doc.querySelectorAll('h4').length, 3, '更新独立于两个偏好开关');
-    assert.equal(h.doc.querySelectorAll('section[role="group"]').length, 3);
+    assert.equal(h.doc.querySelectorAll('h4').length, 2, '更新徽标不再占用设置分组');
+    assert.equal(h.doc.querySelectorAll('section[role="group"]').length, 2);
     assert.equal(rows[1].querySelector('[role="switch"]').disabled, false);
     assert.equal(h.writes.length, 0);
   } finally { await h.close(); }

@@ -249,12 +249,12 @@
       "acquisition": "原生Switch的label只提供无障碍名字；h4为该组唯一可见功能标题，两者沿已有row对齐。标题范围使用原生title悬停提示；不留下空hint节点或标题margin，摘要padding负责下一层间隔。"
     },
     {
-      "role": "manual update action spacing",
+      "role": "version-adjacent update affordance",
       "variable": "--pdsh-field-gap",
-      "file": "packages/client/ui-primitives/src/settings-form/fields.module.css",
-      "selector": ".field",
-      "property": "gap",
-      "acquisition": "更新按钮沿用官方Button的固有高度/字号，只以原生字段间距从来源说明分离；不让flex子项默认拉满整张卡。"
+      "file": "packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx / PluginManagerPage.module.css",
+      "selector": "plugins.detail.badge / .titleRow",
+      "property": "flex-wrap / gap",
+      "acquisition": "使用官方 detail.badge slot 排在原生版本Tag之后，不碰启用Switch；自动探测有新稳定版才贡献 Button 图标，展开后的来源提示与确认操作沿用 titleRow 换行和原生字段gap。"
     }
   ],
   "artwork": {

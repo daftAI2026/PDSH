@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖宿主 React/primitives、ConfigForm、更新控制器；shared/model.ts 校验昵称/图像。
- * [OUTPUT]: 提供设置字段局部提交、可取消图片读取及手动检查/确认安装更新入口。
- * [POS]: PDSH 交互层；Host 接受值拥有设置态，更新另由官方管理器安装，不混入偏好写入门。
+ * [INPUT]: 依赖宿主 React/primitives、ConfigForm；shared/model.ts 校验昵称/图像。
+ * [OUTPUT]: 提供设置字段局部提交与可取消图片读取，不混入版本更新入口。
+ * [POS]: PDSH 偏好交互层；Host 接受值拥有设置态，版本提示由相邻 detail badge slot 独立负责。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -21,11 +21,10 @@ function ToggleHeading({ id, label, hint, checked, disabled, pending, error, onC
   </div>{error && <p className="pdsh-error" role="alert">{error}</p>}</>;
 }
 
-export function SettingsCard({ view, preferencesForm: form, presentation, updater, t }) {
+export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
   const snapshot = useSyncExternalStore(fn => form.subscribe(fn), () => form.getSnapshot());
   const status = useSyncExternalStore(fn => presentation.subscribe(fn), () => presentation.status());
   const accountAvatar = useSyncExternalStore(fn => presentation.subscribe(fn), () => presentation.accountAvatar());
-  const update = useSyncExternalStore(fn => updater.subscribe(fn), () => updater.getSnapshot());
   const [nicknameDraft, setNicknameDraft] = useState(null);
   const [nicknameError, setNicknameError] = useState('');
   const [avatarError, setAvatarError] = useState('');
@@ -192,13 +191,6 @@ export function SettingsCard({ view, preferencesForm: form, presentation, update
       </div>
       <input ref={fileInput} id="pdsh-avatar-file" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseAvatar} disabled={!writable} hidden aria-label={t('avatar')} />
       {['signed-out', 'unsupported'].includes(status) && <p role="status" className="pdsh-hint">{t(`status.${status}`)}</p>}
-    </section>
-    <section className="pdsh-group pdsh-update" role="group" aria-labelledby="pdsh-update-title">
-      <h4 id="pdsh-update-title">{t('updateTitle')}</h4>
-      {update.phase === 'available'
-        ? <Button title={t('installSourceHint')} aria-label={`${t('installUpdate')} ${update.version}；${t('installSourceHint')}`} onClick={() => void updater.install()}>{t('installUpdate')} {update.version}</Button>
-        : <Button onClick={() => void updater.check()} disabled={['checking', 'installing', 'installed', 'restart'].includes(update.phase)}>{t('checkUpdate')}</Button>}
-      {update.phase !== 'idle' && <p role={update.phase === 'failed' ? 'alert' : 'status'} className={update.phase === 'failed' ? 'pdsh-error' : 'pdsh-hint'}>{t(update.phase === 'failed' ? `update.${update.operation === 'install' ? 'installFailed' : 'checkFailed'}` : `update.${update.phase}`)}{['restart', 'installed'].includes(update.phase) ? ` ${update.version}` : ''}</p>}
     </section>
   </section>;
 }

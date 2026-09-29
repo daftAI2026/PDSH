@@ -1,5 +1,5 @@
 <!--
-[INPUT]: 依赖 0.1.0 安装包、DeepSeek Harness 官方插件管理接口与当前声明的显示边界
+[INPUT]: 依赖 0.1.1 安装包、DeepSeek Harness 官方插件管理接口与当前声明的显示边界
 [OUTPUT]: 提供产品定位、安装/使用、兼容范围和开发入口，不记录逐次试验过程
 [POS]: PDSH 公开使用契约；版本证据留在测试和维护记录，不把视觉遮挡误写为会话隔离
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -7,7 +7,7 @@
 
 # DSH 私密模式
 
-PDSH（Private DeepSeek Harness）是 DeepSeek Harness 的第三方显示插件。**0.1.0 只改变本机窗口的呈现，不创建隔离会话。** 它适合临时演示、录屏或共屏时降低侧栏标题和账号外观的可见度；不适合保护敏感资料免遭读取。
+PDSH（Private DeepSeek Harness）是 DeepSeek Harness 的第三方显示插件。**0.1.1 只改变本机窗口的呈现，不创建隔离会话。** 它适合临时演示、录屏或共屏时降低侧栏标题和账号外观的可见度；不适合保护敏感资料免遭读取。
 
 ## 能做什么
 
@@ -28,7 +28,7 @@ PDSH（Private DeepSeek Harness）是 DeepSeek Harness 的第三方显示插件�
 https://github.com/daftAI2026/PDSH
 ```
 
-稳定版以 [`v0.1.0` Git tag](https://github.com/daftAI2026/PDSH/tree/v0.1.0) 为锚点。建议固定该 tag 对应的提交，而不是让安装来源随 `main` 漂移。包标识 `@daftai/pdsh` 用于宿主识别，**不代表它已在 npm 发布**。安装第三方插件等同运行其代码，请先检查来源和依赖。官方机制见[打包与安装指南](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish)。
+稳定版以 [`v0.1.1` Git tag](https://github.com/daftAI2026/PDSH/tree/v0.1.1) 为锚点。建议固定该 tag 对应的提交，而不是让安装来源随 `main` 漂移。包标识 `@daftai/pdsh` 用于宿主识别，**不代表它已在 npm 发布**。安装第三方插件等同运行其代码，请先检查来源和依赖。官方机制见[打包与安装指南](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish)。
 
 开发者也可以在“本地插件目录”填写本仓库 checkout 的绝对路径，或运行 `pnpm run bundle` 生成 `.tgz`，在独立 profile 使用官方 `dsh plugin --profile <name> add <tgz路径>`。不要用外部 CLI 改正在由 Desktop 独占的 `desktop` profile。
 
@@ -36,7 +36,7 @@ https://github.com/daftAI2026/PDSH
 
 - 搜索左侧帽子眼镜：立即切换**侧栏标题遮挡**，不会导航到设置。
 - **插件 → DSH 私密模式**：配置“遮挡侧栏标题”和“替换侧栏身份”。开关与头像操作即时保存；昵称有独立编辑草稿。
-- 设置页的“插件更新”可手动检查 GitHub 稳定版本；确认“安装版本”后由 Harness 官方插件管理器安装固定提交。不会自动重启；若宿主提示需要重启，请在没有进行中任务时自行重启。从本地目录等来源安装的用户确认后将切换为 GitHub 来源。GitHub 推送本身不会替换已安装代码。
+- 打开插件详情时自动探测 GitHub 稳定版本，不做常驻轮询；只有发现更高版本，版本号旁才出现圆形上箭头。点击箭头展开来源提示，再明确确认后由 Harness 官方插件管理器安装固定提交。不会自动重启；若宿主提示需要重启，请在没有进行中任务时自行重启。从本地目录等来源安装的用户确认后将切换为 GitHub 来源。GitHub 推送本身不会替换已安装代码。
 - 语言跟随 **Harness 设置 → 通用设置 → 语言**；插件不另存语言偏好，也不翻译自定义昵称。
 
 ## 结构与开发

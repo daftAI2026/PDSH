@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 GitHub 公开 tags API 与浏览器 fetch；不发送凭据、不读取用户 profile。
  * [OUTPUT]: 提供唯一网络边界 loadReleaseTags，验证响应形状后交给 updater 选择版本。
- * [POS]: Client 更新来源适配器；更新决策不直接发请求，失败仅影响手动检查。
+ * [POS]: Client 更新来源适配器；更新决策不直接发请求，失败仅令本次自动探测不显示徽标。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { ReleaseTag } from './updater.ts';

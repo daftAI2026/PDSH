@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖slots/locale/configForms/官方remote.pluginManager、共享原生控件几何和独立控制器。
- * [OUTPUT]: 提供浏览器 apply/inject、设置页、搜索邻接入口、手动更新及可卸载显示增强。
- * [POS]: PDSH Client 装配层；视觉与更新控制器均跟随 Host namespace，不私建包安装通道。
+ * [OUTPUT]: 提供浏览器 apply/inject、设置页、版本旁更新徽标、搜索邻接入口及可卸载显示增强。
+ * [POS]: PDSH Client 装配层；更新探针与视觉控制器均跟随 Host namespace，不私建包安装通道。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useLayoutEffect, useRef } from 'react';
@@ -18,6 +18,7 @@ import css from './styles.css';
 import { NS, dictionaries } from '../shared/locales.ts';
 import { createUpdateController } from './updater.ts';
 import { loadReleaseTags } from './update-source.ts';
+import { UpdateBadge } from './update-badge.tsx';
 
 export const inject = ['slots', 'locale', 'configForms', 'remote', 'remote.pluginManager'];
 
@@ -102,13 +103,17 @@ export function apply(ctx) {
   // +--- Bundle 停用未必卸载 Client：显示资源也必须跟随 Host namespace ---+
   ctx.effect(() => ctx.configForms.whileServed(['pdsh'], () => {
     const display = mountDisplay(ctx, form);
-    let unregister;
+    const unregister = [];
     try {
-      unregister = ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
+      unregister.push(ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
         name: 'plugins.bundle.config', key: '@daftai/pdsh', locale: NS,
-        inject: () => ({ preferencesForm: form, presentation: display.presentation, updater: display.updater }),
-      }, SettingsCard));
-    } catch (error) { display.dispose(); throw error; }
-    return () => { try { unregister(); } finally { display.dispose(); } };
+        inject: () => ({ preferencesForm: form, presentation: display.presentation }),
+      }, SettingsCard)));
+      unregister.push(ctx.slots.inject('plugins.detail.badge', () => ctx.slots.register({
+        name: 'plugins.detail.badge', id: 'pdsh-update', locale: NS,
+        inject: () => ({ updater: display.updater, version: __PDSH_VERSION__ }),
+      }, UpdateBadge)));
+    } catch (error) { for (const off of unregister.reverse()) off(); display.dispose(); throw error; }
+    return () => { try { for (const off of unregister.reverse()) off(); } finally { display.dispose(); } };
   }), 'pdsh: served display and settings');
 }
