@@ -7,7 +7,7 @@
 
 # DSH 私密模式
 
-PDSH（Private DeepSeek Harness）是 DeepSeek Harness 的第三方插件。当前开发中的 **0.2.1 版本**提供侧栏显示遮挡、局部身份替换和 macOS Desktop 页面截图工作台，已发布版本锚点为 `v0.2.0`；`v0.2.1` 尚未发布。**它不创建隔离会话，也不是数据防泄露工具。**
+PDSH（Private DeepSeek Harness）是 DeepSeek Harness 的第三方插件。当前 **0.2.1 版本**提供侧栏显示遮挡、局部身份替换和 macOS Desktop 页面截图工作台，发布锚点为 `v0.2.1`。**它不创建隔离会话，也不是数据防泄露工具。**
 
 ## 功能
 
@@ -22,9 +22,9 @@ PDSH（Private DeepSeek Harness）是 DeepSeek Harness 的第三方插件。当�
 
 目标宿主：**DeepSeek Harness 0.1.7-rc.2**。侧栏入口和标题识别是该构建的 DOM 适配，不声明兼容其他版本。PDSH 不修改或重签官方应用。
 
-在 **插件 → 添加插件 → GitHub 仓库地址**中填入 `https://github.com/daftAI2026/PDSH`，建议固定 [`v0.2.0`](https://github.com/daftAI2026/PDSH/tree/v0.2.0) 对应提交；已安装的旧版可通过版本号旁的更新提示确认升级。安装第三方插件即运行其代码，请先审查来源与依赖。官方机制见[打包与安装指南](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish)。
+在 **插件 → 添加插件 → GitHub 仓库地址**中填入 `https://github.com/daftAI2026/PDSH`，建议固定 [`v0.2.1`](https://github.com/daftAI2026/PDSH/tree/v0.2.1) 对应提交；已安装的旧版可通过版本号旁的更新提示确认升级。安装第三方插件即运行其代码，请先审查来源与依赖。官方机制见[打包与安装指南](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish)。
 
-**截图兼容性状态：** `v0.2.0` 的系统截图路径并不等价于参考实验的页面取像。开发中的 `v0.2.1` 已改为渲染器内的全视口 DOM 栅格化，不要求屏幕录制权限或 CDP 启动参数；它不是 Electron 合成器的逐像素截图。安装后的 Desktop 工作台完整交互仍待验收，验收前不发布 `v0.2.1` 稳定 tag。生产使用前请先在独立 profile 验证；需要已验收的显示功能时可保留 `v0.1.1`。
+**截图兼容性状态：** `v0.2.0` 的系统截图路径并不等价于参考实验的页面取像。`v0.2.1` 已改为渲染器内的全视口 DOM 栅格化，不要求屏幕录制权限或 CDP 启动参数；它不是 Electron 合成器的逐像素截图。源码合同与浏览器样例取像已验证；安装后的 Desktop 工作台完整交互仍待验收。`v0.2.1` 带此已知限制发布，tag 不代表已完成桌面兼容验证。生产使用前请先在独立 profile 验证；需要已验收的显示功能时可保留 `v0.1.1`。
 
 - 搜索旁帽子：即时切换标题遮挡；相机：立即截取当前窗口并在截图完成后打开工作台。
 - **插件 → DSH 私密模式**：开关和“头像来源”选项即时保存；昵称勾选或 Enter 保存，Esc 放弃编辑。控件提示沿用桌面端 Tooltip 样式与交互。
