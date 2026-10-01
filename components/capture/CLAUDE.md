@@ -7,6 +7,6 @@
 - client.js.map: 生成产物到 TypeScript 的调试映射。
 - main.cjs: 内部 Main 原生取像桥，拍照组件启用后的首次点击加载，资源由组件生命周期归还。
 - plugin-icon.svg: Bundle 图稿的派生标识。
-- locale/: 包内翻译文件；rc.2 文件入口的官方行 metadata 不读取它，不能据此承诺停用时显示本地化名称。
+- locale/: 包内翻译文件；真实组件包公开 locale 子路径供官方行 metadata 离线读取，独立于组件启停。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

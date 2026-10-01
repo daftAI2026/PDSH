@@ -6,7 +6,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, readlinkSync, lstatSync } from 'node:fs';
 
 test('手写构建与发布脚本为TS；根目录JS只保留宿主生成入口', () => {
   const root = new URL('../', import.meta.url);
@@ -22,23 +22,31 @@ test('手写构建与发布脚本为TS；根目录JS只保留宿主生成入口'
 test('一个 Bundle 发布三个包内入口；身份兼容旧模块名和 namespace', () => {
   const root = new URL('../', import.meta.url);
   const manifest = JSON.parse(readFileSync(new URL('package.json', root), 'utf8'));
-  assert.equal(manifest.bundledDependencies, undefined);
+  assert.deepEqual(manifest.bundledDependencies, ['@daftai/pdsh-titles', '@daftai/pdsh-capture']);
   assert.ok(manifest.files.includes('components/'), '归档必须包含两个包内入口与其所有资源');
   for (const kind of ['titles', 'capture']) {
     const child = JSON.parse(readFileSync(new URL(`components/${kind}/package.json`, root), 'utf8'));
     assert.equal(child.name, `@daftai/pdsh-${kind}`);
     assert.equal(child.version, manifest.version);
-    assert.equal(manifest.dependencies[child.name], undefined, '包内组件不伪装成 profile 顶层依赖');
-    assert.ok(child.dsh.client, '就近 manifest 声明 Client 节点，不能使用未声明的根包子路径');
+    assert.equal(manifest.dependencies[child.name], `file:./components/${kind}`, '根 Bundle 声明真实传递依赖，不写 profile 顶层依赖');
+    assert.ok(child.dsh.client, '就近 manifest 声明 Client 节点，声明真实独立 Client table 身份');
     assert.match(readFileSync(new URL(`components/${kind}/client.js`, root), 'utf8'), new RegExp(child.name));
     for (const lang of ['zh', 'en']) assert.ok(JSON.parse(readFileSync(new URL(`components/${kind}/locale/${lang}.json`, root), 'utf8')).meta.title);
   }
   const patch = readFileSync(new URL('cordis.patch.yml', root), 'utf8');
-  for (const [id, module] of [['pdsh', '@daftai/pdsh'], ['pdsh-titles', './components/titles/index.js'], ['pdsh-capture', './components/capture/index.js']]) {
+  for (const [id, module] of [['pdsh', '@daftai/pdsh'], ['pdsh-titles', '@daftai/pdsh-titles'], ['pdsh-capture', '@daftai/pdsh-capture']]) {
     assert.match(patch, new RegExp(`id: ${id}\n +name: "${module}"`));
   }
 });
 test('只有拍照 Client 带编辑器离线壁纸，身份/标题不复制其重资产',()=>{
   for(const path of ['../client.js','../components/titles/client.js'])assert.doesNotMatch(readFileSync(new URL(path,import.meta.url),'utf8'),/data:image\/jpeg;base64,/);
   assert.match(readFileSync(new URL('../components/capture/client.js',import.meta.url),'utf8'),/data:image\/jpeg;base64,/);
+});
+
+test('Git 分发只使用两条已知包内自链接；与真实 bundled dependencies 同源', () => {
+  for (const kind of ['titles', 'capture']) {
+    const path = new URL(`../node_modules/@daftai/pdsh-${kind}`, import.meta.url);
+    assert.ok(lstatSync(path).isSymbolicLink());
+    assert.equal(readlinkSync(path), `../../components/${kind}`);
+  }
 });

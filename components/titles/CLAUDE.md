@@ -6,6 +6,6 @@
 - client.js: 同一装配器编译为 titles 功能；独立启停，按页面共享资源。
 - client.js.map: 生成产物到 TypeScript 的调试映射。
 - plugin-icon.svg: Bundle 图稿的派生标识。
-- locale/: 包内翻译文件；rc.2 文件入口的官方行 metadata 不读取它，不能据此承诺停用时显示本地化名称。
+- locale/: 包内翻译文件；真实组件包公开 locale 子路径供官方行 metadata 离线读取，独立于组件启停。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

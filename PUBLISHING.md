@@ -28,7 +28,7 @@ PDSH 的默认分发是 **GitHub 仓库中的 Harness bundle**。`package.json.v
 1. 修改 `package.json.version`，完成代码、翻译、文档和测试；不要手改生成的版本常量。
 2. `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm run bundle`；审查 `.tgz` 成员，确认没有凭据、profile、日志或私有研究资料；确认旧 native helper 和已退休的 DOM 栅格化依赖不再进入归档，实际分发依赖的许可完整。
 3. 在目标 Harness 版本的**独立 profile** 用官方插件管理器安装同一 Git 提交/归档，检查新会话标题、搜索与折叠、设置字段、更新入口、停用撤回；含截图的版本还须检查全视口侧栏展开/收起、原生像素与 DPR 保真、独立 webview/Platform 视图覆盖及失败恢复、相机位置、明暗主题、重拍/复制/保存与临时像素清理。DOM fixture、临时 Electron 窄桥和成功打包都不算安装件 Desktop 验收。
-4. 提交源码及预构建 `index.js`、`client.js`、`client.js.map`、`plugin-icon.svg`，以及 `components/` 内两个包内入口、就近 manifest、元信息和拍照 `main.cjs`。不提交 node_modules，不把内部组件声明成另行安装的依赖；同时验证 Git 固定 SHA 和 tarball：profile 只安装根 Bundle，三个 patch 行仍能从真正的 Host 加载入口解析，并分别发现 Client manifest；离线 locale 文件存在不等于官方行元信息发现。rc.2 的文件入口会回退到 module URL，须单独验收展示，不冒充本地化行名称。相对插入路径由 DSH 锚定在 Bundle patch 旁；仅从 Bundle 内解析子包不算通过。工作树清洁后运行 `pnpm release:check`，再用 `v$(node -p "require('./package.json').version")` 打带注释的 Git tag。脚本拒绝版本不符、文档未同步、旧 tag 指向其他提交、缺少嵌入版本或脏工作树。
+4. 提交源码及预构建 `index.js`、`client.js`、`client.js.map`、`plugin-icon.svg`，以及 `components/` 内两个包内入口、就近 manifest、元信息和拍照 `main.cjs`。不提交第三方 node_modules；仅提交两条 build-owned 自链接，使 Git 与 bundledDependencies 归档提供同一真实子包，不增加 profile 顶层安装条目；同时验证 Git 固定 SHA 和 tarball：profile 只安装根 Bundle，三个 patch 行仍能从真正的 Host 加载入口解析，并分别发现 Client manifest；真实子包必须同时公开 Host/Client/package.json/locale，官方 Bundle dependency closure 必须解析其传递依赖，官方 readPluginMeta 与 Loader 需同时验收。相对文件入口会绕过元信息读取，不能用于展示组件名称；仅文件存在或 Bundle 内解析子包不算通过。工作树清洁后运行 `pnpm release:check`，再用 `v$(node -p "require('./package.json').version")` 打带注释的 Git tag。脚本拒绝版本不符、文档未同步、旧 tag 指向其他提交、缺少嵌入版本或脏工作树。
 5. 推送提交与 **明确的 tag**；不要只推 `main` 并假设已安装插件会自动更新。发布说明可以写在 tag 信息或另建 GitHub Release，但不重复维护版本号。
 
 插件详情的 `plugins.detail.badge` 槽位挂载时自动探测 GitHub 稳定 `vX.Y.Z` tag，并校验目标提交 SHA；没有更高版本就不显示入口。点击版本旁上箭头只展开来源提示，用户再次确认才经 Harness 官方 `pluginManager.installBundle` 安装固定提交。不会常驻轮询、自行重启或写偏好。安装成功是否立即应用由宿主返回值决定；若提示需重启，用户自行选时机。**从本地目录/npm 安装的用户确认更新后会切换为 GitHub 来源**，展开确认区必须明示。
@@ -42,3 +42,5 @@ PDSH 的默认分发是 **GitHub 仓库中的 Harness bundle**。`package.json.v
 ## npm 不是默认发布
 
 只有明确决定支持 npm 渠道并确认 `@daftai` scope 权限后，才单独审阅 `private: true` 的解除、公开许可和归档内容，再建立可信发布工作流。Git tag 和 GitHub 安装不要求 npm 包或 npm token。
+
+RC8 当前安装闸门：真实子包由一个 Bundle 携带，经官方传递依赖解析同时进入 Host、Client graph 与展示元信息。Git 分发只跟踪两条指回 components 的自链接，不跟踪第三方依赖。`pnpm run bundle` 显式使用支持 bundledDependencies 的 pack 模式，归档不得包含指向其他条目的 hardlink。替换旧相对文件入口前，必须核对本 profile 的组件覆盖行是否携带旧 file URL 名称断言；这种覆盖尚无自动迁移，不得直接升级并宣称兼容。只有 id 的覆盖与带名称的覆盖必须分别测试。取像桥的 Main 首次入口仍未解决，不允许据组件名修复打正式 tag。

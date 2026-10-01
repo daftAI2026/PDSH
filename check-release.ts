@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖根唯一版本、Git 工作树和 build.ts 的三个入口及 Bundle 内相对加载路径。
+ * [INPUT]: 依赖根唯一版本、Git 工作树和 build.ts 的三个入口及 真实子包加载/元信息与分发自链接。
  * [OUTPUT]: 校验 tag/三包版本、生成入口完整及 patch 加载路径，拒绝脏发布树。
  * [POS]: 发布前防漂移门；不自行推送、打 tag、发布 npm 或修改任何版本号。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
-const manifest = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string; files?: string[] };
+const manifest = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string; files?: string[]; dependencies?: Record<string, string>; bundledDependencies?: string[] };
 if (!manifest.files?.includes('components/')) throw new Error('archive component membership missing');
 const expected = `v${manifest.version}`;
 const tag = process.argv[2] ?? expected;
@@ -17,6 +17,8 @@ const client = readFileSync(new URL('./client.js', import.meta.url), 'utf8');
 if (!client.includes(JSON.stringify(manifest.version))) throw new Error('client.js does not embed the package version; rebuild');
 // +--- 一个 Bundle 的三个真实入口必须同时完整，不能只验证根 Client ---+
 for (const kind of ['titles', 'capture']) {
+  const name = `@daftai/pdsh-${kind}`;
+  if (manifest.dependencies?.[name] !== `file:./components/${kind}` || !manifest.bundledDependencies?.includes(name)) throw new Error(`${kind} component dependency drift`);
   const base = new URL(`./components/${kind}/`, import.meta.url);
   const child = JSON.parse(readFileSync(new URL('package.json', base), 'utf8'));
   if (child.name !== `@daftai/pdsh-${kind}` || child.version !== manifest.version) throw new Error(`${kind} package version/name drift; rebuild`);
@@ -25,7 +27,7 @@ for (const kind of ['titles', 'capture']) {
   }
   if (!readFileSync(new URL('client.js', base), 'utf8').includes(JSON.stringify(manifest.version))) throw new Error(`${kind} Client version drift; rebuild`);
   const patch = readFileSync(new URL('./cordis.patch.yml', import.meta.url), 'utf8');
-  if (!patch.includes(`id: pdsh-${kind}\n      name: "./components/${kind}/index.js"`)) throw new Error(`${kind} profile loading path drift`);
+  if (!patch.includes(`id: pdsh-${kind}\n      name: "@daftai/pdsh-${kind}"`)) throw new Error(`${kind} profile loading path drift`);
 }
 const readme = readFileSync(new URL('./README.md', import.meta.url), 'utf8');
 const guide = readFileSync(new URL('./AGENTS.md', import.meta.url), 'utf8');

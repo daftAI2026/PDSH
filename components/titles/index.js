@@ -9,10 +9,11 @@
 import z from "@deepseek-ai/schemastery";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 function ownsModule(specifier) {
   try {
-    const url = new URL(specifier);
-    return url.protocol === "file:" && realpathSync(fileURLToPath(url)) === realpathSync(fileURLToPath(import.meta.url));
+    const path = specifier === "@daftai/pdsh-titles" ? createRequire(import.meta.url).resolve(specifier) : fileURLToPath(new URL(specifier));
+    return realpathSync(path) === realpathSync(fileURLToPath(import.meta.url));
   } catch {
     return false;
   }

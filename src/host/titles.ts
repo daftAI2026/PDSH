@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 Schemastery、Node 文件 URL/realpath 与官方合成配置及 revision 围栏；规范化 symlink 后核对模块所有权。
+ * [INPUT]: 依赖 Schemastery、Node 包解析/文件 URL/realpath 与官方合成配置及 revision 围栏；规范化 symlink 后核对模块所有权。
  * [OUTPUT]: 提供独立标题 Config/apply；新字段未配置时继承旧 pdsh.maskTitles，原配置不删除。
  * [POS]: 标题运行时所有者；旧身份停用也不影响该 namespace，迁移不覆盖用户已设置的新值。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -7,10 +7,14 @@
 import z from '@deepseek-ai/schemastery';
 import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 function ownsModule(specifier) {
   try {
-    const url = new URL(specifier);
-    return url.protocol === 'file:' && realpathSync(fileURLToPath(url)) === realpathSync(fileURLToPath(import.meta.url));
+    // +--- 真实包名与旧锚定 URL 都必须落到当前真实模块，名称本身不是所有权证据 ---+
+    const path = specifier === '@daftai/pdsh-titles'
+      ? createRequire(import.meta.url).resolve(specifier)
+      : fileURLToPath(new URL(specifier));
+    return realpathSync(path) === realpathSync(fileURLToPath(import.meta.url));
   } catch { return false; }
 }
 export const name = 'pdsh-titles';

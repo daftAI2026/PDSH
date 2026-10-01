@@ -2,6 +2,6 @@
     - id: pdsh
       name: "@daftai/pdsh"
     - id: pdsh-titles
-      name: "./components/titles/index.js"
+      name: "@daftai/pdsh-titles"
     - id: pdsh-capture
-      name: "./components/capture/index.js"
+      name: "@daftai/pdsh-capture"

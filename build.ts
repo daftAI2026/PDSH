@@ -5,7 +5,7 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { build } from 'esbuild';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, lstat, readlink, unlink, symlink } from 'node:fs/promises';
 import { COMPONENTS, type ComponentKind } from './src/shared/components.ts';
 const manifest = JSON.parse(await readFile(new URL('./package.json', import.meta.url), 'utf8'));
 const { version } = manifest;
@@ -17,7 +17,7 @@ await writeFile('plugin-icon.svg', icon);
 const titles = { titles: { zh: '侧栏标题遮挡', en: 'Sidebar Title Masking' }, capture: { zh: '窗口拍照', en: 'Window Capture' } };
 const descriptions = { titles: { zh: '遮挡侧栏标题；独立启停，不影响拍照临时遮挡。', en: 'Mask sidebar titles independently of capture-time redaction.' }, capture: { zh: '截取当前 DSH 页面并在本地编辑。', en: 'Capture the current DSH page and edit it locally.' } };
 await mkdir('components', { recursive: true });
-await writeFile('components/CLAUDE.md', `# components/\n> L2 | 父级: ../CLAUDE.md\n\n- titles/: 包内标题入口；构建派生 manifest/Host/Client/locale，相对 patch 路径直接加载，不独立安装/发布。\n- capture/: 包内拍照入口；桥属于其内部生命周期，不要求身份和标题开启。\n\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n`);
+await writeFile('components/CLAUDE.md', `# components/\n> L2 | 父级: ../CLAUDE.md\n\n- titles/: 包内标题入口；构建派生 manifest/Host/Client/locale，真实包名由官方 Bundle 传递依赖解析，同时发现 Host/Client/元信息，不独立安装/发布。\n- capture/: 包内拍照入口；桥属于其内部生命周期，不要求身份和标题开启。\n\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n`);
 for (const kind of Object.keys(COMPONENTS) as ComponentKind[]) {
   const definition = COMPONENTS[kind], directory = kind === 'identity' ? '.' : `components/${kind}`;
   const source = kind === 'identity' ? 'index' : kind;
@@ -30,7 +30,7 @@ for (const kind of Object.keys(COMPONENTS) as ComponentKind[]) {
     await writeFile(`${directory}/package.json`, `${JSON.stringify(child, null, 2)}\n`);
     await writeFile(`${directory}/plugin-icon.svg`, icon);
     for (const language of ['zh', 'en']) await writeFile(`${directory}/locale/${language}.json`, `${JSON.stringify({ meta: { title: titles[kind][language], description: descriptions[kind][language] } }, null, 2)}\n`);
-    await writeFile(`${directory}/CLAUDE.md`, `# components/${kind}/\n> L2 | 父级: ../CLAUDE.md\n\n- package.json: Host 文件的就近 Client/离线元信息归属；版本仅由根 manifest 派生。\n- index.js: src/host/${source}.ts 的生成 Host 配置与生命周期。\n- client.js: 同一装配器编译为 ${kind} 功能；独立启停，按页面共享资源。\n- client.js.map: 生成产物到 TypeScript 的调试映射。\n${kind === 'capture' ? '- main.cjs: 内部 Main 原生取像桥，拍照组件启用后的首次点击加载，资源由组件生命周期归还。\n' : ''}- plugin-icon.svg: Bundle 图稿的派生标识。\n- locale/: 包内翻译文件；rc.2 文件入口的官方行 metadata 不读取它，不能据此承诺停用时显示本地化名称。\n\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n`);
+    await writeFile(`${directory}/CLAUDE.md`, `# components/${kind}/\n> L2 | 父级: ../CLAUDE.md\n\n- package.json: Host 文件的就近 Client/离线元信息归属；版本仅由根 manifest 派生。\n- index.js: src/host/${source}.ts 的生成 Host 配置与生命周期。\n- client.js: 同一装配器编译为 ${kind} 功能；独立启停，按页面共享资源。\n- client.js.map: 生成产物到 TypeScript 的调试映射。\n${kind === 'capture' ? '- main.cjs: 内部 Main 原生取像桥，拍照组件启用后的首次点击加载，资源由组件生命周期归还。\n' : ''}- plugin-icon.svg: Bundle 图稿的派生标识。\n- locale/: 包内翻译文件；真实组件包公开 locale 子路径供官方行 metadata 离线读取，独立于组件启停。\n\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n`);
     await writeFile(`${directory}/locale/CLAUDE.md`, `# components/${kind}/locale/\n> L2 | 父级: ../CLAUDE.md\n\n- zh.json: 中文组件元信息，由 build.ts 生成。\n- en.json: 英文组件元信息，由 build.ts 生成。\n\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n`);
   }
   if (kind === 'capture') await build({ entryPoints: ['src/host/page-capture-main.ts'], outfile: `${directory}/main.cjs`, bundle: true,
@@ -46,4 +46,20 @@ for (const kind of Object.keys(COMPONENTS) as ComponentKind[]) {
     external: ['react', 'react/jsx-runtime', 'react-dom/client', '@deepseek-ai/dsh-client-ui-primitives'],
     banner: { js: `/**\n * [INPUT]: 依赖 src/client/client-entry.tsx 与宿主 module table，由 build.ts 生成。\n * [OUTPUT]: 提供 ${definition.module} 的 lazy factory。\n * [POS]: ${kind} 独立 Client 入口，不手工修改。\n * ${protocol}\n */\nwindow.__ModuleLoader__.load({id:${JSON.stringify(definition.module)},factory:(require)=>{var module={exports:{}};var exports=module.exports;` },
     footer: { js: 'return module.exports;}});' } });
+}
+
+// +--- Git 与归档共享两条包内自链接；不提交第三方依赖，不改其他 node_modules 成员 ---+
+await mkdir('node_modules/@daftai', { recursive: true });
+for (const kind of ['titles', 'capture']) {
+  const link = `node_modules/@daftai/pdsh-${kind}`, target = `../../components/${kind}`;
+  const existing = await lstat(link).catch(error => { if (error.code === 'ENOENT') return; throw error; });
+  if (existing) {
+    if (!existing.isSymbolicLink()) throw new Error(`PDSH component link is not an owned symlink: ${kind}`);
+    const previous = await readlink(link);
+    if (previous === target) continue;
+    const pnpmOwned = previous === `../.pnpm/@daftai+pdsh-${kind}@file+components+${kind}/node_modules/@daftai/pdsh-${kind}`;
+    if (!pnpmOwned) throw new Error(`PDSH component link has an unknown owner: ${kind}`);
+    await unlink(link);
+  }
+  await symlink(target, link);
 }

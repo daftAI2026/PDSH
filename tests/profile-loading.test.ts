@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖真实 Bundle patch/生成入口与隔离 profile；锚定规则对应 DSH rc.2 app-boot 的 anchorInsertedPluginNames。
- * [OUTPUT]: 验证 profile-root 解析模型与生成 Host；就近 manifest/locale 文件存在不代表官方展示元信息已发现。
- * [POS]: 安装边界回归；故意不给 profile 安装子包，禁止用根 Bundle 的 require 代替宿主入口。
+ * [OUTPUT]: 验证 Node 普通解析缺口与 Bundle 自包含 Host；真实子包同时解析组件 manifest/locale/client；官方展示仍需 exact Host 与 Desktop 验证。
+ * [POS]: 安装边界回归；故意不给 profile 安装子包，Bundle 本地验证不代替官方 runtime interception/Client graph 验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
@@ -27,14 +27,14 @@ function fixture() {
   return { profile, root: join(profile, 'node_modules/@daftai/pdsh'), require, dispose: () => rmSync(profile, { recursive: true, force: true }) };
 }
 
-test('链接 profile 的解析模型可导入三生成 Host；Client manifest 文件完整', async () => {
+test('Bundle 自包含三生成 Host 与 Client manifest；不假称 profile 原生解析已支持', async () => {
   const h = fixture();
   try {
     for (const row of entries(readFileSync(join(h.root, 'cordis.patch.yml'), 'utf8'))) {
       // 相对插入路径由 app-boot 在读 patch 时锚定；裸名称保持字面值，从 profile 加载。
       const moduleUrl = row.name.startsWith('.')
         ? new URL(row.name, pathToFileURL(join(h.root, 'cordis.patch.yml')))
-        : pathToFileURL(h.require.resolve(row.name));
+        : pathToFileURL((row.id === 'pdsh' ? h.require : createRequire(join(h.root, 'package.json'))).resolve(row.name));
       const host = await import(moduleUrl.href);
       assert.equal(typeof host.apply, 'function', `${row.id} Host 未加载`);
       if (row.id === 'pdsh-titles') {
@@ -43,11 +43,11 @@ test('链接 profile 的解析模型可导入三生成 Host；Client manifest �
           root: { loader: { await: async () => {} } },
           configEditor: { configuration: () => [
             { entry: { options: { id: 'pdsh', name: '@daftai/pdsh', config: { maskTitles: true } } } },
-            { entry: { options: { id: row.id, name: moduleUrl.href, config: {} } } },
+            { entry: { options: { id: row.id, name: row.name, config: {} } } },
           ] },
           settings: { describe: () => [{ ns: row.id, revision: 1 }], async mutate(...args) { mutations.push(args); } },
         });
-        assert.deepEqual(mutations, [[row.id, [{ op: 'set', path: ['maskTitles'], value: true }], 1]], 'symlink 锚定 URL 也必须归属同一生成 Host');
+        assert.deepEqual(mutations, [[row.id, [{ op: 'set', path: ['maskTitles'], value: true }], 1]], '真实包名经 symlink 也必须归属同一生成 Host');
       }
       const owner = dirname(fileURLToPath(moduleUrl));
       const manifest = JSON.parse(readFileSync(join(owner, 'package.json'), 'utf8'));
@@ -67,6 +67,35 @@ test('坏入口正例：未安装的裸子包从 profile 确实失败', () => {
     assert.ok(bundle.resolve('@deepseek-ai/schemastery'), 'Bundle 普通依赖仍按自身位置解析');
     for (const name of ['@daftai/pdsh-titles', '@daftai/pdsh-capture']) {
       assert.throws(() => h.require.resolve(name), { code: 'MODULE_NOT_FOUND' });
+    }
+  } finally { h.dispose(); }
+});
+
+
+test('三组件用真实包名同时满足 Client 与名称元信息发现，不回退文件地址', () => {
+  const h = fixture();
+  try {
+    const rows = entries(readFileSync(join(h.root, 'cordis.patch.yml'), 'utf8'));
+    for (const [id, specifier, title] of [
+      ['pdsh-titles', '@daftai/pdsh-titles', '侧栏标题遮挡'],
+      ['pdsh-capture', '@daftai/pdsh-capture', '窗口拍照'],
+    ]) {
+      assert.equal(rows.find(row => row.id === id)?.name, specifier);
+      const rootManifest = JSON.parse(readFileSync(join(h.root, 'package.json'), 'utf8'));
+      const kind = id === 'pdsh-titles' ? 'titles' : 'capture';
+      assert.equal(rootManifest.dependencies[specifier], `file:./components/${kind}`);
+      assert.ok(rootManifest.bundledDependencies.includes(specifier));
+      const bundleRequire = createRequire(join(h.root, 'package.json'));
+      const manifestPath = bundleRequire.resolve(`${specifier}/package.json`);
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+      for (const language of ['zh', 'en']) {
+        const meta = JSON.parse(readFileSync(bundleRequire.resolve(`${specifier}/locale/${language}.json`), 'utf8')).meta;
+        assert.ok(meta.title); assert.ok(meta.description);
+        if (language === 'zh') assert.equal(meta.title, title);
+      }
+      assert.ok(readFileSync(join(dirname(manifestPath), manifest.icon), 'utf8').includes('<svg'));
+      assert.equal(bundleRequire.resolve(specifier), join(dirname(manifestPath), 'index.js'));
+      assert.equal(bundleRequire.resolve(`${specifier}/client`), join(dirname(manifestPath), 'client.js'));
     }
   } finally { h.dispose(); }
 });
