@@ -1,27 +1,49 @@
 /**
- * [INPUT]: 依赖 esbuild、src/ 的 TypeScript 入口与来源账色板；共享库由宿主解析。
- * [OUTPUT]: 生成 Host index.js、lazy-CJS client.js/映射及 plugin-icon.svg。
- * [POS]: PDSH 唯一构建边界；源码保持 TypeScript，安装包保留宿主所需 JavaScript。
+ * [INPUT]: 依赖 esbuild、三个 Host 入口、同一 Client 装配器与根 manifest 唯一版本；共享库由宿主解析。
+ * [OUTPUT]: 生成根身份入口、components/ 标题/拍照入口及就近 manifest、locale、图标和包内 Main 桥。
+ * [POS]: 唯一构建和 Bundle 分发边界；保留旧身份模块名，三个功能分别进入官方 Loader。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { build } from 'esbuild';
-import { readFile, writeFile } from 'node:fs/promises';
-const { name, version } = JSON.parse(await readFile(new URL('./package.json', import.meta.url), 'utf8')) as { name: string; version: string };
-const { artwork } = JSON.parse(await readFile(new URL('./style-sources.json', import.meta.url), 'utf8')) as { artwork: { foreground: { value: string }; background: { value: string } } };
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { COMPONENTS, type ComponentKind } from './src/shared/components.ts';
+const manifest = JSON.parse(await readFile(new URL('./package.json', import.meta.url), 'utf8'));
+const { version } = manifest;
+const { artwork } = JSON.parse(await readFile(new URL('./style-sources.json', import.meta.url), 'utf8'));
 const glyph = (await readFile(new URL('./src/client/entry-icon.svg', import.meta.url), 'utf8')).replace(/<!--[\s\S]*?-->\s*/, '');
-// 独立img不能读取宿主变量：只给包标识加固定明底，不冻结侧栏入口颜色。
-const icon = glyph.replace('stroke="currentColor"', `stroke="${artwork.foreground.value}"`).replace(/(<svg[^>]*>)/, `$1\n  <rect width="100%" height="100%" fill="${artwork.background.value}" stroke="none"/>`);
-await writeFile(new URL('./plugin-icon.svg', import.meta.url), `<!--\n[INPUT]: 依赖 src/client/entry-icon.svg 图形和 style-sources.json 图稿色板，由 build.ts 生成。\n[OUTPUT]: 提供 package.json.icon 的自包含帽子眼镜图稿。\n[POS]: PDSH 官方包标识资产，不手工修改。\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n-->\n${icon}`);
-await build({
-  entryPoints: ['src/host/index.ts'], outfile: 'index.js', bundle: true, format: 'esm', platform: 'node',
-  target: 'es2022', external: ['@deepseek-ai/schemastery', 'blobatar/uri'],
-  banner: { js: `/**\n * [INPUT]: 依赖 src/host/index.ts，由 build.ts 生成。\n * [OUTPUT]: 提供 Cordis Host 的 Config/name/apply。\n * [POS]: PDSH 安装入口；TypeScript 源码是唯一手写实现。\n * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n */` },
-});
-await build({
-  entryPoints: ['src/client/client-entry.tsx'], outfile: 'client.js', bundle: true, format: 'cjs', platform: 'browser',
-  target: 'es2022', sourcemap: true, minify: true, loader: { '.css': 'text', '.svg': 'text', '.jpg': 'dataurl' },
-  define: { __PDSH_VERSION__: JSON.stringify(version) },
-  external: ['react', 'react/jsx-runtime', 'react-dom/client', '@deepseek-ai/dsh-client-ui-primitives'],
-  banner: { js: `/**\n * [INPUT]: 依赖 src/client/client-entry.tsx 及宿主共享 module table；由 build.ts 生成。\n * [OUTPUT]: 提供 @daftai/pdsh 的浏览器 lazy factory，不手工修改此产物。\n * [POS]: PDSH 安装入口；提交预构建产物，使 Git/目录安装不需要运行构建脚本。\n * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n */\nwindow.__ModuleLoader__.load({id:${JSON.stringify(name)},factory:(require)=>{var module={exports:{}};var exports=module.exports;` },
-  footer: { js: 'return module.exports;}});' },
-});
+// +--- 独立 img 不能继承宿主变量：仅固化包标识前景，不添加背景 ---+
+const icon = `<!--\n[INPUT]: 依赖 src/client/entry-icon.svg 和 style-sources.json，由 build.ts 生成。\n[OUTPUT]: 提供透明底帽子眼镜图稿。\n[POS]: Bundle 及组件标识，不手工修改。\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n-->\n${glyph.replace('stroke="currentColor"', `stroke="${artwork.foreground.value}"`)}`;
+await writeFile('plugin-icon.svg', icon);
+const titles = { titles: { zh: '侧栏标题遮挡', en: 'Sidebar Title Masking' }, capture: { zh: '窗口拍照', en: 'Window Capture' } };
+const descriptions = { titles: { zh: '遮挡侧栏标题；独立启停，不影响拍照临时遮挡。', en: 'Mask sidebar titles independently of capture-time redaction.' }, capture: { zh: '截取当前 DSH 页面并在本地编辑。', en: 'Capture the current DSH page and edit it locally.' } };
+await mkdir('components', { recursive: true });
+await writeFile('components/CLAUDE.md', `# components/\n> L2 | 父级: ../CLAUDE.md\n\n- titles/: 包内标题入口；构建派生 manifest/Host/Client/locale，相对 patch 路径直接加载，不独立安装/发布。\n- capture/: 包内拍照入口；桥属于其内部生命周期，不要求身份和标题开启。\n\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n`);
+for (const kind of Object.keys(COMPONENTS) as ComponentKind[]) {
+  const definition = COMPONENTS[kind], directory = kind === 'identity' ? '.' : `components/${kind}`;
+  const source = kind === 'identity' ? 'index' : kind;
+  if (kind !== 'identity') {
+    await mkdir(`${directory}/locale`, { recursive: true });
+    const child = { name: definition.module, version, private: true, type: 'module', main: './index.js',
+      files: ['index.js', 'client.js', 'client.js.map', 'plugin-icon.svg', 'locale/*.json', ...(kind === 'capture' ? ['main.cjs'] : [])],
+      exports: { '.': './index.js', './client': './client.js', './package.json': './package.json', './locale/*.json': './locale/*.json' },
+      dsh: { client: manifest.dsh.client }, license: manifest.license, icon: './plugin-icon.svg' };
+    await writeFile(`${directory}/package.json`, `${JSON.stringify(child, null, 2)}\n`);
+    await writeFile(`${directory}/plugin-icon.svg`, icon);
+    for (const language of ['zh', 'en']) await writeFile(`${directory}/locale/${language}.json`, `${JSON.stringify({ meta: { title: titles[kind][language], description: descriptions[kind][language] } }, null, 2)}\n`);
+    await writeFile(`${directory}/CLAUDE.md`, `# components/${kind}/\n> L2 | 父级: ../CLAUDE.md\n\n- package.json: Host 文件的就近 Client/离线元信息归属；版本仅由根 manifest 派生。\n- index.js: src/host/${source}.ts 的生成 Host 配置与生命周期。\n- client.js: 同一装配器编译为 ${kind} 功能；独立启停，按页面共享资源。\n- client.js.map: 生成产物到 TypeScript 的调试映射。\n${kind === 'capture' ? '- main.cjs: 内部 Main 原生取像桥，拍照组件启用后的首次点击加载，资源由组件生命周期归还。\n' : ''}- plugin-icon.svg: Bundle 图稿的派生标识。\n- locale/: 包内翻译文件；rc.2 文件入口的官方行 metadata 不读取它，不能据此承诺停用时显示本地化名称。\n\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n`);
+    await writeFile(`${directory}/locale/CLAUDE.md`, `# components/${kind}/locale/\n> L2 | 父级: ../CLAUDE.md\n\n- zh.json: 中文组件元信息，由 build.ts 生成。\n- en.json: 英文组件元信息，由 build.ts 生成。\n\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n`);
+  }
+  if (kind === 'capture') await build({ entryPoints: ['src/host/page-capture-main.ts'], outfile: `${directory}/main.cjs`, bundle: true,
+    format: 'cjs', platform: 'node', target: 'es2022',
+    banner: { js: '/** [INPUT]: src/host/page-capture-main.ts，由 build.ts 生成。\n * [OUTPUT]: Main startMainBridge；像素只交付原页面。\n * [POS]: 拍照包内部非视觉桥，不手工修改。\n * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n */' } });
+  const protocol = '[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md';
+  await build({ entryPoints: [`src/host/${source}.ts`], outfile: `${directory}/index.js`, bundle: true, format: 'esm', platform: 'node',
+    target: 'es2022', external: ['@deepseek-ai/schemastery', 'blobatar/uri'],
+    banner: { js: `/**\n * [INPUT]: 依赖 src/host/${source}.ts，由 build.ts 生成。\n * [OUTPUT]: 提供 ${definition.module} 的 Config/name/apply。\n * [POS]: ${kind} Host 入口，不手工修改。\n * ${protocol}\n */` } });
+  await build({ entryPoints: ['src/client/client-entry.tsx'], outfile: `${directory}/client.js`, bundle: true, format: 'cjs', platform: 'browser',
+    target: 'es2022', sourcemap: true, minify: true, loader: { '.css': 'text', '.svg': 'text', '.jpg': 'dataurl' },
+    define: { __PDSH_VERSION__: JSON.stringify(version), __PDSH_COMPONENT__: JSON.stringify(kind) },
+    external: ['react', 'react/jsx-runtime', 'react-dom/client', '@deepseek-ai/dsh-client-ui-primitives'],
+    banner: { js: `/**\n * [INPUT]: 依赖 src/client/client-entry.tsx 与宿主 module table，由 build.ts 生成。\n * [OUTPUT]: 提供 ${definition.module} 的 lazy factory。\n * [POS]: ${kind} 独立 Client 入口，不手工修改。\n * ${protocol}\n */\nwindow.__ModuleLoader__.load({id:${JSON.stringify(definition.module)},factory:(require)=>{var module={exports:{}};var exports=module.exports;` },
+    footer: { js: 'return module.exports;}});' } });
+}

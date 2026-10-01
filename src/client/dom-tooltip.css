@@ -1,16 +1,16 @@
 /**
- * [INPUT]: 依赖 DSH Tooltip.module.css 的 bubble 参数及 ui-theme 的 tooltip 语义 token。
+ * [INPUT]: 依赖真实 Host Tooltip 的实时计算参数及 ui-theme 的 tooltip 语义 token。
  * [OUTPUT]: 为非 React 侧栏/工作台控件提供与宿主底色、字号、圆角、portal 层级一致的提示泡。
  * [POS]: dom-tooltip.ts 的视觉边界；React 控件仍直接使用官方 Tooltip。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 .pdsh-native-tooltip {
-  position: fixed; z-index: 1100; display: inline-flex; align-items: center;
-  width: max-content; max-width: 50vw; padding: 3px 7px;
+  position: fixed; z-index: var(--pdsh-tooltip-layer); display: inline-flex; align-items: center;
+  width: max-content; max-width: var(--pdsh-tooltip-max-width); padding: var(--pdsh-tooltip-padding);
   border-radius: var(--dsw-radius-sm); background: var(--dsw-alias-tooltip-bg);
   color: var(--dsw-static-neutral-bluish-00); font: var(--dsw-font-xs-13);
   white-space: pre-line; overflow-wrap: break-word; pointer-events: none;
-  animation: pdsh-tooltip-in 150ms var(--ds-ease-in-out);
+  animation: pdsh-tooltip-in var(--pdsh-tooltip-duration) var(--pdsh-tooltip-ease);
 }
 .pdsh-native-tooltip[data-side="bottom"] { transform: translateX(-50%); }
 .pdsh-native-tooltip[data-side="top"] { transform: translate(-50%, -100%); }

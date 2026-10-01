@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 无外部依赖，使用本地 SVG 路径与调用方指定的图标语义
- * [OUTPUT]: 提供 CaptureIconName 与 captureIcon，尺寸由消费方的 工作台局部尺寸 token 控制
+ * [OUTPUT]: 提供 CaptureIconName 与 captureIcon，尺寸、描边和根透明度由消费方的实时原生图标探针控制
  * [POS]: Shot 图标资源边界，为视图和背景动作提供统一 SVG
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -90,6 +90,6 @@ const ICON_BODY: Record<CaptureIconName, string> = {
     '<circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /><line x1="8" x2="14" y1="11" y2="11" />',
 };
 
-export function captureIcon(name: CaptureIconName, size = 16): string {
-  return `<svg data-capture-icon="${name}" xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICON_BODY[name]}</svg>`;
+export function captureIcon(name: CaptureIconName): string {
+  return `<svg data-capture-icon="${name}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICON_BODY[name]}</svg>`;
 }

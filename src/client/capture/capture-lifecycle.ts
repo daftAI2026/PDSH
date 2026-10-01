@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 截图适配器、候选收集器与帧等待能力
- * [OUTPUT]: 串行截图、偏好先读与临时隐藏状态恢复流程
+ * [OUTPUT]: 串行截图、共用 30 秒取像预算、偏好先读与临时隐藏状态恢复流程
  * [POS]: Shot 截图时序边界，在成功/失败/超时后撤销临时样式
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -33,7 +33,7 @@ export type CapturePreparedWindowOptions<T> = {
   waitForFrame: () => Promise<void>;
 };
 
-const CAPTURE_TIMEOUT_MS = 10_000;
+export const CAPTURE_TIMEOUT_MS = 30_000;
 let captureInFlight = false;
 
 export type PrepareCaptureWindowOptions<T, P extends { privacyEnabled: boolean }> = {

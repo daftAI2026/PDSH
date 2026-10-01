@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 view.ts 输出的 capture-window DOM、DSH 主题 token 与原生字段间距探针
- * [OUTPUT]: 对外提供截图模态框、背景语义分层、工具栏、画布、检查器与隐私捕获态样式；外壳底色只绘制一次，仅窗口尺寸放大，控件密度不变，位图尺寸服从 fitted frame，滑块装饰刻度复用主题前景与间距
+ * [INPUT]: 依赖 view.ts 输出的 capture-window DOM、DSH 主题/动画 token 与实时原生 Button/Switch/图标/字段样式探针
+ * [OUTPUT]: 工作台、画布、检查器与头像拍摄占位；标题临时灰条由 ../styles.css 统一绘制，外壳底色只绘制一次，窗口放大不改变控件密度。
  * [POS]: capture-window 的视觉契约，和 color-popover.css 分工维护主编辑器与浮层样式
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -32,14 +32,14 @@
   --pdsh-capture-font-base: var(--dsw-font-s-14-font-size);
   --pdsh-capture-font-sm: var(--dsw-font-xs-13-font-size);
   --pdsh-capture-font-xs: var(--dsw-font-xxs-12-font-size);
-  --pdsh-capture-icon-sm: calc(var(--pdsh-capture-space) * 3.5);
-  --pdsh-capture-icon-base: calc(var(--pdsh-capture-space) * 4);
+  --pdsh-capture-icon-sm: var(--pdsh-native-icon-size);
+  --pdsh-capture-icon-base: var(--pdsh-native-icon-size);
   --pdsh-capture-radius-sm: var(--dsw-radius-sm);
   --pdsh-capture-radius-md: var(--dsw-radius-md);
   --pdsh-capture-radius-lg: var(--dsw-radius-lg);
   --pdsh-capture-radius-xl: var(--dsw-radius-xl);
   --pdsh-capture-radius-2xl: var(--dsw-radius-panel);
-  --pdsh-capture-radius-dialog: var(--dsw-radius-xl);
+  --pdsh-capture-radius-dialog: var(--dsw-radius-panel);
   --pdsh-capture-shadow: var(--dsw-elevation-prominent);
   --pdsh-capture-control-height: var(--pdsh-action-size);
   --pdsh-capture-toolbar-height: calc(var(--pdsh-action-size) + var(--pdsh-field-gap));
@@ -47,6 +47,13 @@
   --pdsh-capture-ease: var(--ds-ease-in-out);
   color: var(--pdsh-capture-text);
   font-family: var(--dsw-font-family);
+}
+
+/* 24 是图稿坐标系；笔触密度与根透明度来自真实 Host SVG。 */
+[data-pdsh-capture] [data-capture-icon] {
+  width: var(--pdsh-native-icon-size); height: var(--pdsh-native-icon-size);
+  stroke-width: calc(24 * var(--pdsh-native-icon-stroke-ratio));
+  opacity: var(--pdsh-native-icon-opacity);
 }
 
 [data-pdsh-capture] *,
@@ -64,58 +71,9 @@ html.pdsh-capturing [data-pdsh-capture-hide] * {
   visibility: hidden !important;
 }
 
-html.pdsh-capture-redact [data-pdsh-capture-redact] {
-  position: relative;
-  transition: none !important;
-  visibility: hidden !important;
-}
-
-html.pdsh-capture-redact [data-pdsh-capture-redact] * {
-  transition: none !important;
-  visibility: inherit !important;
-}
-
-html.pdsh-capture-redact [data-pdsh-capture-redact]::after {
-  background: var(--dsw-alias-bg-skeleton);
-  border-radius: 9999px;
-  content: "";
-  height: .55em;
-  inset: 50% auto auto 0;
-  position: absolute;
-  transform: translateY(-50%);
-  visibility: visible;
-  width: 62%;
-}
-
 html.pdsh-capture-redact [data-pdsh-capture-redact-profile] > img {
   filter: grayscale(1) contrast(0);
   opacity: .32;
-}
-
-html.pdsh-capture-redact [data-pdsh-capture-redact="blank"]::after {
-  display: none;
-}
-
-html.pdsh-capture-redact [data-pdsh-capture-redact="center"]::after {
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 40%;
-}
-
-html.pdsh-capture-redact [data-pdsh-capture-redact="project"]::after {
-  width: 100%;
-}
-
-html.pdsh-capture-redact [data-index]:nth-child(4n+1) [data-pdsh-capture-redact]:not([data-pdsh-capture-redact="project"])::after {
-  width: 46%;
-}
-
-html.pdsh-capture-redact [data-index]:nth-child(4n+2) [data-pdsh-capture-redact]:not([data-pdsh-capture-redact="project"])::after {
-  width: 74%;
-}
-
-html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]:not([data-pdsh-capture-redact="project"])::after {
-  width: 55%;
 }
 
 .pdsh-capture-root {
@@ -129,15 +87,15 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
 }
 
 .pdsh-capture-backdrop {
-  backdrop-filter: blur(3px);
-  background: var(--dsw-alias-bg-mask-drop);
+  backdrop-filter: var(--dsw-mask-blur);
+  background: var(--dsw-alias-bg-mask-1);
   inset: 0;
   position: absolute;
 }
 
 .pdsh-capture-dialog {
   background: var(--pdsh-capture-surface);
-  border: 1px solid var(--pdsh-capture-border);
+  border: var(--pdsh-outline-width) solid var(--pdsh-capture-border);
   border-radius: var(--pdsh-capture-radius-dialog);
   box-shadow: var(--pdsh-capture-shadow);
   display: grid;
@@ -177,9 +135,7 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
 }
 
 .pdsh-capture-title {
-  font-size: var(--pdsh-capture-font-base);
-  font-weight: var(--dsw-font-s-strong-14-font-weight);
-  line-height: 1.35;
+  font: var(--dsw-font-s-strong-14);
   margin: 0;
 }
 
@@ -254,11 +210,7 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
   cursor: pointer;
   font: inherit;
   outline: none;
-  transition:
-    background-color var(--pdsh-capture-duration) var(--pdsh-capture-ease),
-    border-color var(--pdsh-capture-duration) var(--pdsh-capture-ease),
-    color var(--pdsh-capture-duration) var(--pdsh-capture-ease),
-    transform var(--pdsh-capture-duration) var(--pdsh-capture-ease);
+  transition: var(--pdsh-action-transition);
 }
 
 .pdsh-capture-button:focus-visible,
@@ -266,13 +218,14 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
 .pdsh-capture-background-option:focus-visible,
 .pdsh-capture-switch:focus-visible,
 .pdsh-capture-range:focus-visible {
-  box-shadow: 0 0 0 2px var(--pdsh-capture-surface), 0 0 0 4px var(--pdsh-capture-focus);
+  outline: var(--dsw-focus-ring-width) solid var(--pdsh-capture-focus);
+  outline-offset: var(--dsw-focus-ring-width);
 }
 
 .pdsh-capture-icon-button {
   align-items: center;
   background: transparent;
-  border-radius: 9999px;
+  border-radius: var(--pdsh-action-radius);
   display: inline-flex;
   height: var(--pdsh-capture-control-height);
   justify-content: center;
@@ -303,19 +256,18 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
 .pdsh-capture-icon-button:active:not(:disabled),
 .pdsh-capture-button:active:not(:disabled) {
   background: var(--pdsh-capture-active);
-  transform: scale(.98);
 }
 
 .pdsh-capture-icon-button:disabled,
 .pdsh-capture-button:disabled {
-  color: var(--pdsh-capture-text-disabled);
+  opacity: var(--pdsh-action-disabled-opacity);
   cursor: default;
 }
 
 .pdsh-capture-stage {
   align-items: center;
   background-color: var(--pdsh-capture-surface-secondary);
-  border: 1px solid color-mix(in srgb, var(--pdsh-capture-border) 50%, transparent);
+  border: var(--pdsh-outline-width) solid var(--pdsh-capture-border);
   border-radius: var(--pdsh-capture-radius-md);
   cursor: grab;
   display: flex;
@@ -371,7 +323,7 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
 }
 
 .pdsh-capture-region {
-  border: 1px solid transparent;
+  border: var(--pdsh-outline-width) solid transparent;
   border-radius: var(--dsw-radius-xs);
   position: absolute;
 }
@@ -392,7 +344,7 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
 }
 
 .pdsh-capture-region-candidate[data-interactive="false"] {
-  opacity: .6;
+  opacity: var(--pdsh-action-disabled-opacity);
 }
 
 .pdsh-capture-region-confirmed[data-interactive="true"] {
@@ -407,8 +359,9 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
 .pdsh-capture-region-remove {
   align-items: center;
   background: var(--pdsh-capture-primary-text);
-  border: 1px solid color-mix(in srgb, var(--pdsh-capture-primary) 70%, transparent);
-  border-radius: 9999px;
+  border: var(--pdsh-outline-width) solid var(--pdsh-capture-primary);
+  border-radius: 50%;
+  corner-shape: round;
   color: var(--pdsh-capture-primary);
   display: none;
   font-family: var(--dsw-font-family);
@@ -418,8 +371,8 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
   justify-content: center;
   padding: 0;
   position: absolute;
-  right: -8px;
-  top: -8px;
+  right: calc(var(--pdsh-capture-icon-base) / -2);
+  top: calc(var(--pdsh-capture-icon-base) / -2);
   width: var(--pdsh-capture-icon-base);
 }
 
@@ -429,7 +382,7 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
 
 .pdsh-capture-draft-region {
   background: color-mix(in srgb, var(--pdsh-capture-ring) 10%, transparent);
-  border: 1px dashed var(--pdsh-capture-ring);
+  border: var(--pdsh-outline-width) dashed var(--pdsh-capture-ring);
   border-radius: var(--pdsh-capture-radius-sm);
   pointer-events: none;
   position: fixed;
@@ -512,43 +465,44 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
 
 .pdsh-capture-switch {
   appearance: none;
-  background: var(--pdsh-capture-surface-tertiary);
-  border: 1px solid var(--pdsh-capture-border-strong);
-  border-radius: 9999px;
+  background: var(--dsw-alias-border-l3);
+  border: 0;
+  border-radius: var(--pdsh-switch-radius);
+  corner-shape: round;
   cursor: pointer;
   flex: none;
   height: var(--pdsh-switch-height);
   margin: 0;
   padding: calc((var(--pdsh-switch-height) - var(--pdsh-switch-thumb-size)) / 2);
   position: relative;
-  transition: background-color var(--pdsh-capture-duration) var(--pdsh-capture-ease);
   width: var(--pdsh-switch-width);
 }
 
 .pdsh-capture-switch::after {
-  background: var(--pdsh-capture-surface);
-  border-radius: 50%;
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--pdsh-capture-text) 20%, transparent);
+  background: var(--dsw-alias-switch-thumb);
+  border-radius: var(--pdsh-switch-thumb-radius);
+  corner-shape: round;
+  box-shadow: var(--pdsh-switch-thumb-shadow);
   content: "";
   display: block;
   height: var(--pdsh-switch-thumb-size);
   transform: translateX(0);
-  transition: transform var(--pdsh-capture-duration) var(--pdsh-capture-ease);
+  transition: var(--pdsh-switch-thumb-transition);
   width: var(--pdsh-switch-thumb-size);
 }
 
 .pdsh-capture-switch:checked {
-  background: var(--pdsh-capture-primary);
-  border-color: var(--pdsh-capture-primary);
+  background: var(--dsw-alias-brand-primary);
 }
+.pdsh-capture-switch:checked::after { background: var(--dsw-alias-label-primary-foreground); }
 
 .pdsh-capture-switch:checked::after {
   transform: translateX(calc(var(--pdsh-switch-width) - var(--pdsh-switch-height)));
 }
 
 .pdsh-capture-solid-color:focus-visible {
-  outline: 2px solid var(--pdsh-capture-focus);
-  outline-offset: 2px;
+  outline: var(--dsw-focus-ring-width) solid var(--pdsh-capture-focus);
+  outline-offset: var(--dsw-focus-ring-width);
 }
 
 .pdsh-capture-solid-color {
@@ -565,8 +519,9 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
 
 .pdsh-capture-solid-color > span {
   background: var(--capture-solid-color);
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 9999px;
+  border: var(--pdsh-outline-width) solid var(--dsw-alias-border-l2);
+  border-radius: 50%;
+  corner-shape: round;
   height: var(--pdsh-capture-icon-sm);
   pointer-events: none;
   width: var(--pdsh-capture-icon-sm);
@@ -616,15 +571,14 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
 .pdsh-capture-button {
   align-items: center;
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--pdsh-capture-radius-md);
+  border: var(--pdsh-outline-width) solid transparent;
+  border-radius: var(--pdsh-action-radius);
   display: inline-flex;
-  font-size: var(--pdsh-capture-font-sm);
-  font-weight: var(--dsw-font-s-strong-14-font-weight);
-  gap: calc(var(--pdsh-capture-space) * 2);
+  font: var(--dsw-font-s-14);
+  gap: var(--pdsh-button-gap);
   height: var(--pdsh-capture-control-height);
   justify-content: center;
-  padding-inline: calc(var(--pdsh-capture-space) * 3);
+  padding-inline: var(--pdsh-button-inset);
 }
 
 .pdsh-capture-button > svg {
@@ -642,25 +596,7 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
 }
 
 .pdsh-capture-button-primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--pdsh-capture-primary) 88%, var(--pdsh-capture-surface));
-}
-
-.pdsh-capture-toast {
-  align-items: center;
-  background: var(--pdsh-capture-primary);
-  border-radius: var(--pdsh-capture-radius-xl);
-  bottom: calc(var(--pdsh-capture-space) * 4);
-  box-shadow: var(--pdsh-capture-shadow);
-  color: var(--pdsh-capture-primary-text);
-  display: flex;
-  font-size: var(--pdsh-capture-font-sm);
-  gap: calc(var(--pdsh-capture-space) * 2);
-  left: 50%;
-  max-width: min(360px, calc(100vw - var(--pdsh-capture-space) * 8));
-  padding: calc(var(--pdsh-capture-space) * 2.5) calc(var(--pdsh-capture-space) * 3);
-  position: fixed;
-  transform: translateX(-50%);
-  z-index: 2;
+  background: var(--dsw-alias-button-primary-hover);
 }
 
 .pdsh-capture-preview-shell {
@@ -694,7 +630,7 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
 
 .pdsh-capture-preview-card {
   background: var(--pdsh-capture-surface-secondary);
-  border: 1px solid var(--pdsh-capture-border);
+  border: var(--pdsh-outline-width) solid var(--pdsh-capture-border);
   border-radius: var(--pdsh-capture-radius-2xl);
   max-width: 560px;
   padding: calc(var(--pdsh-capture-space) * 5);
@@ -745,19 +681,16 @@ html.pdsh-capture-redact [data-index]:nth-child(4n+3) [data-pdsh-capture-redact]
   }
 }
 
-@supports (corner-shape: superellipse(1.5)) {
-  .pdsh-capture-dialog,
-  .pdsh-capture-button,
-  .pdsh-capture-icon-button {
-    corner-shape: superellipse(1.5);
-  }
-}
+/* 曲率随 Host 全局 token；圆形 Switch 单独沿用原生 round 契约。 */
+.pdsh-capture-dialog { corner-shape: var(--dsw-corner-shape); }
+.pdsh-capture-button, .pdsh-capture-icon-button { corner-shape: var(--pdsh-action-corner-shape); }
 
 @media (prefers-reduced-motion: reduce) {
   [data-pdsh-capture] *,
   [data-pdsh-capture] *::before,
   [data-pdsh-capture] *::after {
     scroll-behavior: auto !important;
-    transition-duration: 0.001ms !important;
+    transition: none !important;
+    animation: none !important;
   }
 }

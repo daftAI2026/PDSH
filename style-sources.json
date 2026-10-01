@@ -2,8 +2,14 @@
   "hostVersion": "0.1.7-rc.2",
   "publicSourceTag": "dsh-v0.1.7-rc.2",
   "installedBuildCommit": "c1275515b6b97551ec358c926c479ab750c687c0",
-  "note": "安装包的 build commit 在公开仓无法拉取；以确切包内 client.js 为运行证据，公共 tag 为可链接源码。无数值颜色 fallback。",
+  "note": "安装包的 build commit 在公开仓无法拉取；以确切包内 client.js 为运行证据，公共 tag 为可链接源码。无数值颜色 fallback。 当前源码的原生测量由一个可卸载探针控制器拥有；主题 token 直接引用，控件常数只从真实计算样式读取。布局比例和编辑内容参数不伪称宿主控件参数。",
   "styles": [
+    {
+      "role": "capture and workbench transient feedback",
+      "file": "packages/client/ui-primitives/src/Toast.tsx",
+      "selector": "Toast / IconWarningOutlineRegular / tone success",
+      "acquisition": "直接渲染官方 Toast，省略 holdMs；宿主拥有 portal、默认停留/淡出和 onDone。每次显示使用独立 key，不复制 Toast.module.css、定时常量或底角常驻通知。"
+    },
     {
       "role": "nickname editor stable action height",
       "variable": "--pdsh-action-size",
@@ -123,7 +129,8 @@
       "file": "packages/client/ui-primitives/src/settings-form/fields.module.css",
       "selector": ".field",
       "property": "padding-top",
-      "acquisition": "渲染官方 SettingsValueField；读取 root/head 的 computed style，无布局数字 fallback；身份卡片不叠加底内边距，昵称行对称承担上下留白，整体高度不变。"
+      "acquisition": "渲染官方 SettingsValueField；读取 root/head 的 computed style，无布局数字 fallback；身份卡片不叠加底内边距，昵称行对称承担上下留白，整体高度不变。",
+      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔，不加独立数字间距"
     },
     {
       "role": "settings label/control gap",
@@ -131,7 +138,8 @@
       "file": "packages/client/ui-primitives/src/settings-form/fields.module.css",
       "selector": ".field",
       "property": "gap",
-      "acquisition": "渲染官方 SettingsValueField；读取 root/head 的 computed style，无布局数字 fallback"
+      "acquisition": "渲染官方 SettingsValueField；读取 root/head 的 computed style，无布局数字 fallback",
+      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔，不加独立数字间距"
     },
     {
       "role": "settings inline actions gap",
@@ -139,7 +147,8 @@
       "file": "packages/client/ui-primitives/src/settings-form/fields.module.css",
       "selector": ".head",
       "property": "gap",
-      "acquisition": "渲染官方 SettingsValueField；读取 root/head 的 computed style，无布局数字 fallback"
+      "acquisition": "渲染官方 SettingsValueField；读取 root/head 的 computed style，无布局数字 fallback",
+      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔，不加独立数字间距"
     },
     {
       "role": "search left adjacency",
@@ -170,26 +179,30 @@
       "role": "profile field separator",
       "variable": "--dsw-alias-border-l2",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "consumer": "packages/client/ui-primitives/src/settings-form/fields.module.css .field + .field"
+      "consumer": "packages/client/ui-primitives/src/settings-form/fields.module.css .field + .field",
+      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔，不加独立数字间距"
     },
     {
       "role": "nickname edit affordance",
       "file": "packages/client/ui-primitives/src/icons/index.tsx",
       "selector": "IconEditOutlineRegular",
-      "acquisition": "使用宿主默认图标尺寸与原生 Button，不绘制新铅笔图形或复制尺寸。"
+      "acquisition": "使用宿主默认图标尺寸与原生 Button，不绘制新铅笔图形或复制尺寸。",
+      "pdshConsumer": "src/client/settings-card.tsx 与 src/client/capture-settings.tsx 的 pdsh-nickname-action；使用 Host IconEditOutlineRegular/IconCheckOutlineRegular/Button/Tooltip"
     },
     {
       "role": "sidebar greybar fill",
       "variable": "--dsw-alias-bg-skeleton",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
       "consumer": "packages/client/ui-settings-account/src/client/AccountSection.module.css .avatar",
-      "acquisition": "沿用宿主灰色占位角色；实窗变量在body/title作用域，不取documentElement空值，不冻结色值。"
+      "acquisition": "沿用宿主灰色占位角色；常驻灰条与拍照临时灰条共用绘制，不复制第二套样式；实窗变量在 body/title 作用域，不取 documentElement 空值，不冻结色值。",
+      "pdshConsumer": "src/client/styles.css: [data-pdsh-redacted-title] 与 html.pdsh-capture-redact [data-pdsh-capture-redact=\"text\"] 共用选择器组"
     },
     {
       "role": "sidebar greybar corner",
       "variable": "--dsw-radius-xs",
       "file": "packages/client/ui-theme/src/styles/base.css",
-      "acquisition": "条形占位采用最小圆角，灰条高度取原生文字框一半，非像素token；文字框仍由Rows.module.css提供。"
+      "acquisition": "条形占位采用最小圆角，灰条高度取原生文字框一半，非像素 token；文字框仍由 Rows.module.css 提供；常驻与临时拍照不另设尺寸。",
+      "pdshConsumer": "src/client/styles.css: 两种标题标记共用 ::after"
     },
     {
       "role": "entry live search color",
@@ -207,13 +220,6 @@
       "acquisition": "读取原生搜索 SVG 的 computed opacity，仅赋给自有 SVG 根；路径自身始终不透明，笔画重叠处不会因逐笔半透明而加深。"
     },
     {
-      "role": "active title mask control",
-      "variable": "--dsw-alias-interactive-bg-active",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "consumer": "packages/client/ui-primitives/src/Button.module.css .ghost:active",
-      "acquisition": "已接受开关开启时用原生交互底色；pressed是Host状态，不是伪隔离声明。"
-    },
-    {
       "role": "profile row spacing and compact editor",
       "variable": "--pdsh-field-gap",
       "file": "packages/client/ui-primitives/src/settings-form/fields.module.css",
@@ -225,7 +231,8 @@
       "role": "nickname confirmation affordance",
       "file": "packages/client/ui-primitives/src/icons/index.tsx",
       "selector": "IconCheckOutlineRegular",
-      "acquisition": "复用官方check图标与默认尺寸ghost Button，以本地化aria-label/title命名；不造svg或固定图标尺寸。"
+      "acquisition": "复用官方check图标与默认尺寸ghost Button，以本地化aria-label/title命名；不造svg或固定图标尺寸。",
+      "pdshConsumer": "src/client/settings-card.tsx 与 src/client/capture-settings.tsx 的 pdsh-nickname-action；使用 Host IconEditOutlineRegular/IconCheckOutlineRegular/Button/Tooltip"
     },
     {
       "role": "nickname standalone pencil and confirmation hit target",
@@ -233,7 +240,8 @@
       "file": "packages/client/ui-primitives/src/Button.module.css",
       "selector": ".md",
       "property": "height",
-      "acquisition": "独立图标按钮的宽度等于原生Button高度，形成同一方形命中区；昵称为相邻静态span，铅笔/勾都不包进输入wrapper，不照抄平台网页的虚线。"
+      "acquisition": "独立图标按钮的宽度等于原生Button高度，形成同一方形命中区；昵称为相邻静态span，铅笔/勾都不包进输入wrapper，不照抄平台网页的虚线。",
+      "pdshConsumer": "src/client/settings-card.tsx 与 src/client/capture-settings.tsx 的 pdsh-nickname-action；使用 Host IconEditOutlineRegular/IconCheckOutlineRegular/Button/Tooltip"
     },
     {
       "role": "avatar source action group",
@@ -264,9 +272,9 @@
     },
     {
       "role": "update arrow stroke geometry",
-      "file": "src/client/entry-icon.svg / src/client/update-badge.tsx",
-      "property": "stroke-width",
-      "acquisition": "按视觉要求将24×24圆形上箭头线宽从2减至1.5，与已有帽子眼镜线条资产一致；圆与箭头共享SVG根线宽，不另造CSS控件几何。"
+      "file": "packages/client/ui-primitives/src/icons/index.tsx / src/client/native-icon.ts",
+      "property": "computed stroke-width / viewBox width",
+      "acquisition": "原生 regular SVG 的实时笔触密度乘以自有24单位坐标宽度；当前Host值换算为1.5仅是结果，不是运行常量，主题/尺寸变化重采，SVG根合成透明度。"
     },
     {
       "role": "capture failure notice",
@@ -441,7 +449,7 @@
       "variable": "--pdsh-switch-width",
       "file": "packages/client/ui-primitives/src/Switch.module.css",
       "selector": ".switch",
-      "acquisition": "读取隐藏原生 Switch 的实时 computed width；工作台 checkbox 与原生轨道同宽。",
+      "acquisition": "读取不可绘制但可布局的原生 Switch 的实时 computed width；工作台 checkbox 与原生轨道同宽。",
       "property": "width"
     },
     {
@@ -449,7 +457,7 @@
       "variable": "--pdsh-switch-height",
       "file": "packages/client/ui-primitives/src/Switch.module.css",
       "selector": ".switch",
-      "acquisition": "读取隐藏原生 Switch 的实时 computed height；工作台 checkbox 与原生轨道同高。",
+      "acquisition": "读取不可绘制但可布局的原生 Switch 的实时 computed height；工作台 checkbox 与原生轨道同高。",
       "property": "height"
     },
     {
@@ -457,7 +465,7 @@
       "variable": "--pdsh-switch-thumb-size",
       "file": "packages/client/ui-primitives/src/Switch.module.css",
       "selector": ".thumb",
-      "acquisition": "读取隐藏原生 Switch 拇指的实时 computed width；不以字段间距猜尺寸。",
+      "acquisition": "读取不可绘制但可布局的原生 Switch 拇指的实时 computed width；不以字段间距猜尺寸。",
       "property": "width"
     },
     {
@@ -500,7 +508,223 @@
       "file": "packages/client/ui-primitives/src/Button.module.css",
       "selector": ".md",
       "property": "padding-inline-start",
-      "acquisition": "由原生 Button computed style 取单侧文字内边距；昵称到来源标签的可视间距等于两个按钮内边距加原生 field gap。来源标签留在昵称旁，不跟随右侧按钮的自动留白。"
+      "acquisition": "由原生 Button computed style 取单侧文字内边距；来源标签与三个按钮一起右对齐。标签到首个按钮轮廓的可见间距等于原生 field gap 加两个按钮内边距，匹配两个 ghost 来源按钮的文字间距，不改按钮内部布局。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-action-radius",
+      "file": "packages/client/ui-primitives/src/Button.module.css",
+      "selector": ".button:disabled",
+      "property": "border-radius",
+      "acquisition": "真实 Host Button 探针保留布局但不绘制；DOM/主题/尺寸变化重读计算样式，数值未变不写回，卸载恢复原值；不复制 Provider 常数。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-action-corner-shape",
+      "file": "packages/client/ui-primitives/src/Button.module.css",
+      "selector": ".button:disabled",
+      "property": "corner-shape",
+      "acquisition": "真实 Host Button 探针保留布局但不绘制；DOM/主题/尺寸变化重读计算样式，数值未变不写回，卸载恢复原值；不复制 Provider 常数。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-action-disabled-opacity",
+      "file": "packages/client/ui-primitives/src/Button.module.css",
+      "selector": ".button:disabled",
+      "property": "opacity",
+      "acquisition": "真实 Host Button 探针保留布局但不绘制；DOM/主题/尺寸变化重读计算样式，数值未变不写回，卸载恢复原值；不复制 Provider 常数。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-action-transition",
+      "file": "packages/client/ui-primitives/src/Button.module.css",
+      "selector": ".button:disabled",
+      "property": "transition",
+      "acquisition": "真实 Host Button 探针保留布局但不绘制；DOM/主题/尺寸变化重读计算样式，数值未变不写回，卸载恢复原值；不复制 Provider 常数。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-button-gap",
+      "file": "packages/client/ui-primitives/src/Button.module.css",
+      "selector": ".button:disabled",
+      "property": "gap",
+      "acquisition": "真实 Host Button 探针保留布局但不绘制；DOM/主题/尺寸变化重读计算样式，数值未变不写回，卸载恢复原值；不复制 Provider 常数。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-native-icon-size",
+      "file": "packages/client/ui-primitives/src/icons/index.tsx",
+      "selector": "IconCheckOutlineRegular / svg",
+      "property": "width",
+      "acquisition": "Host Button 内的真实原生 SVG 提供显示尺寸、根透明度和笔触密度；自有图稿只保留24单位坐标，不固定1.5线宽。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-native-icon-opacity",
+      "file": "packages/client/ui-primitives/src/icons/index.tsx",
+      "selector": "IconCheckOutlineRegular / svg",
+      "property": "opacity",
+      "acquisition": "Host Button 内的真实原生 SVG 提供显示尺寸、根透明度和笔触密度；自有图稿只保留24单位坐标，不固定1.5线宽。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-native-icon-stroke-ratio",
+      "file": "packages/client/ui-primitives/src/icons/index.tsx",
+      "selector": "IconCheckOutlineRegular / svg",
+      "property": "stroke-width / viewBox width",
+      "acquisition": "Host Button 内的真实原生 SVG 提供显示尺寸、根透明度和笔触密度；自有图稿只保留24单位坐标，不固定1.5线宽。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-switch-radius",
+      "file": "packages/client/ui-primitives/src/Switch.module.css",
+      "selector": ".switch",
+      "property": "border-radius",
+      "acquisition": "从真实 Host Switch 的轨道/拇指实时采样；不猜圆角、阴影或过渡时长/曲线。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-switch-thumb-radius",
+      "file": "packages/client/ui-primitives/src/Switch.module.css",
+      "selector": ".thumb",
+      "property": "border-radius",
+      "acquisition": "从真实 Host Switch 的轨道/拇指实时采样；不猜圆角、阴影或过渡时长/曲线。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-switch-thumb-transition",
+      "file": "packages/client/ui-primitives/src/Switch.module.css",
+      "selector": ".thumb",
+      "property": "transition",
+      "acquisition": "从真实 Host Switch 的轨道/拇指实时采样；不猜圆角、阴影或过渡时长/曲线。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-switch-thumb-shadow",
+      "file": "packages/client/ui-primitives/src/Switch.module.css",
+      "selector": ".thumb",
+      "property": "box-shadow",
+      "acquisition": "从真实 Host Switch 的轨道/拇指实时采样；不猜圆角、阴影或过渡时长/曲线。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-tooltip-padding",
+      "file": "packages/client/ui-primitives/src/Tooltip.module.css",
+      "selector": ".bubble[data-portal]",
+      "property": "padding",
+      "acquisition": "Host Tooltip 明确 portal=false，在自有不可绘制探针内生成 bubble；仅为自有 bubble 添加 data-portal 以测 Provider 的 portal 层级样式，不移动 DOM、不改变 activeElement、不操作用户 Tooltip。DOM adapter 消费同一组实时变量。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-tooltip-duration",
+      "file": "packages/client/ui-primitives/src/Tooltip.module.css",
+      "selector": ".bubble[data-portal]",
+      "property": "animation-duration",
+      "acquisition": "Host Tooltip 明确 portal=false，在自有不可绘制探针内生成 bubble；仅为自有 bubble 添加 data-portal 以测 Provider 的 portal 层级样式，不移动 DOM、不改变 activeElement、不操作用户 Tooltip。DOM adapter 消费同一组实时变量。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-tooltip-ease",
+      "file": "packages/client/ui-primitives/src/Tooltip.module.css",
+      "selector": ".bubble[data-portal]",
+      "property": "animation-timing-function",
+      "acquisition": "Host Tooltip 明确 portal=false，在自有不可绘制探针内生成 bubble；仅为自有 bubble 添加 data-portal 以测 Provider 的 portal 层级样式，不移动 DOM、不改变 activeElement、不操作用户 Tooltip。DOM adapter 消费同一组实时变量。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-tooltip-max-width",
+      "file": "packages/client/ui-primitives/src/Tooltip.module.css",
+      "selector": ".bubble[data-portal]",
+      "property": "max-width",
+      "acquisition": "Host Tooltip 明确 portal=false，在自有不可绘制探针内生成 bubble；仅为自有 bubble 添加 data-portal 以测 Provider 的 portal 层级样式，不移动 DOM、不改变 activeElement、不操作用户 Tooltip。DOM adapter 消费同一组实时变量。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--pdsh-tooltip-layer",
+      "file": "packages/client/ui-primitives/src/Tooltip.module.css",
+      "selector": ".bubble[data-portal]",
+      "property": "z-index",
+      "acquisition": "Host Tooltip 明确 portal=false，在自有不可绘制探针内生成 bubble；仅为自有 bubble 添加 data-portal 以测 Provider 的 portal 层级样式，不移动 DOM、不改变 activeElement、不操作用户 Tooltip。DOM adapter 消费同一组实时变量。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--dsw-mask-blur",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "selector": ".mask",
+      "property": "backdrop-filter",
+      "acquisition": "Modal 原生遮罩的实时主题变量；不自造blur(3px)。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--dsw-alias-bg-mask-1",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "selector": ".mask::after",
+      "property": "background",
+      "acquisition": "Modal 原生遮罩色，不混用 menu drop 遮罩。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--dsw-alias-button-primary-hover",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "selector": ".primary:hover:not(:disabled)",
+      "property": "background",
+      "acquisition": "Host Button 的主按钮悬浮色，不自造混色。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--dsw-alias-interactive-bg-active",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "selector": ".ghost:active:not(:disabled)",
+      "property": "background",
+      "acquisition": "Host Button 的按压色，侧栏按钮继续继承原生class。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--dsw-corner-shape",
+      "file": "packages/client/ui-theme/src/styles/corner-shape.css",
+      "selector": ":root",
+      "property": "corner-shape",
+      "acquisition": "Host 全局曲率；圆形控件沿用 Switch round 几何例外。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--dsw-focus-ring-width",
+      "file": "packages/client/ui-theme/src/styles/base.css",
+      "selector": ":root / :focus-visible",
+      "property": "outline-width",
+      "acquisition": "Host 全局焦点线宽；工作台自有选中环/外移距离按同一宽度比例布局。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--dsw-alias-switch-thumb",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "selector": ".switch[aria-checked=false] .thumb",
+      "property": "background",
+      "acquisition": "Switch 未选中拇指的原生颜色。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--dsw-alias-label-primary-foreground",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "selector": ".switch[aria-checked=true] .thumb",
+      "property": "background",
+      "acquisition": "Switch 选中拇指和主按钮文字的原生前景色。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--dsw-alias-border-l4",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "selector": ".wrap",
+      "property": "border-color",
+      "acquisition": "Host Input 的实时原生描边色。"
+    },
+    {
+      "role": "live native control provider",
+      "variable": "--dsw-font-s-14",
+      "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
+      "selector": "body theme scope",
+      "property": "font",
+      "acquisition": "工作台按钮和 Input 使用完整字号/行高 token。"
     }
   ],
   "artwork": {
@@ -509,10 +733,36 @@
       "variable": "--dsw-static-neutral-bluish-1000",
       "value": "rgb(15, 17, 21)"
     },
-    "background": {
-      "variable": "--dsw-static-neutral-bluish-50",
-      "value": "rgb(249, 250, 251)"
+    "acquisition": "官方 package.json.icon 由独立 img 呈现，不能继承宿主 CSS 变量；仅固定 rc.2 原生前景色快照，底保持透明。build.ts 复用单个复合描边路径；侧栏仍使用 currentColor 与实时原生几何/透明度。"
+  },
+  "captureMaterial": {
+    "role": "截图内容的模拟磨砂底层，不是 Host 控件主题或真实桌面截图",
+    "implementation": "src/client/capture/material.ts",
+    "nativeReference": {
+      "system": "macOS 27.0.1 (26A434)",
+      "view": "NSVisualEffectView",
+      "material": "sidebar",
+      "state": "active",
+      "blendingMode": "behindWindow",
+      "source": "https://developer.apple.com/documentation/appkit/nsvisualeffectview"
     },
-    "acquisition": "官方package.json.icon由独立img呈现，不能继承宿主CSS变量。此为固定rc.2原生调色板快照的明底图稿，非运行时UI token；build.ts复用InCodex/Lucide的24×24可调线宽图形生成，侧栏仍使用currentColor实时变量。"
+    "acquisition": "自有离屏 NSVisualEffectView 的 CALayer 只读取证，未激活窗口、未请求录屏；研究参数固化为编辑 recipe，运行时不使用原生 helper 或私有 API。",
+    "light": {
+      "blurRadius": 30,
+      "saturation": 2.2,
+      "fillSrgb": 0.9647,
+      "fillAlpha": 0.84,
+      "toneSrgb": 0.915,
+      "toneBlend": "darken"
+    },
+    "dark": {
+      "blurRadius": 30,
+      "saturation": 2.4,
+      "fillSrgb": 0.1569,
+      "fillAlpha": 0.8,
+      "toneSrgb": 0.14,
+      "toneBlend": "lighten"
+    },
+    "limits": "只模糊用户选择的编辑背景，原始 PNG 无滤镜并保留。缺少真实桌面背景、Chameleon 桌面着色及 SDR 归一化，Canvas blur 不是 Core Animation 的逐像素复刻；后续系统版本不保证参数一致。透明选项仅使窗口外围透明，窗口内部保留材质底层。"
   }
 }

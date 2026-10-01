@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 src/host/index.ts，由 build.ts 生成。
- * [OUTPUT]: 提供 Cordis Host 的 Config/name/apply。
- * [POS]: PDSH 安装入口；TypeScript 源码是唯一手写实现。
+ * [OUTPUT]: 提供 @daftai/pdsh 的 Config/name/apply。
+ * [POS]: identity Host 入口，不手工修改。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 

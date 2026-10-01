@@ -1,16 +1,22 @@
 /*
- * [INPUT]: Harness ui-theme 的语义色/圆角/字号，以及原生 Input/Button/SettingsValueField 探针的几何。
- * [OUTPUT]: 提供标题灰条、身份覆盖、可见头像来源、原生设置/提示、成功色更新徽标与入口样式。
+ * [INPUT]: Harness ui-theme 的语义色/圆角/字号，以及可卸载的原生 Input/Button/Switch/SettingsValueField/Tooltip/图标探针的实时计算参数。
+ * [OUTPUT]: 提供标题灰条、身份覆盖、可见头像来源、原生设置/提示、成功色更新徽标与无常驻底色的入口样式。
  * [POS]: PDSH 的展示层；来源和使用处记录于 style-sources.json，卸载时整体移除。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-[data-pdsh-redacted-title] {
+/* 样式探针保留真实布局以测量，但不绘制、不命中、不占宿主文档流。 */
+[data-pdsh-probe] { opacity: 0; position: fixed; inset: 0 auto auto 0; width: max-content; height: max-content; pointer-events: none; }
+[data-pdsh-probe], [data-pdsh-probe] * { visibility: hidden !important; }
+[data-pdsh-probe] > span { display: block; }
+[data-pdsh-redacted-title],
+html.pdsh-capture-redact [data-pdsh-capture-redact="text"] {
   position: relative; color: transparent !important; -webkit-text-fill-color: transparent !important;
   text-shadow: none !important; mask-image: none !important;
   /* 稳定在原生可视标题框内；文字仍可命中，双击交给宿主。 */
   overflow: clip !important;
 }
-[data-pdsh-redacted-title]::after {
+[data-pdsh-redacted-title]::after,
+html.pdsh-capture-redact [data-pdsh-capture-redact="text"]::after {
   content: ""; pointer-events: none; position: absolute;
   inset-inline: 0; top: 50%; transform: translateY(-50%);
   height: 50%; background: var(--dsw-alias-bg-skeleton); border-radius: var(--dsw-radius-xs);
@@ -26,14 +32,14 @@
 .pdsh-settings { display: flex; flex-direction: column; gap: var(--pdsh-section-inset); font: var(--dsw-font-xs-13); color: var(--dsw-alias-label-primary); }
 .pdsh-settings :is(p, h4) { margin: 0; }
 .pdsh-group { display: flex; flex-direction: column; gap: 0; padding: var(--pdsh-section-inset); border: var(--pdsh-outline-width) solid var(--dsw-alias-settings-card-stroke); border-radius: var(--dsw-radius-xl); background: var(--dsw-alias-settings-card-fill); }
-/* 昵称行独占底部留白，避免行内边距与卡片底边距叠加造成上偏。 */
-.pdsh-group.pdsh-identity-group { padding-bottom: 0; }
+/* 末个设置行独占底部留白，避免行内边距与卡片底边距叠加造成上偏。 */
+.pdsh-group:is(.pdsh-identity-group, .pdsh-fields-group) { padding-bottom: 0; }
 /* 标题与开关共用一行；摘要自带内边距，不再叠加独立标题间隔。 */
 .pdsh-group > p { margin-top: var(--pdsh-field-gap); }
-.pdsh-identity-group > p:last-child { padding-bottom: var(--pdsh-section-inset); }
+:is(.pdsh-identity-group, .pdsh-fields-group) > p:last-child { padding-bottom: var(--pdsh-section-inset); }
 .pdsh-update-badge, .pdsh-update-confirm { display: inline-flex; align-items: center; flex-wrap: wrap; gap: var(--pdsh-field-gap); }
 .pdsh-update-trigger { flex: none; }
-.pdsh-update-trigger svg { color: var(--dsw-alias-state-success-primary); }
+.pdsh-update-trigger svg { width: var(--pdsh-native-icon-size); height: var(--pdsh-native-icon-size); stroke-width: calc(24 * var(--pdsh-native-icon-stroke-ratio)); opacity: var(--pdsh-native-icon-opacity); color: var(--dsw-alias-state-success-primary); }
 .pdsh-update-confirm { font: var(--dsw-font-xxs-12); color: var(--dsw-alias-label-secondary); }
 .pdsh-group h4, .pdsh-profile-name { font: var(--dsw-font-s-strong-14); }
 .pdsh-hint { font: var(--dsw-font-xxs-12); color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
@@ -44,13 +50,16 @@
 .pdsh-switch-tooltip { display: inline-flex; }
 .pdsh-identity { display: flex; align-items: center; flex-wrap: wrap; gap: var(--pdsh-section-inset); padding-block: var(--pdsh-section-inset); }
 /* 名字参与原生换行测量，先保住头像+名字，不为三个操作挤成逐字竖排。 */
-.pdsh-profile-copy { flex: 0 1 auto; flex-direction: row; align-items: center; gap: calc(var(--pdsh-field-gap) + var(--pdsh-button-inset) + var(--pdsh-button-inset)); max-width: calc(100% - var(--pdsh-control-size) - var(--pdsh-control-size) - var(--pdsh-section-inset)); }
+.pdsh-profile-copy { flex: 0 1 auto; flex-direction: row; align-items: center; max-width: calc(100% - var(--pdsh-control-size) - var(--pdsh-control-size) - var(--pdsh-section-inset)); }
 .pdsh-profile-name { min-width: 0; overflow-wrap: anywhere; }
 .pdsh-avatar-actions { display: flex; flex: none; flex-wrap: wrap; justify-content: flex-end; gap: var(--pdsh-field-gap); max-width: 100%; margin-left: auto; }
-.pdsh-avatar-source-label { flex: none; align-self: center; color: var(--dsw-alias-label-secondary); white-space: nowrap; }
+/* 标签到首个按钮轮廓的可见间隔，匹配两个 ghost 按钮文字之间的 gap + 双侧内边距。 */
+.pdsh-avatar-source-label { flex: none; align-self: center; color: var(--dsw-alias-label-secondary); white-space: nowrap; margin-inline-end: calc(var(--pdsh-button-inset) + var(--pdsh-button-inset)); }
 /* 摘要头像占两个原生控件高度；来源仍是 Input 探针，不凭空指定头像尺寸。 */
 .pdsh-avatar-preview { flex: none; border-radius: 50%; corner-shape: round; object-fit: cover; width: calc(var(--pdsh-control-size) + var(--pdsh-control-size)); height: calc(var(--pdsh-control-size) + var(--pdsh-control-size)); }
 .pdsh-detail-row { display: flex; align-items: center; justify-content: space-between; gap: var(--pdsh-section-inset); padding-block: var(--pdsh-section-inset); border-top: var(--pdsh-outline-width) solid var(--dsw-alias-border-l2); }
+/* 拍照标题不是字段；首行不画贴住标题的线，后续字段继续共用原生分隔。 */
+.pdsh-fields-group > .pdsh-group-header + .pdsh-detail-row { border-top: 0; }
 .pdsh-detail-row > .pdsh-label { flex: none; }
 .pdsh-value-action { display: flex; align-items: center; gap: var(--pdsh-field-gap); min-width: 0; max-width: 100%; font: var(--dsw-font-xs-13); }
 .pdsh-value-action > span { min-width: 0; overflow-wrap: anywhere; text-align: right; }
@@ -65,17 +74,8 @@
 .pdsh-error { color: var(--dsw-alias-state-error-primary); }
 [data-pdsh-search-entry], [data-pdsh-capture-entry] { color: var(--pdsh-search-color); }
 [data-pdsh-search-entry] svg, [data-pdsh-capture-entry] svg { opacity: var(--pdsh-icon-opacity); }
-[data-pdsh-search-entry][aria-pressed="true"] { background: var(--dsw-alias-interactive-bg-active); }
 [data-pdsh-search-entry][hidden], [data-pdsh-capture-entry][hidden] { display: none !important; }
 /* +--- 原生 searchSlot 的自动留白迁至自有左侧入口；隐藏/卸载后规则自动失效 ---+ */
-[data-pdsh-search-entry="wide"] { margin-left: auto; flex: none; }
+[data-pdsh-search-entry="wide"], [data-pdsh-capture-entry="wide"][data-pdsh-entry-first] { margin-left: auto; flex: none; }
 [data-pdsh-search-entry="wide"]:not([hidden]) + div { margin-left: 0; }
 [data-pdsh-capture-entry="wide"]:not([hidden]) + div { margin-left: 0; }
-/* 截图失败保留在相机附近可读，不把原生侧栏按钮伪装成已完成截图。 */
-[data-pdsh-capture-notice]:not([hidden]) {
-  position: fixed; inset-inline-end: var(--pdsh-section-inset); inset-block-end: var(--pdsh-section-inset);
-  z-index: 1101; max-width: 90vw; padding: var(--pdsh-field-gap);
-  color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-2);
-  border: var(--pdsh-outline-width) solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-xl);
-  font: var(--dsw-font-xs-13);
-}

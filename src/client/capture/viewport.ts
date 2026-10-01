@@ -1,349 +1,127 @@
 /**
- * [INPUT]: 依赖当前 Document、AbortSignal、viewport-fonts/viewport-forms 快照适配与 modern-screenshot 的 DOM→Canvas 能力；仅同源获取资源。
- * [OUTPUT]: 对外提供 captureViewport、可替换渲染引擎及稳定的采集错误码。
- * [POS]: 截图像素来源边界；使用 documentElement 与视口几何，不触达 Electron Main 或系统截图接口。
+ * [INPUT]: 依赖 page-capture-port 的窄桥接口、shared/capture-bridge 的统一预算、AbortSignal、共同请求诊断与浏览器解码；不管理连接或读取 DOM 样式/资源。
+ * [OUTPUT]: 提供能力识别与 captureViewport；按整数 CSS 视口量化范围校验原生像素，不缩放、不回退重绘，取消丢弃迟到结果。
+ * [POS]: controller 的唯一取像边界；装配层选择正式宿主桥或明确接受的内部桥，均需独立安装件能力验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { CAPTURE_TIMEOUT_MS } from './capture-lifecycle.ts';
+import { isPageCapturePort, readPageCapturePort, type PageCapturePort } from './page-capture-port.ts';
+export { readPageCapturePort, type PageCapturePort } from './page-capture-port.ts';
 
-import { collectViewportFontCSS } from './viewport-fonts.ts';
-import { prepareViewportForms } from './viewport-forms.ts';
+import { MAX_PAGE_PIXELS as MAX_CAPTURE_PIXELS, MAX_PNG_BYTES as MAX_CAPTURE_BYTES, isCaptureId } from '../../shared/capture-bridge.ts';
+import type { CaptureTrace } from '../../shared/capture-trace.ts';
+const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
 
-const CAPTURE_TIMEOUT_MS = 8_000;
-const MAX_CAPTURE_PIXELS = 16_000_000;
-
-export type CaptureViewportErrorCode =
-  | 'aborted'
-  | 'timeout'
-  | 'oversize'
-  | 'viewport-changed'
-  | 'embedded-content'
-  | 'resource-warning'
-  | 'capture-failed';
-
+export type CaptureViewportErrorCode = 'host-unavailable' | 'aborted' | 'timeout' | 'oversize' | 'viewport-changed' | 'invalid-pixels' | 'capture-failed' | 'bridge-cleanup-unconfirmed' | 'bridge-port-busy' | 'control-cleanup-unconfirmed';
 export class CaptureViewportError extends Error {
   readonly code: CaptureViewportErrorCode;
-
   constructor(code: CaptureViewportErrorCode) {
-    super(messageFor(code));
-    this.name = 'CaptureViewportError';
-    this.code = code;
+    super({
+      'bridge-port-busy': '取像桥预设调试端口已被占用',
+      'control-cleanup-unconfirmed': '取像连接释放尚未确认',
+      'bridge-cleanup-unconfirmed': '无法确认插件调试接口已关闭，请停用拍照并保留工作后确认重启 DSH。',
+      'host-unavailable': '宿主尚未提供当前页面像素采集接口',
+      aborted: '页面取像已取消', timeout: '页面取像超时', oversize: '截图超过像素或字节上限',
+      'viewport-changed': '取像期间视口发生变化', 'invalid-pixels': '宿主返回的截图无效', 'capture-failed': '当前页面取像失败',
+    }[code]);
+    this.name = 'CaptureViewportError'; this.code = code;
   }
 }
-
-export interface ViewportContext {
-  log: { warn: (...args: unknown[]) => void };
-}
-
-export interface ViewportEngineOptions {
-  width: number;
-  height: number;
-  scale: number;
-  timeout: number;
-  debug: false;
-  autoDestruct: false;
-  onCloneEachNode: (cloned: Node) => void;
-  features: { restoreScrollPosition: true };
-  font: { cssText: string };
-  filter: (node: Node) => boolean;
-  fetchFn: (url: string) => Promise<string | false>;
-  fetch: { requestInit: RequestInit };
-}
-
-/**
- * 只暴露采集器真正使用的三步，以便合同测试替换像素引擎。
- */
-export interface CaptureViewportEngine {
-  createContext(root: HTMLElement, options: ViewportEngineOptions): Promise<ViewportContext>;
-  domToCanvas(context: ViewportContext): Promise<HTMLCanvasElement>;
-  destroyContext(context: ViewportContext): void | Promise<void>;
-}
-
-export interface CaptureViewportOptions {
-  signal?: AbortSignal;
-  engine?: CaptureViewportEngine;
-}
-
-interface ViewportSnapshot {
-  width: number;
-  height: number;
-  scale: number;
-  scrollX: number;
-  scrollY: number;
-  pixelWidth: number;
-  pixelHeight: number;
-}
-
-interface InterruptState {
-  controller: AbortController;
-  reason: CaptureViewportError | null;
-  guard<T>(promise: Promise<T>): Promise<T>;
-  dispose(): void;
-}
-
-const OMIT_SELECTORS = [
-  '[data-pdsh-capture-hide]',
-  '[data-pdsh-capture-host]',
-  '[data-pdsh-capture-notice]',
-  '[data-pdsh-probe]',
-  '[data-pdsh-capture-entry]',
-  '[data-pdsh-search-entry]',
-  '.pdsh-native-tooltip',
-  '[role="tooltip"]',
-].join(',');
-
-/** 只有这页自己或内联/本地对象资源进入资源内嵌流程。 */
-function createFetchFn(doc: Document, signal: AbortSignal): ViewportEngineOptions['fetchFn'] {
+function viewport(doc: Document) {
   const view = doc.defaultView;
-  const page = new URL(doc.baseURI);
-  const fetcher = view?.fetch?.bind(view) ?? globalThis.fetch?.bind(globalThis);
-
-  return async (rawUrl) => {
-    if (signal.aborted) throw new CaptureViewportError('aborted');
-    let url: URL;
-    try {
-      url = new URL(rawUrl, doc.baseURI);
-    } catch {
-      throw new CaptureViewportError('resource-warning');
-    }
-
-    if (url.protocol === 'data:') return rawUrl;
-    if (url.protocol === 'blob:') {
-      if (url.origin !== 'null' && url.origin !== page.origin) throw new CaptureViewportError('resource-warning');
-    } else if (url.protocol !== page.protocol || url.host !== page.host || url.username || url.password) {
-      throw new CaptureViewportError('resource-warning');
-    }
-    if (!fetcher) throw new CaptureViewportError('resource-warning');
-
-    try {
-      const response = await fetcher(url.href, {
-        credentials: 'omit',
-        referrerPolicy: 'no-referrer',
-        mode: 'same-origin',
-        signal,
-      });
-      if (!response.ok) throw new CaptureViewportError('resource-warning');
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      const encode = view?.btoa?.bind(view) ?? globalThis.btoa?.bind(globalThis);
-      if (!encode) throw new CaptureViewportError('resource-warning');
-      let binary = '';
-      for (let offset = 0; offset < bytes.length; offset += 0x8000) {
-        binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
-      }
-      const contentType = response.headers.get('content-type')?.split(';', 1)[0]?.trim() || 'application/octet-stream';
-      return `data:${contentType};base64,${encode(binary)}`;
-    } catch (error) {
-      if (error instanceof CaptureViewportError) throw error;
-      if (signal.aborted) throw new CaptureViewportError('aborted');
-      throw new CaptureViewportError('resource-warning');
-    }
-  };
-}
-
-function messageFor(code: CaptureViewportErrorCode): string {
-  switch (code) {
-    case 'aborted': return '视口采集已取消';
-    case 'timeout': return '视口采集超时';
-    case 'oversize': return '视口像素超过采集上限';
-    case 'viewport-changed': return '采集期间视口尺寸、缩放或滚动位置发生变化';
-    case 'embedded-content': return '窗口包含暂不支持的嵌入内容';
-    case 'resource-warning': return '截图资源加载不完整';
-    default: return '视口截图失败';
+  if (!view || !doc.documentElement.isConnected) throw new CaptureViewportError('capture-failed');
+  const values = [view.innerWidth, view.innerHeight, view.devicePixelRatio, view.scrollX, view.scrollY];
+  if (view.visualViewport) {
+    const { width, height, scale, offsetLeft, offsetTop } = view.visualViewport;
+    if ([width, height, scale].some(value => !(value > 0))) throw new CaptureViewportError('capture-failed');
+    values.push(width, height, scale, offsetLeft, offsetTop);
   }
+  if (!values.every(Number.isFinite) || values.slice(0, 3).some(value => value <= 0)) throw new CaptureViewportError('capture-failed');
+  return values;
+}
+function pngDimensions(value: unknown): { png: Uint8Array; width: number; height: number } {
+  if (!ArrayBuffer.isView(value) || Object.prototype.toString.call(value) !== '[object Uint8Array]') throw new CaptureViewportError('invalid-pixels');
+  const png = value as Uint8Array;
+  if (png.byteLength > MAX_CAPTURE_BYTES) throw new CaptureViewportError('oversize');
+  if (png.byteLength < 33 || PNG_SIGNATURE.some((byte, index) => png[index] !== byte)
+    || png[8] !== 0 || png[9] !== 0 || png[10] !== 0 || png[11] !== 13
+    || String.fromCharCode(...png.subarray(12, 16)) !== 'IHDR') throw new CaptureViewportError('invalid-pixels');
+  const data = new DataView(png.buffer, png.byteOffset, png.byteLength);
+  const width = data.getUint32(16), height = data.getUint32(20);
+  if (!width || !height) throw new CaptureViewportError('invalid-pixels');
+  if (width * height > MAX_CAPTURE_PIXELS) throw new CaptureViewportError('oversize');
+  return { png, width, height };
+}
+function matchesNativeDimension(pixels: number, cssSize: number, ratio: number): boolean {
+  // innerWidth/Height 是整数 CSS 尺寸；缩放后的真实视口可能含小数。
+  // 由一 CSS 单位的量化区间推导物理像素边界，不猜固定像素偏移、不重采样。
+  return pixels >= Math.floor(cssSize * ratio) && pixels <= Math.ceil((cssSize + 1) * ratio);
 }
 
-function snapshotViewport(doc: Document): ViewportSnapshot {
-  const view = doc.defaultView;
-  if (!view || !doc.documentElement) throw new CaptureViewportError('capture-failed');
-  const width = view.innerWidth;
-  const height = view.innerHeight;
-  const scale = view.devicePixelRatio;
-  if (![width, height, scale].every((value) => Number.isFinite(value) && value > 0)) {
-    throw new CaptureViewportError('capture-failed');
+export async function captureViewport(doc: Document, { signal, port = readPageCapturePort(doc), trace = () => {}, requestId = doc.defaultView?.crypto.randomUUID() }: { signal?: AbortSignal; port?: PageCapturePort | null; trace?: CaptureTrace; requestId?: string } = {}): Promise<HTMLCanvasElement> {
+  if (signal?.aborted) throw new CaptureViewportError('aborted');
+  if (!isPageCapturePort(port)) throw new CaptureViewportError('host-unavailable');
+  const view = doc.defaultView!, before = viewport(doc), root = doc.documentElement;
+  if (before[0] * before[1] * before[2] ** 2 > MAX_CAPTURE_PIXELS) throw new CaptureViewportError('oversize');
+  if (!isCaptureId(requestId)) throw new CaptureViewportError('capture-failed');
+  let stopped: CaptureViewportError | null = null;
+  let rejectStop: (error: CaptureViewportError) => void;
+  const interrupted = new Promise<never>((_resolve, reject) => { rejectStop = reject; });
+  function stop(code: CaptureViewportErrorCode) {
+    if (stopped) return;
+    stopped = new CaptureViewportError(code);
+    // Electron capturePage 不能强制中断；宿主必须按 ID 丢弃迟到像素。
+    Promise.resolve().then(() => port.cancel(requestId)).catch(() => {});
+    rejectStop(stopped);
   }
-  const pixelWidth = Math.floor(width * scale);
-  const pixelHeight = Math.floor(height * scale);
-  if (pixelWidth < 1 || pixelHeight < 1 || pixelWidth * pixelHeight > MAX_CAPTURE_PIXELS) {
-    throw new CaptureViewportError('oversize');
+  const abort = () => stop('aborted');
+  const changed = () => stop('viewport-changed');
+  signal?.addEventListener('abort', abort, { once: true });
+  doc.addEventListener('scroll', changed, true);
+  view.addEventListener('resize', changed);
+  const visual = view.visualViewport;
+  visual?.addEventListener('resize', changed);
+  visual?.addEventListener('scroll', changed);
+  const timeout = view.setTimeout(() => stop('timeout'), CAPTURE_TIMEOUT_MS);
+  function assertViewport() {
+    if (stopped) throw stopped;
+    const after = viewport(doc);
+    if (root !== doc.documentElement || before.length !== after.length || before.some((value, index) => value !== after[index])) throw new CaptureViewportError('viewport-changed');
   }
-  return { width, height, scale, scrollX: view.scrollX, scrollY: view.scrollY, pixelWidth, pixelHeight };
-}
-
-function isVisible(element: Element, doc: Document, width: number, height: number): boolean {
-  if (element.closest(OMIT_SELECTORS) || (element as HTMLElement).hidden) return false;
-  const view = doc.defaultView;
-  if (!view) return false;
-  for (let current: Element | null = element; current; current = current.parentElement) {
-    const style = view.getComputedStyle(current);
-    const opacity = style.opacity.trim();
-    if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse' || (opacity !== '' && Number(opacity) === 0)) {
-      return false;
-    }
-  }
-  const rect = element.getBoundingClientRect();
-  return rect.width > 0 && rect.height > 0 && rect.right > 0 && rect.bottom > 0 && rect.left < width && rect.top < height;
-}
-
-function hasVisibleBrokenImage(doc: Document, snapshot: ViewportSnapshot): boolean {
-  return Array.from(doc.documentElement.querySelectorAll('img')).some((image) =>
-    image.getAttribute('src') !== null && image.complete && image.naturalWidth === 0 &&
-    isVisible(image, doc, snapshot.width, snapshot.height));
-}
-
-function rejectUnsupportedEmbeddedContent(doc: Document, snapshot: ViewportSnapshot): void {
-  for (const element of doc.documentElement.querySelectorAll('iframe, webview, video')) {
-    if (isVisible(element, doc, snapshot.width, snapshot.height)) {
-      throw new CaptureViewportError('embedded-content');
-    }
-  }
-}
-
-function createFilter(doc: Document, signal: AbortSignal): ViewportEngineOptions['filter'] {
-  return (node) => {
-    if (signal.aborted) throw new CaptureViewportError('aborted');
-    if (node === doc.documentElement || node.nodeType !== 1) return true;
-    const element = node as Element;
-    return !(element.id.startsWith('__SANDBOX__') || element.matches(OMIT_SELECTORS));
-  };
-}
-
-function createInterrupt(signal?: AbortSignal): InterruptState {
-  const controller = new AbortController();
-  let rejectStop!: (error: CaptureViewportError) => void;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  let reason: CaptureViewportError | null = null;
-  const stop = new Promise<never>((_resolve, reject) => { rejectStop = reject; });
-  const stopWith = (code: 'aborted' | 'timeout') => {
-    if (reason) return;
-    reason = new CaptureViewportError(code);
-    controller.abort();
-    rejectStop(reason);
-  };
-  const onAbort = () => stopWith('aborted');
-  if (signal?.aborted) onAbort();
-  else signal?.addEventListener('abort', onAbort, { once: true });
-  if (!reason) timer = setTimeout(() => stopWith('timeout'), CAPTURE_TIMEOUT_MS);
-
-  return {
-    controller,
-    get reason() { return reason; },
-    guard: <T>(promise: Promise<T>) => Promise.race([promise, stop]),
-    dispose: () => {
-      if (timer) clearTimeout(timer);
-      signal?.removeEventListener('abort', onAbort);
-    },
-  };
-}
-
-async function loadEngine(): Promise<CaptureViewportEngine> {
-  const library = await import('modern-screenshot');
-  return {
-    createContext: (root, options) => library.createContext(root, options),
-    domToCanvas: (context) => library.domToCanvas(context as Parameters<typeof library.domToCanvas>[0]),
-    destroyContext: (context) => library.destroyContext(context as Parameters<typeof library.destroyContext>[0]),
-  };
-}
-
-/** 从当前 HTML 视口生成像素；成功结果仅在资源无警告且几何稳定时返回。 */
-export async function captureViewport(doc: Document, options: CaptureViewportOptions = {}): Promise<HTMLCanvasElement> {
-  if (options.signal?.aborted) throw new CaptureViewportError('aborted');
-  const root = doc.documentElement;
-  const before = snapshotViewport(doc);
-  rejectUnsupportedEmbeddedContent(doc, before);
-
-  const interrupt = createInterrupt(options.signal);
-  let context: ViewportContext | undefined;
-  let warning = false;
-  let result: HTMLCanvasElement | undefined;
-  let failure: CaptureViewportError | undefined;
-  let engine: CaptureViewportEngine | undefined;
-  let rendering: Promise<HTMLCanvasElement> | undefined;
-  let renderingSettled = false;
-  let forms: ReturnType<typeof prepareViewportForms> | undefined;
+  let bitmap: ImageBitmap | undefined, canvas: HTMLCanvasElement | undefined;
   try {
-    engine = await interrupt.guard(options.engine ? Promise.resolve(options.engine) : loadEngine());
-    const requestInit: RequestInit = {
-      credentials: 'omit',
-      referrerPolicy: 'no-referrer',
-      mode: 'same-origin',
-      signal: interrupt.controller.signal,
-    };
-    const loadAsset = createFetchFn(doc, interrupt.controller.signal);
-    let fontCSS: string;
-    try {
-      fontCSS = await interrupt.guard(collectViewportFontCSS(doc, {
-        signal: interrupt.controller.signal,
-        loadAsset: async url => {
-          const result = await loadAsset(url);
-          if (!result) throw new CaptureViewportError('resource-warning');
-          return result;
-        },
-      }));
-    } catch {
-      throw interrupt.reason ?? new CaptureViewportError('resource-warning');
-    }
-    forms = prepareViewportForms(doc, interrupt.controller.signal);
-    const createContext = Promise.resolve().then(() => engine.createContext(root, {
-      width: before.width,
-      height: before.height,
-      scale: before.scale,
-      timeout: CAPTURE_TIMEOUT_MS,
-      debug: false,
-      autoDestruct: false,
-      onCloneEachNode: forms.onCloneEachNode,
-      features: { restoreScrollPosition: true },
-      font: { cssText: fontCSS },
-      filter: createFilter(doc, interrupt.controller.signal),
-      fetchFn: loadAsset,
-      fetch: { requestInit },
-    }));
-    try {
-      context = await interrupt.guard(createContext);
-    } catch (error) {
-      void createContext.then((lateContext) => {
-        lateContext.log.warn = () => { warning = true; };
-        return engine!.destroyContext(lateContext);
-      }).catch(() => {});
-      throw error;
-    }
-    if (context.log) context.log.warn = () => { warning = true; };
-    if (hasVisibleBrokenImage(doc, before)) throw new CaptureViewportError('resource-warning');
-
-    rendering = Promise.resolve().then(() => engine.domToCanvas(context!));
-    void rendering.then(() => { renderingSettled = true; }, () => { renderingSettled = true; });
-    result = await interrupt.guard(rendering);
-    if (warning) throw new CaptureViewportError('resource-warning');
-    if (result.width !== before.pixelWidth || result.height !== before.pixelHeight) {
-      throw new CaptureViewportError('capture-failed');
-    }
-    const after = snapshotViewport(doc);
-    if (doc.documentElement !== root || after.width !== before.width || after.height !== before.height || after.scale !== before.scale || after.scrollX !== before.scrollX || after.scrollY !== before.scrollY) {
-      throw new CaptureViewportError('viewport-changed');
-    }
+    const response = await Promise.race([Promise.resolve().then(() => {
+      if (stopped) throw stopped;
+      return port.capturePng(requestId);
+    }), interrupted]);
+    assertViewport();
+    if (!response || response.requestId !== requestId) throw new CaptureViewportError('invalid-pixels');
+    trace('pixels-validating', requestId);
+    const pixels = pngDimensions(response.png);
+    if (!matchesNativeDimension(pixels.width, before[0], before[2]) || !matchesNativeDimension(pixels.height, before[1], before[2])) throw new CaptureViewportError('invalid-pixels');
+    if (typeof view.createImageBitmap !== 'function') throw new CaptureViewportError('capture-failed');
+    // 复制的是已冻结 PNG 字节，不重新请求图片、字体或网页内容。
+    const blob = new view.Blob([new Uint8Array(pixels.png)], { type: 'image/png' });
+    const decoding = view.createImageBitmap(blob).then(image => {
+      if (stopped) image.close();
+      return image;
+    });
+    bitmap = await Promise.race([decoding, interrupted]);
+    assertViewport();
+    if (bitmap.width !== pixels.width || bitmap.height !== pixels.height) throw new CaptureViewportError('invalid-pixels');
+    canvas = doc.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new CaptureViewportError('capture-failed');
+    // 等尺寸复制冻结像素：无 DOM、无布局计算、无缩放或裁剪。
+    context.drawImage(bitmap, 0, 0);
+    trace('pixels-decoded', requestId);
+    return canvas;
   } catch (error) {
-    failure = error instanceof CaptureViewportError ? error : new CaptureViewportError('capture-failed');
+    if (canvas) { canvas.width = 0; canvas.height = 0; }
+    throw error instanceof CaptureViewportError ? error : new CaptureViewportError(error?.code === 'bridge-cleanup-unconfirmed' ? 'bridge-cleanup-unconfirmed' : error?.code === 'bridge-port-busy' ? 'bridge-port-busy' : error?.code === 'control-cleanup-unconfirmed' ? 'control-cleanup-unconfirmed' : 'capture-failed');
   } finally {
-    if (context && engine && rendering && !renderingSettled) {
-      // +--- 先阻断新节点读取，旧渲染结算后再归还库的 context ---+
-      const ownedContext = context, ownedEngine = engine;
-      void rendering.then(
-        () => ownedEngine.destroyContext(ownedContext),
-        () => ownedEngine.destroyContext(ownedContext),
-      ).catch(() => {});
-    } else if (context && engine) {
-      try {
-        const destruction = Promise.resolve(engine.destroyContext(context));
-        await interrupt.guard(destruction);
-      } catch {
-        if (!failure) failure = interrupt.reason ?? new CaptureViewportError('capture-failed');
-      }
-    }
-    forms?.restore();
-    interrupt.dispose();
+    bitmap?.close(); view.clearTimeout(timeout); signal?.removeEventListener('abort', abort);
+    doc.removeEventListener('scroll', changed, true); view.removeEventListener('resize', changed);
+    visual?.removeEventListener('resize', changed); visual?.removeEventListener('scroll', changed);
   }
-
-  if (interrupt.reason) throw interrupt.reason;
-  if (failure) throw failure;
-  if (warning) throw new CaptureViewportError('resource-warning');
-  if (!result) throw new CaptureViewportError('capture-failed');
-  return result;
 }

@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 capture-window.css 定义的 DSH 语义令牌与检查器底纹
+ * [INPUT]: 依赖 capture-window.css 定义的 DSH 语义令牌、实时原生边框/禁用态与检查器底纹
  * [OUTPUT]: 为渐变、壁纸与纯色提供适应类别密度的正方形色板、选中环及交互态
  * [POS]: capture-window 的背景选择器样式边界，与编辑器壳层及颜色弹层样式按职责分离
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -60,7 +60,8 @@
 }
 
 .pdsh-capture-background-grid-plain .pdsh-capture-background-option {
-  border-radius: 9999px;
+  border-radius: 50%;
+  corner-shape: round;
 }
 
 
@@ -69,7 +70,7 @@
   background: var(--capture-swatch);
   background-clip: border-box;
   background-origin: border-box;
-  border: 1px solid var(--dsw-alias-border-l2);
+  border: var(--pdsh-outline-width) solid var(--dsw-alias-border-l2);
   border-radius: var(--pdsh-capture-radius-sm);
   height: auto;
   min-width: 0;
@@ -81,7 +82,7 @@
 
 .pdsh-capture-background-option[aria-pressed="true"],
 .pdsh-capture-background-option[data-selected="true"] {
-  box-shadow: 0 0 0 2px var(--pdsh-capture-surface), 0 0 0 4px var(--pdsh-capture-ring);
+  box-shadow: 0 0 0 var(--dsw-focus-ring-width) var(--pdsh-capture-surface), 0 0 0 calc(var(--dsw-focus-ring-width) * 2) var(--pdsh-capture-ring);
 }
 
 .pdsh-capture-background-option svg {
@@ -141,8 +142,8 @@
 
 .pdsh-capture-color-label:focus-visible,
 .pdsh-capture-wallpaper-label:focus-visible {
-  outline: 2px solid var(--pdsh-capture-focus);
-  outline-offset: 2px;
+  outline: var(--dsw-focus-ring-width) solid var(--pdsh-capture-focus);
+  outline-offset: var(--dsw-focus-ring-width);
 }
 
 .pdsh-capture-wallpaper-input {
@@ -169,7 +170,7 @@
 /* 等待原图时保留唯一已应用选中态，目标项只显示处理中。 */
 .pdsh-capture-background-option[aria-busy="true"] {
   cursor: progress;
-  opacity: 0.5;
+  opacity: var(--pdsh-action-disabled-opacity);
 }
 
 /* -------------------- 系统资源加载占位 -------------------- */
@@ -179,11 +180,5 @@
   height: 100%;
   border-radius: inherit;
   background: var(--pdsh-capture-surface-tertiary);
-  animation: pdsh-capture-loading 1.6s ease-in-out infinite;
 }
-@keyframes pdsh-capture-loading {
-  50% { opacity: 0.45; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .pdsh-capture-skeleton { animation: none; }
-}
+/* Host 没有公开统一加载周期；保留静态占位，不自造第二套动画参数。 */

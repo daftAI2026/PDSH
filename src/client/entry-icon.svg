@@ -1,13 +1,9 @@
 <!--
 [INPUT]: 复用 InCodex assets/hat-glasses.svg 的 Lucide 线条图形；不读取用户输入。
-[OUTPUT]: 提供可调 stroke-width 的标题入口与插件标识共用图形。
-[POS]: PDSH 单一图形源；线条保持不透明，运行时只在整枚 SVG 根上合成透明度。
+[OUTPUT]: 提供五段几何合并的单一路径描边；透明底，坐标和离线图稿线宽保持原形。
+[POS]: PDSH 单一图形源；运行时线宽由原生搜索的坐标/显示比例换算，只在 SVG 根合成透明度。
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M14 18a2 2 0 0 0-4 0"/>
-  <path d="m19 11-2.11-6.657a2 2 0 0 0-2.752-1.148l-1.276.61A2 2 0 0 1 12 4H8.5a2 2 0 0 0-1.925 1.456L5 11"/>
-  <path d="M2 11h20"/>
-  <circle cx="17" cy="18" r="3"/>
-  <circle cx="7" cy="18" r="3"/>
+  <path d="M14 18a2 2 0 0 0-4 0 M19 11l-2.11-6.657a2 2 0 0 0-2.752-1.148l-1.276.61A2 2 0 0 1 12 4H8.5a2 2 0 0 0-1.925 1.456L5 11 M2 11h20 M20 18a3 3 0 1 1-6 0a3 3 0 1 1 6 0Z M10 18a3 3 0 1 1-6 0a3 3 0 1 1 6 0Z"/>
 </svg>

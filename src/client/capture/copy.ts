@@ -44,7 +44,9 @@ export type CaptureWindowCopy = {
   retakeFailed: string;
   save: string;
   saveFailed: string;
+  exportTooLarge: string;
   saved: string;
+  saveStarted: string;
   shadow: string;
   solid: string;
   sourceAuto: string;
@@ -102,8 +104,10 @@ const ENGLISH: CaptureWindowCopy = {
   retake: "Retake",
   retakeFailed: "Unable to capture the window again.",
   save: "Save",
-  saveFailed: "Unable to encode the PNG.",
-  saved: "PNG downloaded",
+  saveFailed: "Could not export the image.",
+  exportTooLarge: "Image size exceeds the export limit. Reduce the padding.",
+  saved: "Image saved",
+    saveStarted: "Export started. Confirm in the system save flow.",
   shadow: "Shadow",
   solid: "Solid",
   sourceAuto: "Detected areas",
@@ -161,8 +165,10 @@ const CHINESE: CaptureWindowCopy = {
   retake: "重拍",
   retakeFailed: "无法重新截取窗口。",
   save: "保存",
-  saveFailed: "无法生成 PNG。",
-  saved: "PNG 已下载",
+  saveFailed: "无法导出图片。",
+  exportTooLarge: "图片超出导出尺寸限制，请减小边距。",
+  saved: "图片已保存",
+    saveStarted: "已发起导出，请在系统保存流程中确认。",
   shadow: "阴影",
   solid: "纯色",
   sourceAuto: "检测区域",

@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 search-entry.ts、固定线条入口资产和 rc.2 搜索展开/收起结构夹具。
- * [OUTPUT]: 验证邻接挂载、开关与导航隔离、原生样式复用、搜索展开退让、重挂与完整释放。
+ * [INPUT]: 依赖 search-entry.ts、帽子/相机线稿资产、原生 SVG 实时 viewBox/strokeWidth/显示尺寸与 rc.2 搜索结构夹具。
+ * [OUTPUT]: 验证邻接挂载、状态/导航隔离、动态等效笔画、原生样式/透明度、未知几何退让与资源释放。
  * [POS]: PDSH 入口适配合同；不能替代确切 runtime 的真实 React/布局验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -11,7 +11,7 @@ import { JSDOM } from 'jsdom';
 import { mountSearchEntry } from '../src/client/search-entry.ts';
 
 const icon = readFileSync(new URL('../src/client/entry-icon.svg', import.meta.url), 'utf8');
-const search = (wide, language = 'zh') => `<button type="button" class="live-search-class" aria-label="${language === 'zh' ? '搜索会话' : 'Search sessions'}" ${wide ? 'aria-expanded="false"' : ''}><svg style="width:${wide ? '14px' : '18px'};height:${wide ? '14px' : '18px'}"></svg></button>`;
+const search = (wide, language = 'zh') => `<button type="button" class="live-search-class" aria-label="${language === 'zh' ? '搜索会话' : 'Search sessions'}" ${wide ? 'aria-expanded="false"' : ''}><svg viewBox="0 0 16 16" style="width:${wide ? '14px' : '18px'};height:${wide ? '14px' : '18px'};stroke-width:1"></svg></button>`;
 const browser = (wide = true, language = 'zh') => `<div data-slot="sidebar.workspaces"><div class="browser-root"><div class="native-header">${wide ? `<span>工作区</span><div class="native-search-slot"><div class="native-search">${search(true, language)}<input type="text" value="原生搜索" /></div></div><div class="native-actions"></div>` : '<div class="native-actions"></div>'}</div>${wide ? '' : `<div class="native-rail-search">${search(false, language)}</div>`}<div role="tree"></div></div></div>`;
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 function setup(html = browser()) {
@@ -83,6 +83,95 @@ test('透明度只作用于完整SVG，跟随原生图标而不逐笔加深交�
   assert.equal(changes.length, 0, '相同透明度不重写style，避免观察器反馈循环');
   observer.disconnect();
   entry.dispose(); dom.window.close();
+});
+
+test('帽子与相机的运行时stroke跟随原生viewBox、style宽度和显示尺寸', () => {
+  const { dom, doc, options } = setup();
+  const cameraIcon = readFileSync(new URL('../src/client/camera-icon.svg', import.meta.url), 'utf8');
+  const shots = [];
+  options.capture = { icon: cameraIcon, label: () => '截取窗口', state: () => ({ busy: false, disabled: false }), onActivate: () => shots.push('capture') };
+  const native = doc.querySelector('button[aria-label="搜索会话"]');
+  const nativeSvg = native.querySelector('svg');
+  // +--- jsdom 不可靠暴露 SVG presentation attribute；显式设置 CSS strokeWidth，模拟 live computed style ---+
+  nativeSvg.setAttribute('viewBox', '0 0 16 16');
+  nativeSvg.style.strokeWidth = '1';
+  nativeSvg.style.width = '14px';
+  nativeSvg.style.height = '14px';
+  nativeSvg.style.opacity = '0.42';
+  const entry = mountSearchEntry(doc, options);
+  const hat = doc.querySelector('[data-pdsh-search-entry]');
+  const camera = doc.querySelector('[data-pdsh-capture-entry]');
+  const hatSvg = hat.querySelector('svg');
+  const cameraSvg = camera.querySelector('svg');
+  const strokeWidth = svg => Number.parseFloat(svg.style.strokeWidth || svg.getAttribute('stroke-width') || 'NaN');
+
+  assert.equal(strokeWidth(hatSvg), 1.5, '1 user-unit / 16 × 24 user-units maps to the source asset default');
+  assert.equal(strokeWidth(cameraSvg), 1.5);
+  assert.equal(hatSvg.getAttribute('viewBox'), '0 0 24 24');
+  assert.equal(cameraSvg.getAttribute('viewBox'), '0 0 24 24');
+  assert.equal(hat.className, native.className);
+  assert.equal(camera.className, native.className);
+  assert.equal(hat.style.getPropertyValue('--pdsh-search-color'), 'var(--host-search-color)');
+  assert.equal(camera.style.getPropertyValue('--pdsh-search-color'), 'var(--host-search-color)');
+  assert.equal(hatSvg.style.getPropertyValue('--pdsh-icon-opacity'), '0.42');
+  assert.equal(cameraSvg.style.getPropertyValue('--pdsh-icon-opacity'), '0.42');
+
+  nativeSvg.style.strokeWidth = '2';
+  nativeSvg.style.width = '20px';
+  nativeSvg.style.height = '20px';
+  nativeSvg.style.opacity = '0.7';
+  entry.refresh();
+  assert.equal(strokeWidth(hatSvg), 3, '2 × 24 / 16 keeps the physical stroke equal at 20px display size');
+  assert.equal(strokeWidth(cameraSvg), 3, 'hat and camera share the same native visual stroke');
+  assert.equal(hatSvg.getAttribute('width'), '20px');
+  assert.equal(hatSvg.getAttribute('height'), '20px');
+  assert.equal(cameraSvg.getAttribute('width'), '20px');
+  assert.equal(cameraSvg.getAttribute('height'), '20px');
+  assert.equal(hatSvg.style.getPropertyValue('--pdsh-icon-opacity'), '0.7');
+  assert.equal(cameraSvg.style.getPropertyValue('--pdsh-icon-opacity'), '0.7');
+  assert.equal(hat.style.getPropertyValue('--pdsh-search-color'), 'var(--host-search-color)');
+  assert.equal(camera.style.getPropertyValue('--pdsh-search-color'), 'var(--host-search-color)');
+
+  nativeSvg.style.strokeWidth = '3';
+  nativeSvg.style.width = '16px';
+  nativeSvg.style.height = '16px';
+  entry.refresh();
+  assert.equal(strokeWidth(hatSvg), 4.5, '下一次 refresh 再按新的实时笔画重算');
+  assert.equal(strokeWidth(cameraSvg), 4.5);
+  assert.equal(hatSvg.getAttribute('width'), '16px');
+  assert.equal(cameraSvg.getAttribute('width'), '16px');
+  entry.dispose(); dom.window.close();
+});
+
+test('未知viewBox、无有效原生stroke或非等比显示退让，不回退到资产默认线宽', () => {
+  const cameraIcon = readFileSync(new URL('../src/client/camera-icon.svg', import.meta.url), 'utf8');
+  const cases = [
+    { name: 'missing viewBox', viewBox: null, stroke: '2', width: '14px', height: '14px' },
+    { name: 'missing style strokeWidth', viewBox: '0 0 16 16', stroke: null, width: '14px', height: '14px' },
+    { name: 'zero strokeWidth', viewBox: '0 0 16 16', stroke: '0', width: '14px', height: '14px' },
+    { name: 'non-square viewBox in square display box', viewBox: '0 0 16 8', stroke: '2', width: '14px', height: '14px' },
+    { name: 'non-proportional display box', viewBox: '0 0 16 16', stroke: '2', width: '14px', height: '12px' },
+  ];
+  const mounted = [];
+
+  for (const fixture of cases) {
+    const { dom, doc, options } = setup();
+    const nativeSvg = doc.querySelector('button[aria-label="搜索会话"] svg');
+    if (fixture.viewBox === null) nativeSvg.removeAttribute('viewBox');
+    else nativeSvg.setAttribute('viewBox', fixture.viewBox);
+    if (fixture.stroke === null) nativeSvg.style.removeProperty('stroke-width');
+    else nativeSvg.style.strokeWidth = fixture.stroke;
+    nativeSvg.style.width = fixture.width;
+    nativeSvg.style.height = fixture.height;
+    options.capture = { icon: cameraIcon, label: () => '截取窗口', state: () => ({ busy: false, disabled: false }), onActivate() {} };
+    const entry = mountSearchEntry(doc, options);
+    const controls = [...doc.querySelectorAll('[data-pdsh-search-entry], [data-pdsh-capture-entry]')].map(node => node.getAttribute('data-pdsh-search-entry') === null ? 'camera' : 'hat');
+    if (controls.length) mounted.push({ fixture: fixture.name, controls });
+    entry.dispose();
+    dom.window.close();
+  }
+
+  assert.deepEqual(mounted, [], '无可靠几何时同时跳过帽子与相机，不伪造固定fallback');
 });
 
 test('搜索展开时隐藏；关闭后复现；翻译和原生 class 改动同步', async () => {
@@ -188,4 +277,24 @@ test('相机位于帽子右侧、搜索左侧；整枚图标透明度与原生�
   assert.equal(camera.hidden, true); camera.click(); assert.deepEqual(shots, ['capture']);
   entry.dispose(); assert.equal(doc.querySelector('[data-pdsh-capture-entry]'), null);
   dom.window.close();
+});
+
+test('标题组件关闭后，相机单独挂载、搜索展开隐藏并卸载归还', () => {
+  const cameraIcon = readFileSync(new URL('../src/client/camera-icon.svg', import.meta.url), 'utf8');
+  for (const wide of [true, false]) {
+    const { dom, doc } = setup(browser(wide)), before = doc.body.outerHTML;
+    let count = 0;
+    const entry = mountSearchEntry(doc, { icon: null, capture: {
+      icon: cameraIcon, label: () => '截取窗口', state: () => ({ busy: false, disabled: false }), onActivate: () => ++count,
+    } });
+    assert.equal(doc.querySelector('[data-pdsh-search-entry]'), null);
+    const camera = doc.querySelector('[data-pdsh-capture-entry]');
+    assert.ok(camera); assert.ok(camera.hasAttribute('data-pdsh-entry-first'));
+    camera.click(); assert.equal(count, 1);
+    if (wide) {
+      doc.querySelector('button[aria-label="搜索会话"]').setAttribute('aria-expanded', 'true'); entry.refresh();
+      assert.equal(camera.hidden, true); camera.click(); assert.equal(count, 1);
+    }
+    entry.dispose(); assert.equal(doc.body.outerHTML, wide ? before.replace('aria-expanded="false"', 'aria-expanded="true"') : before); dom.window.close();
+  }
 });

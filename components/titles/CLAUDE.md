@@ -1,0 +1,11 @@
+# components/titles/
+> L2 | 父级: ../CLAUDE.md
+
+- package.json: Host 文件的就近 Client/离线元信息归属；版本仅由根 manifest 派生。
+- index.js: src/host/titles.ts 的生成 Host 配置与生命周期。
+- client.js: 同一装配器编译为 titles 功能；独立启停，按页面共享资源。
+- client.js.map: 生成产物到 TypeScript 的调试映射。
+- plugin-icon.svg: Bundle 图稿的派生标识。
+- locale/: 包内翻译文件；rc.2 文件入口的官方行 metadata 不读取它，不能据此承诺停用时显示本地化名称。
+
+[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

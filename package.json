@@ -1,7 +1,7 @@
 {
   "name": "@daftai/pdsh",
   "description": "Same-window presentation and local capture workbench for DeepSeek Harness; no session isolation.",
-  "version": "0.2.1",
+  "version": "0.3.0-rc.7",
   "private": true,
   "type": "module",
   "main": "./index.js",
@@ -14,7 +14,8 @@
     "style-sources.json",
     "THIRD_PARTY_NOTICES.md",
     "LICENSE",
-    "locale/*.json"
+    "locale/*.json",
+    "components/"
   ],
   "exports": {
     ".": "./index.js",
@@ -44,10 +45,10 @@
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "3.18.4",
-    "blobatar": "2.7.0",
-    "modern-screenshot": "4.7.0"
+    "blobatar": "2.7.0"
   },
   "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.4",
     "@types/node": "22",
     "@types/react": "18",
     "@types/react-dom": "18",

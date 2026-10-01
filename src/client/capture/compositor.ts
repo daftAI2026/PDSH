@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 model 的短边百分比状态、presets 的背景以及 Canvas 绘制能力。
- * [OUTPUT]: 提供合成尺寸、绘制计划与预览/导出共享渲染；统一将百分比转为物理像素。
+ * [INPUT]: 依赖 model 的短边百分比状态、shared/capture-export 的输出预算、presets 背景与 material 的侧栏近似配方。
+ * [OUTPUT]: 预览/导出共享渲染，画布分配前验证输出预算；原图下合成模拟磨砂，不模糊原图。
  * [POS]: capture-window 的像素几何真源，regions 与 editor 复用同一 padding 换算。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -19,11 +19,12 @@ import {
   capturePresetDirection,
 } from "./presets.ts";
 
-const CAPTURE_WINDOW_UNDERLAY_COLOR = "#f4f4f4";
+import { captureMaterialRecipe, createCaptureMaterialBackdrop, type CaptureMaterialAppearance } from './material.ts';
+import { assertCaptureExportSize } from '../../shared/capture-export.ts';
 
 export type CaptureRenderOperation =
   | { background: CaptureBackground; kind: "background"; size: CaptureSize }
-  | { color: typeof CAPTURE_WINDOW_UNDERLAY_COLOR; kind: "window-underlay"; rect: CaptureRect }
+  | { appearance: CaptureMaterialAppearance; kind: "window-underlay"; rect: CaptureRect }
   | { kind: "window"; rect: CaptureRect; shadow: boolean }
   | {
       color: string;
@@ -35,6 +36,7 @@ export type CaptureRenderOperation =
 export type CaptureRenderOptions = {
   backgroundImage?: CanvasImageSource | null;
   isMacOS: boolean;
+  materialAppearance?: CaptureMaterialAppearance;
 };
 
 export type RedactionSampling = {
@@ -89,6 +91,7 @@ export function captureWindowShadow(padding: number, scaleFactor: number): Captu
 
 export function createCaptureRenderPlan(
   state: CaptureWindowState,
+  appearance: CaptureMaterialAppearance = 'light',
 ): CaptureRenderOperation[] {
   const size = captureOutputSize(state.source, state.padding);
   const physicalPadding = capturePhysicalPadding(state.source, state.padding);
@@ -100,7 +103,7 @@ export function createCaptureRenderPlan(
   };
   const operations: CaptureRenderOperation[] = [
     { background: state.background, kind: "background", size },
-    { color: CAPTURE_WINDOW_UNDERLAY_COLOR, kind: "window-underlay", rect: windowRect },
+    { appearance, kind: "window-underlay", rect: windowRect },
     {
       kind: "window",
       rect: windowRect,
@@ -129,21 +132,21 @@ export function renderCaptureToCanvas(
   state: CaptureWindowState,
   options: CaptureRenderOptions,
 ): HTMLCanvasElement {
-  const canvas = document.createElement("canvas");
   const size = captureOutputSize(state.source, state.padding);
+  assertCaptureExportSize(size.width, size.height);
+  const canvas = document.createElement("canvas");
   canvas.width = Math.round(size.width);
   canvas.height = Math.round(size.height);
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("Canvas 2D is unavailable");
-
-  drawBackground(context, state.background, size, options.backgroundImage ?? null);
-  drawWindow(context, source, state, options.isMacOS);
-
-  const regions = activeCaptureRegions(state);
-  for (const region of regions) {
-    drawRedaction(context, source, region, state);
+  try {
+    if (!context) throw new Error("Canvas 2D is unavailable");
+    drawBackground(context, state.background, size, options.backgroundImage ?? null);
+    drawWindow(context, source, state, options);
+    for (const region of activeCaptureRegions(state)) drawRedaction(context, source, region, state);
+    return canvas;
+  } catch (error) {
+    canvas.width = 0; canvas.height = 0; throw error;
   }
-  return canvas;
 }
 
 function activeCaptureRegions(state: CaptureWindowState): CaptureWindowState["regions"] {
@@ -232,34 +235,44 @@ function drawWindow(
   context: CanvasRenderingContext2D,
   source: CanvasImageSource,
   state: CaptureWindowState,
-  isMacOS: boolean,
+  options: CaptureRenderOptions,
 ): void {
   const padding = capturePhysicalPadding(state.source, state.padding);
   const scaleFactor = Math.max(1, state.source.scaleFactor);
-  const cornerRadius = captureWindowCornerRadius(isMacOS, scaleFactor);
+  const cornerRadius = captureWindowCornerRadius(options.isMacOS, scaleFactor);
+  const appearance = options.materialAppearance ?? 'light';
+  // 必须在阴影/窗口底色覆盖背景前冻结材质输入，预览和导出走同一条路径。
+  const material = options.isMacOS ? createCaptureMaterialBackdrop(context.canvas,
+    { x: padding, y: padding, width: state.source.width, height: state.source.height }, appearance, scaleFactor) : null;
   context.save();
-  roundedRectPath(
-    context,
-    padding,
-    padding,
-    state.source.width,
-    state.source.height,
-    cornerRadius,
-  );
-  if (state.shadow) {
-    const shadow = captureWindowShadow(padding / scaleFactor, scaleFactor);
-    context.shadowColor = shadow.color;
-    context.shadowBlur = shadow.blur;
-    context.shadowOffsetY = shadow.offsetY;
+  try {
+    roundedRectPath(
+      context,
+      padding,
+      padding,
+      state.source.width,
+      state.source.height,
+      cornerRadius,
+    );
+    if (state.shadow) {
+      const shadow = captureWindowShadow(padding / scaleFactor, scaleFactor);
+      context.shadowColor = shadow.color;
+      context.shadowBlur = shadow.blur;
+      context.shadowOffsetY = shadow.offsetY;
+    }
+    context.fillStyle = captureMaterialRecipe(appearance).base;
+    context.fill();
+    context.shadowColor = "transparent";
+    context.shadowBlur = 0;
+    context.shadowOffsetY = 0;
+    context.clip();
+    if (material) context.drawImage(material, padding, padding, state.source.width, state.source.height);
+    // 原图保持无滤镜、等尺寸绘制，其 alpha 决定哪里露出近似材质。
+    context.drawImage(source, padding, padding, state.source.width, state.source.height);
+  } finally {
+    context.restore();
+    if (material) { material.width = 0; material.height = 0; }
   }
-  context.fillStyle = CAPTURE_WINDOW_UNDERLAY_COLOR;
-  context.fill();
-  context.shadowColor = "transparent";
-  context.shadowBlur = 0;
-  context.shadowOffsetY = 0;
-  context.clip();
-  context.drawImage(source, padding, padding, state.source.width, state.source.height);
-  context.restore();
 }
 
 function drawRedaction(

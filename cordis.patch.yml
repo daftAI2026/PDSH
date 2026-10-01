@@ -1,3 +1,7 @@
 - insert:
     - id: pdsh
       name: "@daftai/pdsh"
+    - id: pdsh-titles
+      name: "./components/titles/index.js"
+    - id: pdsh-capture
+      name: "./components/capture/index.js"

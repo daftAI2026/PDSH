@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖发布清单、官方 locale 资源入口与 Client 的语言字典。
- * [OUTPUT]: 验证包文本可离线发现、zh/en 键齐全，语言跟随宿主且不重复渲染使用说明。
- * [POS]: PDSH 本地化合同；实际宿主热切换/草稿保留由独立 runtime 另验。
+ * [OUTPUT]: 验证包文本可离线发现、zh/en 键齐全，并约束插件图标为单 path 可调前景线稿且透明背景。
+ * [POS]: PDSH 本地化与清单图标合同；实际宿主热切换/草稿保留由独立 runtime 另验。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
@@ -34,22 +34,27 @@ test('运行文案两种语言键一致，语言提示使用宿主设置而非�
   assert.doesNotMatch(card, /localStorage|setLocale|localePreference/);
 });
 
-test('插件列表图标走官方manifest离线图片入口，复用帽子图形且包含于包', () => {
+test('插件清单图标复用单 path 帽子图形；包图固化前景色但保持透明背景', () => {
   assert.equal(manifest.icon, './plugin-icon.svg');
   assert.ok(manifest.files.includes('plugin-icon.svg'));
   const glyph = readFileSync(new URL('../src/client/entry-icon.svg', import.meta.url), 'utf8');
   const icon = readFileSync(new URL(`../${manifest.icon}`, import.meta.url), 'utf8');
-  const shapes = text => [...text.matchAll(/<(?:path|circle)\b[^>]*>/g)].map(match => match[0]);
-  assert.deepEqual(shapes(icon), shapes(glyph));
   const canvas = glyph.match(/viewBox="([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+)"/);
   assert.ok(canvas && Number(canvas[3]) === 24 && Number(canvas[4]) === 24, '线条图标应使用自身的24×24坐标，而非外部画板');
   assert.match(glyph, /fill="none"[^>]*stroke="currentColor"[^>]*stroke-width="1\.5"/, '沿用可调线宽的 Lucide 图形');
-  assert.equal(shapes(glyph).length, 5, '保留原始线条与圆形结构');
-  assert.doesNotMatch(glyph, /stroke-opacity=|fill-opacity=|<path[^>]*opacity=|<circle[^>]*opacity=/, '不逐笔降低透明度');
+  assert.equal([...glyph.matchAll(/<path\b/g)].length, 1, '五个几何必须合并为唯一的复合 path');
+  assert.doesNotMatch(glyph, /<(?:circle|rect)\b|stroke-opacity=|fill-opacity=|<path[^>]*opacity=/, '线稿不拆圆、不加底形或逐笔降低透明度');
+  const sourcePath = glyph.match(/<path\b[^>]*>/)?.[0];
+  const packagedPath = icon.match(/<path\b[^>]*>/)?.[0];
+  assert.ok(sourcePath && packagedPath);
+  assert.equal(packagedPath.match(/\bd="([^"]+)"/)?.[1], sourcePath.match(/\bd="([^"]+)"/)?.[1], '包图沿用同一帽子复合几何');
+  assert.equal([...icon.matchAll(/<path\b/g)].length, 1);
+  assert.doesNotMatch(icon, /<(?:circle|rect)\b/, '清单图标无 circle 与背景 rect');
   assert.doesNotMatch(icon, /<script|<foreignObject|href=|currentColor|var\(/i, '官方img不继承宿主变量，不请求外部资源');
   const palette = JSON.parse(readFileSync(new URL('../style-sources.json', import.meta.url), 'utf8')).artwork;
-  assert.ok(palette.file && palette.foreground.variable && palette.background.variable);
-  assert.ok(icon.includes(palette.foreground.value)); assert.ok(icon.includes(palette.background.value));
-  assert.match(icon, /stroke="rgb\(/, '元信息图标将 currentColor 固化到 stroke 而非填充');
+  assert.ok(palette.file && palette.foreground.variable);
+  const root = icon.match(/<svg\b[^>]*>/)?.[0] ?? '';
+  assert.match(root, /fill="none"[^>]*stroke-width="1\.5"/, '包图保留透明填充和统一线宽');
+  assert.ok(root.includes(`stroke="${palette.foreground.value}"`), '元信息图标将 currentColor 固化为来源账中的原前景色');
   assert.ok(Buffer.byteLength(icon) < 256 * 1024);
 });

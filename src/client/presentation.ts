@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖浏览器 DOM/MutationObserver 和 shared/model.ts 已验证的显示偏好。
- * [OUTPUT]: 提供可卸载的sidebar身份视觉覆盖及仅内存的原生头像预览来源，不修改聊天消息。
+ * [OUTPUT]: 提供身份结构识别、可卸载视觉覆盖和仅内存头像预览；拍照复用同一识别边界。
  * [POS]: PDSH 的 rc.2 DOM 适配边界；保留原生账户节点和行为，未知结构拒绝猜测。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -8,12 +8,12 @@ const LAUNCHER = '[data-slot="settings.launcher"] button[aria-haspopup="menu"][d
 const OWNED = '[data-pdsh-name], [data-pdsh-avatar-image]';
 const MARKERS = ['data-pdsh-original-label', 'data-pdsh-avatar'];
 
-function locateIdentity(doc: Document) {
+export function recognizeSidebarIdentity(doc: Document) {
   const triggers = [...doc.querySelectorAll<HTMLButtonElement>(LAUNCHER)];
-  if (triggers.length !== 1) return { status: 'unsupported' };
+  if (triggers.length !== 1) return { status: 'unsupported' as const };
   const trigger = triggers[0];
-  if (trigger.dataset.signedOut === 'true') return { status: 'signed-out' };
-  if (trigger.dataset.signedOut !== 'false') return { status: 'unsupported' };
+  if (trigger.dataset.signedOut === 'true') return { status: 'signed-out' as const };
+  if (trigger.dataset.signedOut !== 'false' || !['true', 'false'].includes(trigger.dataset.collapsed)) return { status: 'unsupported' as const };
   const wide = trigger.dataset.collapsed === 'false';
   const children = [...trigger.children].filter(node => !node.matches(OWNED));
   const avatar = children[0];
@@ -21,9 +21,9 @@ function locateIdentity(doc: Document) {
   if (children.length !== (wide ? 2 : 1) || avatar?.tagName !== 'SPAN' ||
     !avatar.querySelector(':scope > img:not([data-pdsh-avatar-image]), :scope > svg') ||
     (wide && label?.tagName !== 'SPAN')) {
-    return { status: 'unsupported' };
+    return { status: 'unsupported' as const };
   }
-  return { status: 'masked', trigger, wide, avatar, label };
+  return { status: 'recognized' as const, trigger, wide, avatar, label };
 }
 
 export function mountPresentation(doc: Document) {
@@ -48,11 +48,11 @@ export function mountPresentation(doc: Document) {
   }
   function refresh() {
     if (disposed || !preferences) return;
-    const identity = locateIdentity(doc);
+    const identity = recognizeSidebarIdentity(doc);
     // 原生已显示的头像仅供设置预览；不请求账户服务、不写入配置或日志。
-    const accountAvatar = identity.avatar?.querySelector(':scope > img:not([data-pdsh-avatar-image])')?.getAttribute('src') ?? '';
+    const accountAvatar = identity.status === 'recognized' ? identity.avatar.querySelector(':scope > img:not([data-pdsh-avatar-image])')?.getAttribute('src') ?? '' : '';
     if (!preferences.maskIdentity) { clearIdentity(); publish('disabled', accountAvatar); return; }
-    if (identity.status !== 'masked') { clearIdentity(); publish(identity.status); return; }
+    if (identity.status !== 'recognized') { clearIdentity(); publish(identity.status); return; }
     const { trigger, wide, avatar, label } = identity;
     // +--- React 可重挂同一按钮的子树：回收脱离节点，绝不复制真实账户值 ---+
     for (const node of [...owned]) if (!trigger.contains(node)) { node.remove(); owned.delete(node); }

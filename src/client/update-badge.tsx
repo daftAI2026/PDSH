@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖官方 plugins.detail.badge 的 Bundle subject、更新控制器及宿主 Button/Tooltip。
+ * [INPUT]: 依赖官方 plugins.detail.badge 的 Bundle subject、更新控制器、宿主 Button/Tooltip 与实时原生图标样式探针。
  * [OUTPUT]: 仅自身有稳定新版本时显示版本旁细线绿色上箭头；展开来源提示后才允许确认安装。
  * [POS]: 更新交互的独立 detail slot；探测跟随详情挂载，不增设后台轮询或设置卡片。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -28,8 +28,8 @@ export function UpdateBadge({ subject, updater, version, t }) {
       data-pdsh-update-trigger aria-label={`${t('update.available')} v${update.version}`}
       aria-expanded={expanded}
       onClick={() => setExpanded(value => !value)}>
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/>
       </svg>
     </Button></Tooltip>}

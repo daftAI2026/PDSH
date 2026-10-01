@@ -1,9 +1,10 @@
 /**
- * [INPUT]: 依赖原生搜索结构、实时class/图标几何/根透明度/CSS变量、遮挡状态与可选截图控制器。
- * [OUTPUT]: 提供帽子及其右侧相机入口与局部焦点修复；两枚SVG整体合成透明度，卸载还原原生搜索。
+ * [INPUT]: 依赖原生搜索结构、实时 class/显示尺寸/viewBox/计算线宽/根透明度/CSS 变量、可选标题/截图控制器；两者可分别关闭。
+ * [OUTPUT]: 提供帽子及右侧相机入口与局部焦点修复；线宽按原生坐标比例换算、整体合成透明度，未知几何退让，卸载还原搜索。
  * [POS]: PDSH 版本相关 DOM 适配边界；非官方 child slot，与身份显示控制器相互独立。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { matchNativeIconStroke } from './native-icon.ts';
 
 const SEARCH = 'button[aria-label="搜索会话"], button[aria-label="Search sessions"]';
 
@@ -57,56 +58,37 @@ function attribute(node, name, value) {
   if (node.getAttribute(name) !== value) node.setAttribute(name, value);
 }
 
-export function mountSearchEntry(doc, { icon, label, state, onActivate, capture = null }) {
-  function makeButton(source) {
+export function mountSearchEntry(doc: Document, { icon = null, label = (): string => '', state = () => ({ pressed: false, busy: false, disabled: false }), onActivate = () => {}, capture = null } = {}) {
+  let shell: HTMLElement | null = null, disposed = false, sampledElement = null, sampledKey = '', sampledColor = null;
+  function makeControl(source, marker, readState, readLabel, activate, pressed = false) {
     const template = doc.createElement('template'); template.innerHTML = source;
-    const image = template.content.querySelector('svg');
-    if (!image) throw new Error('PDSH trusted entry icon missing');
-    image.removeAttribute('width'); image.removeAttribute('height');
-    image.setAttribute('aria-hidden', 'true'); image.setAttribute('focusable', 'false');
-    const control = doc.createElement('button'); control.type = 'button'; control.append(image);
-    return [control, image];
+    const svg = template.content.querySelector('svg');
+    if (!svg) throw new Error('PDSH trusted entry icon missing');
+    svg.removeAttribute('width'); svg.removeAttribute('height');
+    svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
+    const button = doc.createElement('button'); button.type = 'button'; button.append(svg);
+    button.setAttribute('data-pdsh-capture-hide', '');
+    const click = () => { if (button.isConnected && !button.hidden && !button.disabled && !disposed) activate(); };
+    button.addEventListener('click', click);
+    return { button, svg, marker, readState, readLabel, pressed, click, wasBusy: false, pendingFocus: false };
   }
-  const [button, svg] = makeButton(icon);
-  button.setAttribute('data-pdsh-capture-hide', '');
-  const [camera, cameraSvg] = capture ? makeButton(capture.icon) : [null, null];
-  camera?.setAttribute('data-pdsh-capture-hide', '');
-  // +--- 操作由Host控制器承接；不冒充搜索点击或隔离会话 ---+
-  const activate = () => { if (button.isConnected && !button.hidden && !button.disabled && !disposed) onActivate(); };
-  button.addEventListener('click', activate);
-  const take = () => { if (camera?.isConnected && !camera.hidden && !camera.disabled && !disposed) capture.onActivate(); };
-  camera?.addEventListener('click', take);
-  let pendingFocus = false, wasBusy = false;
-  let shell = null, disposed = false, sampledElement = null, sampledKey = '', sampledColor = null;
-  function detach() { pendingFocus = false; button.remove(); camera?.remove(); shell?.remove(); shell = null; }
+  const controls = [
+    ...(icon ? [makeControl(icon, 'data-pdsh-search-entry', state, label, onActivate, true)] : []),
+    ...(capture ? [makeControl(capture.icon, 'data-pdsh-capture-entry', capture.state, capture.label, capture.onActivate)] : []),
+  ];
+  controls[0]?.button.setAttribute('data-pdsh-entry-first', '');
+  function detach() {
+    for (const control of controls) { control.pendingFocus = false; control.button.remove(); }
+    shell?.remove(); shell = null;
+  }
   function synchronize() {
-    if (disposed) return;
+    if (disposed || !controls.length) return;
     const native = locate(doc);
     if (!native) { detach(); return; }
-    const size = doc.defaultView.getComputedStyle(native.button.querySelector('svg'));
+    const nativeSvg = native.button.querySelector('svg'), size = doc.defaultView.getComputedStyle(nativeSvg);
     if (!(Number.parseFloat(size.width) > 0 && Number.parseFloat(size.height) > 0)) { detach(); return; }
-    // +--- 只对整枚 SVG 合成透明度；逐 path 的半透明会让笔画交叠处加深 ---+
-    const opacity = Number.parseFloat(size.opacity);
-    if (Number.isFinite(opacity) && opacity >= 0 && opacity <= 1) {
-      if (svg.style.getPropertyValue('--pdsh-icon-opacity') !== String(opacity)) svg.style.setProperty('--pdsh-icon-opacity', String(opacity));
-      if (cameraSvg && cameraSvg.style.getPropertyValue('--pdsh-icon-opacity') !== String(opacity)) cameraSvg.style.setProperty('--pdsh-icon-opacity', String(opacity));
-    } else if (svg.style.getPropertyValue('--pdsh-icon-opacity')) svg.style.removeProperty('--pdsh-icon-opacity');
-    if (cameraSvg && !(Number.isFinite(opacity) && opacity >= 0 && opacity <= 1)) cameraSvg.style.removeProperty('--pdsh-icon-opacity');
-    attribute(button, 'class', native.button.className);
-    attribute(button, 'data-pdsh-search-entry', native.wide ? 'wide' : 'rail');
-    attribute(button, 'aria-label', label()); attribute(button, 'data-pdsh-tooltip', label());
-    const current = state();
-    if (current.busy && !wasBusy) pendingFocus = doc.activeElement === button;
-    attribute(button, 'aria-pressed', String(current.pressed)); attribute(button, 'aria-busy', String(current.busy));
-    button.disabled = current.disabled;
-    if (camera) {
-      const shot = capture.state();
-      attribute(camera, 'class', native.button.className);
-      attribute(camera, 'data-pdsh-capture-entry', native.wide ? 'wide' : 'rail');
-      attribute(camera, 'aria-label', capture.label()); attribute(camera, 'data-pdsh-tooltip', capture.label());
-      attribute(camera, 'aria-busy', String(shot.busy));
-      camera.disabled = shot.disabled;
-    }
+    const strokes = controls.map(control => matchNativeIconStroke(nativeSvg, control.svg, size));
+    if (strokes.some(stroke => !stroke)) { detach(); return; }
     const chain = [];
     for (let node = native.button; node; node = node.parentElement) chain.push(`${node.getAttribute('class') ?? ''}|${node.style.color}`);
     const theme = [doc.documentElement, doc.body].map(node => `${node.className}|${node.getAttribute('data-theme')}|${node.getAttribute('data-dsw-theme')}|${node.style.cssText}`).join(';');
@@ -114,46 +96,64 @@ export function mountSearchEntry(doc, { icon, label, state, onActivate, capture 
     if (sampledElement !== native.button || sampledKey !== key) {
       sampledElement = native.button; sampledKey = key; sampledColor = colorReference(doc, native.button);
     }
-    const color = sampledColor;
-    if (color && button.style.getPropertyValue('--pdsh-search-color') !== color) button.style.setProperty('--pdsh-search-color', color);
-    else if (!color) button.style.removeProperty('--pdsh-search-color');
-    if (camera) {
-      if (color && camera.style.getPropertyValue('--pdsh-search-color') !== color) camera.style.setProperty('--pdsh-search-color', color);
-      else if (!color) camera.style.removeProperty('--pdsh-search-color');
+    const opacity = Number.parseFloat(size.opacity), hidden = native.wide && native.button.getAttribute('aria-expanded') === 'true';
+    for (const [index, control] of controls.entries()) {
+      const { button, svg } = control, current = control.readState();
+      attribute(svg, 'stroke-width', strokes[index]);
+      // +--- 整枚 SVG 合成透明度，禁止逐笔叠加；两个入口消费同一实时几何 ---+
+      if (Number.isFinite(opacity) && opacity >= 0 && opacity <= 1) {
+        if (svg.style.getPropertyValue('--pdsh-icon-opacity') !== String(opacity)) svg.style.setProperty('--pdsh-icon-opacity', String(opacity));
+      } else svg.style.removeProperty('--pdsh-icon-opacity');
+      attribute(svg, 'width', size.width); attribute(svg, 'height', size.height);
+      attribute(button, 'class', native.button.className);
+      attribute(button, control.marker, native.wide ? 'wide' : 'rail');
+      attribute(button, 'aria-label', control.readLabel()); attribute(button, 'data-pdsh-tooltip', control.readLabel());
+      if (control.pressed) attribute(button, 'aria-pressed', String(current.pressed));
+      attribute(button, 'aria-busy', String(current.busy)); button.disabled = current.disabled;
+      if (current.busy && !control.wasBusy) control.pendingFocus = doc.activeElement === button;
+      if (button.hidden !== hidden) button.hidden = hidden;
+      if (sampledColor && button.style.getPropertyValue('--pdsh-search-color') !== sampledColor) button.style.setProperty('--pdsh-search-color', sampledColor);
+      else if (!sampledColor) button.style.removeProperty('--pdsh-search-color');
+      if (control.wasBusy && !current.busy) {
+        if (control.pendingFocus && !button.disabled && !button.hidden && button.isConnected
+          && (doc.activeElement === doc.body || doc.activeElement === button)) button.focus();
+        control.pendingFocus = false;
+      }
+      control.wasBusy = current.busy;
     }
-    attribute(svg, 'width', size.width); attribute(svg, 'height', size.height);
-    if (cameraSvg) { attribute(cameraSvg, 'width', size.width); attribute(cameraSvg, 'height', size.height); }
-    const hidden = native.wide && native.button.getAttribute('aria-expanded') === 'true';
-    if (button.hidden !== hidden) button.hidden = hidden;
-    if (camera && camera.hidden !== hidden) camera.hidden = hidden;
     if (native.wide) {
-      if (shell) { button.remove(); camera?.remove(); shell.remove(); shell = null; }
-      // +--- 入口在左：留白由自有按钮承担；邻接 CSS 仅在入口可见时撤去 slot 的自动外边距 ---+
-      if (button.parentElement !== native.parent || button.nextElementSibling !== (camera ?? native.anchor)) native.parent.insertBefore(button, camera?.parentElement === native.parent ? camera : native.anchor);
-      if (camera && (camera.parentElement !== native.parent || camera.previousElementSibling !== button || camera.nextElementSibling !== native.anchor)) native.parent.insertBefore(camera, native.anchor);
+      if (shell) { for (const { button } of controls) button.remove(); shell.remove(); shell = null; }
+      // +--- 从右向左校准帽子/相机；任一能力关闭时剩余入口独立邻接搜索 ---+
+      let anchor = native.anchor;
+      for (const { button } of [...controls].reverse()) {
+        if (button.parentElement !== native.parent || button.nextElementSibling !== anchor) native.parent.insertBefore(button, anchor);
+        anchor = button;
+      }
     } else {
       if (!shell) { shell = doc.createElement('div'); shell.setAttribute('data-pdsh-entry-shell', ''); }
       attribute(shell, 'class', native.search.className);
-      if (button.parentElement !== shell) shell.append(button);
-      if (camera && (camera.parentElement !== shell || camera.previousElementSibling !== button)) shell.append(camera);
+      let previous: Element | null = null;
+      for (const { button } of controls) {
+        if (button.parentElement !== shell || button.previousElementSibling !== previous) shell.insertBefore(button, previous ? previous.nextElementSibling : shell.firstElementChild);
+        previous = button;
+      }
       if (shell.parentElement !== native.parent || shell.nextElementSibling !== native.anchor) native.parent.insertBefore(shell, native.anchor);
     }
-    if (wasBusy && !current.busy) {
-      // 只修复请求禁用造成的焦点空洞，用户移焦或搜索展开时不抢回。
-      if (pendingFocus && !button.disabled && !button.hidden && button.isConnected
-        && (doc.activeElement === doc.body || doc.activeElement === button)) button.focus();
-      pendingFocus = false;
-    }
-    wasBusy = current.busy;
   }
   const observer = new doc.defaultView.MutationObserver(records => {
     if (records.some(record => doc.head.contains(record.target))) sampledKey = '';
     synchronize();
   });
-  observer.observe(doc.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-theme', 'data-dsw-theme', 'aria-label', 'aria-expanded', 'style', 'width', 'height'] });
+  if (controls.length) observer.observe(doc.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-theme', 'data-dsw-theme', 'aria-label', 'aria-expanded', 'style', 'width', 'height', 'viewBox', 'stroke-width', 'vector-effect'] });
+  const refreshStyles = () => { sampledKey = ''; synchronize(); };
+  doc.defaultView.addEventListener('resize', refreshStyles);
   synchronize();
   return {
     refresh: synchronize,
-    dispose() { disposed = true; observer.disconnect(); button.removeEventListener('click', activate); camera?.removeEventListener('click', take); detach(); },
+    dispose() {
+      if (disposed) return; disposed = true; observer.disconnect(); doc.defaultView.removeEventListener('resize', refreshStyles);
+      for (const { button, click } of controls) button.removeEventListener('click', click);
+      detach();
+    },
   };
 }

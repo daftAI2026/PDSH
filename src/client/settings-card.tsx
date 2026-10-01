@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖宿主 React/primitives、ConfigForm；shared/model.ts 校验昵称/图像。
- * [OUTPUT]: 提供昵称邻接来源标签、居中昵称行的设置字段、原生 Tooltip、局部提交与可取消图片读取。
+ * [OUTPUT]: 提供右侧来源操作组及可见标签、居中昵称行的设置字段、原生 Tooltip、局部提交与可取消图片读取。
  * [POS]: PDSH 偏好交互层；Host 接受值拥有设置态，版本提示由相邻 detail badge slot 独立负责。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -26,7 +26,7 @@ function ToggleHeading({ id, label, hint, checked, disabled, pending, error, onC
   </div>{error && <p className="pdsh-error" role="alert">{error}</p>}</>;
 }
 
-export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
+export function SettingsCard({ view, preferencesForm: form, presentation, t, showTitles = true }) {
   const snapshot = useSyncExternalStore(fn => form.subscribe(fn), () => form.getSnapshot());
   const status = useSyncExternalStore(fn => presentation.subscribe(fn), () => presentation.status());
   const accountAvatar = useSyncExternalStore(fn => presentation.subscribe(fn), () => presentation.accountAvatar());
@@ -64,7 +64,7 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
       if (target?.isConnected && !target.disabled) target.focus();
     }
   }, [mutation, nicknameDraft]);
-  if (view === 'summary') return t('description');
+  if (view === 'summary') return t(showTitles ? 'description' : 'identityDescription');
   const ready = snapshot.status === 'ready';
   const writable = ready && snapshot.writable && mutation === null;
   const acceptedNickname = snapshot.value?.nickname ?? DEFAULTS.nickname;
@@ -161,19 +161,18 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t }) {
     {snapshot.status === 'loading' && <p role="status">{t('loading')}</p>}
     {snapshot.status === 'unavailable' && <p role="status">{t('unavailable')}</p>}
     {ready && !snapshot.writable && <p role="status">{t('readOnly')}</p>}
-    <section className="pdsh-group" role="group" aria-labelledby="pdsh-display-title">
+    {showTitles && <section className="pdsh-group" role="group" aria-labelledby="pdsh-display-title">
       {toggleHeading('maskTitles', 'pdsh-display-title', 'titlesHint')}
-    </section>
+    </section>}
     <section className="pdsh-group pdsh-identity-group" role="group" aria-labelledby="pdsh-identity-title">
       {toggleHeading('maskIdentity', 'pdsh-identity-title')}
       <div className="pdsh-identity" aria-label={t('identityPreview')}>
         {avatarSource === 'account' && !accountAvatar
           ? <span className="pdsh-avatar-preview pdsh-avatar-fallback" role="img" aria-label={t('accountAvatar')}><IconUserOutlineMedium /></span>
           : preview && <img className="pdsh-avatar-preview" src={avatarSource === 'account' ? accountAvatar : preview} alt={t(avatarSource === 'account' ? 'accountAvatar' : 'preview')} referrerPolicy="no-referrer" />}
-        <div className="pdsh-copy pdsh-profile-copy"><strong className="pdsh-profile-name">{displayedNickname}</strong>
-          <span className="pdsh-avatar-source-label pdsh-label" id="pdsh-avatar-source-label">{t('avatarLabel')}</span>
-        </div>
+        <div className="pdsh-copy pdsh-profile-copy"><strong className="pdsh-profile-name">{displayedNickname}</strong></div>
         <div className="pdsh-avatar-actions" role="group" aria-labelledby="pdsh-avatar-source-label" aria-describedby={avatarError || avatarConflict ? 'pdsh-avatar-error' : undefined} aria-busy={readingAvatar || mutation === 'avatar' || undefined}>
+          <span className="pdsh-avatar-source-label pdsh-label" id="pdsh-avatar-source-label">{t('avatarLabel')}</span>
           <Button variant={avatarSource === 'generated' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'generated'} onClick={event => chooseSource('generated', event.currentTarget)} disabled={!writable}>{t('generated')}</Button>
           <Hint label={t('avatarHint')}><Button variant={avatarSource === 'local' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'local'} onClick={event => chooseSource('local', event.currentTarget)} disabled={!writable}>{t('avatar')}</Button></Hint>
           <Hint label={t('accountAvatarHint')}><Button variant={avatarSource === 'account' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'account'} onClick={event => chooseSource('account', event.currentTarget)} disabled={!writable}>{t('accountAvatar')}</Button></Hint>

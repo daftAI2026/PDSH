@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 model.ts 的状态机、背景资源管线、DOM 模板与可选本机壁纸 adapter
+ * [INPUT]: 依赖状态机、分配前输出预算、请求级取消、键盘适配、背景资源、冻结外观、DOM 模板与已接受的保存方式/目录/格式/命名偏好
  * [OUTPUT]: 提供截图编辑器挂载、生命周期控制及唯一状态向渲染与导出边界的编排
  * [POS]: capture-window 的交互总协调器，系统壁纸异步细节下沉至 system-wallpapers.ts
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -10,7 +10,8 @@ import {
 } from "./background-controls.ts";
 import { captureWindowCopy, type CaptureWindowCopy } from "./copy.ts";
 import { wirePaddingSlider } from "./padding-slider.ts";
-import { capturePhysicalPadding, renderCaptureToCanvas } from "./compositor.ts";
+import { capturePhysicalPadding, captureOutputSize, renderCaptureToCanvas } from "./compositor.ts";
+import type { CaptureMaterialAppearance } from './material.ts';
 import { createCaptureBackgroundImageStore } from "./backgrounds.ts";
 import {
   syncCaptureColorPopover,
@@ -28,7 +29,6 @@ import {
   CAPTURE_MAX_ZOOM,
   CAPTURE_MIN_ZOOM,
   type CaptureCandidate,
-  captureHistoryShortcut,
   capturePointerIntent,
   createCaptureWindowState,
   scaleCaptureZoom,
@@ -62,24 +62,33 @@ import {
   loadCaptureImage,
   readCaptureWallpaperFile,
 } from "./wallpaper.ts";
-
+import { wireKeyboard } from "./editor-keyboard.ts";
+import { encodeCapture, handCaptureToDownload } from './export.ts';
+import { isCaptureExportSizeAllowed, captureExportFileName, resolveCaptureExportPreferences, type CaptureExportPreferences } from '../../shared/capture-export.ts';
 export type CaptureWindowEditorOptions = {
+  exportPreferences?: CaptureExportPreferences;
+  fileMetadata?: { title: string; capturedAt: Date };
+  materialAppearance?: CaptureMaterialAppearance;
+  sourceScaleFactor?: number;
   automaticRegions?: CaptureCandidate[];
   initialState?: CaptureWindowState;
   locale?: string;
   onClose?: () => void;
   onCopy?: (png: Blob) => Promise<void>;
-  onNotify?: (message: string) => void;
+  onNotify?: (message: string, tone?: 'success') => void;
   onRetake?: (
     revision: number,
     privacyEnabled: boolean,
   ) => CaptureWindowRetake | Promise<CaptureWindowRetake>;
-  onSave?: (png: Blob, suggestedName: string) => Promise<"cancelled" | "saved">;
+  onSave?: (image: Blob, suggestedName: string, directory: string, behavior: CaptureExportPreferences['saveBehavior'], signal: AbortSignal) => Promise<"cancelled" | "saved">;
   preferenceStorage?: CapturePreferenceStorage | null;
   source: HTMLCanvasElement;
   systemWallpapers?: SystemWallpaperAdapter;
 };
 export type CaptureWindowRetake = {
+  fileMetadata?: { title: string; capturedAt: Date };
+  materialAppearance?: CaptureMaterialAppearance;
+  sourceScaleFactor?: number;
   automaticRegions: CaptureCandidate[];
   source: HTMLCanvasElement;
 };
@@ -99,12 +108,15 @@ export function mountCaptureWindowEditor(
   options: CaptureWindowEditorOptions,
 ): CaptureWindowEditorController {
   let source = options.source;
+  let fileMetadata = options.fileMetadata ?? { title: host.ownerDocument.title, capturedAt: new Date() };
+  // 外观属于本次取像元数据，不随编辑器/宿主后续主题切换重算、不持久化。
+  let materialAppearance = options.materialAppearance ?? (host.ownerDocument.querySelector('[data-ds-dark-theme]') ? 'dark' : 'light');
   const preferenceStorage = options.preferenceStorage === undefined
     ? window.localStorage
     : options.preferenceStorage;
   const defaultState = createCaptureWindowState({
     height: source.height,
-    scaleFactor: window.devicePixelRatio || 1,
+    scaleFactor: options.sourceScaleFactor ?? window.devicePixelRatio,
     width: source.width,
   });
   let state = options.initialState ?? (
@@ -123,8 +135,7 @@ export function mountCaptureWindowEditor(
   let destroyed = false;
   const isMacOS = navigator.platform.startsWith("Mac");
   const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  const locale = options.locale ?? document.documentElement.lang ?? navigator.language;
-  const copy = captureWindowCopy(locale);
+  const copy = captureWindowCopy(options.locale ?? document.documentElement.lang ?? navigator.language);
   let automaticCandidates = options.automaticRegions ?? [];
   const root = document.createElement("div");
   root.className = "pdsh-capture-root";
@@ -174,18 +185,35 @@ export function mountCaptureWindowEditor(
     },
     readColor: (target) => target === "background" ? lastBackgroundColor : state.solidColor,
   });
-  function applyEditorCommand(command: CaptureWindowCommand): void {
+  function outputFits(candidate: CaptureWindowState): boolean {
+    const size = captureOutputSize(candidate.source, candidate.padding);
+    return isCaptureExportSizeAllowed(size.width, size.height);
+  }
+  function fitRestoredPadding(): void {
+    if (outputFits(state)) return;
+    state = { ...state, padding: defaultState.padding };
+    notify(copy.exportTooLarge);
+  }
+  fitRestoredPadding();
+  function applyEditorCommand(command: CaptureWindowCommand): boolean {
     if (command.kind === "set-padding") {
+      if (!outputFits(applyCaptureCommand(state, command))) {
+        const input = root.querySelector<HTMLInputElement>("[data-input='padding']");
+        if (input) { input.value = String(state.padding); input.setAttribute("aria-valuetext", `${state.padding}%`); }
+        notify(copy.exportTooLarge);
+        return false;
+      }
       panX = 0;
       panY = 0;
     }
     state = applyCaptureCommand(state, command);
+    return true;
   }
   function dispatch(command: CaptureWindowCommand): void {
     if (command.kind === "set-background" || command.kind === "set-transparent-background") {
       systemWallpaperController.invalidateSelection();
     }
-    applyEditorCommand(command);
+    if (!applyEditorCommand(command)) return;
     if (preferenceStorage && isCapturePreferenceCommand(command)) {
       saveCapturePreferences(preferenceStorage, state);
     }
@@ -195,7 +223,7 @@ export function mountCaptureWindowEditor(
     }
   }
   function preview(command: CaptureWindowCommand): void {
-    applyEditorCommand(command);
+    if (!applyEditorCommand(command)) return;
     refreshEditor(command);
   }
   function dispatchRegion(command: CaptureWindowCommand): void {
@@ -203,9 +231,11 @@ export function mountCaptureWindowEditor(
     renderCanvas();
     updateHistoryControls(root, state);
   }
+  const exportAbort = new window.AbortController();
   function close(): void {
     if (destroyed) return;
     destroyed = true;
+    exportAbort.abort();
     systemWallpaperController.destroy();
     resizeObserver.disconnect();
     inspectorScroll.destroy();
@@ -214,8 +244,8 @@ export function mountCaptureWindowEditor(
     if (previousFocus?.isConnected) previousFocus.focus();
     options.onClose?.();
   }
-  function notify(message: string): void {
-    options.onNotify?.(message);
+  function notify(message: string, tone?: 'success'): void {
+    options.onNotify?.(message, tone);
   }
   function changeColor(target: CaptureColorTarget, color: string): void {
     if (target === "background") {
@@ -225,7 +255,7 @@ export function mountCaptureWindowEditor(
     }
     dispatch({ color, kind: "set-solid-color" });
   }
-  function setPhase(phase: "composing" | "editing" | "recapturing"): void {
+  function setPhase(phase: "composing" | "saving" | "editing" | "recapturing"): void {
     root.setAttribute("data-state", phase);
     root.toggleAttribute("aria-busy", phase !== "editing");
     if (phase === "editing") {
@@ -348,15 +378,18 @@ export function mountCaptureWindowEditor(
       if (!snapshot) throw new Error("Screenshot not returned");
       if (destroyed) return false;
       source = snapshot.source;
+      fileMetadata = snapshot.fileMetadata ?? fileMetadata;
+      materialAppearance = snapshot.materialAppearance ?? materialAppearance;
       automaticCandidates = snapshot.automaticRegions;
       state = applyCaptureCommand(state, {
         kind: "retake",
         source: {
           height: source.height,
-          scaleFactor: state.source.scaleFactor,
+          scaleFactor: snapshot.sourceScaleFactor ?? state.source.scaleFactor,
           width: source.width,
         },
       });
+      fitRestoredPadding();
       if (privacyEnabled !== state.privacyEnabled) dispatch({ enabled: privacyEnabled, kind: "set-privacy" });
       resetView();
       return true;
@@ -386,37 +419,52 @@ export function mountCaptureWindowEditor(
     }
   }
   async function exportCopy(): Promise<void> {
+    if (destroyed || root.getAttribute("data-state") !== "editing") return;
     setPhase("composing");
     try {
       const canvas = renderCurrentCapture(await backgroundImages.resolve(state.background));
-      const blob = await canvasBlob(canvas);
+      const blob = await encodeCapture(canvas);
+      if (destroyed) return;
       if (options.onCopy) await options.onCopy(blob);
       else await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-      notify(copy.copied);
+      if (destroyed) return;
+      notify(copy.copied, 'success');
       close();
     } catch {
+      if (destroyed) return;
       setPhase("editing");
       notify(copy.clipboardUnavailable);
     }
   }
   async function exportSave(): Promise<void> {
+    if (destroyed || root.getAttribute("data-state") !== "editing") return;
     setPhase("composing");
     try {
       const canvas = renderCurrentCapture(await backgroundImages.resolve(state.background));
-      const blob = await canvasBlob(canvas);
-      const suggestedName = `DSH ${timestampForFileName(new Date())}.png`;
+      const preferences = resolveCaptureExportPreferences(options.exportPreferences);
+      const blob = await encodeCapture(canvas, preferences.saveFormat);
+      if (destroyed) return;
+      const suggestedName = captureExportFileName(preferences, fileMetadata.capturedAt, { title: fileMetadata.title, width: canvas.width, height: canvas.height });
       if (options.onSave) {
-        const result = await options.onSave(blob, suggestedName);
+        setPhase("saving");
+        const result = await options.onSave(blob, suggestedName, preferences.saveDirectory, preferences.saveBehavior, exportAbort.signal);
+        if (destroyed) return;
         if (result === "cancelled") {
           setPhase("editing");
           return;
         }
+        if (result !== "saved") throw new Error("Save receipt unavailable");
       } else {
-        downloadBlob(blob, suggestedName);
+        if (preferences.saveBehavior === 'direct') throw new Error('Direct save provider unavailable');
+        handCaptureToDownload(root.ownerDocument, blob, suggestedName);
+        setPhase('editing');
+        notify(copy.saveStarted, 'success');
+        return;
       }
-      notify(copy.saved);
+      notify(copy.saved, 'success');
       close();
     } catch {
+      if (destroyed) return;
       setPhase("editing");
       notify(copy.saveFailed);
     }
@@ -435,7 +483,7 @@ export function mountCaptureWindowEditor(
     };
   }
   function renderCurrentCapture(backgroundImage: CanvasImageSource | null): HTMLCanvasElement {
-    return renderCaptureToCanvas(source, currentRenderState(), { backgroundImage, isMacOS });
+    return renderCaptureToCanvas(source, currentRenderState(), { backgroundImage, isMacOS, materialAppearance });
   }
   render();
   void systemWallpaperActions.restoreCurrent(shouldRestoreCurrentWallpaper(preferenceStorage));
@@ -676,54 +724,6 @@ function wireStage(
   });
 }
 
-function wireKeyboard(
-  root: HTMLElement,
-  state: CaptureWindowState,
-  dispatch: (command: CaptureWindowCommand) => void,
-  close: () => void,
-  copy: () => Promise<void>,
-): void {
-  root.onkeydown = (event) => {
-    const modifier = event.metaKey || event.ctrlKey;
-    if (event.key === "Escape") {
-      event.preventDefault();
-      close();
-      return;
-    }
-    if (event.key === "Tab") {
-      trapTabFocus(root, event);
-      return;
-    }
-    if (modifier && event.key.toLowerCase() === "c") {
-      event.preventDefault();
-      void copy();
-      return;
-    }
-    const historyCommand = captureHistoryShortcut(event.key, {
-      control: event.ctrlKey,
-      modifier,
-      shift: event.shiftKey,
-    });
-    if (!historyCommand) return;
-    event.preventDefault();
-    dispatch({ kind: historyCommand });
-  };
-  root.setAttribute("tabindex", "-1");
-  root.querySelector<HTMLElement>("button:not(:disabled), input:not(:disabled)")?.focus();
-  root.setAttribute("data-tool", state.tool);
-}
-
-function trapTabFocus(root: HTMLElement, event: KeyboardEvent): void {
-  const controls = [...root.querySelectorAll<HTMLElement>("button:not(:disabled), input:not(:disabled), [tabindex='0']")];
-  if (controls.length === 0) return;
-  const current = controls.indexOf(document.activeElement as HTMLElement);
-  const next = event.shiftKey
-    ? controls[(current <= 0 ? controls.length : current) - 1]
-    : controls[(current + 1) % controls.length];
-  event.preventDefault();
-  next.focus();
-}
-
 function updateHistoryControls(root: HTMLElement, state: CaptureWindowState): void {
   const undo = root.querySelector<HTMLButtonElement>("[data-action='undo']");
   const redo = root.querySelector<HTMLButtonElement>("[data-action='redo']");
@@ -768,27 +768,4 @@ function updateDraft(
 function currentZoom(root: HTMLElement): number {
   const value = root.querySelector<HTMLElement>(".pdsh-capture-zoom-reset")?.textContent;
   return Number.parseInt(value ?? "100", 10) / 100;
-}
-
-function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob);
-      else reject(new Error("Unable to encode PNG"));
-    }, "image/png");
-  });
-}
-
-function downloadBlob(blob: Blob, fileName: string): void {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.download = fileName;
-  anchor.href = url;
-  anchor.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
-function timestampForFileName(date: Date): string {
-  const pad = (value: number): string => String(value).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} at ${pad(date.getHours())}.${pad(date.getMinutes())}.${pad(date.getSeconds())}`;
 }
