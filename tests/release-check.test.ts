@@ -6,7 +6,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, copyFileSync, rmSync, unlinkSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, copyFileSync, rmSync, unlinkSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -20,6 +20,11 @@ function fixture() {
   for(const kind of ['titles','capture']) {
     mkdirSync(join(root,`components/${kind}/locale`),{recursive:true});write(`components/${kind}/package.json`,JSON.stringify({name:`@daftai/pdsh-${kind}`,version}));
     for(const file of ['index.js','client.js','client.js.map','plugin-icon.svg','locale/zh.json','locale/en.json',...(kind==='capture'?['main.cjs']:[])])write(`components/${kind}/${file}`,JSON.stringify(version));
+  }
+  for(const kind of ['titles','capture']) {
+    const target=`node_modules/@daftai/pdsh-${kind}`; mkdirSync(join(root,`${target}/locale`),{recursive:true});
+    write(`${target}/.pdsh-generated`,'PDSH build.ts generated component package v1\n');
+    for(const file of ['package.json','index.js','client.js','client.js.map','plugin-icon.svg','locale/zh.json','locale/en.json',...(kind==='capture'?['main.cjs']:[])])copyFileSync(join(root,`components/${kind}/${file}`),join(root,`${target}/${file}`));
   }
   git('init','-q');git('add','.');git('-c','user.name=PDSH Fixture','-c','user.email=fixture@example.invalid','commit','-qm','fixture');
   return {root,write,git,check(){try{return {ok:true,text:execFileSync(process.execPath,['--experimental-strip-types','check-release.ts'],{cwd:root,encoding:'utf8',stdio:'pipe'})};}catch(error){return {ok:false,text:String(error.stderr)};}},dispose(){rmSync(root,{recursive:true,force:true});}};
@@ -36,6 +41,19 @@ test('子包版本、Main 入口或 profile 加载路径漂移必须拒绝',()=>
       if(defect==='main')unlinkSync(join(h.root,'components/capture/main.cjs'));
       if(defect==='path')h.write('cordis.patch.yml', '- insert:\n    - id: pdsh-titles\n      name: "@daftai/pdsh-titles"\n');
       const result=h.check();assert.equal(result.ok,false);assert.match(result.text,defect==='version'?/version\/name drift/:defect==='main'?/main.cjs/:defect==='archive'?/archive component membership missing/:defect==='dependencies'?/component dependency drift/:/profile loading path drift/);
+    }finally{h.dispose();}
+  }
+});
+
+test('GitHub 分发镜像旧字节、缺失或自链接不能过发布门',()=>{
+  for(const defect of ['stale','missing','link']) {
+    const h=fixture();try {
+      const target='node_modules/@daftai/pdsh-capture';
+      if(defect==='stale')h.write(`${target}/client.js`,'old connection.rpc');
+      if(defect==='missing')unlinkSync(join(h.root,`${target}/client.js`));
+      if(defect==='link'){rmSync(join(h.root,target),{recursive:true});symlinkSync('../../components/capture',join(h.root,target));}
+      h.git('add','-A');h.git('-c','user.name=PDSH Fixture','-c','user.email=fixture@example.invalid','commit','-qm','defect');
+      const result=h.check();assert.equal(result.ok,false,`${defect} mirror accepted`);assert.match(result.text,/distribution/);
     }finally{h.dispose();}
   }
 });

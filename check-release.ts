@@ -1,10 +1,10 @@
 /**
- * [INPUT]: 依赖根唯一版本、Git 工作树和 build.ts 的三个入口及 真实子包加载/元信息与分发自链接。
+ * [INPUT]: 依赖根唯一版本、Git 工作树和 build.ts 的三个入口及 真实子包加载/元信息与普通文件分发镜像。
  * [OUTPUT]: 校验 tag/三包版本、生成入口完整及 patch 加载路径，拒绝脏发布树。
  * [POS]: 发布前防漂移门；不自行推送、打 tag、发布 npm 或修改任何版本号。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, lstatSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const manifest = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string; files?: string[]; dependencies?: Record<string, string>; bundledDependencies?: string[] };
@@ -26,6 +26,16 @@ for (const kind of ['titles', 'capture']) {
     if (!readFileSync(new URL(file, base)).length) throw new Error(`${kind}/${file} is empty`);
   }
   if (!readFileSync(new URL('client.js', base), 'utf8').includes(JSON.stringify(manifest.version))) throw new Error(`${kind} Client version drift; rebuild`);
+  const distribution = new URL(`./node_modules/@daftai/pdsh-${kind}/`, import.meta.url);
+  if (!lstatSync(new URL(`./node_modules/@daftai/pdsh-${kind}`, import.meta.url)).isDirectory()) throw new Error(`${kind} distribution must be an ordinary directory`);
+  const marker = new URL('.pdsh-generated', distribution);
+  if (!lstatSync(marker).isFile() || readFileSync(marker, 'utf8') !== 'PDSH build.ts generated component package v1\n') throw new Error(`${kind} distribution ownership drift`);
+  for (const file of ['package.json', 'index.js', 'client.js', 'client.js.map', 'plugin-icon.svg', 'locale/zh.json', 'locale/en.json', ...(kind === 'capture' ? ['main.cjs'] : [])]) {
+    const leaf = new URL(file, distribution);
+    try {
+      if (!lstatSync(leaf).isFile() || !readFileSync(leaf).equals(readFileSync(new URL(file, base)))) throw new Error('drift');
+    } catch { throw new Error(`${kind}/${file} distribution drift; rebuild`); }
+  }
   const patch = readFileSync(new URL('./cordis.patch.yml', import.meta.url), 'utf8');
   if (!patch.includes(`id: pdsh-${kind}\n      name: "@daftai/pdsh-${kind}"`)) throw new Error(`${kind} profile loading path drift`);
 }

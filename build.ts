@@ -1,11 +1,13 @@
 /**
- * [INPUT]: 依赖 esbuild、三个 Host 入口、同一 Client 装配器与根 manifest 唯一版本；共享库由宿主解析。
+ * [INPUT]: 依赖 esbuild、component-packages.ts 的自有包实体化、三个 Host 入口、同一 Client 装配器与根 manifest 唯一版本；共享库由宿主解析。
  * [OUTPUT]: 生成根身份入口、components/ 标题/拍照入口及就近 manifest、locale、图标和包内 Main 桥。
  * [POS]: 唯一构建和 Bundle 分发边界；保留旧身份模块名，三个功能分别进入官方 Loader。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
-import { readFile, writeFile, mkdir, lstat, readlink, unlink, symlink } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { materializeComponentPackages } from './component-packages.ts';
 import { COMPONENTS, type ComponentKind } from './src/shared/components.ts';
 const manifest = JSON.parse(await readFile(new URL('./package.json', import.meta.url), 'utf8'));
 const { version } = manifest;
@@ -48,18 +50,5 @@ for (const kind of Object.keys(COMPONENTS) as ComponentKind[]) {
     footer: { js: 'return module.exports;}});' } });
 }
 
-// +--- Git 与归档共享两条包内自链接；不提交第三方依赖，不改其他 node_modules 成员 ---+
-await mkdir('node_modules/@daftai', { recursive: true });
-for (const kind of ['titles', 'capture']) {
-  const link = `node_modules/@daftai/pdsh-${kind}`, target = `../../components/${kind}`;
-  const existing = await lstat(link).catch(error => { if (error.code === 'ENOENT') return; throw error; });
-  if (existing) {
-    if (!existing.isSymbolicLink()) throw new Error(`PDSH component link is not an owned symlink: ${kind}`);
-    const previous = await readlink(link);
-    if (previous === target) continue;
-    const pnpmOwned = previous === `../.pnpm/@daftai+pdsh-${kind}@file+components+${kind}/node_modules/@daftai/pdsh-${kind}`;
-    if (!pnpmOwned) throw new Error(`PDSH component link has an unknown owner: ${kind}`);
-    await unlink(link);
-  }
-  await symlink(target, link);
-}
+// +--- 同一字节真实子包，GitHub codeload 不会解引用符号链接 ---+
+await materializeComponentPackages(fileURLToPath(new URL('.', import.meta.url)));

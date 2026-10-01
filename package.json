@@ -1,7 +1,7 @@
 {
   "name": "@daftai/pdsh",
   "description": "Same-window presentation and local capture workbench for DeepSeek Harness; no session isolation.",
-  "version": "0.3.0-rc.8",
+  "version": "0.3.0-rc.9",
   "private": true,
   "type": "module",
   "main": "./index.js",

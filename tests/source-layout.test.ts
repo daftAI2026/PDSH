@@ -6,7 +6,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync, readlinkSync, lstatSync } from 'node:fs';
+import { readdirSync, readFileSync, lstatSync } from 'node:fs';
 
 test('手写构建与发布脚本为TS；根目录JS只保留宿主生成入口', () => {
   const root = new URL('../', import.meta.url);
@@ -43,10 +43,13 @@ test('只有拍照 Client 带编辑器离线壁纸，身份/标题不复制其�
   assert.match(readFileSync(new URL('../components/capture/client.js',import.meta.url),'utf8'),/data:image\/jpeg;base64,/);
 });
 
-test('Git 分发只使用两条已知包内自链接；与真实 bundled dependencies 同源', () => {
+test('GitHub 分发必须包含真实子包文件，不能依赖 codeload 解引用自链接', () => {
   for (const kind of ['titles', 'capture']) {
-    const path = new URL(`../node_modules/@daftai/pdsh-${kind}`, import.meta.url);
-    assert.ok(lstatSync(path).isSymbolicLink());
-    assert.equal(readlinkSync(path), `../../components/${kind}`);
+    const base = new URL(`../node_modules/@daftai/pdsh-${kind}/`, import.meta.url);
+    assert.ok(lstatSync(new URL(`../node_modules/@daftai/pdsh-${kind}`, import.meta.url)).isDirectory());
+    for (const file of ['package.json', 'index.js', 'client.js', 'client.js.map', 'plugin-icon.svg', 'locale/zh.json', 'locale/en.json', ...(kind === 'capture' ? ['main.cjs'] : [])]) {
+      assert.ok(lstatSync(new URL(file, base)).isFile());
+      assert.deepEqual(readFileSync(new URL(file, base)), readFileSync(new URL(`../components/${kind}/${file}`, import.meta.url)));
+    }
   }
 });

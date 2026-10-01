@@ -32,8 +32,9 @@
 - `update-badge.test.ts`: 官方详情徽标仅自身自动探测、仅新版展示细线图标；SVG 笔画/尺寸/透明度来自实时原生测量合同，安装需二次确认。
 - `update-source.test.ts`: 公共 GitHub tag 请求的无凭据网络边界；不冒充 Desktop CSP 证明。
 - `dom-tooltip.test.ts`: 非 React 控件跟随宿主 Tooltip 延时与方位参数，卸载彻底清理。
-- `release-check.test.ts`: 临时 Git 树的发布门正反例；拒绝子包版本漂移、缺 Main 产物、错误 profile 加载路径或bundled dependency 漂移，不创建发布 tag。
+- `release-check.test.ts`: 临时 Git 树的发布门正反例；拒绝子包版本漂移、缺 Main 产物、错误 profile 加载路径、bundled dependency 或普通文件分发镜像缺失/旧字节/链接漂移，不创建发布 tag。
 - `profile-loading.test.ts`: 隔离 profile 只安装根 Bundle，按 Bundle 的真实子包名导入三个生成 Host，经过安装 symlink 验证标题迁移；真实 manifest/locale/client 同源解析回归；文件检查不冒充官方 Loader/metadata 验收；裸子包负例防止重复测错入口。
+- `component-packages.test.ts`: 临时目录的生成成员所有权、未知目录/叶链接拒绝、缺源后重试和 hardlink 原子替换；不清除用户 profile/store。
 - `source-layout.test.ts`: 手写 TypeScript 与宿主所需生成 JavaScript 的边界。
 
 - `plugin-port.test.ts`: 请求级保存取消不卸载桥、下次请求可继续； 官方 rpc 仅发控制、Main 像素接收 nonce/重放/取消围栏和 Renderer 唯一 owner 归还。
