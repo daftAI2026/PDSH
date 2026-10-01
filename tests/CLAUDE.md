@@ -5,7 +5,7 @@
 
 - `component-host.test.ts`: 标题 namespace 一次性迁移、owner/revision 围栏和启动中关闭不自等待；拍照保存方式/初始 Downloads/格式/文件名和旧默认 revision 迁移，自定义偏好保留，Host 安装 URL 在 POSIX/Windows 盘符/UNC/中文路径下解析包内 Main；不复制 enabled 开关。
 - `client-injection.test.ts`: Cordis 4.0.4 真注册器检验生成 inject；Connection.rpc 属性不满足子服务声明，撤回 Connection 只卸载拍照。
-- `client.test.ts`: 三个生成 lazy factory 的八种启停组合、身份恢复/偏好保留、相机单独启用、共享槽位交接、失败回滚和同时卸载。
+- `client.test.ts`: 三个生成 lazy factory 的八种启停组合、身份恢复/偏好保留、相机单独启用、共享槽位交接、失败回滚和同时卸载。真实 ReactDOM 加 DOM-shape primitives fixture 覆盖六种加载顺序、完整探针子树隐藏和原生昵称计算样式；撤掉同一样式表的负例证明守卫会发现外露，不冒充 Host 控件/CSP 或实窗验收。
 - `capture-bootstrap.test.ts`: 副作用适配下的真实启动编排，拒绝身份/端口、ACK 失败、关闭 unknown 与取消，系统临时根内私有目录独占创建/分别归还，只读真实 macOS ps 路径格式；不操作真实 Main。
 - `capture-control.test.ts`: 生成 Main 与真实 Host socket transport 的畸形帧、握手、控制 ACK、取消与资源归还；新增系统临时根内真实 Unix socket 两端握手及目录边界/权限/符号链接拒绝及根别名接受；不打开真实应用调试端口。
 - `capture-route.test.ts`: 官方 RPC 控制封套、owner 世代与迟到 release 围栏；Host 自己撤回 consent 即刻取消，不依赖 Renderer 消息；确认归还后的断连不永久缓存；Main/control 关闭未知不随新 owner/排队/release/重装清除。

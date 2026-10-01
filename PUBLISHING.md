@@ -46,3 +46,7 @@ PDSH 的默认分发是 **GitHub 仓库中的 Harness bundle**。`package.json.v
 RC9 当前安装闸门：真实子包由一个 Bundle 携带，经官方传递依赖解析同时进入 Host、Client graph 与展示元信息。Git 分发只跟踪两份与 components 运行字节同源的普通文件子包，不跟踪第三方依赖。`pnpm run bundle` 显式使用支持 bundledDependencies 的 pack 模式，归档不得依赖 node_modules 符号链接或包含指向其他条目的 hardlink。替换旧相对文件入口前，必须核对本 profile 的组件覆盖行是否携带旧 file URL 名称断言；这种覆盖尚无自动迁移，不得直接升级并宣称兼容。只有 id 的覆盖与带名称的覆盖必须分别测试。取像桥的 Main 首次入口仍未解决，不允许据组件名修复打正式 tag。
 
 真实远端传输闸门：必须使用 github 固定 SHA 的 codeload 路线，不以 git+file 的自动 pack 成功代替。首装与保留旧包残留的原位升级都必须从官方 ClientModuleRegistry 的真实路径核对三个 manifest/version/client SHA/inject；安装 exit0、根版本正确或本地生成测试通过均不代表加载了新子包。RC8 已观察到旧 capture 的 connection.rpc 再次导致 web boot 失败，RC9 不得在该闸门前启用。
+
+### Initial disabled-to-enabled transition
+
+Verify the exact official runtime with the Bundle initially absent from selected layers, then select it through the official manager without restarting. Booting fixtures with all Bundle dependency mappings preinstalled is not this test. RC9 fails this gate on rc.2: the manager reloads patches without publishing the successor package-resolution generation, so identity alone activates. Keep this separate from the documented next-start load of a replaced package. Nested Include must not be substituted if its child rows lose official independent switches; PDSH must not mutate the user's dependency tree or take ownership of the global resolver. Stable publication remains blocked by this hot-enable gap as well as original Main capture and installed visual/editor acceptance.

@@ -1,22 +1,29 @@
 /**
- * [INPUT]: 依赖三个真实 lazy factory、同一 jsdom 页面与严格 Host 注册/配置桩。
- * [OUTPUT]: 验证八种启停组合、原生恢复、相机单独开启、公共资源交接与失败回滚。
- * [POS]: 三运行时组件构建/装配门；桩桥不是安装件的 Main 能力证明。
+ * [INPUT]: 依赖三个真实 lazy factory、同一 jsdom 页面、严格 Host 注册桩及可选真实 ReactDOM/DOM-shape primitive fixture。
+ * [OUTPUT]: 验证启停组合、身份原生节点遮蔽、完整样式 probe 隐藏/卸载；fixture 不冒充实际 Host primitives/CSP。
+ * [POS]: 三运行时组件构建/装配门；DOM fixture 与桩桥都不是安装件或 Desktop 实窗验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
-import React from 'react';
+import React, { act } from 'react';
 import * as jsxRuntime from 'react/jsx-runtime';
+import { createRoot as reactCreateRoot } from 'react-dom/client';
 import { JSDOM } from 'jsdom';
 import { DEFAULTS } from '../src/shared/model.ts';
 import { COMPONENTS } from '../src/shared/components.ts';
 
-function harness({ bridge = true, failSlot = false } = {}) {
+function harness({ bridge = true, failSlot = false, realReact = false } = {}) {
   const dom = new JSDOM(`<body><main>原生内容</main><div data-slot="settings.launcher"><button data-collapsed="false" data-signed-out="false" aria-haspopup="menu"><span><svg></svg></span><span>真实名称</span></button></div><div data-slot="sidebar.workspaces"><div><div><span>工作区</span><div><div><button type="button" class="native-search" aria-label="搜索会话" aria-expanded="false"><svg viewBox="0 0 16 16" style="width:14px;height:14px;stroke-width:1"></svg></button><input type="text" /></div></div><div></div></div></div></div></body>`);
   const document = dom.window.document, before = document.body.outerHTML;
+  const globalDescriptors = realReact ? new Map(['window', 'document', 'IS_REACT_ACT_ENVIRONMENT'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)])) : null;
+  if (realReact) {
+    Object.defineProperty(globalThis, 'window', { configurable: true, writable: true, value: dom.window });
+    Object.defineProperty(globalThis, 'document', { configurable: true, writable: true, value: document });
+    Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { configurable: true, writable: true, value: true });
+  }
   Object.defineProperty(dom.window.navigator, 'platform', { value: 'MacIntel' });
   if (bridge) Object.defineProperty(dom.window, 'dshDesktop', { value: { protocolVersion: 1, pageCapture: { protocolVersion: 1, scope: 'current-page', capturePng() { assert.fail('未点击不请求像素'); }, async cancel() {} } } });
   const registrations = new Map(), dictionaries = new Map(), roots = new Set(), scopes = new Map();
@@ -30,8 +37,29 @@ function harness({ bridge = true, failSlot = false } = {}) {
     return factory(id => {
       if (id === 'react') return React;
       if (id === 'react/jsx-runtime') return jsxRuntime;
-      if (id === 'react-dom/client') return { createRoot: node => { const root = { render() {}, unmount() { roots.delete(root); } }; roots.add(root); return root; } };
-      if (id === '@deepseek-ai/dsh-client-ui-primitives') return { Input() {}, Button() {}, Switch() {} };
+      if (id === 'react-dom/client') return { createRoot: node => {
+        if (realReact) {
+          const mounted = reactCreateRoot(node);
+          const root = { render(element) { act(() => mounted.render(element)); }, unmount() { act(() => mounted.unmount()); roots.delete(root); } };
+          roots.add(root); return root;
+        }
+        const root = { render() {}, unmount() { roots.delete(root); } }; roots.add(root); return root;
+      } };
+      if (id === '@deepseek-ai/dsh-client-ui-primitives') {
+        if (!realReact) return { Input() {}, Button() {}, Switch() {} };
+        // 此桩只保留 DOM 包含关系契约，不是 Host primitive 的真实实现。
+        return {
+          Input: props => React.createElement('span', { className: 'fixture-input-wrap' }, React.createElement('input', props)),
+          Button: props => React.createElement('button', props, props.children),
+          Switch: () => React.createElement('span', { role: 'switch' }, React.createElement('span', { className: 'fixture-thumb' })),
+          SettingsValueField: props => React.createElement('div', { className: 'fixture-settings-field' },
+            React.createElement('div', { className: 'fixture-field-head' }, React.createElement('label', { htmlFor: props.id }, props.label)),
+            React.createElement('input', { id: props.id, disabled: props.disabled, value: props.text, readOnly: true })),
+          Tooltip: ({ children, label }) => React.createElement(React.Fragment, null, children,
+            React.createElement('span', { role: 'tooltip' }, label)),
+          IconCheckOutlineRegular: () => React.createElement('svg', { viewBox: '0 0 16 16' }),
+        };
+      }
       throw new Error(`unexpected module ${id}`);
     });
   }
@@ -66,7 +94,16 @@ function harness({ bridge = true, failSlot = false } = {}) {
   }
   return { dom, document, before, registrations, roots, dictionaries, scopes,
     language(value) { language = value; for (const scope of scopes.values()) for (const fn of scope.localeListeners) fn(); },
-    close() { for (const scope of [...scopes.values()].reverse()) scope.close(); dom.window.close(); },
+    close() {
+      try { for (const scope of [...scopes.values()].reverse()) scope.close(); }
+      finally {
+        dom.window.close();
+        if (globalDescriptors) for (const [key, descriptor] of globalDescriptors) {
+          if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+          else delete globalThis[key];
+        }
+      }
+    },
   };
 }
 for (let mask = 0; mask < 8; mask++) test(`三个安装入口的启停组合 ${mask.toString(2).padStart(3, '0')}`, async () => {
@@ -109,6 +146,60 @@ test('关闭旧身份后设置/徽标交接给标题，相机可脱离帽子且�
     h.scopes.get('identity').enable();
     assert.equal(h.document.querySelector('[data-pdsh-name]').textContent, '别名');
   } finally { h.close(); }
+});
+test('真实 ReactDOM DOM-shape fixture：所有加载顺序只挂一个身份/probe，停用与无样式负例可见', () => {
+  const orders = [
+    ['identity', 'titles', 'capture'], ['identity', 'capture', 'titles'],
+    ['titles', 'identity', 'capture'], ['titles', 'capture', 'identity'],
+    ['capture', 'identity', 'titles'], ['capture', 'titles', 'identity'],
+  ];
+  for (const order of orders) {
+    const h = harness({ realReact: true });
+    try {
+      for (const kind of order) h.scopes.get(kind).enable();
+      const label = h.document.querySelector('[data-slot="settings.launcher"] button > span:nth-child(2)');
+      const probe = h.document.querySelector('[data-pdsh-probe]');
+      const style = h.document.querySelector('style[data-plugin="@daftai/pdsh"]');
+      const assertStyled = () => {
+        assert.equal(h.document.querySelectorAll('[data-pdsh-name]').length, 1, '身份别名只有一个 owner 节点');
+        assert.equal(h.document.defaultView.getComputedStyle(label).display, 'none', '宿主原账号名仍留在DOM，但不得可见');
+        assert.equal(h.document.querySelectorAll('[data-pdsh-probe]').length, 1, '三个运行时共享唯一样式 probe');
+        assert.ok(probe.querySelector('.fixture-settings-field input'), 'probe 必须实际包含设置输入 DOM');
+        assert.ok(probe.querySelector('[role="tooltip"]'), 'DOM-shape fixture 的 tooltip 留在 probe 子树');
+        assert.equal(probe.hasAttribute('inert'), true);
+        assert.equal(probe.getAttribute('aria-hidden'), 'true');
+        assert.equal(h.document.defaultView.getComputedStyle(probe).opacity, '0');
+        assert.equal(h.document.defaultView.getComputedStyle(probe).position, 'fixed');
+        assert.equal(h.document.defaultView.getComputedStyle(probe).pointerEvents, 'none');
+        for (const node of [probe, ...probe.querySelectorAll('*')]) {
+          assert.equal(h.document.defaultView.getComputedStyle(node).visibility, 'hidden', node.tagName);
+        }
+      };
+      assertStyled();
+      assert.ok(style?.sheet?.cssRules.length, '运行时注入的合并样式表必须可解析并含 CSS rules');
+
+      // +--- 同一 fixture 拿掉注入 stylesheet，必须重新暴露回归信号 ---+
+      style.remove();
+      assert.notEqual(h.document.defaultView.getComputedStyle(label).display, 'none', '没有样式时原账号名重新可见');
+      assert.notEqual(h.document.defaultView.getComputedStyle(probe).opacity, '0', '没有样式时 probe 的防绘制保障失效');
+      h.document.head.append(style);
+      assertStyled();
+
+      h.scopes.get('identity').disable();
+      assert.equal(h.document.querySelector('[data-pdsh-name]'), null, '只停身份必须撤回别名');
+      assert.notEqual(h.document.defaultView.getComputedStyle(label).display, 'none', '只停身份须恢复原账号名');
+      assert.equal(h.document.querySelectorAll('[data-pdsh-probe]').length, 1, '其他组件仍活跃时共享 probe 保留');
+      assert.equal(h.document.defaultView.getComputedStyle(probe).visibility, 'hidden', '共享 probe 继续不可见');
+      h.scopes.get('identity').enable();
+      assertStyled();
+
+      for (const kind of ['identity', 'titles', 'capture']) h.scopes.get(kind).disable();
+      assert.equal(h.document.body.outerHTML, h.before, '最后 owner 卸载后还原原生 DOM/body inline style');
+      assert.equal(h.document.head.querySelector('style[data-plugin="@daftai/pdsh"]'), null);
+      assert.equal(h.document.querySelector('[data-pdsh-probe]'), null);
+      assert.equal(h.roots.size, 0);
+    } finally { h.close(); }
+  }
 });
 test('桥不存在时身份/标题仍工作；组件注册失败不留下页面资源或重复 owner', () => {
   const h = harness({ bridge: false }); try {
