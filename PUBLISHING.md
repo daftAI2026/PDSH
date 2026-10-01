@@ -56,6 +56,6 @@ Verify the exact official runtime with the Bundle initially absent from selected
 
 RC10 的身份子包与 Bundle 分离；三项各有功能名、用途、图标与公开 locale/package 资源，仍只有三个 patch 行，根兼容入口不插入第四行。身份 id/namespace 保持 pdsh，不能据此声称带旧 name 的覆盖兼容。分别验证 id-only、旧 root-name、旧 file-URL-name 和 disabled=true。官方 name 是断言，失配跳过整行，不是重命名。
 
-升级前，经官方 SettingsController.openSettingsDocument/provider.prepareDocument 打开原生编辑器，仅撤掉已核实 PDSH override 的旧 name，保留 id/config/disabled、注释和其他字节。先在旧版确认宿主接受偏好/禁用，再安装新模块。revision mutate/replace 只改 config，不能补救 apply 前丢失的 disabled；禁止插件或 shell 直接改主 profile。原生编辑器桩不代替实机文档保存与状态验收；未完成预检不得升级。
+普通安装与更新不得要求用户打开或修改配置文件。先前的原生编辑器预检候选已被产品要求否决；编辑器桩仅是历史取证，不是可交付升级流程。revision mutate/replace 只改 config，不能补救 apply 前丢失的 disabled；禁止插件或 shell 直接改主 profile。旧名称覆盖必须通过经验证的官方自动兼容流程保留配置与禁用状态；官方卸载后重装是否清理这些覆盖也必须实测，不得假定卸载等于清空配置。实验版的重装验收与旧版升级兼容是两个独立门。
 
 两阶段分发：变更组件字节先提交到专用组件源 ref（仅供 Git 子目录依赖，不是用户安装入口）；最终 root revision 再固定三个普通依赖到同一组件源 SHA、更新 lock，通过全部测试与真实远端消费者验收才推 RC 安装分支。中间源提交不得当作可安装 RC；稳定 main/tag 保持不动。
