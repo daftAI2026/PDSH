@@ -18,7 +18,7 @@ function fixture() {
   const git = (...args: string[]) => execFileSync('git', args, { cwd: root, stdio: 'pipe', encoding: 'utf8' });
   const manifest = { name: '@daftai/pdsh', version, dependencies: {} as Record<string, string> };
   write('package.json', JSON.stringify(manifest));
-  for (const kind of ['titles', 'capture']) {
+  for (const kind of ['identity', 'titles', 'capture']) {
     mkdirSync(join(root, `components/${kind}/locale`), { recursive: true });
     write(`components/${kind}/package.json`, JSON.stringify({ name: `@daftai/pdsh-${kind}`, version }));
     for (const file of ['index.js', 'client.js', 'client.js.map', 'plugin-icon.svg', 'locale/zh.json', 'locale/en.json', ...(kind === 'capture' ? ['main.cjs'] : [])]) write(`components/${kind}/${file}`, `${kind}/${file}\n`);
@@ -26,12 +26,12 @@ function fixture() {
   git('init', '-q'); git('add', '.'); git('-c', 'user.name=PDSH Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'component source');
   const sha = git('rev-parse', 'HEAD').trim();
   const source = (kind: string, revision = sha) => `github:daftAI2026/PDSH#${revision}&path:/components/${kind}`;
-  for (const kind of ['titles', 'capture']) manifest.dependencies[`@daftai/pdsh-${kind}`] = source(kind);
+  for (const kind of ['identity', 'titles', 'capture']) manifest.dependencies[`@daftai/pdsh-${kind}`] = source(kind);
   const save = () => write('package.json', JSON.stringify(manifest)); save();
   return { root, manifest, sha, source, save, write, git, dispose: () => rmSync(root, { recursive: true, force: true }) };
 }
 
-test('两个普通依赖固定同仓库同 SHA，版本与完整组件字节相同', () => {
+test('三个普通依赖固定同仓库同 SHA，版本与完整组件字节相同', () => {
   const h = fixture(); try { validateComponentSources(h.root); } finally { h.dispose(); }
 });
 
@@ -42,7 +42,7 @@ for (const defect of ['wrong-repo', 'branch', 'different-sha', 'missing-object',
       if (defect === 'wrong-repo') h.manifest.dependencies['@daftai/pdsh-titles'] = h.source('titles').replace('daftAI2026/PDSH', 'another/PDSH');
       if (defect === 'branch') h.manifest.dependencies['@daftai/pdsh-titles'] = h.source('titles', 'main');
       if (defect === 'different-sha') { h.write('README.md', 'second source generation'); h.git('add', 'README.md'); h.git('-c', 'user.name=PDSH Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'next generation'); h.manifest.dependencies['@daftai/pdsh-capture'] = h.source('capture', h.git('rev-parse', 'HEAD').trim()); }
-      if (defect === 'missing-object') for (const kind of ['titles', 'capture']) h.manifest.dependencies[`@daftai/pdsh-${kind}`] = h.source(kind, 'f'.repeat(40));
+      if (defect === 'missing-object') for (const kind of ['identity', 'titles', 'capture']) h.manifest.dependencies[`@daftai/pdsh-${kind}`] = h.source(kind, 'f'.repeat(40));
       if (defect === 'stale-bytes') h.write('components/capture/main.cjs', 'changed Main');
       if (defect === 'child-version') h.write('components/capture/package.json', JSON.stringify({ name: '@daftai/pdsh-capture', version: '0.2.1' }));
       if (defect === 'child-name') h.write('components/titles/package.json', JSON.stringify({ name: '@daftai/other', version: h.manifest.version }));
@@ -61,8 +61,17 @@ test('固定提交与当前字节都为空时仍拒绝空运行入口', () => {
     h.git('add', 'components/capture/main.cjs');
     h.git('-c', 'user.name=PDSH Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'empty artifact');
     const sha = h.git('rev-parse', 'HEAD').trim();
-    for (const kind of ['titles', 'capture']) h.manifest.dependencies[`@daftai/pdsh-${kind}`] = h.source(kind, sha);
+    for (const kind of ['identity', 'titles', 'capture']) h.manifest.dependencies[`@daftai/pdsh-${kind}`] = h.source(kind, sha);
     h.save();
     assert.throws(() => validateComponentSources(h.root), /component source.*empty/);
+  } finally { h.dispose(); }
+});
+
+
+test('身份来源也必须存在，不能因旧根兼容入口存在而漏验', () => {
+  const h = fixture();
+  try {
+    delete h.manifest.dependencies['@daftai/pdsh-identity']; h.save();
+    assert.throws(() => validateComponentSources(h.root), /component source identity.*must pin/);
   } finally { h.dispose(); }
 });

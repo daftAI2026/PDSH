@@ -19,7 +19,7 @@
 - `capture-styles.test.ts`: 工作台 Host token 来源与实时图标尺寸/描边/透明度、Tooltip/Switch/按钮动态样式消费；禁入 Codex 主题、固定回退和伪造动效。
 - `capture-view.test.ts`: 双语编辑器操作面板与无系统壁纸 adapter 的显示合同。
 - `host.test.ts`: 真实 Schemastery 配置边界。
-- `localization.test.ts`: 离线包元信息与运行字典；清单图复用单一 currentColor 复合 path，包图固定前景且无底色。
+- `localization.test.ts`: Bundle 品牌与三种功能名/用途的离线元信息、运行字典；清单图复用单一 currentColor 复合 path，包图固定前景且无底色。
 - `model.test.ts`: 昵称、头像和旧字段投影验证。
 - `presentation.test.ts`: 账号视觉适配的唯一归属与卸载。
 - `search-entry.test.ts`: 原生搜索邻接、折叠/展开、实时 SVG strokeWidth 按 viewBox 尺寸匹配、两入口同笔画与不可靠几何退让；保留根透明度/颜色/class/点击和卸载合同。
@@ -33,8 +33,8 @@
 - `update-source.test.ts`: 公共 GitHub tag 请求的无凭据网络边界；不冒充 Desktop CSP 证明。
 - `dom-tooltip.test.ts`: 非 React 控件跟随宿主 Tooltip 延时与方位参数，卸载彻底清理。
 - `release-check.test.ts`: 临时 Git 树的发布门正反例；拒绝子包版本漂移、缺 Main 产物、错误 profile 加载路径、bundled dependency 或固定组件提交/版本/生成字节漂移，不创建发布 tag。
-- `profile-loading.test.ts`: 隔离 profile 的本地 symlink 结构桩模拟官方 hoisted 位置，从真实子包名导入三个生成 Host，经过安装 symlink 验证标题迁移；真实 manifest/locale/client 同源解析回归；不执行 pnpm 安装，不冒充远端安装或官方 Loader/metadata 验收；裸子包负例防止重复测错入口。
-- `component-source.test.ts`: 同仓库固定提交/路径与完整生成字节校验；临时 Git 树拒绝旧字节、空入口、错版本、分支引用或缺失对象，不执行网络或安装。
+- `profile-loading.test.ts`: 隔离 profile 的本地 symlink 结构桩模拟官方 hoisted 位置，从当前生成子包名导入三个 Host，经过安装 symlink 验证标题迁移；真实 manifest/locale/client 同源解析回归；只链接 components 当前字节，不读取旧开发依赖；不执行 pnpm 安装，不冒充远端安装或官方 Loader/metadata 验收；裸子包负例防止重复测错入口。
+- `component-source.test.ts`: 三子包（含身份）同仓库固定提交/路径与完整生成字节校验；临时 Git 树拒绝旧字节、空入口、错版本、分支引用或缺失对象，不执行网络或安装。
 - `source-layout.test.ts`: 手写 TypeScript 与宿主所需生成 JavaScript 的边界。
 
 - `plugin-port.test.ts`: 请求级保存取消不卸载桥、下次请求可继续； 官方 rpc 仅发控制、Main 像素接收 nonce/重放/取消围栏和 Renderer 唯一 owner 归还。

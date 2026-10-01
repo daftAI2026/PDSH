@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实 check-release.ts、隔离临时 Git 树与受控生成产物。
- * [OUTPUT]: 验证三包版本/入口/真实包名同步门的正例和漂移拒绝。
+ * [OUTPUT]: 验证Bundle 与三个功能包版本/入口/真实包名同步门的正例和漂移拒绝。
  * [POS]: 发布守门回归，不提交用户仓库、创建 tag 或访问网络。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -16,14 +16,14 @@ function fixture() {
   copyFileSync(new URL('../check-release.ts',import.meta.url),join(root,'check-release.ts'));
   copyFileSync(new URL('../component-source.ts',import.meta.url),join(root,'component-source.ts'));
   write('package.json',JSON.stringify({version,files:['components/']}));write('client.js',JSON.stringify(version));write('README.md','**0.3.0 版本** v0.3.0');write('AGENTS.md','## 0.3.0 release contract');
-  write('cordis.patch.yml', '- insert:\n    - id: pdsh\n      name: "@daftai/pdsh"\n    - id: pdsh-titles\n      name: "@daftai/pdsh-titles"\n    - id: pdsh-capture\n      name: "@daftai/pdsh-capture"\n');
-  for(const kind of ['titles','capture']) {
+  write('cordis.patch.yml', '- insert:\n    - id: pdsh\n      name: "@daftai/pdsh-identity"\n    - id: pdsh-titles\n      name: "@daftai/pdsh-titles"\n    - id: pdsh-capture\n      name: "@daftai/pdsh-capture"\n');
+  for(const kind of ['identity','titles','capture']) {
     mkdirSync(join(root,`components/${kind}/locale`),{recursive:true});write(`components/${kind}/package.json`,JSON.stringify({name:`@daftai/pdsh-${kind}`,version}));
     for(const file of ['index.js','client.js','client.js.map','plugin-icon.svg','locale/zh.json','locale/en.json',...(kind==='capture'?['main.cjs']:[])])write(`components/${kind}/${file}`,JSON.stringify(version));
   }
   git('init','-q');git('add','.');git('-c','user.name=PDSH Fixture','-c','user.email=fixture@example.invalid','commit','-qm','component sources');
   const sha=git('rev-parse','HEAD').toString().trim();
-  const dependencies=Object.fromEntries(['titles','capture'].map(kind=>[`@daftai/pdsh-${kind}`,`github:daftAI2026/PDSH#${sha}&path:/components/${kind}`]));
+  const dependencies=Object.fromEntries(['identity','titles','capture'].map(kind=>[`@daftai/pdsh-${kind}`,`github:daftAI2026/PDSH#${sha}&path:/components/${kind}`]));
   write('package.json',JSON.stringify({version,files:['components/'],dependencies}));
   git('add','.');git('-c','user.name=PDSH Fixture','-c','user.email=fixture@example.invalid','commit','-qm','fixed component source');
   return {root,write,git,check(){try{return {ok:true,text:execFileSync(process.execPath,['--experimental-strip-types','check-release.ts'],{cwd:root,encoding:'utf8',stdio:'pipe'})};}catch(error){return {ok:false,text:String(error.stderr)};}},dispose(){rmSync(root,{recursive:true,force:true});}};
@@ -53,7 +53,7 @@ test('固定组件提交旧字节、缺失或符号链接不能过发布门',()=
       if(defect==='link'){unlinkSync(join(h.root,target));symlinkSync('../titles/client.js',join(h.root,target));}
       if(defect==='pin'){
         const manifest=JSON.parse(readFileSync(join(h.root,'package.json'),'utf8'));
-        for(const kind of ['titles','capture'])manifest.dependencies[`@daftai/pdsh-${kind}`]=`github:daftAI2026/PDSH#${'1'.repeat(40)}&path:/components/${kind}`;
+        for(const kind of ['identity','titles','capture'])manifest.dependencies[`@daftai/pdsh-${kind}`]=`github:daftAI2026/PDSH#${'1'.repeat(40)}&path:/components/${kind}`;
         h.write('package.json',JSON.stringify(manifest));
       }
       h.git('add','-A');h.git('-c','user.name=PDSH Fixture','-c','user.email=fixture@example.invalid','commit','-qm','defect');

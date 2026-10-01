@@ -1,6 +1,6 @@
 - insert:
     - id: pdsh
-      name: "@daftai/pdsh"
+      name: "@daftai/pdsh-identity"
     - id: pdsh-titles
       name: "@daftai/pdsh-titles"
     - id: pdsh-capture

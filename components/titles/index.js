@@ -25,7 +25,7 @@ async function inheritLegacyTitles(ctx, isDisposed = () => false) {
   if (isDisposed()) return;
   const rows = ctx.configEditor.configuration();
   const own = rows.find((row) => row.entry.options.id === "pdsh-titles" && ownsModule(row.entry.options.name));
-  const legacy = rows.find((row) => row.entry.options.id === "pdsh" && row.entry.options.name === "@daftai/pdsh");
+  const legacy = rows.find((row) => row.entry.options.id === "pdsh" && ["@daftai/pdsh", "@daftai/pdsh-identity"].includes(row.entry.options.name));
   if (!own || !legacy || Object.hasOwn(own.entry.options.config ?? {}, "maskTitles")) return;
   const raw = legacy.entry.options.config?.maskTitles;
   if (typeof raw !== "boolean") return;

@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖标题/拍照真实 Host 入口与官方合成配置、Loader、revision 接口桩。
- * [OUTPUT]: 验证旧值一次性继承、明确新值优先、owner 守卫、安装位置解析与启动中卸载不自等待。
+ * [INPUT]: 依赖身份生成 Host、标题/拍照源入口与官方合成配置、Loader、revision 接口桩。
+ * [OUTPUT]: 验证新身份包保留 pdsh namespace、旧根/新身份标题继承及 owner/revision/卸载围栏。
  * [POS]: 三组件配置兼容门；不写用户 profile，也不启动 Main 调试接口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -10,17 +10,26 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { Config, inheritLegacyTitles, apply } from '../src/host/titles.ts';
 import { Config as CaptureConfig } from '../src/host/capture.ts';
-function fixture({ raw = true, own = {}, module = new URL('../src/host/titles.ts', import.meta.url).href, revision = 7, wait = Promise.resolve() } = {}) {
+function fixture({ raw = true, own = {}, module = new URL('../src/host/titles.ts', import.meta.url).href, identityModule = '@daftai/pdsh', revision = 7, wait = Promise.resolve() } = {}) {
   const mutations = [], disposers = [];
   const ctx = { root: { loader: { await: () => wait } }, fiber: {},
     inject(_keys, fn) { fn(ctx); }, effect(fn) { const off = fn(); disposers.push(off); return off; },
     configEditor: { configuration: () => [
-      { entry: { options: { id: 'pdsh', name: '@daftai/pdsh', disabled: true, config: { maskTitles: raw, nickname: '别名' } } } },
+      { entry: { options: { id: 'pdsh', name: identityModule, disabled: true, config: { maskTitles: raw, nickname: '别名' } } } },
       { entry: { options: { id: 'pdsh-titles', name: module, config: own } } },
     ] },
     settings: { configure: () => () => {}, describe: () => [{ ns: 'pdsh-titles', revision }], async mutate(...args) { mutations.push(args); return false; } }, logger: { warn() { assert.fail('正常迁移不得报错'); } },
   }; return { ctx, mutations, disposers };
 }
+test('独立身份 Host 保留 pdsh 配置地址及旧昵称头像字段', async () => {
+  const identity = await import('../components/identity/index.js');
+  assert.equal(identity.name, 'pdsh');
+  assert.equal(typeof identity.apply, 'function');
+  const config = identity.Config({ nickname: '保留偏好', maskIdentity: false, useAccountAvatar: true });
+  assert.equal(config.nickname.get(), '保留偏好');
+  assert.equal(config.maskIdentity.get(), false);
+  assert.equal(config.useAccountAvatar.get(), true);
+});
 test('三个独立 Config，标题只声明自己的布尔开关，拍照没有另一个 enabled 配置', () => {
   assert.equal(Config({}).maskTitles.get(), false); assert.throws(() => Config({ maskTitles: 'true' }));
   assert.equal(CaptureConfig({}).saveFormat.get(), 'png');
@@ -33,12 +42,12 @@ test('三个独立 Config，标题只声明自己的布尔开关，拍照没有�
   assert.throws(() => CaptureConfig({ saveFormat: 'gif' }));
   assert.throws(() => CaptureConfig({ fileNamePattern: '../escape' }));
 });
-for (const raw of [true, false]) test(`身份停用仍迁移旧标题值 ${raw}，使用官方 revision`, async () => {
-  const h = fixture({ raw }); await inheritLegacyTitles(h.ctx);
+for (const identityModule of ['@daftai/pdsh', '@daftai/pdsh-identity']) for (const raw of [true, false]) test(`${identityModule} 身份停用仍迁移旧标题值 ${raw}，使用官方 revision`, async () => {
+  const h = fixture({ raw, identityModule }); await inheritLegacyTitles(h.ctx);
   assert.deepEqual(h.mutations, [['pdsh-titles', [{ op: 'set', path: ['maskTitles'], value: raw }], 7]]);
 });
 test('明确新 false、未知模块/旧值不被迁移覆盖', async () => {
-  for (const options of [{ own: { maskTitles: false } }, { module: 'other-plugin' }, { raw: 'true' }]) {
+  for (const options of [{ own: { maskTitles: false } }, { module: 'other-plugin' }, { identityModule: 'other-plugin' }, { raw: 'true' }]) {
     const h = fixture(options); await inheritLegacyTitles(h.ctx); assert.equal(h.mutations.length, 0);
   }
 });

@@ -8,7 +8,7 @@ import { lstatSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-const KINDS = ['titles', 'capture'] as const;
+const KINDS = ['identity', 'titles', 'capture'] as const;
 const COMMON_FILES = ['package.json', 'index.js', 'client.js', 'client.js.map', 'plugin-icon.svg', 'locale/zh.json', 'locale/en.json'];
 const MAX_GIT_BYTES = 64 * 1024 * 1024;
 

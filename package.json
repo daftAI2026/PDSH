@@ -1,7 +1,7 @@
 {
   "name": "@daftai/pdsh",
   "description": "Same-window presentation and local capture workbench for DeepSeek Harness; no session isolation.",
-  "version": "0.3.0-rc.9",
+  "version": "0.3.0-rc.10",
   "private": true,
   "type": "module",
   "main": "./index.js",
@@ -39,16 +39,14 @@
         "@deepseek-ai/dsh-client-locale",
         "@deepseek-ai/dsh-client-ui-plugin-manager"
       ]
-    },
-    "bundle": {
-      "patch": "./cordis.patch.yml"
     }
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "3.18.4",
     "blobatar": "2.7.0",
     "@daftai/pdsh-titles": "github:daftAI2026/PDSH#35465dcc1cd232b5b1c56c68ab31276d0d4c8b94&path:/components/titles",
-    "@daftai/pdsh-capture": "github:daftAI2026/PDSH#35465dcc1cd232b5b1c56c68ab31276d0d4c8b94&path:/components/capture"
+    "@daftai/pdsh-capture": "github:daftAI2026/PDSH#35465dcc1cd232b5b1c56c68ab31276d0d4c8b94&path:/components/capture",
+    "@daftai/pdsh-identity": "github:daftAI2026/PDSH#35465dcc1cd232b5b1c56c68ab31276d0d4c8b94&path:/components/identity"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.4",

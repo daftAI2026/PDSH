@@ -58,3 +58,14 @@ test('插件清单图标复用单 path 帽子图形；包图固化前景色但�
   assert.ok(root.includes(`stroke="${palette.foreground.value}"`), '元信息图标将 currentColor 固化为来源账中的原前景色');
   assert.ok(Buffer.byteLength(icon) < 256 * 1024);
 });
+
+
+test('Bundle 品牌与三个功能名分别来自各自元信息，不用路径或包名代替', () => {
+  const titles = { identity: ['侧栏身份', 'Sidebar Identity'], titles: ['侧栏标题遮挡', 'Sidebar Title Masking'], capture: ['窗口拍照', 'Window Capture'] };
+  for (const [kind, names] of Object.entries(titles)) for (const [index, lang] of ['zh', 'en'].entries()) {
+    const meta = JSON.parse(readFileSync(new URL(`../components/${kind}/locale/${lang}.json`, import.meta.url), 'utf8')).meta;
+    assert.equal(meta.title, names[index]);
+    assert.ok(meta.description.trim());
+    assert.doesNotMatch(meta.title, /@daftai|file:|DSH 私密模式|DSH Private Mode/);
+  }
+});

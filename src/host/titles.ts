@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 Schemastery、Node 包解析/文件 URL/realpath 与官方合成配置及 revision 围栏；规范化 symlink 后核对模块所有权。
+ * [INPUT]: 依赖 Schemastery、Node realpath 与官方合成配置及 revision 围栏；仅从旧根或新身份包的 pdsh 行继承。
  * [OUTPUT]: 提供独立标题 Config/apply；新字段未配置时继承旧 pdsh.maskTitles，原配置不删除。
  * [POS]: 标题运行时所有者；旧身份停用也不影响该 namespace，迁移不覆盖用户已设置的新值。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -24,7 +24,7 @@ export async function inheritLegacyTitles(ctx, isDisposed = () => false) {
   if (isDisposed()) return;
   const rows = ctx.configEditor.configuration();
   const own = rows.find(row => row.entry.options.id === 'pdsh-titles' && ownsModule(row.entry.options.name));
-  const legacy = rows.find(row => row.entry.options.id === 'pdsh' && row.entry.options.name === '@daftai/pdsh');
+  const legacy = rows.find(row => row.entry.options.id === 'pdsh' && ['@daftai/pdsh', '@daftai/pdsh-identity'].includes(row.entry.options.name));
   if (!own || !legacy || Object.hasOwn(own.entry.options.config ?? {}, 'maskTitles')) return;
   const raw = legacy.entry.options.config?.maskTitles;
   if (typeof raw !== 'boolean') return;

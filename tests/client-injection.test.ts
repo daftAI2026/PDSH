@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖三个生成 Client 的真实 inject 声明、Cordis 4.0.4 注册器和 rc.2 Connection 的服务形状。
+ * [INPUT]: 依赖三个生成子包 Client 的真实 inject 声明、Cordis 4.0.4 注册器和 rc.2 Connection 服务形状。
  * [OUTPUT]: 验证三入口不等待虚构子服务；Connection 撤回只卸载拍照的依赖边界。
  * [POS]: Client 启动审计回归；不直接调用 apply 绕过依赖解析，也不启动网络或 Main。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -14,7 +14,7 @@ import * as jsx from 'react/jsx-runtime';
 
 function declaration(kind: string) {
   let factory;
-  const file = kind === 'identity' ? '../client.js' : `../components/${kind}/client.js`;
+  const file = `../components/${kind}/client.js`;
   runInNewContext(readFileSync(new URL(file, import.meta.url), 'utf8'), {
     window: { __ModuleLoader__: { load(row) { factory = row.factory; } } }, TextEncoder,
   });

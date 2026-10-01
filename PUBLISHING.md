@@ -50,3 +50,12 @@ RC9 当前安装闸门：一个用户管理的 Bundle 使用同仓库固定 SHA 
 ### Initial disabled-to-enabled transition
 
 Verify the exact official runtime with the Bundle initially absent from selected layers, then select it through the official manager without restarting. Preinstalling selected-layer resolution is not this test. The previous bundled topology failed this gate on rc.2; ordinary fixed-SHA Git-subdirectory dependencies now pass the exact runtime test under the official hoisted profile topology, with all three Host, Client and metadata entries present. Isolated linking still fails and must not be claimed compatible. Verify the final remote installer revision and actual Desktop enable separately. Do not take ownership of the global resolver, insert separately user-managed child bundles or turn normal component enable/capture into a restart requirement. Original Main capture and installed visual/editor acceptance remain stable publication gates.
+
+
+### 三功能元信息与旧名称覆盖预检
+
+RC10 的身份子包与 Bundle 分离；三项各有功能名、用途、图标与公开 locale/package 资源，仍只有三个 patch 行，根兼容入口不插入第四行。身份 id/namespace 保持 pdsh，不能据此声称带旧 name 的覆盖兼容。分别验证 id-only、旧 root-name、旧 file-URL-name 和 disabled=true。官方 name 是断言，失配跳过整行，不是重命名。
+
+升级前，经官方 SettingsController.openSettingsDocument/provider.prepareDocument 打开原生编辑器，仅撤掉已核实 PDSH override 的旧 name，保留 id/config/disabled、注释和其他字节。先在旧版确认宿主接受偏好/禁用，再安装新模块。revision mutate/replace 只改 config，不能补救 apply 前丢失的 disabled；禁止插件或 shell 直接改主 profile。原生编辑器桩不代替实机文档保存与状态验收；未完成预检不得升级。
+
+两阶段分发：变更组件字节先提交到专用组件源 ref（仅供 Git 子目录依赖，不是用户安装入口）；最终 root revision 再固定三个普通依赖到同一组件源 SHA、更新 lock，通过全部测试与真实远端消费者验收才推 RC 安装分支。中间源提交不得当作可安装 RC；稳定 main/tag 保持不动。

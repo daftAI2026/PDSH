@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖三个真实 lazy factory、同一 jsdom 页面、严格 Host 注册桩及可选真实 ReactDOM/DOM-shape primitive fixture。
+ * [INPUT]: 依赖三个子包真实 lazy factory、保留的根兼容入口、同一 jsdom 页面与 Host 注册桩。
  * [OUTPUT]: 验证启停组合、身份原生节点遮蔽、完整样式 probe 隐藏/卸载；fixture 不冒充实际 Host primitives/CSP。
  * [POS]: 三运行时组件构建/装配门；DOM fixture 与桩桥都不是安装件或 Desktop 实窗验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -15,6 +15,16 @@ import { JSDOM } from 'jsdom';
 import { DEFAULTS } from '../src/shared/model.ts';
 import { COMPONENTS } from '../src/shared/components.ts';
 
+test('身份子包独立命名，根兼容 factory 不占用新身份 Client table', () => {
+  assert.equal(COMPONENTS.identity.module, '@daftai/pdsh-identity');
+  assert.equal(COMPONENTS.identity.id, 'pdsh', '身份配置 namespace 不因子包名字改变');
+  for (const [path, expected] of [['../client.js', '@daftai/pdsh'], ['../components/identity/client.js', '@daftai/pdsh-identity']]) {
+    let id;
+    runInNewContext(readFileSync(new URL(path, import.meta.url), 'utf8'), { window: { __ModuleLoader__: { load(row) { id = row.id; } } } });
+    assert.equal(id, expected);
+  }
+});
+
 function harness({ bridge = true, failSlot = false, realReact = false } = {}) {
   const dom = new JSDOM(`<body><main>原生内容</main><div data-slot="settings.launcher"><button data-collapsed="false" data-signed-out="false" aria-haspopup="menu"><span><svg></svg></span><span>真实名称</span></button></div><div data-slot="sidebar.workspaces"><div><div><span>工作区</span><div><div><button type="button" class="native-search" aria-label="搜索会话" aria-expanded="false"><svg viewBox="0 0 16 16" style="width:14px;height:14px;stroke-width:1"></svg></button><input type="text" /></div></div><div></div></div></div></div></body>`);
   const document = dom.window.document, before = document.body.outerHTML;
@@ -29,7 +39,7 @@ function harness({ bridge = true, failSlot = false, realReact = false } = {}) {
   const registrations = new Map(), dictionaries = new Map(), roots = new Set(), scopes = new Map();
   let language = 'zh';
   function load(kind) {
-    const definition = COMPONENTS[kind], path = kind === 'identity' ? '../client.js' : `../components/${kind}/client.js`;
+    const definition = COMPONENTS[kind], path = `../components/${kind}/client.js`;
     let factory;
     runInNewContext(readFileSync(new URL(path, import.meta.url), 'utf8'), {
       window: { __ModuleLoader__: { load(row) { assert.equal(row.id, definition.module); factory = row.factory; } } }, document, TextEncoder,

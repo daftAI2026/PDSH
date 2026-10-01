@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖真实 Bundle patch/生成入口、正常依赖与隔离 hoisted profile；锚定规则对应 DSH rc.2 app-boot 的 anchorInsertedPluginNames。
- * [OUTPUT]: 验证正常 hoisted 依赖可从 profile 加载，缺子包则失败；真实子包同时解析组件 manifest/locale/client；官方展示仍需 exact Host 与 Desktop 验证。
+ * [INPUT]: 依赖真实 Bundle patch/当前生成入口与隔离 hoisted 位置结构桩；锚定规则对应 DSH rc.2 app-boot 的 anchorInsertedPluginNames。
+ * [OUTPUT]: 验证正常 hoisted 依赖可从 profile 加载，缺子包则失败；生成子包同时解析组件 manifest/locale/client；官方展示仍需 exact Host 与 Desktop 验证。
  * [POS]: 安装边界回归；根依赖的 hoisted 链接结构桩不代替官方 runtime interception/Client graph 验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -23,8 +23,8 @@ function fixture({ installed = true } = {}) {
   const root = fileURLToPath(new URL('../', import.meta.url));
   mkdirSync(join(profile, 'node_modules/@daftai'), { recursive: true });
   symlinkSync(root, join(profile, 'node_modules/@daftai/pdsh'));
-  const bundleRequire=createRequire(join(root,'package.json'));
-  if(installed) for(const kind of ['titles','capture']) symlinkSync(dirname(bundleRequire.resolve(`@daftai/pdsh-${kind}/package.json`)),join(profile,`node_modules/@daftai/pdsh-${kind}`));
+  // +--- 显式结构桩：链接当前生成字节，不拿旧开发依赖冒充新安装件 ---+
+  if(installed) for(const kind of ['identity','titles','capture']) symlinkSync(join(root,`components/${kind}`),join(profile,`node_modules/@daftai/pdsh-${kind}`));
   const require = createRequire(join(profile, 'profile-anchor.cjs'));
   return { profile, root: join(profile, 'node_modules/@daftai/pdsh'), require, dispose: () => rmSync(profile, { recursive: true, force: true }) };
 }
@@ -53,7 +53,7 @@ test('模拟 hoisted profile 结构可直接解析三个 Host/Client/元信息',
       }
       const owner = dirname(fileURLToPath(moduleUrl));
       const manifest = JSON.parse(readFileSync(join(owner, 'package.json'), 'utf8'));
-      assert.equal(manifest.name, row.id === 'pdsh' ? '@daftai/pdsh' : `@daftai/${row.id}`);
+      assert.equal(manifest.name, row.id === 'pdsh' ? '@daftai/pdsh-identity' : `@daftai/${row.id}`);
       assert.equal(manifest.dsh.client.platform, 'web');
       const client = readFileSync(join(owner, manifest.exports['./client']), 'utf8');
       assert.ok(client.includes(`id:${JSON.stringify(manifest.name)}`), 'Client table ID 必须对应其 manifest，而非路径');
@@ -67,7 +67,7 @@ test('坏入口正例：没有正常依赖的裸子包从 profile 确实失败',
   try {
     const bundle = createRequire(join(h.root, 'package.json'));
     assert.ok(bundle.resolve('@deepseek-ai/schemastery'), 'Bundle 普通依赖仍按自身位置解析');
-    for (const name of ['@daftai/pdsh-titles', '@daftai/pdsh-capture']) {
+    for (const name of ['@daftai/pdsh-identity', '@daftai/pdsh-titles', '@daftai/pdsh-capture']) {
       assert.throws(() => h.require.resolve(name), { code: 'MODULE_NOT_FOUND' });
     }
   } finally { h.dispose(); }
@@ -79,15 +79,16 @@ test('三组件用真实包名同时满足 Client 与名称元信息发现，不
   try {
     const rows = entries(readFileSync(join(h.root, 'cordis.patch.yml'), 'utf8'));
     for (const [id, specifier, title] of [
+      ['pdsh', '@daftai/pdsh-identity', '侧栏身份'],
       ['pdsh-titles', '@daftai/pdsh-titles', '侧栏标题遮挡'],
       ['pdsh-capture', '@daftai/pdsh-capture', '窗口拍照'],
     ]) {
       assert.equal(rows.find(row => row.id === id)?.name, specifier);
       const rootManifest = JSON.parse(readFileSync(join(h.root, 'package.json'), 'utf8'));
-      const kind = id === 'pdsh-titles' ? 'titles' : 'capture';
+      const kind = id === 'pdsh' ? 'identity' : id === 'pdsh-titles' ? 'titles' : 'capture';
       assert.match(rootManifest.dependencies[specifier],new RegExp(`^github:daftAI2026/PDSH#[a-f0-9]{40}&path:/components/${kind}$`));
       assert.equal(rootManifest.bundledDependencies,undefined);
-      const bundleRequire = createRequire(join(h.root, 'package.json'));
+      const bundleRequire = h.require;
       const manifestPath = bundleRequire.resolve(`${specifier}/package.json`);
       const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
       for (const language of ['zh', 'en']) {

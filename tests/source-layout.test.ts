@@ -19,12 +19,12 @@ test('手写构建与发布脚本为TS；根目录JS只保留宿主生成入口'
 });
 
 
-test('一个 Bundle 发布三个包内入口；身份兼容旧模块名和 namespace', () => {
+test('一个 Bundle 发布三个包内入口；身份保留旧 namespace，根包保留兼容入口', () => {
   const root = new URL('../', import.meta.url);
   const manifest = JSON.parse(readFileSync(new URL('package.json', root), 'utf8'));
   assert.equal(manifest.bundledDependencies, undefined, '组件必须经正常依赖安装，不能嵌套 bundled 包绕过 hoist');
-  assert.ok(manifest.files.includes('components/'), '归档必须包含两个包内入口与其所有资源');
-  for (const kind of ['titles', 'capture']) {
+  assert.ok(manifest.files.includes('components/'), '归档必须包含三个包内入口与其所有资源');
+  for (const kind of ['identity', 'titles', 'capture']) {
     const child = JSON.parse(readFileSync(new URL(`components/${kind}/package.json`, root), 'utf8'));
     assert.equal(child.name, `@daftai/pdsh-${kind}`);
     assert.equal(child.version, manifest.version);
@@ -34,11 +34,11 @@ test('一个 Bundle 发布三个包内入口；身份兼容旧模块名和 names
     for (const lang of ['zh', 'en']) assert.ok(JSON.parse(readFileSync(new URL(`components/${kind}/locale/${lang}.json`, root), 'utf8')).meta.title);
   }
   const patch = readFileSync(new URL('cordis.patch.yml', root), 'utf8');
-  for (const [id, module] of [['pdsh', '@daftai/pdsh'], ['pdsh-titles', '@daftai/pdsh-titles'], ['pdsh-capture', '@daftai/pdsh-capture']]) {
+  for (const [id, module] of [['pdsh', '@daftai/pdsh-identity'], ['pdsh-titles', '@daftai/pdsh-titles'], ['pdsh-capture', '@daftai/pdsh-capture']]) {
     assert.match(patch, new RegExp(`id: ${id}\n +name: "${module}"`));
   }
 });
 test('只有拍照 Client 带编辑器离线壁纸，身份/标题不复制其重资产',()=>{
-  for(const path of ['../client.js','../components/titles/client.js'])assert.doesNotMatch(readFileSync(new URL(path,import.meta.url),'utf8'),/data:image\/jpeg;base64,/);
+  for(const path of ['../client.js','../components/identity/client.js','../components/titles/client.js'])assert.doesNotMatch(readFileSync(new URL(path,import.meta.url),'utf8'),/data:image\/jpeg;base64,/);
   assert.match(readFileSync(new URL('../components/capture/client.js',import.meta.url),'utf8'),/data:image\/jpeg;base64,/);
 });
