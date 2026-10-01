@@ -1,6 +1,7 @@
-/** [INPUT]: src/host/page-capture-main.ts，由 build.ts 生成。
+/**
+ * [INPUT]: src/host/page-capture-main.ts，由 build.ts 生成。
  * [OUTPUT]: Main startMainBridge；像素只交付原页面。
- * [POS]: 拍照包内部非视觉桥，不手工修改。
+ * [POS]: 单包运行产物；PDSH build "0.3.0-rc.11"，不手工修改。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 var __defProp = Object.defineProperty;

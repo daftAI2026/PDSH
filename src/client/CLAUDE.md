@@ -1,11 +1,11 @@
 # src/client/
 > L2 | 父级: ../CLAUDE.md
 
-- `client-entry.tsx`: 同一薄入口由构建常量选择身份、标题或拍照角色；独立 namespace 驱动启停，资源所有权下放 component-runtime。
-- `component-runtime.tsx`: 三个官方运行时组件的独立启停与同一页面共享资源；共享的是样式/入口/Bundle 设置注册，不是功能启用状态；拍照只注入 connection 服务，rpc 是它的属性而非另一个服务。
+- `client-entry.tsx`: 唯一 `@daftai/pdsh` Client 入口；必需 Cordis 服务只声明一次，身份/标题/拍照为共享 Bundle 内的独立设置而非运行时子入口。
+- `component-runtime.tsx`: 唯一 Bundle Fiber 的样式、原生探针、Tooltip、设置与更新生命周期；按 Host 接受值独立启停身份/标题/拍照，optional `connection` 子 Fiber 仅为拍照桥服务，启动异常逆序回滚。
 - `native-style-view.tsx`: 唯一真实原生控件探针视图；布局测量与 React 生命周期绑定，不持有功能配置。
-- `title-settings.tsx`: 独立标题命名空间的即时开关；复用帽子控制器和官方控件，不读身份组件的活跃配置。
-- `capture-settings.tsx`: 询问/直接保存、完整目录、格式/Kiri 五类模板设置，只走 Host revision 围栏；询问开关不删除目录，复用昵称留白/编辑/Tooltip，首字段不贴标题画线。
+- `title-settings.tsx`: 共享唯一 `pdsh` ConfigForm 的标题即时开关；复用帽子控制器和官方控件，不建立独立 namespace，也不读身份偏好。
+- `capture-settings.tsx`: 拍照独立总开关与询问/直接保存、完整目录、格式/文件名模板；只走同一 Host revision 围栏，询问开关不删除目录，复用昵称编辑与 Tooltip 约定。
 - `capture-notice.tsx`: DOM 控制器到官方 React Toast 的适配边界；宿主拥有样式、portal 和默认消失周期，序号重挂载与完成围栏防止同文重显或旧回调干扰。
 - `native-style-probe.ts`: 原生样式效果边界；测量真实 Input/Button/Switch/字段/Tooltip，监听主题、DOM、资源加载和尺寸变化，未变不写、来源消失撤销旧值、控件重建转移局部观察权，停用精确恢复变量与观察器。
 - `native-icon.ts`: 原生 SVG 描边密度与图稿坐标换算；非等比、缺失或未知几何拒绝猜测，供入口和控件探针共用。

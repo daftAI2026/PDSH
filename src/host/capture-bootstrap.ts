@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖精确 Desktop Host/父 Main 身份、组件首次点击启动的调试 bootstrap 与固定阶段诊断 与包内 Main 模块、系统临时根；副作用适配边界可隔离验证。
  * [OUTPUT]: 提供 openCaptureBridge 与内部 readMainIdentity/createCaptureBootstrap/connectCaptureControl 合同边界；仅启动时用 inspector，确认关闭后只留私有 socket 控制连接。
- * [POS]: 拍照包内部连接生命周期；已有调试端口拒绝接管，清理未知明确报错，不重启/修改应用。
+ * [POS]: PDSH 包内拍照模块的连接生命周期；已有调试端口拒绝接管，清理未知明确报错，不重启/修改应用。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { execFileSync } from 'node:child_process';

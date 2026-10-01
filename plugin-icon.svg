@@ -1,7 +1,7 @@
 <!--
-[INPUT]: 依赖 src/client/entry-icon.svg 和 style-sources.json，由 build.ts 生成。
-[OUTPUT]: 提供透明底帽子眼镜图稿。
-[POS]: Bundle 及组件标识，不手工修改。
+[INPUT]: src/client/entry-icon.svg 与 style-sources.json，由 build.ts 生成。
+[OUTPUT]: 透明底帽子图稿。
+[POS]: 单 Bundle 标识，不手工修改。
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="rgb(15, 17, 21)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">

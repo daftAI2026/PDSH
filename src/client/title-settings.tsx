@@ -1,14 +1,13 @@
 /**
- * [INPUT]: 依赖独立标题 ConfigForm、title-toggle 控制器和 Host Switch/Tooltip。
- * [OUTPUT]: 提供 TitleSettingsCard，即时保存与失败反馈只消费该组件的 namespace。
- * [POS]: 标题组件设置边界；身份停用不影响读写，拍照临时遮挡不改这个开关。
+ * [INPUT]: 依赖共享 pdsh ConfigForm、title-toggle 控制器和 Host Switch/Tooltip。
+ * [OUTPUT]: 提供标题功能的 TitleSettingsCard；即时保存与失败反馈共用唯一 pdsh ConfigForm。
+ * [POS]: Bundle 内部标题设置边界；与身份/拍照共享 Host 配置修订，不拥有独立 namespace 或存储。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useSyncExternalStore } from 'react';
 import { Switch, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives';
-export function TitleSettingsCard({ form, control, subscribe, snapshot, t, view }) {
+export function TitleSettingsCard({ form, control, t, view }) {
   const accepted = useSyncExternalStore(fn => form.subscribe(fn), () => form.getSnapshot());
-  useSyncExternalStore(subscribe, snapshot);
   if (view === 'summary') return t('titlesHint');
   const state = control.state();
   return <section className="pdsh-settings"><section className="pdsh-group">

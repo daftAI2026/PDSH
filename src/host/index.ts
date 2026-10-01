@@ -1,11 +1,12 @@
 /**
- * [INPUT]: 依赖 schemastery 的 volatile Config、shared/model.ts 的默认值与 Harness settings 注入。
- * [OUTPUT]: 提供 @daftai/pdsh 的显示偏好配置，由官方设置页负责编辑与持久化。
- * [POS]: PDSH Host 配置边界；只声明 Host 配置并启用设置表单，不接触连接、截图或账户/会话数据。
+ * [INPUT]: 依赖 shared/model.ts 的显示默认值、capture.ts 的拍照字段/Loader volatile-update 订阅与 Harness Settings 生命周期。
+ * [OUTPUT]: 提供唯一 pdsh Config/apply；Settings form、显示偏好与拍照 route 共用 root Host，captureEnabled 原位撤回/重挂 route。
+ * [POS]: PDSH 唯一 Cordis Host 入口，保留既有 pdsh 地址和配置字段，委托拍照 effect 而不另开 Host namespace。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import z from '@deepseek-ai/schemastery';
 import { DEFAULTS, MAX_AVATAR_CHARS, MAX_NAME_CHARS, NICKNAME_PATTERN, LOCAL_AVATAR_PATTERN } from '../shared/model.ts';
+import { CAPTURE_CONFIG_FIELDS, apply as applyCapture } from './capture.ts';
 
 export const name = 'pdsh';
 export const Config = z.object({
@@ -14,9 +15,11 @@ export const Config = z.object({
   useAccountAvatar: z.boolean().default(DEFAULTS.useAccountAvatar).description('Keep native account avatar / 使用账号原始头像').volatile(),
   nickname: z.string().max(MAX_NAME_CHARS).pattern(NICKNAME_PATTERN).default(DEFAULTS.nickname).description('Display nickname / 显示昵称').volatile(),
   avatar: z.string().max(MAX_AVATAR_CHARS).pattern(LOCAL_AVATAR_PATTERN).default('').description('Local raster data URL; empty generates avatar / 本地图片，留空生成头像').volatile(),
+  ...CAPTURE_CONFIG_FIELDS,
 });
 
-export function apply(ctx) {
+export function apply(ctx, config) {
   // +--- 只由产品设置页展示，不让通用编辑器成为第二套 UI ---+
   ctx.inject(['settings'], child => child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)));
+  applyCapture(ctx, config);
 }

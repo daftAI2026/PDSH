@@ -5,11 +5,12 @@
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Button, Input, Tooltip, IconEditOutlineRegular, IconCheckOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives';
+import { Button, Input, Switch, Tooltip, IconEditOutlineRegular, IconCheckOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives';
 import { CAPTURE_SAVE_BEHAVIORS, CAPTURE_SAVE_FORMATS, CAPTURE_FILE_NAME_PATTERN, resolveCaptureExportPreferences } from '../shared/capture-export.ts';
 export function CaptureSettingsCard({ form, t, view, chooseDirectory = null }) {
   const accepted = useSyncExternalStore(fn => form.subscribe(fn), () => form.getSnapshot());
   const preferences = resolveCaptureExportPreferences(accepted.value);
+  const captureEnabled = accepted.value?.captureEnabled !== false;
   const [pending, setPending] = useState(false), [failed, setFailed] = useState(false), [draft, setDraft] = useState<string | null>(null);
   const templateRow = useRef(null), returnFocus = useRef(null);
   const alive = useRef(true), busy = useRef(false), base = useRef<string | null>(null);
@@ -23,7 +24,7 @@ export function CaptureSettingsCard({ form, t, view, chooseDirectory = null }) {
     if (target?.isConnected && !target.disabled) target.focus();
   }, [pending, draft]);
   function rememberFocus(origin, template = false) {
-    returnFocus.current = origin?.ownerDocument.activeElement === origin ? { origin, template } : null;
+    returnFocus.current = origin && origin.ownerDocument.activeElement === origin ? { origin, template } : null;
   }
   if (view === 'summary') return t('capture');
   const writable = accepted.status === 'ready' && accepted.writable && !pending;
@@ -58,7 +59,11 @@ export function CaptureSettingsCard({ form, t, view, chooseDirectory = null }) {
   const begin = () => { if (writable) { base.current = preferences.fileNamePattern; setDraft(preferences.fileNamePattern); setFailed(false); } };
   const invalid = draft !== null && !CAPTURE_FILE_NAME_PATTERN.test(draft);
   return <section className="pdsh-settings" data-pdsh-settings><section className="pdsh-group pdsh-fields-group" role="group" aria-labelledby="pdsh-capture-title">
-    <div className="pdsh-row pdsh-group-header"><h4 id="pdsh-capture-title">{t('capture')}</h4></div>
+    <div className="pdsh-row pdsh-group-header" aria-busy={pending || undefined}><h4 id="pdsh-capture-title">{t('capture')}</h4>
+      <Tooltip label={t('captureEnabled')} side="bottom" delayMs={500} focusDelayMs={0} portal><span className="pdsh-switch-tooltip">
+        <Switch checked={captureEnabled} disabled={!writable} label={t('captureEnabled')} onChange={() => void save('captureEnabled', !captureEnabled)} />
+      </span></Tooltip>
+    </div>
     <div className="pdsh-detail-row"><span className="pdsh-label" id="pdsh-save-behavior">{t('saveLocation')}</span>
       <div className="pdsh-avatar-actions" role="group" aria-labelledby="pdsh-save-behavior">{CAPTURE_SAVE_BEHAVIORS.map(behavior =>
         <Button key={behavior} variant={preferences.saveBehavior === behavior ? 'outline' : 'ghost'} aria-pressed={preferences.saveBehavior === behavior} disabled={!writable || (behavior === 'direct' && (!chooseDirectory || !preferences.saveDirectory))} onClick={event => void save('saveBehavior', behavior, event.currentTarget)}>{t(behavior === 'ask' ? 'saveAsk' : 'saveDirect')}</Button>)}</div>

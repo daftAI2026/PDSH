@@ -1,41 +1,30 @@
 /**
- * [INPUT]: 依赖根唯一版本、Git 工作树和 build.ts 的三个功能入口和根兼容产物及固定组件提交的运行字节。
- * [OUTPUT]: 校验 tag/Bundle 与三功能包版本、固定组件来源及 patch 加载路径，拒绝脏发布树。
- * [POS]: 发布前防漂移门；不自行推送、打 tag、发布 npm 或修改任何版本号。
+ * [INPUT]: 依赖根唯一版本、Git 工作树与单包运行产物验证器。
+ * [OUTPUT]: 校验稳定 tag、文档版本、生成产物与 HEAD，拒绝脏发布树与非 main 稳定发布。
+ * [POS]: 发布前防漂移门；不推送、打 tag、发布 npm 或修改版本。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { validateComponentSources } from './component-source.ts';
+import { validateBundleArtifacts } from './bundle-artifacts.ts';
 import { execFileSync } from 'node:child_process';
 
-const manifest = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string; files?: string[] };
-if (!manifest.files?.includes('components/')) throw new Error('archive component membership missing');
+const root = fileURLToPath(new URL('.', import.meta.url));
+const manifest = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 const expected = `v${manifest.version}`;
 const tag = process.argv[2] ?? expected;
 if (tag !== expected) throw new Error(`tag ${tag} does not match package.json ${expected}`);
 if (!/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(tag)) throw new Error('release tag must be stable semver');
-const client = readFileSync(new URL('./client.js', import.meta.url), 'utf8');
-if (!client.includes(JSON.stringify(manifest.version))) throw new Error('client.js does not embed the package version; rebuild');
-// +--- 普通依赖的固定提交必须与当前生成组件逐字节一致 ---+
-validateComponentSources(fileURLToPath(new URL('.', import.meta.url)));
-const patch = readFileSync(new URL('./cordis.patch.yml', import.meta.url), 'utf8');
-for (const kind of ['identity', 'titles', 'capture']) {
-  const base = new URL(`./components/${kind}/`, import.meta.url);
-  if (!readFileSync(new URL('client.js', base), 'utf8').includes(JSON.stringify(manifest.version))) throw new Error(`${kind} Client version drift; rebuild`);
-  if (!patch.includes(`id: ${kind === 'identity' ? 'pdsh' : `pdsh-${kind}`}\n      name: "@daftai/pdsh-${kind}"`)) throw new Error(`${kind} profile loading path drift`);
-}
+validateBundleArtifacts(root);
 const readme = readFileSync(new URL('./README.md', import.meta.url), 'utf8');
 const guide = readFileSync(new URL('./AGENTS.md', import.meta.url), 'utf8');
 if (!readme.includes(tag) || !readme.includes(`**${manifest.version} `)) throw new Error('README active release does not match package.json');
 if (!guide.includes(`## ${manifest.version} release contract`)) throw new Error('AGENTS release contract does not match package.json');
-const existing = execFileSync('git', ['tag', '--list', tag], { encoding: 'utf8' }).trim();
-if (existing) {
-  const tagged = execFileSync('git', ['rev-list', '-n', '1', tag], { encoding: 'utf8' }).trim();
-  const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-  if (tagged !== head) throw new Error(`${tag} already points to another commit`);
-}
-if (execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim()) throw new Error('release working tree must be clean');
+const git = (...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
+if (git('branch', '--show-current') !== 'main') throw new Error('stable release must be checked on main, never the RC branch');
+const existing = git('tag', '--list', tag);
+if (existing && git('rev-list', '-n', '1', tag) !== git('rev-parse', 'HEAD')) throw new Error(`${tag} already points to another commit`);
+if (git('status', '--porcelain')) throw new Error('release working tree must be clean');
 process.stdout.write(existing
-  ? `${tag} matches package.json, embedded client version and HEAD.\n`
-  : `${tag} candidate matches package.json and embedded client version; tag not created.\n`);
+  ? `${tag} matches package.json, generated artifacts and HEAD.\n`
+  : `${tag} candidate matches package.json and generated artifacts; tag not created.\n`);

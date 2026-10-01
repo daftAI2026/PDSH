@@ -1,13 +1,12 @@
 # src/host/
 > L2 | 父级: ../CLAUDE.md
 
-- `index.ts`: 保留旧身份 Cordis Host Config 和 pdsh 地址，生成独立身份子包及根兼容入口；Harness settings 持有表单，不注册额外网络 route。
-- `titles.ts`: 独立标题 Config；对自身真实包或旧锚定 URL 做 realpath 核对，仅继承旧根/新身份包的 pdsh.maskTitles，以 revision 围栏保护新值，身份停用也可迁移。
-- `capture.ts`: 导出偏好 namespace 与 exact Fetch 接线；Host 提供初始 Downloads 路径，旧空目录/旧默认命名经 revision 修正，自定义值保留；Main 文件相对自身安装 URL 解析而非 cwd/DSH 固定目录；首次点击启桥，Main 未知关闭跨组件重装保留。
+- `index.ts`: 唯一 `pdsh` Cordis Host Config/apply；保留身份/标题旧字段并合并拍照字段，官方 Settings 只配置一次，root Host fiber 持有 Loader volatile-update 监听。
+- `capture.ts`: 提供被 root Config 复用的拍照字段与 `pdsh` revision 迁移；按所属 Fiber 的 `loader/volatile-update` 精确监听 `captureEnabled`，同步撤回 exact Fetch route、abort 在途桥，再以 dispose barrier 安全重挂；Main 相对根入口解析，未知关闭隔离跨重挂载保留。
 
 - `page-capture-main.ts`: 原生捕获串行锁、主 frame/document 围栏与系统临时根/真实目录 uid/0700 归属校验的私有 socket 控制；PNG 只交付原 Renderer 接收器，内部桥候选实现仍待原 DSH 安装件验收。
 
-- `capture-route.ts`: 官方 RPC 控制封套与 owner 世代边界；只传控制元数据，组件停用直接 abort，不等待 Renderer；失败连接先失效化并归还；归还 barrier 和 inspector/control 两类未知隔离态分开，等待后再次校验，确认 closed 才允许下一次用户点击重建。
+- `capture-route.ts`: 官方 RPC 控制封套与 owner 世代边界；只传控制元数据，Host fiber 停用直接 abort，不等待 Renderer；失败连接先失效化并归还；归还 barrier 和 inspector/control 两类未知隔离态分开，等待后再次校验，确认 closed 才允许下一次用户点击重建。
 - `capture-bootstrap.ts`: 真实 macOS ps 末列完整路径与启动时间的父 Main 身份检查、Node 默认 inspector 启动约束与系统临时根内独占 socket 生命周期；不接管已有调试会话，关闭未知明确报错，不重启应用。
 - `inspector-ownership.ts`: 固定 Main watchdog/关闭表达式；以 PID、nonce、原调试地址归还启动权限，不干扰后来调试会话。
 

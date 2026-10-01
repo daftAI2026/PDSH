@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖已验证的 Electron Main、系统临时根内的私有 socket 控制连接及当前主 frame 的固定接收器。
  * [OUTPUT]: 提供 startMainBridge；单次原生 PNG 只交付原页面，取消保留 native capture 锁直到真实结算。
- * [POS]: 拍照包内部 Main 边界；不使用 desktopCapturer，不读账号，取像不写文件，显式保存交给 page-save-main；像素不进 HTTP/日志。
+ * [POS]: PDSH 包内拍照模块的 Main 边界；不使用 desktopCapturer，不读账号，取像不写文件，显式保存交给 page-save-main；像素不进 HTTP/日志。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { createNativePageSave } from './page-save-main.ts';

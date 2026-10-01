@@ -60,12 +60,10 @@ test('插件清单图标复用单 path 帽子图形；包图固化前景色但�
 });
 
 
-test('Bundle 品牌与三个功能名分别来自各自元信息，不用路径或包名代替', () => {
-  const titles = { identity: ['侧栏身份', 'Sidebar Identity'], titles: ['侧栏标题遮挡', 'Sidebar Title Masking'], capture: ['窗口拍照', 'Window Capture'] };
-  for (const [kind, names] of Object.entries(titles)) for (const [index, lang] of ['zh', 'en'].entries()) {
-    const meta = JSON.parse(readFileSync(new URL(`../components/${kind}/locale/${lang}.json`, import.meta.url), 'utf8')).meta;
-    assert.equal(meta.title, names[index]);
-    assert.ok(meta.description.trim());
-    assert.doesNotMatch(meta.title, /@daftai|file:|DSH 私密模式|DSH Private Mode/);
+test('三个功能区有离线 zh/en 文案，不用包路径作为名称', async () => {
+  const { dictionaries } = await import('../src/shared/locales.ts');
+  for (const lang of ['zh', 'en']) for (const key of ['maskIdentity', 'maskTitles', 'capture']) {
+    assert.ok(dictionaries[lang][key]?.trim());
+    assert.doesNotMatch(dictionaries[lang][key], /@daftai|file:/);
   }
 });

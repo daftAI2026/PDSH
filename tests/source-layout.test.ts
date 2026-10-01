@@ -1,44 +1,46 @@
 /**
- * [INPUT]: 依赖仓库根目录的构建脚本、宿主入口与 package.json 的命令合同。
- * [OUTPUT]: 验证手写脚本均为 TypeScript，根目录 JavaScript 只剩宿主必须的生成产物。
- * [POS]: 源码/产物边界回归；避免把可维护逻辑藏回手写 JS，也不误删 Harness 入口。
+ * [INPUT]: 依赖根 Bundle manifest、唯一构建入口和提交的 Host/Client/Main 产物。
+ * [OUTPUT]: 验证一个安装包、一个 Cordis 入口、一个 Client factory；三个功能不得再次变成 Git 子依赖。
+ * [POS]: 分发回归门；模块化不改变安装拓扑，Main 桥仍在同包内而不冒充已可用接口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
+const root = new URL('../', import.meta.url);
 
-test('手写构建与发布脚本为TS；根目录JS只保留宿主生成入口', () => {
-  const root = new URL('../', import.meta.url);
+test('手写脚本保持 TypeScript；唯一 Host/Client 和包内 Main 是生成产物', () => {
   const files = readdirSync(root);
   assert.deepEqual(files.filter(file => /\.(?:mjs|js)$/.test(file)).sort(), ['client.js', 'index.js']);
-  assert.ok(files.includes('build.ts') && files.includes('check-release.ts'));
-  const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.ok(files.includes('build.ts') && files.includes('check-release.ts') && files.includes('main.cjs'));
+  const manifest = JSON.parse(readFileSync(new URL('package.json', root), 'utf8'));
   assert.match(manifest.scripts.build, /build\.ts/);
   assert.match(manifest.scripts['release:check'], /check-release\.ts/);
 });
 
-
-test('一个 Bundle 发布三个包内入口；身份保留旧 namespace，根包保留兼容入口', () => {
-  const root = new URL('../', import.meta.url);
+test('三个功能是源码模块，不是三个安装依赖或 Cordis 插件', () => {
   const manifest = JSON.parse(readFileSync(new URL('package.json', root), 'utf8'));
-  assert.equal(manifest.bundledDependencies, undefined, '组件必须经正常依赖安装，不能嵌套 bundled 包绕过 hoist');
-  assert.ok(manifest.files.includes('components/'), '归档必须包含三个包内入口与其所有资源');
-  for (const kind of ['identity', 'titles', 'capture']) {
-    const child = JSON.parse(readFileSync(new URL(`components/${kind}/package.json`, root), 'utf8'));
-    assert.equal(child.name, `@daftai/pdsh-${kind}`);
-    assert.equal(child.version, manifest.version);
-    assert.match(manifest.dependencies[child.name], new RegExp(`^github:daftAI2026/PDSH#[a-f0-9]{40}&path:/components/${kind}$`), '同仓库固定提交子目录走正常依赖安装');
-    assert.ok(child.dsh.client, '就近 manifest 声明 Client 节点，声明真实独立 Client table 身份');
-    assert.match(readFileSync(new URL(`components/${kind}/client.js`, root), 'utf8'), new RegExp(child.name));
-    for (const lang of ['zh', 'en']) assert.ok(JSON.parse(readFileSync(new URL(`components/${kind}/locale/${lang}.json`, root), 'utf8')).meta.title);
-  }
+  assert.equal(manifest.name, '@daftai/pdsh');
+  assert.equal(manifest.private, true);
+  assert.deepEqual(Object.keys(manifest.dependencies).filter(name => name.startsWith('@daftai/pdsh')), []);
+  assert.equal(manifest.bundledDependencies, undefined);
+  assert.equal(manifest.files.includes('components/'), false);
+  assert.ok(manifest.files.includes('main.cjs'));
+  assert.equal(manifest.dsh.bundle.patch, './cordis.patch.yml');
+  assert.equal(manifest.exports['./client'], './client.js');
   const patch = readFileSync(new URL('cordis.patch.yml', root), 'utf8');
-  for (const [id, module] of [['pdsh', '@daftai/pdsh-identity'], ['pdsh-titles', '@daftai/pdsh-titles'], ['pdsh-capture', '@daftai/pdsh-capture']]) {
-    assert.match(patch, new RegExp(`id: ${id}\n +name: "${module}"`));
-  }
+  assert.equal([...patch.matchAll(/- id:/g)].length, 1);
+  assert.match(patch, /id: pdsh\s+name: "@daftai\/pdsh"/);
+  for (const hook of ['preinstall', 'install', 'postinstall', 'prepare']) assert.equal(manifest.scripts[hook], undefined);
 });
-test('只有拍照 Client 带编辑器离线壁纸，身份/标题不复制其重资产',()=>{
-  for(const path of ['../client.js','../components/identity/client.js','../components/titles/client.js'])assert.doesNotMatch(readFileSync(new URL(path,import.meta.url),'utf8'),/data:image\/jpeg;base64,/);
-  assert.match(readFileSync(new URL('../components/capture/client.js',import.meta.url),'utf8'),/data:image\/jpeg;base64,/);
+
+test('唯一 Client factory 包含内部功能，不能再加载子包或编译时选择运行身份', () => {
+  const client = readFileSync(new URL('client.js', root), 'utf8');
+  assert.equal([...client.matchAll(/window\.__ModuleLoader__\.load\(/g)].length, 1);
+  assert.match(client, /id:"@daftai\/pdsh"/);
+  assert.doesNotMatch(client, /@daftai\/pdsh-(?:identity|titles|capture)/);
+  assert.match(client, /data:image\/jpeg;base64,/, '离线编辑素材只属于这份 Client，不复制为三个包');
+  const entry = readFileSync(new URL('src/client/client-entry.tsx', root), 'utf8');
+  const assembly = readFileSync(new URL('src/client/component-runtime.tsx', root), 'utf8');
+  assert.doesNotMatch(entry + assembly, /__PDSH_COMPONENT__/);
 });

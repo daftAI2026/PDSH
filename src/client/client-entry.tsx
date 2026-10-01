@@ -1,9 +1,10 @@
 /**
- * [INPUT]: 依赖 component-runtime 的独立组件生命周期与官方 Host namespace。
- * [OUTPUT]: 提供身份、标题或拍照之一的 Cordis Client 入口，由构建常量选择。
- * [POS]: 一 Bundle 三运行时的薄装配层；共享基础设施不构成功能启停依赖。
+ * [INPUT]: 依赖 component-runtime 的单一 Bundle 装配；identity/title/capture 是内部独立设置，不是运行时入口。
+ * [OUTPUT]: 提供唯一 PDSH Client 的正式 Cordis inject 与 apply 入口。
+ * [POS]: 根 Bundle 的薄入口；必需 UI/配置服务只声明一次，缺少可选拍照桥不阻塞其它能力。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { mountComponent } from './component-runtime.tsx';
-export { inject } from './component-runtime.tsx';
+
+export const inject = ['slots', 'locale', 'configForms', 'remote', 'remote.pluginManager'];
 export function apply(ctx) { mountComponent(ctx); }

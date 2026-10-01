@@ -8,15 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@daftai/pdsh-capture':
-        specifier: github:daftAI2026/PDSH#8f8a6054201ac1561278fc1a7f9032ae1afd12da&path:/components/capture
-        version: https://codeload.github.com/daftAI2026/PDSH/tar.gz/8f8a6054201ac1561278fc1a7f9032ae1afd12da#path:/components/capture
-      '@daftai/pdsh-identity':
-        specifier: github:daftAI2026/PDSH#8f8a6054201ac1561278fc1a7f9032ae1afd12da&path:/components/identity
-        version: https://codeload.github.com/daftAI2026/PDSH/tar.gz/8f8a6054201ac1561278fc1a7f9032ae1afd12da#path:/components/identity
-      '@daftai/pdsh-titles':
-        specifier: github:daftAI2026/PDSH#8f8a6054201ac1561278fc1a7f9032ae1afd12da&path:/components/titles
-        version: https://codeload.github.com/daftAI2026/PDSH/tar.gz/8f8a6054201ac1561278fc1a7f9032ae1afd12da#path:/components/titles
       '@deepseek-ai/schemastery':
         specifier: 3.18.4
         version: 3.18.4
@@ -84,18 +75,6 @@ packages:
   '@csstools/css-tokenizer@3.0.4':
     resolution: {integrity: sha512-Vd/9EVDiu6PPJt9yAh6roZP6El1xHrdvIVGjyBsHR0RYwNHgL7FJPyIIW4fANJNG6FtyZfvlRPpFI4ZM/lubvw==}
     engines: {node: '>=18'}
-
-  '@daftai/pdsh-capture@https://codeload.github.com/daftAI2026/PDSH/tar.gz/8f8a6054201ac1561278fc1a7f9032ae1afd12da#path:/components/capture':
-    resolution: {path: /components/capture, tarball: https://codeload.github.com/daftAI2026/PDSH/tar.gz/8f8a6054201ac1561278fc1a7f9032ae1afd12da}
-    version: 0.3.0-rc.10
-
-  '@daftai/pdsh-identity@https://codeload.github.com/daftAI2026/PDSH/tar.gz/8f8a6054201ac1561278fc1a7f9032ae1afd12da#path:/components/identity':
-    resolution: {path: /components/identity, tarball: https://codeload.github.com/daftAI2026/PDSH/tar.gz/8f8a6054201ac1561278fc1a7f9032ae1afd12da}
-    version: 0.3.0-rc.10
-
-  '@daftai/pdsh-titles@https://codeload.github.com/daftAI2026/PDSH/tar.gz/8f8a6054201ac1561278fc1a7f9032ae1afd12da#path:/components/titles':
-    resolution: {path: /components/titles, tarball: https://codeload.github.com/daftAI2026/PDSH/tar.gz/8f8a6054201ac1561278fc1a7f9032ae1afd12da}
-    version: 0.3.0-rc.10
 
   '@deepseek-ai/cordis@4.0.4':
     resolution: {integrity: sha512-obgyxqWAmFn3Re8kvsuUnyW+ihrz6eJCnJO4fh1cQzDtmPYz/zzVeUkH9R94I0OwSVOocK67Kgakm04j/oQXzg==}
@@ -503,12 +482,6 @@ snapshots:
       '@csstools/css-tokenizer': 3.0.4
 
   '@csstools/css-tokenizer@3.0.4': {}
-
-  '@daftai/pdsh-capture@https://codeload.github.com/daftAI2026/PDSH/tar.gz/8f8a6054201ac1561278fc1a7f9032ae1afd12da#path:/components/capture': {}
-
-  '@daftai/pdsh-identity@https://codeload.github.com/daftAI2026/PDSH/tar.gz/8f8a6054201ac1561278fc1a7f9032ae1afd12da#path:/components/identity': {}
-
-  '@daftai/pdsh-titles@https://codeload.github.com/daftAI2026/PDSH/tar.gz/8f8a6054201ac1561278fc1a7f9032ae1afd12da#path:/components/titles': {}
 
   '@deepseek-ai/cordis@4.0.4':
     dependencies:

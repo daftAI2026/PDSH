@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 Host 原生 React 控件及 native-style-probe 的可撤回测量。
  * [OUTPUT]: 提供 NativeStyleProbe 视图，卸载时归还探针控制器。
- * [POS]: 三个运行时组件共享的样式基础设施；不可见但保持布局，不读功能偏好。
+ * [POS]: 单一 Client 装配器管理的原生样式基础设施；不可见但保持布局，不读功能偏好。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useLayoutEffect, useRef } from 'react';

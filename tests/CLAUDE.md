@@ -3,9 +3,9 @@
 
 这些 TypeScript 合同运行在 Node/jsdom；只能证明源码和生成产物，不替代 Desktop 实窗验收。
 
-- `component-host.test.ts`: 标题 namespace 一次性迁移、owner/revision 围栏和启动中关闭不自等待；拍照保存方式/初始 Downloads/格式/文件名和旧默认 revision 迁移，自定义偏好保留，Host 安装 URL 在 POSIX/Windows 盘符/UNC/中文路径下解析包内 Main；不复制 enabled 开关。
-- `client-injection.test.ts`: Cordis 4.0.4 真注册器检验生成 inject；Connection.rpc 属性不满足子服务声明，撤回 Connection 只卸载拍照。
-- `client.test.ts`: 三个生成 lazy factory 的八种启停组合、身份恢复/偏好保留、相机单独启用、共享槽位交接、失败回滚和同时卸载。真实 ReactDOM 加 DOM-shape primitives fixture 覆盖六种加载顺序、完整探针子树隐藏和原生昵称计算样式；撤掉同一样式表的负例证明守卫会发现外露，不冒充 Host 控件/CSP 或实窗验收。
+- `component-host.test.ts`: 唯一 pdsh 拍照字段/route 所有权、Loader owner-scoped volatile 更新的同步撤回与归还屏障、revision 旧默认修正与自定义偏好保留；包内 Main 的 POSIX/Windows/UNC/中文路径解析，未知关闭围栏不因重装清除。
+- `client-injection.test.ts`: Cordis 4.0.4 真注册器运行唯一生成 Client；无桥不阻塞身份/标题，真实 Connection 加入/撤回只增减相机并归还桥；RPC 属性不满足虚构子服务声明。
+- `client.test.ts`: 唯一 root Client 的八种功能设置组合、身份/标题恢复、相机资源撤回与装配失败归还；真实 ReactDOM 探针完整子树隐藏和移除样式负例，不冒充 Host 控件/CSP 或实窗验收。
 - `capture-bootstrap.test.ts`: 副作用适配下的真实启动编排，拒绝身份/端口、ACK 失败、关闭 unknown 与取消，系统临时根内私有目录独占创建/分别归还，只读真实 macOS ps 路径格式；不操作真实 Main。
 - `capture-control.test.ts`: 生成 Main 与真实 Host socket transport 的畸形帧、握手、控制 ACK、取消与资源归还；新增系统临时根内真实 Unix socket 两端握手及目录边界/权限/符号链接拒绝及根别名接受；不打开真实应用调试端口。
 - `capture-route.test.ts`: 官方 RPC 控制封套、owner 世代与迟到 release 围栏；Host 自己撤回 consent 即刻取消，不依赖 Renderer 消息；确认归还后的断连不永久缓存；Main/control 关闭未知不随新 owner/排队/release/重装清除。
@@ -19,7 +19,7 @@
 - `capture-styles.test.ts`: 工作台 Host token 来源与实时图标尺寸/描边/透明度、Tooltip/Switch/按钮动态样式消费；禁入 Codex 主题、固定回退和伪造动效。
 - `capture-view.test.ts`: 双语编辑器操作面板与无系统壁纸 adapter 的显示合同。
 - `host.test.ts`: 真实 Schemastery 配置边界。
-- `localization.test.ts`: Bundle 品牌与三种功能名/用途的离线元信息、运行字典；清单图复用单一 currentColor 复合 path，包图固定前景且无底色。
+- `localization.test.ts`: 单 Bundle 离线品牌元信息与内部三功能 zh/en 文案；透明底单路径图标。
 - `model.test.ts`: 昵称、头像和旧字段投影验证。
 - `presentation.test.ts`: 账号视觉适配的唯一归属与卸载。
 - `search-entry.test.ts`: 原生搜索邻接、折叠/展开、实时 SVG strokeWidth 按 viewBox 尺寸匹配、两入口同笔画与不可靠几何退让；保留根透明度/颜色/class/点击和卸载合同。
@@ -32,9 +32,8 @@
 - `update-badge.test.ts`: 官方详情徽标仅自身自动探测、仅新版展示细线图标；SVG 笔画/尺寸/透明度来自实时原生测量合同，安装需二次确认。
 - `update-source.test.ts`: 公共 GitHub tag 请求的无凭据网络边界；不冒充 Desktop CSP 证明。
 - `dom-tooltip.test.ts`: 非 React 控件跟随宿主 Tooltip 延时与方位参数，卸载彻底清理。
-- `release-check.test.ts`: 临时 Git 树的发布门正反例；拒绝子包版本漂移、缺 Main 产物、错误 profile 加载路径、bundled dependency 或固定组件提交/版本/生成字节漂移，不创建发布 tag。
-- `profile-loading.test.ts`: 隔离 profile 的本地 symlink 结构桩模拟官方 hoisted 位置，从当前生成子包名导入三个 Host，经过安装 symlink 验证标题迁移；真实 manifest/locale/client 同源解析回归；只链接 components 当前字节，不读取旧开发依赖；不执行 pnpm 安装，不冒充远端安装或官方 Loader/metadata 验收；裸子包负例防止重复测错入口。
-- `component-source.test.ts`: 三子包（含身份）同仓库固定提交/路径与完整生成字节校验；临时 Git 树拒绝旧字节、空入口、错版本、分支引用或缺失对象，不执行网络或安装。
+- `release-check.test.ts`: 隔离 Git 单包候选与稳定 tag/版本/生成物/脏树守门，不创建 tag。
+- `profile-loading.test.ts`: 隔离 profile 根包链接结构桩验证唯一 Host/Client/locale 解析与缺包负例；不冒充官方安装。
 - `source-layout.test.ts`: 手写 TypeScript 与宿主所需生成 JavaScript 的边界。
 
 - `plugin-port.test.ts`: 请求级保存取消不卸载桥、下次请求可继续； 官方 rpc 仅发控制、Main 像素接收 nonce/重放/取消围栏和 Renderer 唯一 owner 归还。
@@ -49,5 +48,10 @@
 - `page-save-main.test.ts`: 面板/直接保存回执、5K默认边距的PNG/JPEG输出预算、真实文件提交前取消/导航/停用及跨装配串行锁；不冒充实机验收。
 
 - `capture-editor-export.test.ts`: 关闭后取消在途保存、忙碌快捷键不启动并发导出； 真实编辑器的取消/保存/失败/迟到编码状态；Canvas 桩覆盖数据传递，不证明视觉或本机文件面板。
+
+- `host-acceptance.test.ts`: 集成 CLI 安全前置；自有临时/生成目录验证 owner/写权限、路径、符号链接、凭据和精确 PNPM 版本门，不启动用户 DSH 或替代安装件验收。
+
+- `bundle-artifacts.test.ts`: 单包分发/生成版本/入口与真实 tgz 成员、类型、字节门；拒绝功能子依赖、宽泛 files 与安装 hook，不执行用户安装。
+- `capture-defaults.test.ts`: 旧导出默认只通过根 pdsh revision 修正；自定义值、已移除子域与迟到卸载不覆盖偏好。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

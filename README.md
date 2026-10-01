@@ -22,17 +22,17 @@ PDSH（Private DeepSeek Harness）是 DeepSeek Harness 的第三方插件。当�
 
 目标宿主：**DeepSeek Harness Desktop 0.2.0-rc.2**。侧栏入口和标题识别是该构建的 DOM 适配，不声明兼容其他版本。PDSH 不修改或重签官方应用。
 
-在 **插件 → 添加插件 → GitHub 仓库地址**中填入 `https://github.com/daftAI2026/PDSH`，建议固定 [`v0.2.1`](https://github.com/daftAI2026/PDSH/tree/v0.2.1) 对应提交；已安装的旧版可通过版本号旁的更新提示确认升级。安装第三方插件即运行其代码，请先审查来源与依赖。官方机制见[打包与安装指南](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish)。
+在 **插件 → 添加插件 → GitHub 仓库地址**中填入 `https://github.com/daftAI2026/PDSH` 即可安装默认分支；不需要运行 Git 命令、创建 tag 或登录 npm。需要固定某个版本时才选择 tag 或提交；已安装的旧版可通过版本号旁的更新提示确认升级。安装第三方插件即运行其代码，请先审查来源与依赖。官方机制见[打包与安装指南](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish)。
 
 **截图兼容性状态：** `v0.2.0` 的系统截图路径并不等价于参考实验的页面取像。`v0.2.1` 已改为渲染器内的全视口 DOM 栅格化，不要求屏幕录制权限或 CDP 启动参数；它不是 Electron 合成器的逐像素截图。源码合同与浏览器样例取像已验证；安装后的 Desktop 工作台完整交互仍待验收。`v0.2.1` 带此已知限制发布，tag 不代表已完成桌面兼容验证。生产使用前请先在独立 profile 验证；需要已验收的显示功能时可保留 `v0.1.1`。
 
 ### RC 分支验证
 
-实验分支为 `rc/native-capture`，没有 tag，也不会触发正式版更新提示。按 [`PUBLISHING.md`](PUBLISHING.md) 核对新提交后，在官方插件页安装 `github:daftAI2026/PDSH#<40位提交SHA>`；每次代码更新需要手动安装新 SHA。已有包被替换后若 DSH 提示下次启动加载，保存工作后正常退出并打开，不卸载或重置偏好。**RC 的原生取像仍有 Main 首次入口/端口冲突与完整 Desktop 验收缺口；换成远端安装不代表截图问题已解决。** 当前组件依赖已改为同仓库、固定提交的正常子包安装；在 rc.2 官方 hoisted 安装结构下，真实 pnpm 消费者加官方 Host 模块夹具已验证从未启用直接启用三个组件，无需重启。远端最终安装件和桌面界面仍须单独验收；不宣称兼容其他依赖安装结构。
+实验分支 `rc/native-capture` 可用 `github:daftAI2026/PDSH#rc/native-capture` 安装，无需 tag；不参与正式版更新提示。当前 **0.3.0-rc.11 源码候选**恢复一个安装包、一个官方运行入口，内部身份、标题遮挡、窗口拍照各有功能开关。不再下载三个 Git 子依赖，也不需要 npm 账号。安装链路和完整 Desktop 行为仍须验收，尚不宣称 RC 可用。
 
 **当前源码的取像方向（尚未发布）：** 已移除 DOM 克隆、字体/图片重取和 modern-screenshot。取像只消费 Electron Main 返回的冻结 PNG，再打开本地工作台；不回退重绘。目标安装版没有拟议的 `dshDesktop.pageCapture` API。当前候选实现将 Main 桥打包在拍照组件内部，在拍照组件启用后的首次拍摄短暂开启本机 Main 调试接口、加载桥并确认关闭，再使用私有控制连接；PNG 直接交付原页面，不进入 HTTP、日志或配置。**这不是官方已有插件能力，正式安装件的 DSH 验收尚未完成。** 已占用的 Main 调试端口不会被接管；失败提示会区分端口冲突与关闭无法确认。诊断只记录固定阶段和请求 UUID，不记录图像或页面内容。保存方式、目录、格式与文件名模板由官方设置接受；每次选择使用原生保存面板，默认目录模式直接保存并自动编号、不覆盖。初始目录为本机 home 下 Downloads，显示完整地址；默认模板为 `PDSH-screenshot-{date}-{time}`。取消不提交文件，写入完成才报成功。模板参考 Kiri 的日期、时间、标题、宽和高，并清理非法文件名。以上保存流程仍需实机验收。 不要求录屏权限、特殊启动参数、修改或重签应用。
 
-**当前源码的组件拆分（尚未发布）：** 一个安装包包含身份、标题遮挡、拍照三个独立启停条目。标题和拍照按真实包元信息显示名称、用途和图标，不能用文件地址替代。关闭身份恢复原账号显示而保留昵称/头像偏好；关闭标题恢复原生标题，拍照仍可临时遮挡；关闭拍照取消在途任务并释放编辑器和桥。旧标题开关经官方配置所有者迁移，身份配置地址保持不变。
+**功能模块：** 三个功能区共用官方插件设置，名字与用途来自 zh/en 文案。关闭身份恢复原账号显示而保留偏好；关闭标题恢复原生标题，拍照仍可临时遮挡；关闭拍照取消任务并释放编辑器与桥。功能开关无需重启；官方“包含的组件”显示真实的单运行入口，不把源码模块伪装为依赖包。
 
 **内部桥风险：** 启用拍照组件后首次拍摄会尝试启动内部桥，不再提供第二个授权开关。接口短暂开启期间，同机进程可能执行 Main 代码；极端启动失败可能无法确认关闭。遇到关闭未知错误时，应关闭拍照组件、保留未保存工作，并确认后重启 DSH 清除接口；插件不会自行重启。已有调试会话不接管。
 
@@ -52,16 +52,15 @@ PDSH（Private DeepSeek Harness）是 DeepSeek Harness 的第三方插件。当�
 ## 开发
 
 ```text
-src/host/            三组件配置、官方控制接线与内部 Main 桥
+src/host/            单 Host 配置、官方控制接线与内部 Main 桥
 src/shared/          Host/Client 共享验证与文案
 src/client/          设置、侧栏适配、更新入口与生命周期
 src/client/capture/  截图工作台编辑、背景、遮挡、导出与 DSH 主题样式
-components/          生成的标题/拍照内部包（含独立 Host、Client 与离线元信息）
 locale/              官方离线发现的中英文包元信息
 tests/               配置、DOM、样式来源、冻结像素桥和生命周期合同
 ```
 
-手写源码与测试均为 TypeScript/TSX。根目录 `index.js`、`client.js`、`client.js.map` 是**生成并随包提交的宿主运行产物**，不能简单改名为 `.ts`。可见 UI 规则及 DSH token 来源见 [`style-sources.json`](style-sources.json)；协作边界见 [`AGENTS.md`](AGENTS.md)。
+手写源码与测试均为 TypeScript/TSX。根目录 `index.js`、`client.js`、`client.js.map`、`main.cjs` 是**生成并随包提交的宿主运行产物**，不能简单改名为 `.ts`。可见 UI 规则及 DSH token 来源见 [`style-sources.json`](style-sources.json)；协作边界见 [`AGENTS.md`](AGENTS.md)。
 
 ```sh
 pnpm install --frozen-lockfile
@@ -75,12 +74,3 @@ Node/jsdom 测试和浏览器页面取像成功都**不能替代安装后的 Des
 ## 许可
 
 PDSH 使用 [MIT](LICENSE)；复用资源的许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。PDSH 不是 DeepSeek 官方插件，`@daftai/pdsh` 也未在 npm 发布。
-
-
-### 三组件实验版的升级边界
-
-实验源码将三个组件分别命名为「侧栏身份」「侧栏标题遮挡」「窗口拍照」，各自说明只描述自己的职责；Bundle 仍叫「DSH 私密模式」。启用开关与实际运行状态由 DSH 管理，取像桥故障不应停用其他组件。
-
-旧配置若给 pdsh 行写了旧模块 name，直接安装新身份模块会被宿主跳过该配置，原来的禁用状态也可能丢失。这是当前实验版的升级兼容缺口，不能要求用户打开或修改配置文件来弥补。自动兼容及官方卸载后重装的实际行为仍待验证；未通过不得宣称兼容。实验源码/组件源提交不是已验收的安装版本，正式版仍为 **0.2.1**。
-
-**RC10 当前不能作为普通安装版本使用：**目标 DSH 自带 pnpm 11.7.0 的官方安装流程拒绝三个 Git 子依赖（`ERR_PNPM_EXOTIC_SUBDEP`）。不得关闭宿主的依赖来源保护来安装；分发结构修正后须重新验证官方安装、立即启用和三个组件。正式 `main` 之外只保留 `rc/native-capture` 一个实验分支。

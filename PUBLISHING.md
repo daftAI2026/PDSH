@@ -1,63 +1,23 @@
-<!--
-[INPUT]: 依赖 package.json 唯一版本、可复现构建与 Harness 官方 bundle 安装合同
-[OUTPUT]: 提供稳定 Git tag 与固定 SHA 的 RC 分发顺序、验收门与 npm 非默认渠道边界
-[POS]: PDSH 维护者发布规则；不把 tag、GitHub Release、npm 包或 Desktop 兼容混为一谈
-[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
--->
+# PDSH 分发与验收
 
-# 发布
+PDSH 从 GitHub 仓库作为一个 Harness Bundle 安装。项目链接直接安装默认分支，不需要 tag、Git 命令或 npm 账号。tag 为稳定版本固定锚点与插件内更新服务，GitHub Release 页面可选。package.json.version 是唯一手写版本；运行 JavaScript 由 build.ts 预构建提交，不在用户安装时编译。
 
-PDSH 的默认分发是 **GitHub 仓库中的 Harness bundle**。`package.json.version` 是唯一手写版本号；`build.ts` 把它注入 `client.js`，包元信息也从同一清单读取。`v<version>` Git tag 是不可变的发布锚点，供安装和插件内更新发现。GitHub Release 是可选的发布说明页面，**不是 Harness 安装要求**。npm 仍为 `private: true`，没有 npm 发布流程。
+## RC 渠道
 
-## 无 tag 的 RC 验证渠道
+仅保留 rc/native-capture 一个实验分支。RC11 回到单一 @daftai/pdsh 包、pdsh Host 和 root Client；身份、标题遮挡、拍照是内部模块，使用独立设置开关，不是三个子依赖或用户分别安装的 Bundle。RC10 的 Git 子依赖被目标 PNPM 11.7.0 拒绝，旧冷启动/图谱测试不能替代真正安装。
 
-`rc/native-capture` 是显式选择的实验分支，不是正式版本更新源。RC 可以在已披露 Desktop 验收缺口的前提下提交并推送，用来验证真实远端安装；不能据此宣称取像桥已经可用，也不放宽稳定版的验收门。当前 Main 首次入口受预设调试端口冲突限制，远端安装不会消除该限制。不得要求每次拍照或每次正常启动都额外重启。
+1. 运行 pnpm install --frozen-lockfile、pnpm test、pnpm run bundle，检查归档和依赖许可；archive:check 自动核对明确当前版本的真实 tgz 成员/类型/字节和 SHA，不靠 output 中的旧包。归档含根 index.js、client.js/map、main.cjs、patch、图标和 locale，不含 components/、node_modules、profile、凭据、日志或私有研究。
+2. 用 verify-host.ts 在独立临时 profile，明确提供并核对目标安装的工具路径/指纹，通过目标 Host 实际 PluginManager 和自带 PNPM 验证首装/热启用、单根元信息/Client、八组合功能设置、配置 revision 与停用/恢复。不关闭 blockExoticSubdeps，不接管全局解析器。HMR 排队适配不证明 Desktop UI。
+3. 审查后提交、只推 RC；不推 main、不打稳定 tag、不发布 npm。GitHub 分支来源为 github:daftAI2026/PDSH#rc/native-capture。维护者固定 SHA 是复核步骤，不是普通用户安装前提；新远端 SHA 要重新通过官方 Manager，验收器核对被测版本/运行字节和锁文件解析 SHA。
+4. 在实际 DSH 官方插件页装同一远端产物，核对来源/版本、即时启用、三个功能开关、原账号/标题恢复、搜索展开、折叠、主题、原生 Tooltip/Toast 和卸载清理。不打开或编辑用户配置文件。安装替换若由 Host 提示下次启动加载，先保留工作再正常退出；普通功能开关和拍照不能要求重启。
+5. 原生拍照首次 Main 入口仍未通过。调试注入截到图片不是普通安装成功；不得宣称打通、用 DOM/系统抓屏回退、应用补丁/重签或反复启动绕过。取像后还要验收像素/DPR、独立嵌入视图覆盖、透明材质模拟边界、重拍/复制/保存/取消/停用及接口归还。
 
-1. 完成源码/生成物审查、`pnpm test`、`pnpm run bundle` 和归档/依赖许可检查；提交包括三个生成入口与包内 `main.cjs`，不依赖安装时编译。
-2. 仅推送 RC 分支，核对远端提交 SHA；不推 main、不打 tag、不建正式 Release、不发布 npm。保留实验提交后，本地正式工作目录可回到 main；继续实验使用 RC 工作树。
-3. 在 DSH 官方插件页关闭当前本地测试 Bundle，再通过“添加插件”安装 `github:daftAI2026/PDSH#<40位提交SHA>`。不卸载或重置配置。`#rc/native-capture` 可定位分支，但验收采用固定 SHA，避免测试过程中分支移动。
-4. 若官方管理器提示下次启动加载，保留未保存工作后正常退出并打开 DSH；这是安装替换已有包的加载要求，不是拍照步骤。核对实际安装来源/SHA、版本和生成物，保留昵称、头像、标题及导出偏好，然后验收三组件启停和截图工作台。
-5. 每次代码更新都重新测试、生成、提交并推送，再手动安装新的 SHA。Git push 不会替换正在运行的插件，也不新增自动更新按钮。RC 不参与稳定 tag 探测；完整验收后才另行决定正式发布。
+Git push 不会更新正在运行的插件。RC 不触发稳定 tag 更新提示；每次变动须重新生成、测试、推送，再经官方管理器安装。实验重装不是旧用户升级兼容证据。稳定 root name/id 不变；历史拆包/name-qualified 覆盖是否残留须用官方机制查证，不假设卸载等于清空配置。
 
-`pnpm release:check` 是稳定 tag 的闸门，故意拒绝 RC；不得为预览分支取消稳定版本约束。
+## 稳定发布
 
-## 每个版本
+正常稳定门是上述完整 Desktop 与原生拍照验收。v0.2.1 曾获明确允许带 Desktop 验收缺口发布；那是单版本例外，不适用于 RC11。旧 tag 不覆盖。
 
-`v0.2.0` 引入的已知验收缺口：安装后的 Desktop 工作台完整交互仍待验证；当前证据覆盖源码合同、独立 Web profile 的 Host route 和归档原生探针执行。`v0.2.1` 修正升级箭头、来源标签位置、昵称垂直对齐与错误归因；系统截图路线已退休，改为整个可见页面的 DOM 栅格化；本次按明确批准打 tag，并披露安装后 Desktop 验收未完成的限制。tag 不构成 Desktop 兼容证明；0.2.1 的单次发布例外不豁免后续版本的正常验收门。
+完成验收、同步 README/AGENTS 当前稳定版本、提交且工作树清洁后，运行 pnpm release:check，再明确创建并推送 v<version> tag；该命令故意拒绝 RC。插件详情徽标只查稳定 tag，安装需要第二次确认，经官方 Manager 固定 SHA，不自动重启、不写偏好或轮询。来源切换须明示。
 
-1. 修改 `package.json.version`，完成代码、翻译、文档和测试；不要手改生成的版本常量。
-2. `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm run bundle`；审查 `.tgz` 成员，确认没有凭据、profile、日志或私有研究资料；确认旧 native helper 和已退休的 DOM 栅格化依赖不再进入归档，实际分发依赖的许可完整。
-3. 在目标 Harness 版本的**独立 profile** 用官方插件管理器安装同一 Git 提交/归档，检查新会话标题、搜索与折叠、设置字段、更新入口、停用撤回；含截图的版本还须检查全视口侧栏展开/收起、原生像素与 DPR 保真、独立 webview/Platform 视图覆盖及失败恢复、相机位置、明暗主题、重拍/复制/保存与临时像素清理。DOM fixture、临时 Electron 窄桥和成功打包都不算安装件 Desktop 验收。
-4. 提交源码及预构建 `index.js`、`client.js`、`client.js.map`、`plugin-icon.svg`，以及 `components/` 中两个子包的 manifest、入口、元信息和拍照 `main.cjs`；不跟踪 node_modules 或制作第二份镜像。组件运行字节变化时，先提交并推送组件产物，再将根清单的两个普通依赖固定到该提交的 `&path:/components/{titles,capture}`，最后提交分发清单。两者必须来自同一仓库、同一完整 SHA，版本与根一致；`pnpm components:check` 将当前完整运行字节与本地固定 Git 对象逐一比对，不在用户安装时编译或 fetch。检查真实固定 SHA 与归档的官方 hoisted 安装结构：用户只管理根 Bundle，pnpm 正常安装两个传递依赖，三个 patch 行必须同时被 Host Loader、ClientModuleRegistry 和离线元信息发现。相对文件入口或仅 Bundle 内部 require 成功不算通过。工作树清洁后运行 `pnpm release:check`，再用 `v$(node -p "require('./package.json').version")` 打带注释的 Git tag。脚本拒绝版本不符、固定组件来源或字节漂移、文档未同步、旧 tag 指向其他提交和脏工作树。
-5. 推送提交与 **明确的 tag**；不要只推 `main` 并假设已安装插件会自动更新。发布说明可以写在 tag 信息或另建 GitHub Release，但不重复维护版本号。
-
-插件详情的 `plugins.detail.badge` 槽位挂载时自动探测 GitHub 稳定 `vX.Y.Z` tag，并校验目标提交 SHA；没有更高版本就不显示入口。点击版本旁上箭头只展开来源提示，用户再次确认才经 Harness 官方 `pluginManager.installBundle` 安装固定提交。不会常驻轮询、自行重启或写偏好。安装成功是否立即应用由宿主返回值决定；若提示需重启，用户自行选时机。**从本地目录/npm 安装的用户确认更新后会切换为 GitHub 来源**，展开确认区必须明示。
-
-包安装、bundle 选择和构建脚本批准由 Harness 宿主管理；用户主 `desktop` profile 不作为打包冒烟环境。网络失败、权限不足或运行中宿主状态变化时，以官方插件页显示的最终状态为准，不宣称原状态一定未改变。
-
-### 未发布原生取像的额外门槛
-
-当前源码已删除 DOM 重绘路线，消费 current-page PNG 窄契约；正式 `dshDesktop.pageCapture` 尚非已安装 rc.2 的 API。内部桥候选实现在拍照组件启用后的首次点击，通过短暂 Main inspector 加载包内模块，确认关闭后保留私有控制连接。发布须验证正式宿主实现或此插件桥的启动/端口冲突/取消/停用/失败关闭；未确认接口关闭时明确报错，不自行重启。还须验证 sender/main-frame/导航代次、取消后原生单飞配额、hide/销毁清理与实际像素上限，再完成上述安装件验收。不得用补丁化或重签用户 app、系统抓屏或 DOM 回退绕过这道门槛；已有 `v0.2.1` tag 不修改、不覆盖。
-
-## npm 不是默认发布
-
-只有明确决定支持 npm 渠道并确认 `@daftai` scope 权限后，才单独审阅 `private: true` 的解除、公开许可和归档内容，再建立可信发布工作流。Git tag 和 GitHub 安装不要求 npm 包或 npm token。
-
-RC9 当前安装闸门：一个用户管理的 Bundle 使用同仓库固定 SHA 的普通 Git 子目录依赖；不再使用 bundledDependencies、tracked node_modules 或符号链接镜像。目标 rc.2 官方 profile 创建器设置 hoisted linker，正常子包因此在 profile 层可被加载；isolated linker 不在当前兼容范围。归档不得包含 node_modules、profile 或私有资料，普通依赖的来源与全部运行字节由 `pnpm components:check` 围栏。替换旧相对文件入口前，必须核对本 profile 的组件覆盖行是否携带旧 file URL 名称断言；这种覆盖尚无自动迁移，不得直接升级并宣称兼容。只有 id 的覆盖与带名称的覆盖必须分别测试。取像桥的 Main 首次入口仍未解决，不允许据组件名修复打正式 tag。
-
-真实远端传输闸门：必须使用 github 固定 SHA 的 codeload 路线，不以 git+file 的自动 pack 成功代替。首装与保留旧包残留的原位升级都必须从官方 ClientModuleRegistry 的真实路径核对三个 manifest/version/client SHA/inject；安装 exit0、根版本正确或本地生成测试通过均不代表加载了新子包。RC8 已观察到旧 capture 的 connection.rpc 再次导致 web boot 失败，RC9 不得在该闸门前启用。
-
-### Initial disabled-to-enabled transition
-
-Verify the exact official runtime with the Bundle initially absent from selected layers, then select it through the official manager without restarting. Preinstalling selected-layer resolution is not this test. The previous bundled topology failed this gate on rc.2; ordinary fixed-SHA Git-subdirectory dependencies now pass the exact runtime test under the official hoisted profile topology, with all three Host, Client and metadata entries present. Isolated linking still fails and must not be claimed compatible. Verify the final remote installer revision and actual Desktop enable separately. Do not take ownership of the global resolver, insert separately user-managed child bundles or turn normal component enable/capture into a restart requirement. Original Main capture and installed visual/editor acceptance remain stable publication gates.
-
-
-### 三功能元信息与旧名称覆盖预检
-
-RC10 的身份子包与 Bundle 分离；三项各有功能名、用途、图标与公开 locale/package 资源，仍只有三个 patch 行，根兼容入口不插入第四行。身份 id/namespace 保持 pdsh，不能据此声称带旧 name 的覆盖兼容。分别验证 id-only、旧 root-name、旧 file-URL-name 和 disabled=true。官方 name 是断言，失配跳过整行，不是重命名。
-
-普通安装与更新不得要求用户打开或修改配置文件。先前的原生编辑器预检候选已被产品要求否决；编辑器桩仅是历史取证，不是可交付升级流程。revision mutate/replace 只改 config，不能补救 apply 前丢失的 disabled；禁止插件或 shell 直接改主 profile。旧名称覆盖必须通过经验证的官方自动兼容流程保留配置与禁用状态；官方卸载后重装是否清理这些覆盖也必须实测，不得假定卸载等于清空配置。实验版的重装验收与旧版升级兼容是两个独立门。
-
-目标安装器实证否决此前两阶段 Git 子依赖方案：DSH 自带 pnpm 11.7.0 在官方管理器安装 RC10 时报告 `ERR_PNPM_EXOTIC_SUBDEP`。已下载组件后的 Loader/Client 热冷加载与八组合通过，只证明运行时拓扑，不证明安装兼容；其他 pnpm 版本的远端消费者也不能代替目标安装器。下一候选必须在不关闭 blockExoticSubdeps、不修改主 profile 的前提下通过该精确安装器，再走原 DSH 官方界面验收。
-
-只保留 `rc/native-capture` 一个实验分支；旧功能分支与组件产物分支的提交已包含在该分支历史后再删除引用，不丢弃代码。稳定 main/tag 保持不动。
+npm 不是当前渠道；无发布账号不阻碍 GitHub 单包交付。不得引入未发布 npm 组件依赖。普通用户只安装 PDSH 一次，包内功能完整；任何升级失败以官方 application/error、Fiber/Client 和实际页面为准，不能伪造 ACTIVE。

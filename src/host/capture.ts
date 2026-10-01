@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖官方 settings 生命周期/revision 和本机 home 的初始 Downloads 目录；Main 模块由当前 Host 的 import.meta.url 就近解析，取像连接由内部桥提供。
- * [OUTPUT]: 提供拍照导出 Config/apply/旧默认修正；保存方式独立于目录，首次点击才启动桥。
- * [POS]: 拍照 Host 入口，与身份/标题组件没有服务依赖，像素不进入配置。
+ * [INPUT]: 依赖 root pdsh Settings revision、Loader 所属 Fiber 的 volatile-update、capture-route/bootstrap/trace 与本机 Downloads 默认目录。
+ * [OUTPUT]: 提供可并入 root Config 的拍照字段、旧默认修正，以及仅随 captureEnabled 事件同步撤回/重挂的 exact Fetch route。
+ * [POS]: 单 Host 的拍照控制面；route 同步撤回、在途 Main 桥异步归还且未知关闭隔离跨重挂载保留。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { fileURLToPath } from 'node:url';
@@ -12,25 +12,31 @@ import { createCaptureRoute } from './capture-route.ts';
 import z from '@deepseek-ai/schemastery';
 import { CAPTURE_FILE_NAME_PATTERN, DEFAULT_CAPTURE_EXPORT } from '../shared/capture-export.ts';
 import { createCaptureTrace } from '../shared/capture-trace.ts';
-export const name = 'pdsh-capture';
+
 const INITIAL_SAVE_DIRECTORY = join(homedir(), 'Downloads');
-export const Config = z.object({
+
+// +--- 字段仅声明一次，由 index.ts 合入唯一 pdsh Config ---+
+export const CAPTURE_CONFIG_FIELDS = {
+  captureEnabled: z.boolean().default(true).description('Enable current-page capture / 启用当前页面拍摄').volatile(),
   saveBehavior: z.union(['ask', 'direct']).default(DEFAULT_CAPTURE_EXPORT.saveBehavior).volatile(),
   saveDirectory: z.string().pattern(/^(?:|\/(?!.*[\u0000-\u001f\u007f]).{0,4095})$/u).default(INITIAL_SAVE_DIRECTORY).volatile(),
   saveFormat: z.union(['png', 'jpeg', 'webp']).default(DEFAULT_CAPTURE_EXPORT.saveFormat).volatile(),
   fileNamePattern: z.string().pattern(CAPTURE_FILE_NAME_PATTERN).default(DEFAULT_CAPTURE_EXPORT.fileNamePattern).volatile(),
-});
+};
+
+const ROOT_NAMESPACE = 'pdsh';
 export async function normalizeLegacyCaptureExport(ctx, isDisposed = () => false) {
   await ctx.root.loader.await();
   if (isDisposed()) return;
-  const section = ctx.settings.describe().find(view => view.ns === name);
+  const section = ctx.settings.describe().find(view => view.ns === ROOT_NAMESPACE);
   if (!section) return;
   const ops = [];
   if (section.value?.saveDirectory === '') ops.push({ op: 'set', path: ['saveDirectory'], value: INITIAL_SAVE_DIRECTORY });
   if (section.value?.fileNamePattern === 'DSH {date} at {time}') ops.push({ op: 'set', path: ['fileNamePattern'], value: DEFAULT_CAPTURE_EXPORT.fileNamePattern });
-  // +--- 只修正旧默认；用户目录/自定义模板不动，并发修改交由 Host revision 拒绝 ---+
-  if (ops.length && !isDisposed()) await ctx.settings.mutate(name, ops, section.revision);
+  // +--- 只修正旧默认；用户路径/模板与并发 revision 均由官方 Settings 保留 ---+
+  if (ops.length && !isDisposed()) await ctx.settings.mutate(ROOT_NAMESPACE, ops, section.revision);
 }
+
 const GUARD = Symbol.for('@daftai/pdsh.main-lifecycle-guard.v1');
 function mainLifecycleGuard() {
   let identity;
@@ -42,21 +48,97 @@ function mainLifecycleGuard() {
   (globalThis as any)[GUARD] = { identity, guard };
   return guard;
 }
+
+function isCaptureEnabled(config) {
+  const value = config?.captureEnabled;
+  return (typeof value?.get === 'function' ? value.get() : value) !== false;
+}
+
 export function apply(ctx, config) {
-  ctx.inject(['settings', 'connection'], child => {
-    child.effect(() => child.settings.configure({ auto: false }, ctx.fiber));
-    child.effect(() => {
+  let syncCapture = () => {};
+  // +--- Loader 只把 volatile-only 修改通知给所属 Fiber；core Volatile 本身没有 subscribe ---+
+  (ctx as { on(event: 'loader/volatile-update', listener: (paths: readonly (readonly string[])[]) => void): unknown })
+    .on('loader/volatile-update', paths => {
+      if (paths.some(path => path.length === 1 && path[0] === 'captureEnabled')) syncCapture();
+    });
+
+  ctx.inject(['settings'], settings => {
+    settings.effect(() => {
       let disposed = false;
-      void normalizeLegacyCaptureExport(child, () => disposed).catch(() => {
-        if (!disposed) child.logger?.warn?.('PDSH export defaults were not updated; accepted preferences remain unchanged.');
+      void normalizeLegacyCaptureExport(settings, () => disposed).catch(() => {
+        if (!disposed) settings.logger?.warn?.('PDSH export defaults were not updated; accepted preferences remain unchanged.');
       });
       return () => { disposed = true; };
     });
-    const trace = createCaptureTrace(child.logger, 'host'), guard = mainLifecycleGuard();
-    // +--- 安装位置以当前模块 URL 为准，交给 Node 转成本机路径，不猜 DSH 目录或盘符 ---+
-    const controller = createCaptureRoute(() => true,
-      (signal, requestId) => openCaptureBridge(fileURLToPath(new URL('./main.cjs', import.meta.url)), signal, phase => trace(phase, requestId)), child.logger, guard);
-    child.effect(() => () => controller.dispose());
-    child.connection.fetch.register(controller.route);
+
+    settings.inject(['connection'], child => {
+      child.effect(() => {
+        let disposed = false;
+        let active: { controller: ReturnType<typeof createCaptureRoute>; unregister: () => unknown } | undefined;
+        let retirement = Promise.resolve();
+        let retirementPending = false;
+        let retirementFailed = false;
+
+        const logRetirementFailure = (_error?: unknown) => {
+          retirementFailed = true;
+          try { child.logger?.warn?.('PDSH capture cleanup was not confirmed; capture remains paused.'); } catch {}
+        };
+
+        const retire = (controller: ReturnType<typeof createCaptureRoute>) => {
+          retirementPending = true;
+          let closing: Promise<void>;
+          try { closing = Promise.resolve(controller.dispose()); }
+          catch (error) { logRetirementFailure(error); closing = Promise.resolve(); }
+          let current: Promise<void>;
+          current = Promise.all([retirement.catch(logRetirementFailure), closing.catch(logRetirementFailure)]).then(() => {
+            if (retirement === current) retirementPending = false;
+          });
+          retirement = current;
+        };
+
+        const unmount = () => {
+          const resource = active;
+          if (!resource) return;
+          active = undefined;
+          // +--- Exact route 先同步退出；controller.dispose 随即 abort 在途桥并等待归还 ---+
+          try { resource.unregister(); } catch (error) { logRetirementFailure(error); }
+          retire(resource.controller);
+        };
+
+        const mount = () => {
+          if (disposed || active || !isCaptureEnabled(config)) return;
+          const trace = createCaptureTrace(child.logger, 'host');
+          const guard = mainLifecycleGuard();
+          // +--- Main 相对包根入口解析；停用到重新归还的屏障内不接纳新桥 ---+
+          const controller = createCaptureRoute(
+            () => isCaptureEnabled(config) && !retirementPending && !retirementFailed,
+            (signal, requestId) => openCaptureBridge(fileURLToPath(new URL('./main.cjs', import.meta.url)), signal, phase => trace(phase, requestId)),
+            child.logger, guard,
+          );
+          try {
+            const unregister = child.connection.fetch.register(controller.route);
+            active = { controller, unregister };
+          } catch (error) {
+            retire(controller);
+            throw error;
+          }
+        };
+
+        const reconcile = () => {
+          if (disposed) return;
+          if (isCaptureEnabled(config)) mount();
+          else unmount();
+        };
+
+        syncCapture = reconcile;
+        reconcile();
+        return async () => {
+          disposed = true;
+          if (syncCapture === reconcile) syncCapture = () => {};
+          unmount();
+          await retirement;
+        };
+      });
+    });
   });
 }
