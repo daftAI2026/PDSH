@@ -26,9 +26,10 @@
   "scripts": {
     "build": "node --experimental-strip-types build.ts",
     "typecheck": "tsc --noEmit",
-    "test": "pnpm typecheck && pnpm build && node --experimental-strip-types --test tests/*.test.ts",
-    "bundle": "pnpm build && pnpm --config.node-linker=hoisted pack --pack-destination output",
-    "release:check": "node --experimental-strip-types check-release.ts"
+    "test": "pnpm typecheck && pnpm build && pnpm components:check && node --experimental-strip-types --test tests/*.test.ts",
+    "bundle": "pnpm build && pnpm components:check && pnpm pack --pack-destination output",
+    "release:check": "node --experimental-strip-types check-release.ts",
+    "components:check": "node --experimental-strip-types --input-type=module -e \"import { validateComponentSources } from './component-source.ts'; validateComponentSources(process.cwd())\""
   },
   "dsh": {
     "client": {
@@ -46,8 +47,8 @@
   "dependencies": {
     "@deepseek-ai/schemastery": "3.18.4",
     "blobatar": "2.7.0",
-    "@daftai/pdsh-titles": "file:./components/titles",
-    "@daftai/pdsh-capture": "file:./components/capture"
+    "@daftai/pdsh-titles": "github:daftAI2026/PDSH#35465dcc1cd232b5b1c56c68ab31276d0d4c8b94&path:/components/titles",
+    "@daftai/pdsh-capture": "github:daftAI2026/PDSH#35465dcc1cd232b5b1c56c68ab31276d0d4c8b94&path:/components/capture"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.4",
@@ -69,9 +70,5 @@
     "url": "https://github.com/daftAI2026/PDSH/issues"
   },
   "license": "MIT",
-  "icon": "./plugin-icon.svg",
-  "bundledDependencies": [
-    "@daftai/pdsh-titles",
-    "@daftai/pdsh-capture"
-  ]
+  "icon": "./plugin-icon.svg"
 }

@@ -1,13 +1,11 @@
 /**
- * [INPUT]: 依赖 esbuild、component-packages.ts 的自有包实体化、三个 Host 入口、同一 Client 装配器与根 manifest 唯一版本；共享库由宿主解析。
+ * [INPUT]: 依赖 esbuild、三个 Host 入口、同一 Client 装配器与根 manifest 唯一版本；共享库由宿主解析。
  * [OUTPUT]: 生成根身份入口、components/ 标题/拍照入口及就近 manifest、locale、图标和包内 Main 桥。
  * [POS]: 唯一构建和 Bundle 分发边界；保留旧身份模块名，三个功能分别进入官方 Loader。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { materializeComponentPackages } from './component-packages.ts';
 import { COMPONENTS, type ComponentKind } from './src/shared/components.ts';
 const manifest = JSON.parse(await readFile(new URL('./package.json', import.meta.url), 'utf8'));
 const { version } = manifest;
@@ -19,7 +17,7 @@ await writeFile('plugin-icon.svg', icon);
 const titles = { titles: { zh: '侧栏标题遮挡', en: 'Sidebar Title Masking' }, capture: { zh: '窗口拍照', en: 'Window Capture' } };
 const descriptions = { titles: { zh: '遮挡侧栏标题；独立启停，不影响拍照临时遮挡。', en: 'Mask sidebar titles independently of capture-time redaction.' }, capture: { zh: '截取当前 DSH 页面并在本地编辑。', en: 'Capture the current DSH page and edit it locally.' } };
 await mkdir('components', { recursive: true });
-await writeFile('components/CLAUDE.md', `# components/\n> L2 | 父级: ../CLAUDE.md\n\n- titles/: 包内标题入口；构建派生 manifest/Host/Client/locale，真实包名由官方 Bundle 传递依赖解析，同时发现 Host/Client/元信息，不独立安装/发布。\n- capture/: 包内拍照入口；桥属于其内部生命周期，不要求身份和标题开启。\n\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n`);
+await writeFile('components/CLAUDE.md', `# components/\n> L2 | 父级: ../CLAUDE.md\n\n- titles/: 包内标题入口；构建派生 manifest/Host/Client/locale，同仓库固定 SHA 的普通传递依赖由官方 hoisted profile 同时发现 Host/Client/元信息，不作为用户管理的 Bundle 独立安装/发布。\n- capture/: 包内拍照入口；桥属于其内部生命周期，不要求身份和标题开启。\n\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n`);
 for (const kind of Object.keys(COMPONENTS) as ComponentKind[]) {
   const definition = COMPONENTS[kind], directory = kind === 'identity' ? '.' : `components/${kind}`;
   const source = kind === 'identity' ? 'index' : kind;
@@ -49,6 +47,3 @@ for (const kind of Object.keys(COMPONENTS) as ComponentKind[]) {
     banner: { js: `/**\n * [INPUT]: 依赖 src/client/client-entry.tsx 与宿主 module table，由 build.ts 生成。\n * [OUTPUT]: 提供 ${definition.module} 的 lazy factory。\n * [POS]: ${kind} 独立 Client 入口，不手工修改。\n * ${protocol}\n */\nwindow.__ModuleLoader__.load({id:${JSON.stringify(definition.module)},factory:(require)=>{var module={exports:{}};var exports=module.exports;` },
     footer: { js: 'return module.exports;}});' } });
 }
-
-// +--- 同一字节真实子包，GitHub codeload 不会解引用符号链接 ---+
-await materializeComponentPackages(fileURLToPath(new URL('.', import.meta.url)));

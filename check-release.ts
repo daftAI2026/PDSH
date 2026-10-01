@@ -1,13 +1,15 @@
 /**
- * [INPUT]: 依赖根唯一版本、Git 工作树和 build.ts 的三个入口及 真实子包加载/元信息与普通文件分发镜像。
- * [OUTPUT]: 校验 tag/三包版本、生成入口完整及 patch 加载路径，拒绝脏发布树。
+ * [INPUT]: 依赖根唯一版本、Git 工作树和 build.ts 的三个入口及固定组件提交的运行字节。
+ * [OUTPUT]: 校验 tag/三包版本、固定组件来源及 patch 加载路径，拒绝脏发布树。
  * [POS]: 发布前防漂移门；不自行推送、打 tag、发布 npm 或修改任何版本号。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { readFileSync, lstatSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { validateComponentSources } from './component-source.ts';
 import { execFileSync } from 'node:child_process';
 
-const manifest = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string; files?: string[]; dependencies?: Record<string, string>; bundledDependencies?: string[] };
+const manifest = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string; files?: string[] };
 if (!manifest.files?.includes('components/')) throw new Error('archive component membership missing');
 const expected = `v${manifest.version}`;
 const tag = process.argv[2] ?? expected;
@@ -15,28 +17,12 @@ if (tag !== expected) throw new Error(`tag ${tag} does not match package.json ${
 if (!/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(tag)) throw new Error('release tag must be stable semver');
 const client = readFileSync(new URL('./client.js', import.meta.url), 'utf8');
 if (!client.includes(JSON.stringify(manifest.version))) throw new Error('client.js does not embed the package version; rebuild');
-// +--- 一个 Bundle 的三个真实入口必须同时完整，不能只验证根 Client ---+
+// +--- 普通依赖的固定提交必须与当前生成组件逐字节一致 ---+
+validateComponentSources(fileURLToPath(new URL('.', import.meta.url)));
+const patch = readFileSync(new URL('./cordis.patch.yml', import.meta.url), 'utf8');
 for (const kind of ['titles', 'capture']) {
-  const name = `@daftai/pdsh-${kind}`;
-  if (manifest.dependencies?.[name] !== `file:./components/${kind}` || !manifest.bundledDependencies?.includes(name)) throw new Error(`${kind} component dependency drift`);
   const base = new URL(`./components/${kind}/`, import.meta.url);
-  const child = JSON.parse(readFileSync(new URL('package.json', base), 'utf8'));
-  if (child.name !== `@daftai/pdsh-${kind}` || child.version !== manifest.version) throw new Error(`${kind} package version/name drift; rebuild`);
-  for (const file of ['index.js', 'client.js', 'client.js.map', 'plugin-icon.svg', 'locale/zh.json', 'locale/en.json', ...(kind === 'capture' ? ['main.cjs'] : [])]) {
-    if (!readFileSync(new URL(file, base)).length) throw new Error(`${kind}/${file} is empty`);
-  }
   if (!readFileSync(new URL('client.js', base), 'utf8').includes(JSON.stringify(manifest.version))) throw new Error(`${kind} Client version drift; rebuild`);
-  const distribution = new URL(`./node_modules/@daftai/pdsh-${kind}/`, import.meta.url);
-  if (!lstatSync(new URL(`./node_modules/@daftai/pdsh-${kind}`, import.meta.url)).isDirectory()) throw new Error(`${kind} distribution must be an ordinary directory`);
-  const marker = new URL('.pdsh-generated', distribution);
-  if (!lstatSync(marker).isFile() || readFileSync(marker, 'utf8') !== 'PDSH build.ts generated component package v1\n') throw new Error(`${kind} distribution ownership drift`);
-  for (const file of ['package.json', 'index.js', 'client.js', 'client.js.map', 'plugin-icon.svg', 'locale/zh.json', 'locale/en.json', ...(kind === 'capture' ? ['main.cjs'] : [])]) {
-    const leaf = new URL(file, distribution);
-    try {
-      if (!lstatSync(leaf).isFile() || !readFileSync(leaf).equals(readFileSync(new URL(file, base)))) throw new Error('drift');
-    } catch { throw new Error(`${kind}/${file} distribution drift; rebuild`); }
-  }
-  const patch = readFileSync(new URL('./cordis.patch.yml', import.meta.url), 'utf8');
   if (!patch.includes(`id: pdsh-${kind}\n      name: "@daftai/pdsh-${kind}"`)) throw new Error(`${kind} profile loading path drift`);
 }
 const readme = readFileSync(new URL('./README.md', import.meta.url), 'utf8');

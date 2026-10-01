@@ -6,7 +6,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync, lstatSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 
 test('手写构建与发布脚本为TS；根目录JS只保留宿主生成入口', () => {
   const root = new URL('../', import.meta.url);
@@ -22,13 +22,13 @@ test('手写构建与发布脚本为TS；根目录JS只保留宿主生成入口'
 test('一个 Bundle 发布三个包内入口；身份兼容旧模块名和 namespace', () => {
   const root = new URL('../', import.meta.url);
   const manifest = JSON.parse(readFileSync(new URL('package.json', root), 'utf8'));
-  assert.deepEqual(manifest.bundledDependencies, ['@daftai/pdsh-titles', '@daftai/pdsh-capture']);
+  assert.equal(manifest.bundledDependencies, undefined, '组件必须经正常依赖安装，不能嵌套 bundled 包绕过 hoist');
   assert.ok(manifest.files.includes('components/'), '归档必须包含两个包内入口与其所有资源');
   for (const kind of ['titles', 'capture']) {
     const child = JSON.parse(readFileSync(new URL(`components/${kind}/package.json`, root), 'utf8'));
     assert.equal(child.name, `@daftai/pdsh-${kind}`);
     assert.equal(child.version, manifest.version);
-    assert.equal(manifest.dependencies[child.name], `file:./components/${kind}`, '根 Bundle 声明真实传递依赖，不写 profile 顶层依赖');
+    assert.match(manifest.dependencies[child.name], new RegExp(`^github:daftAI2026/PDSH#[a-f0-9]{40}&path:/components/${kind}$`), '同仓库固定提交子目录走正常依赖安装');
     assert.ok(child.dsh.client, '就近 manifest 声明 Client 节点，声明真实独立 Client table 身份');
     assert.match(readFileSync(new URL(`components/${kind}/client.js`, root), 'utf8'), new RegExp(child.name));
     for (const lang of ['zh', 'en']) assert.ok(JSON.parse(readFileSync(new URL(`components/${kind}/locale/${lang}.json`, root), 'utf8')).meta.title);
@@ -41,15 +41,4 @@ test('一个 Bundle 发布三个包内入口；身份兼容旧模块名和 names
 test('只有拍照 Client 带编辑器离线壁纸，身份/标题不复制其重资产',()=>{
   for(const path of ['../client.js','../components/titles/client.js'])assert.doesNotMatch(readFileSync(new URL(path,import.meta.url),'utf8'),/data:image\/jpeg;base64,/);
   assert.match(readFileSync(new URL('../components/capture/client.js',import.meta.url),'utf8'),/data:image\/jpeg;base64,/);
-});
-
-test('GitHub 分发必须包含真实子包文件，不能依赖 codeload 解引用自链接', () => {
-  for (const kind of ['titles', 'capture']) {
-    const base = new URL(`../node_modules/@daftai/pdsh-${kind}/`, import.meta.url);
-    assert.ok(lstatSync(new URL(`../node_modules/@daftai/pdsh-${kind}`, import.meta.url)).isDirectory());
-    for (const file of ['package.json', 'index.js', 'client.js', 'client.js.map', 'plugin-icon.svg', 'locale/zh.json', 'locale/en.json', ...(kind === 'capture' ? ['main.cjs'] : [])]) {
-      assert.ok(lstatSync(new URL(file, base)).isFile());
-      assert.deepEqual(readFileSync(new URL(file, base)), readFileSync(new URL(`../components/${kind}/${file}`, import.meta.url)));
-    }
-  }
 });
