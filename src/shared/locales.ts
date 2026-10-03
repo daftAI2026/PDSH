@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖宿主 locale 命名空间字典协议；不读取或持久化独立语言偏好。
- * [OUTPUT]: 提供 pdsh 的 NS 与齐全 zh/en 运行文案，供框架 t 和原生 DOM 入口翻译。
+ * [OUTPUT]: 提供 pdsh 的 NS 与齐全 zh/en 运行文案，含独立截图身份遮挡设置文案。
  * [POS]: PDSH 文案归属层；界面语言由 Harness 拥有，包展示元信息由 locale/*.json 离线提供。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -8,8 +8,8 @@ export const NS = 'pdsh';
 export const dictionaries = {
   zh: {
     identityDescription: '自定义侧栏显示的头像与昵称，不修改账号资料。',
-    saveLocation: '保存位置', chooseDirectory: '选择目录', saveAsk: '每次选择', saveDirect: '默认目录', saveDirectory: '保存目录', directoryUnavailable: '目录尚未就绪', editFileName: '编辑文件名模板', doneFileName: '保存文件名模板', templateTokens: '{date} 日期 · {time} 时间 · {title} 页面标题 · {width} 宽 · {height} 高', saveFormat: '保存格式', fileNamePattern: '文件名模板', exportSaveFailed: '设置未保存，请检查模板或重试。',
-    entry: '遮挡侧栏标题', entryOn: '显示侧栏标题', toggleFailed: '未能保存切换，请重试', capture: '截取当前窗口', captureEnabled: '开启拍照功能',
+    saveLocation: '保存位置', chooseDirectory: '选择目录', saveAsk: '每次选择', saveDirect: '默认目录', saveDirectory: '保存目录', directoryUnavailable: '目录尚未就绪', editFileName: '编辑文件名模板', doneFileName: '保存文件名模板', templateTokens: '{date} 日期 · {time} 时间 · {title} 页面标题 · {width} 宽 · {height} 高', saveFormat: '保存格式', fileNamePattern: '文件名模板', exportSaveFailed: '设置未保存，请重试。',
+    entry: '遮挡侧栏标题', entryOn: '显示侧栏标题', toggleFailed: '未能保存切换，请重试', capture: '截取当前窗口', captureEnabled: '开启拍照功能', captureMaskIdentity: '截图时遮挡头像和名称',
     languageHint: '界面语言跟随 Harness。可在“设置 → 通用设置 → 语言”切换中文 / English。',
     titlesHint: '工作区与会话名称',
     identityPreview: '显示身份摘要', editNickname: '编辑显示昵称', doneEditing: '保存昵称',
@@ -33,8 +33,8 @@ export const dictionaries = {
   },
   en: {
     identityDescription: 'Customize the sidebar avatar and nickname without changing account data.',
-    saveLocation: 'Save location', chooseDirectory: 'Choose folder', saveAsk: 'Choose each time', saveDirect: 'Default folder', saveDirectory: 'Save folder', directoryUnavailable: 'Folder is not ready', editFileName: 'Edit file name template', doneFileName: 'Save file name template', templateTokens: '{date} Date · {time} Time · {title} Page title · {width} Width · {height} Height', saveFormat: 'Save format', fileNamePattern: 'File name template', exportSaveFailed: 'Settings were not saved. Check the template or try again.',
-    entry: 'Mask sidebar titles', entryOn: 'Show sidebar titles', toggleFailed: 'Toggle was not saved. Try again', capture: 'Capture current window', captureEnabled: 'Enable capture',
+    saveLocation: 'Save location', chooseDirectory: 'Choose folder', saveAsk: 'Choose each time', saveDirect: 'Default folder', saveDirectory: 'Save folder', directoryUnavailable: 'Folder is not ready', editFileName: 'Edit file name template', doneFileName: 'Save file name template', templateTokens: '{date} Date · {time} Time · {title} Page title · {width} Width · {height} Height', saveFormat: 'Save format', fileNamePattern: 'File name template', exportSaveFailed: 'Settings were not saved. Try again.',
+    entry: 'Mask sidebar titles', entryOn: 'Show sidebar titles', toggleFailed: 'Toggle was not saved. Try again', capture: 'Capture current window', captureEnabled: 'Enable capture', captureMaskIdentity: 'Mask avatar and name in screenshots',
     languageHint: 'Language follows Harness. Switch in Settings → General → Language: 中文 / English.',
     titlesHint: 'Workspace and session names',
     identityPreview: 'Display identity summary', editNickname: 'Edit display nickname', doneEditing: 'Save nickname',

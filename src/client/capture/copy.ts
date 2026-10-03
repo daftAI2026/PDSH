@@ -1,16 +1,15 @@
 /**
  * [INPUT]: 依赖调用方传入的 locale，并遵循截图编辑器已经确认的产品术语
  * [OUTPUT]: 对外提供 CaptureWindowCopy 双语文案与 captureWindowCopy 本地化选择器
- * [POS]: capture-window 的唯一文案边界，让背景层级与编辑动作在所有 host adapter 中保持同义
+ * [POS]: capture-window 的唯一文案边界，让背景层级、标题遮罩与编辑动作同义，身份遮挡引导至官方设置
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 export type CaptureWindowCopy = {
+  backgroundTabs: { none: string; color: string; gradient: string; image: string };
   background: string;
   backgroundGradients: string;
   backgroundNone: string;
   backgroundPlainColor: string;
-  backgroundShowLess: string;
-  backgroundShowMore: string;
   backgroundWallpapers: string;
   blur: string;
   changeImage: string;
@@ -44,6 +43,7 @@ export type CaptureWindowCopy = {
   retakeFailed: string;
   save: string;
   saveFailed: string;
+  saveUnconfirmed: string;
   exportTooLarge: string;
   saved: string;
   saveStarted: string;
@@ -66,12 +66,11 @@ export type CaptureWindowCopy = {
 };
 
 const ENGLISH: CaptureWindowCopy = {
+  backgroundTabs: { none: "None", color: "Color", gradient: "Gradient", image: "Image" },
   background: "Background",
   backgroundGradients: "Gradients",
   backgroundNone: "No background",
   backgroundPlainColor: "Plain color",
-  backgroundShowLess: "Show less",
-  backgroundShowMore: "Show more",
   backgroundWallpapers: "Wallpapers",
   blur: "Blur",
   changeImage: "Change image",
@@ -92,8 +91,8 @@ const ENGLISH: CaptureWindowCopy = {
   mosaic: "Mosaic",
   move: "Move",
   padding: "Padding",
-  privacy: "Privacy masks",
-  privacyDescription: "Replace marked sensitive details before taking the screenshot.",
+  privacy: "Mask titles",
+  privacyDescription: "Mask recognized titles before capture. Avatar and name masking is controlled in plugin settings.",
   preview: "Preview",
   redact: "Redact",
   regionHint: "Click detected areas to redact them",
@@ -105,6 +104,7 @@ const ENGLISH: CaptureWindowCopy = {
   retakeFailed: "Unable to capture the window again.",
   save: "Save",
   saveFailed: "Could not export the image.",
+  saveUnconfirmed: "Could not confirm saving. Check the selected folder before retrying.",
   exportTooLarge: "Image size exceeds the export limit. Reduce the padding.",
   saved: "Image saved",
     saveStarted: "Export started. Confirm in the system save flow.",
@@ -127,12 +127,11 @@ const ENGLISH: CaptureWindowCopy = {
 };
 
 const CHINESE: CaptureWindowCopy = {
+  backgroundTabs: { none: "无背景", color: "纯色", gradient: "渐变", image: "图片" },
   background: "背景",
   backgroundGradients: "渐变",
   backgroundNone: "无背景",
   backgroundPlainColor: "纯色",
-  backgroundShowLess: "收起",
-  backgroundShowMore: "显示更多",
   backgroundWallpapers: "壁纸",
   blur: "模糊",
   changeImage: "更换图片",
@@ -153,8 +152,8 @@ const CHINESE: CaptureWindowCopy = {
   mosaic: "马赛克",
   move: "移动",
   padding: "边距",
-  privacy: "隐私遮罩",
-  privacyDescription: "截图前将已标记的敏感信息替换为占位符。",
+  privacy: "标题遮罩",
+  privacyDescription: "截取前遮挡已识别的标题；头像和名称遮挡由插件设置单独控制。",
   preview: "预览",
   redact: "区域打码",
   regionHint: "点击检测到的区域进行打码",
@@ -166,6 +165,7 @@ const CHINESE: CaptureWindowCopy = {
   retakeFailed: "无法重新截取窗口。",
   save: "保存",
   saveFailed: "无法导出图片。",
+  saveUnconfirmed: "无法确认保存结果，请先检查所选目录再重试。",
   exportTooLarge: "图片超出导出尺寸限制，请减小边距。",
   saved: "图片已保存",
     saveStarted: "已发起导出，请在系统保存流程中确认。",

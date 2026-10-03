@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖编辑器状态机与既有浏览器偏好存储。
+ * [INPUT]: 依赖编辑器状态机、presets.ts 唯一预设目录与既有浏览器偏好存储。
  * [OUTPUT]: 保存非敏感编辑偏好及当前桌面的来源 ID，不保存图片或本地路径；旧像素记录在取得源尺寸后迁移为百分比。
- * [POS]: capture-window 的偏好边界；来源可用性由主机恢复，背景选择由此处语义恢复。
+ * [POS]: capture-window 的偏好边界；来源可用性由主机恢复，背景选择由此处语义恢复，新增预设不另维护会漂移的 ID 白名单。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import {
@@ -17,20 +17,9 @@ import {
 
 const LEGACY_MAX_PADDING = 160;
 
-export const CAPTURE_PREFERENCES_KEY = "pdsh-window-capture-prefs";
+import { capturePresets } from "./presets.ts";
 
-const CAPTURE_PRESET_IDS: readonly CapturePresetId[] = [
-  "sea",
-  "canyon",
-  "mist",
-  "highland",
-  "ocean",
-  "silver",
-  "azure",
-  "indigo",
-  "ember",
-  "graphite",
-];
+export const CAPTURE_PREFERENCES_KEY = "pdsh-window-capture-prefs";
 
 export type CapturePreferenceStorage = {
   getItem: (key: string) => string | null;
@@ -156,7 +145,7 @@ function normalizeBackground(value: unknown): CapturePreferenceBackground | null
   if (
     background.kind === "preset" &&
     typeof background.id === "string" &&
-    CAPTURE_PRESET_IDS.includes(background.id as CapturePresetId)
+    capturePresets.some(preset => preset.id === background.id)
   ) {
     return { id: background.id as CapturePresetId, kind: "preset" };
   }

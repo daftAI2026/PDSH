@@ -1,16 +1,18 @@
 /**
- * [INPUT]: 依赖状态机、分配前输出预算、请求级取消、键盘适配、背景资源、冻结外观、DOM 模板与已接受的保存方式/目录/格式/命名偏好
- * [OUTPUT]: 提供截图编辑器挂载、生命周期控制及唯一状态向渲染与导出边界的编排
- * [POS]: capture-window 的交互总协调器，系统壁纸异步细节下沉至 system-wallpapers.ts
+ * [INPUT]: 依赖模型、受控原生 Tabs 挂载端口、视口控制器、输出预算、取消、背景/外观资源、DOM 模板与已接受的保存配置
+ * [OUTPUT]: 提供工作台挂载、编辑命令协调、像素合成/导出与资源生命周期控制
+ * [POS]: capture-window 总协调器；高频视口手势由 editor-viewport.ts 拥有，系统壁纸加载由 system-wallpapers.ts 拥有，本地选图用背景意图世代拒绝迟到覆盖
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { captureBackgroundMode, createCaptureBackgroundMemory, type CaptureBackgroundMode } from "./background-modes.ts";
+import type { CaptureBackgroundTabsMount, CaptureBackgroundTabsController } from "./background-tabs.tsx";
 import {
   syncCaptureBackgroundControls,
   wireCaptureBackgroundActions,
 } from "./background-controls.ts";
 import { captureWindowCopy, type CaptureWindowCopy } from "./copy.ts";
 import { wirePaddingSlider } from "./padding-slider.ts";
-import { capturePhysicalPadding, captureOutputSize, renderCaptureToCanvas } from "./compositor.ts";
+import { captureOutputSize, renderCaptureToCanvas } from "./compositor.ts";
 import type { CaptureMaterialAppearance } from './material.ts';
 import { createCaptureBackgroundImageStore } from "./backgrounds.ts";
 import {
@@ -20,22 +22,15 @@ import {
 } from "./color-popover.ts";
 import { createInspectorScroll } from "./inspector-scroll.ts";
 import {
-  anchoredPanForZoom,
-  captureContainScale,
-  viewportRectToSource,
-} from "./geometry.ts";
-import {
   applyCaptureCommand,
   CAPTURE_MAX_ZOOM,
   CAPTURE_MIN_ZOOM,
   type CaptureCandidate,
-  capturePointerIntent,
   createCaptureWindowState,
-  scaleCaptureZoom,
   type CaptureWindowCommand,
   type CaptureWindowState,
-  wheelCaptureZoom,
 } from "./model.ts";
+import { createCaptureEditorViewport, type CaptureEditorViewportController } from "./editor-viewport.ts";
 import {
   applyCapturePreferences,
   type CapturePreferenceStorage,
@@ -66,6 +61,7 @@ import { wireKeyboard } from "./editor-keyboard.ts";
 import { encodeCapture, handCaptureToDownload } from './export.ts';
 import { isCaptureExportSizeAllowed, captureExportFileName, resolveCaptureExportPreferences, type CaptureExportPreferences } from '../../shared/capture-export.ts';
 export type CaptureWindowEditorOptions = {
+  mountBackgroundTabs?: CaptureBackgroundTabsMount;
   exportPreferences?: CaptureExportPreferences;
   fileMetadata?: { title: string; capturedAt: Date };
   materialAppearance?: CaptureMaterialAppearance;
@@ -80,7 +76,7 @@ export type CaptureWindowEditorOptions = {
     revision: number,
     privacyEnabled: boolean,
   ) => CaptureWindowRetake | Promise<CaptureWindowRetake>;
-  onSave?: (image: Blob, suggestedName: string, directory: string, behavior: CaptureExportPreferences['saveBehavior'], signal: AbortSignal) => Promise<"cancelled" | "saved">;
+  onSave?: (image: Blob, suggestedName: string, directory: string, behavior: CaptureExportPreferences['saveBehavior'], signal: AbortSignal, metadata: { format: CaptureExportPreferences['saveFormat']; width: number; height: number; title: string; capturedAt: string }) => Promise<"cancelled" | "saved">;
   preferenceStorage?: CapturePreferenceStorage | null;
   source: HTMLCanvasElement;
   systemWallpapers?: SystemWallpaperAdapter;
@@ -96,13 +92,8 @@ export type CaptureWindowEditorController = {
   destroy: () => void;
   getState: () => CaptureWindowState;
 };
-type PointerGesture = {
-  pointerId: number;
-  startClientX: number;
-  startClientY: number;
-  startPanX: number;
-  startPanY: number;
-};
+let backgroundTabsSequence = 0;
+
 export function mountCaptureWindowEditor(
   host: HTMLElement,
   options: CaptureWindowEditorOptions,
@@ -125,12 +116,15 @@ export function mountCaptureWindowEditor(
       : defaultState
   );
   const backgroundImages = createCaptureBackgroundImageStore();
+  const backgroundMemory = createCaptureBackgroundMemory(state.lastOpaqueBackground);
+  backgroundMemory.remember(state.background);
+  const backgroundTabsId = `pdsh-capture-background-${++backgroundTabsSequence}`;
+  let backgroundTabs: CaptureBackgroundTabsController | undefined;
+  let backgroundRevision = 0;
   let lastWallpaperDataUrl = state.background.kind === "wallpaper" && !state.background.systemId
     ? state.background.dataUrl
     : null;
   let lastBackgroundColor = state.background.kind === "color" ? state.background.color : "#2B3440";
-  let panX = 0;
-  let panY = 0;
   let manualRegionSequence = 0;
   let destroyed = false;
   const isMacOS = navigator.platform.startsWith("Mac");
@@ -161,15 +155,19 @@ export function mountCaptureWindowEditor(
       systemId: id,
     }),
   });
+  const editorViewport = createCaptureEditorViewport({
+    createManualRegionId: () => `manual-${++manualRegionSequence}`,
+    dispatchRegion,
+    readState: () => state,
+    root,
+    setZoom: setViewportZoom,
+  });
   const resizeObserver = new ResizeObserver(() => {
-    const canvas = root.querySelector<HTMLCanvasElement>(".pdsh-capture-canvas");
-    const frame = root.querySelector<HTMLElement>(".pdsh-capture-canvas-frame");
-    if (!canvas) return;
-    if (state.zoom !== 1 || panX !== 0 || panY !== 0) {
+    if (!root.querySelector<HTMLCanvasElement>(".pdsh-capture-canvas")) return;
+    if (!editorViewport.isAtDefault()) {
       resetView();
-      return;
     }
-    window.requestAnimationFrame(() => fitCanvas(root, canvas, frame, state.zoom, panX, panY));
+    editorViewport.fit();
   });
   resizeObserver.observe(root);
   const unwireColorPopovers = wireCaptureColorPopovers(root, {
@@ -203,17 +201,22 @@ export function mountCaptureWindowEditor(
         notify(copy.exportTooLarge);
         return false;
       }
-      panX = 0;
-      panY = 0;
+      editorViewport.resetPan();
     }
     state = applyCaptureCommand(state, command);
     return true;
   }
   function dispatch(command: CaptureWindowCommand): void {
+    if (command.kind === "set-zoom") {
+      setViewportZoom(command.zoom);
+      return;
+    }
     if (command.kind === "set-background" || command.kind === "set-transparent-background") {
+      backgroundRevision++;
       systemWallpaperController.invalidateSelection();
     }
     if (!applyEditorCommand(command)) return;
+    backgroundMemory.remember(state.background);
     if (preferenceStorage && isCapturePreferenceCommand(command)) {
       saveCapturePreferences(preferenceStorage, state);
     }
@@ -231,11 +234,18 @@ export function mountCaptureWindowEditor(
     renderCanvas();
     updateHistoryControls(root, state);
   }
+  function setViewportZoom(zoom: number): void {
+    state = applyCaptureCommand(state, { kind: "set-zoom", zoom });
+    syncZoomControls(root, state);
+  }
   const exportAbort = new window.AbortController();
   function close(): void {
     if (destroyed) return;
     destroyed = true;
     exportAbort.abort();
+    backgroundRevision++;
+    backgroundTabs?.destroy();
+    editorViewport.destroy();
     systemWallpaperController.destroy();
     resizeObserver.disconnect();
     inspectorScroll.destroy();
@@ -258,6 +268,7 @@ export function mountCaptureWindowEditor(
   function setPhase(phase: "composing" | "saving" | "editing" | "recapturing"): void {
     root.setAttribute("data-state", phase);
     root.toggleAttribute("aria-busy", phase !== "editing");
+    backgroundTabs?.update(captureBackgroundMode(state.background), phase !== "editing");
     if (phase === "editing") {
       render();
       return;
@@ -269,9 +280,7 @@ export function mountCaptureWindowEditor(
     }
   }
   function resetView(): void {
-    panX = 0;
-    panY = 0;
-    dispatch({ kind: "set-zoom", zoom: 1 });
+    editorViewport.reset();
   }
   function refreshEditor(command: CaptureWindowCommand): void {
     root.setAttribute("data-tool", state.tool);
@@ -285,6 +294,7 @@ export function mountCaptureWindowEditor(
       refreshToolbar();
     }
     syncEditorControls(root, state, copy, lastBackgroundColor, lastWallpaperDataUrl);
+    backgroundTabs?.update(captureBackgroundMode(state.background), root.dataset.state !== "editing");
     renderCanvas();
     updateHistoryControls(root, state);
   }
@@ -296,22 +306,37 @@ export function mountCaptureWindowEditor(
     const replacement = template.content.firstElementChild;
     if (!(replacement instanceof HTMLElement)) return;
     toolbar.replaceWith(replacement);
-    wireToolbarActions(root, dispatch, dispatchRegion, resetView);
+    wireToolbarActions(root, dispatch, dispatchRegion, editorViewport);
+  }
+  function selectBackgroundMode(mode: CaptureBackgroundMode): void {
+    if (destroyed || root.dataset.state !== "editing" || mode === captureBackgroundMode(state.background)) return;
+    unwireColorPopovers.close();
+    dispatch({ kind: "set-background", background: backgroundMemory.read(mode) });
   }
   function render(): void {
     if (destroyed) return;
     const renderMemory = rememberCaptureWindowRender(root);
+    backgroundTabs?.destroy();
+    backgroundTabs = undefined;
+    unwireColorPopovers.close();
     root.innerHTML = captureWindowTemplate(state, copy, {
+      backgroundTabsId,
       lastBackgroundColor,
       systemWallpapers: systemWallpaperController.getState(),
       wallpaperDataUrl: lastWallpaperDataUrl,
     });
+    const tabsContainer = root.querySelector<HTMLElement>("[data-background-tabs]");
+    if (tabsContainer && options.mountBackgroundTabs) backgroundTabs = options.mountBackgroundTabs(tabsContainer, {
+      id: backgroundTabsId, value: captureBackgroundMode(state.background), label: copy.background,
+      labels: { none: copy.backgroundTabs.none, "plain-color": copy.backgroundTabs.color,
+        gradients: copy.backgroundTabs.gradient, wallpapers: copy.backgroundTabs.image },
+      disabled: root.dataset.state !== "editing", onChange: selectBackgroundMode,
+    });
     root.setAttribute("data-tool", state.tool);
     root.querySelector<HTMLElement>(".pdsh-capture-backdrop")?.addEventListener("click", close);
     root.querySelector<HTMLElement>("[data-action='close']")?.addEventListener("click", close);
-    const rendered = renderCanvas();
-    const frame = root.querySelector<HTMLElement>(".pdsh-capture-canvas-frame");
-    wireToolbarActions(root, dispatch, dispatchRegion, resetView);
+    renderCanvas();
+    wireToolbarActions(root, dispatch, dispatchRegion, editorViewport);
     wireCaptureBackgroundActions(root, {
       dispatch,
       pickWallpaper: () => root.querySelector<HTMLInputElement>("[data-input='wallpaper']")?.click(),
@@ -322,19 +347,6 @@ export function mountCaptureWindowEditor(
       },
       systemWallpapers: systemWallpaperActions,
     });
-    wireStage(
-      root,
-      rendered,
-      frame,
-      () => state,
-      dispatchRegion,
-      () => `manual-${++manualRegionSequence}`,
-      () => ({ panX, panY }),
-      (x, y) => {
-        panX = x;
-        panY = y;
-      },
-    );
     wireInputs(root, dispatch, preview, loadWallpaper, setPrivacy);
     wireKeyboard(root, state, dispatchRegion, close, exportCopy);
     root.querySelector<HTMLElement>("[data-action='retake']")?.addEventListener("click", () => {
@@ -348,7 +360,6 @@ export function mountCaptureWindowEditor(
     });
     restoreCaptureWindowRender(root, renderMemory);
     inspectorScroll.refresh();
-    window.requestAnimationFrame(() => fitCanvas(root, rendered, frame, state.zoom, panX, panY));
   }
   function renderCanvas(): HTMLCanvasElement {
     const rendered = renderCurrentCapture(backgroundImages.read(state.background));
@@ -367,7 +378,8 @@ export function mountCaptureWindowEditor(
     mountCaptureRegionLayer(frame, canvas, currentRenderState(), automaticCandidates, copy, dispatchRegion);
     const paddingValue = root.querySelector<HTMLElement>("[data-value='padding']");
     if (paddingValue) paddingValue.textContent = `${state.padding}%`;
-    window.requestAnimationFrame(() => fitCanvas(root, canvas, frame, state.zoom, panX, panY));
+    const stage = root.querySelector<HTMLElement>(".pdsh-capture-stage");
+    if (stage && frame) editorViewport.bind(stage, frame, canvas);
     return canvas;
   }
   async function retake(privacyEnabled = state.privacyEnabled): Promise<boolean> {
@@ -404,18 +416,21 @@ export function mountCaptureWindowEditor(
     if (enabled !== state.privacyEnabled) await retake(enabled);
   }
   async function loadWallpaper(file: File): Promise<void> {
+    const revision = ++backgroundRevision;
     if (!isCaptureWallpaperFile(file)) {
       notify(copy.wallpaperTooLarge);
       return;
     }
     try {
       const dataUrl = await readCaptureWallpaperFile(file);
+      if (destroyed || revision !== backgroundRevision || root.dataset.state !== "editing") return;
       const wallpaperImage = await loadCaptureImage(dataUrl);
+      if (destroyed || revision !== backgroundRevision || root.dataset.state !== "editing") return;
       backgroundImages.remember(dataUrl, wallpaperImage);
       lastWallpaperDataUrl = dataUrl;
       dispatch({ kind: "set-background", background: { dataUrl, kind: "wallpaper" } });
     } catch {
-      notify(copy.wallpaperUnreadable);
+      if (!destroyed && revision === backgroundRevision && root.dataset.state === "editing") notify(copy.wallpaperUnreadable);
     }
   }
   async function exportCopy(): Promise<void> {
@@ -447,7 +462,7 @@ export function mountCaptureWindowEditor(
       const suggestedName = captureExportFileName(preferences, fileMetadata.capturedAt, { title: fileMetadata.title, width: canvas.width, height: canvas.height });
       if (options.onSave) {
         setPhase("saving");
-        const result = await options.onSave(blob, suggestedName, preferences.saveDirectory, preferences.saveBehavior, exportAbort.signal);
+        const result = await options.onSave(blob, suggestedName, preferences.saveDirectory, preferences.saveBehavior, exportAbort.signal, {format: preferences.saveFormat, width: canvas.width, height: canvas.height, title: fileMetadata.title, capturedAt: fileMetadata.capturedAt.toISOString()});
         if (destroyed) return;
         if (result === "cancelled") {
           setPhase("editing");
@@ -463,10 +478,10 @@ export function mountCaptureWindowEditor(
       }
       notify(copy.saved, 'success');
       close();
-    } catch {
+    } catch (error) {
       if (destroyed) return;
       setPhase("editing");
-      notify(copy.saveFailed);
+      notify(error instanceof Error && error.message === 'save-unconfirmed' ? copy.saveUnconfirmed : copy.saveFailed);
     }
   }
   function hydrateBackground(background: CaptureWindowState["background"]): void {
@@ -497,7 +512,7 @@ function wireToolbarActions(
   root: HTMLElement,
   dispatch: (command: CaptureWindowCommand) => void,
   dispatchRegion: (command: CaptureWindowCommand) => void,
-  resetView: () => void,
+  viewport: CaptureEditorViewportController,
 ): void {
   const actions: Record<string, CaptureWindowCommand> = {
     "source-auto": { kind: "set-redaction-source", source: "auto" },
@@ -525,16 +540,16 @@ function wireToolbarActions(
     });
   }
   root.querySelector<HTMLElement>("[data-action='zoom-in']")?.addEventListener("click", () => {
-    dispatch({ kind: "set-zoom", zoom: scaleCaptureZoom(currentZoom(root), 1.25) });
+    viewport.zoomByFactor(1.25);
   });
   root.querySelector<HTMLElement>("[data-action='zoom-out']")?.addEventListener("click", () => {
-    dispatch({ kind: "set-zoom", zoom: scaleCaptureZoom(currentZoom(root), 1 / 1.25) });
+    viewport.zoomByFactor(1 / 1.25);
   });
   root.querySelector<HTMLElement>("[data-action='zoom-reset']")?.addEventListener("click", () => {
-    resetView();
+    viewport.reset();
   });
   root.querySelector<HTMLElement>("[data-action='zoom-fit']")?.addEventListener("click", () => {
-    resetView();
+    viewport.reset();
   });
 }
 function wireInputs(
@@ -549,12 +564,6 @@ function wireInputs(
   });
   root.querySelector<HTMLInputElement>("[data-input='shadow']")?.addEventListener("change", (event) => {
     dispatch({ kind: "set-shadow", shadow: (event.currentTarget as HTMLInputElement).checked });
-  });
-  root.querySelector<HTMLInputElement>("[data-input='none']")?.addEventListener("change", (event) => {
-    dispatch({
-      enabled: (event.currentTarget as HTMLInputElement).checked,
-      kind: "set-transparent-background",
-    });
   });
   const padding = root.querySelector<HTMLInputElement>("[data-input='padding']");
   if (padding) wirePaddingSlider(padding,
@@ -573,16 +582,8 @@ function syncEditorControls(
   lastBackgroundColor: string,
   wallpaperDataUrl: string | null,
 ): void {
-  const zoom = root.querySelector<HTMLElement>(".pdsh-capture-zoom-reset");
-  if (zoom) zoom.textContent = `${Math.round(state.zoom * 100)}%`;
-  const zoomOut = root.querySelector<HTMLButtonElement>("[data-action='zoom-out']");
-  const zoomIn = root.querySelector<HTMLButtonElement>("[data-action='zoom-in']");
-  if (zoomOut) zoomOut.disabled = state.zoom <= CAPTURE_MIN_ZOOM;
-  if (zoomIn) zoomIn.disabled = state.zoom >= CAPTURE_MAX_ZOOM;
-  syncCaptureBackgroundControls(root, state, lastBackgroundColor, wallpaperDataUrl, {
-    showLess: copy.backgroundShowLess,
-    showMore: copy.backgroundShowMore,
-  });
+  syncZoomControls(root, state);
+  syncCaptureBackgroundControls(root, state, lastBackgroundColor, wallpaperDataUrl);
 
   const padding = root.querySelector<HTMLInputElement>("[data-input='padding']");
   const paddingValue = root.querySelector<HTMLElement>("[data-value='padding']");
@@ -590,138 +591,20 @@ function syncEditorControls(
   if (paddingValue) paddingValue.textContent = `${state.padding}%`;
 
   const shadow = root.querySelector<HTMLInputElement>("[data-input='shadow']");
-  const none = root.querySelector<HTMLInputElement>("[data-input='none']");
   const privacy = root.querySelector<HTMLInputElement>("[data-input='privacy']");
   if (shadow) shadow.checked = state.shadow;
-  if (none) none.checked = state.background.kind === "transparent";
   if (privacy) privacy.checked = state.privacyEnabled;
 
   syncCaptureColorPopover(root, "solid", state.solidColor);
 }
 
-function wireStage(
-  root: HTMLElement,
-  canvas: HTMLCanvasElement,
-  frame: HTMLElement | null,
-  readState: () => CaptureWindowState,
-  dispatch: (command: CaptureWindowCommand) => void,
-  createManualRegionId: () => string,
-  readPan: () => { panX: number; panY: number },
-  writePan: (x: number, y: number) => void,
-): void {
-  const stage = root.querySelector<HTMLElement>(".pdsh-capture-stage");
-  if (!stage || !frame) return;
-  const gestureStage = stage;
-  let gesture: PointerGesture | null = null;
-  let draft: HTMLElement | null = null;
-
-  stage.addEventListener("wheel", (event) => {
-    event.preventDefault();
-    const state = readState();
-    const nextZoom = wheelCaptureZoom(state.zoom, event.deltaY);
-    const stageRect = stage.getBoundingClientRect();
-    const currentPan = readPan();
-    const pan = anchoredPanForZoom(
-      { x: currentPan.panX, y: currentPan.panY },
-      { x: event.clientX, y: event.clientY },
-      { x: stageRect.left + stageRect.width / 2, y: stageRect.top + stageRect.height / 2 },
-      state.zoom,
-      nextZoom,
-    );
-    writePan(pan.x, pan.y);
-    dispatch({ kind: "set-zoom", zoom: nextZoom });
-  }, { passive: false });
-
-  stage.addEventListener("pointerdown", (event) => {
-    const state = readState();
-    const target = event.target instanceof Element ? event.target : null;
-    const intent = capturePointerIntent(
-      state.tool,
-      event.button,
-      Boolean(target?.closest("[data-region]")),
-    );
-    if (intent === "ignore" || intent === "region") return;
-    const pan = readPan();
-    gesture = {
-      pointerId: event.pointerId,
-      startClientX: event.clientX,
-      startClientY: event.clientY,
-      startPanX: pan.panX,
-      startPanY: pan.panY,
-    };
-    stage.setPointerCapture(event.pointerId);
-    if (intent === "draw") {
-      draft = document.createElement("div");
-      draft.className = "pdsh-capture-draft-region";
-      root.append(draft);
-      updateDraft(draft, event.clientX, event.clientY, event.clientX, event.clientY);
-    } else {
-      stage.setAttribute("data-panning", "true");
-    }
-  });
-
-  stage.addEventListener("pointermove", (event) => {
-    if (!gesture || gesture.pointerId !== event.pointerId) return;
-    if (draft) {
-      updateDraft(
-        draft,
-        gesture.startClientX,
-        gesture.startClientY,
-        event.clientX,
-        event.clientY,
-      );
-      return;
-    }
-    const x = gesture.startPanX + event.clientX - gesture.startClientX;
-    const y = gesture.startPanY + event.clientY - gesture.startClientY;
-    writePan(x, y);
-    const state = readState();
-    frame.style.transform = `translate(${x}px, ${y}px) scale(${state.zoom})`;
-  });
-
-  function finishGesture(event: PointerEvent, commit: boolean): void {
-    if (!gesture || gesture.pointerId !== event.pointerId) return;
-    if (draft) {
-      if (commit) {
-        const state = readState();
-        const canvasRect = canvas.getBoundingClientRect();
-        const scale = canvasRect.width / canvas.width;
-        const rect = viewportRectToSource(
-          {
-            height: event.clientY - gesture.startClientY,
-            width: event.clientX - gesture.startClientX,
-            x: gesture.startClientX,
-            y: gesture.startClientY,
-          },
-          {
-            scale,
-            x:
-              canvasRect.left +
-              capturePhysicalPadding(state.source, state.padding) * scale,
-            y:
-              canvasRect.top +
-              capturePhysicalPadding(state.source, state.padding) * scale,
-          },
-          state.source,
-        );
-        dispatch({ id: createManualRegionId(), kind: "add-region", rect });
-      }
-      draft.remove();
-      draft = null;
-    }
-    gestureStage.removeAttribute("data-panning");
-    if (gestureStage.hasPointerCapture(event.pointerId)) {
-      gestureStage.releasePointerCapture(event.pointerId);
-    }
-    gesture = null;
-  }
-
-  stage.addEventListener("pointerup", (event) => {
-    finishGesture(event, true);
-  });
-  stage.addEventListener("pointercancel", (event) => {
-    finishGesture(event, false);
-  });
+function syncZoomControls(root: HTMLElement, state: CaptureWindowState): void {
+  const zoom = root.querySelector<HTMLElement>(".pdsh-capture-zoom-reset");
+  if (zoom) zoom.textContent = `${Math.round(state.zoom * 100)}%`;
+  const zoomOut = root.querySelector<HTMLButtonElement>("[data-action='zoom-out']");
+  const zoomIn = root.querySelector<HTMLButtonElement>("[data-action='zoom-in']");
+  if (zoomOut) zoomOut.disabled = state.zoom <= CAPTURE_MIN_ZOOM;
+  if (zoomIn) zoomIn.disabled = state.zoom >= CAPTURE_MAX_ZOOM;
 }
 
 function updateHistoryControls(root: HTMLElement, state: CaptureWindowState): void {
@@ -729,43 +612,4 @@ function updateHistoryControls(root: HTMLElement, state: CaptureWindowState): vo
   const redo = root.querySelector<HTMLButtonElement>("[data-action='redo']");
   if (undo) undo.disabled = state.history.past.length === 0;
   if (redo) redo.disabled = state.history.future.length === 0;
-}
-
-function fitCanvas(
-  root: HTMLElement,
-  canvas: HTMLCanvasElement,
-  frame: HTMLElement | null,
-  zoom: number,
-  panX: number,
-  panY: number,
-): void {
-  const stage = root.querySelector<HTMLElement>(".pdsh-capture-stage");
-  if (!stage || !frame) return;
-  const fit = captureContainScale(
-    { height: canvas.height, width: canvas.width },
-    { height: stage.clientHeight, width: stage.clientWidth },
-  );
-  frame.style.width = `${Math.round(canvas.width * fit)}px`;
-  frame.style.height = `${Math.round(canvas.height * fit)}px`;
-  frame.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
-  canvas.style.width = "100%";
-  canvas.style.height = "100%";
-}
-
-function updateDraft(
-  draft: HTMLElement,
-  startX: number,
-  startY: number,
-  endX: number,
-  endY: number,
-): void {
-  draft.style.left = `${Math.min(startX, endX)}px`;
-  draft.style.top = `${Math.min(startY, endY)}px`;
-  draft.style.width = `${Math.abs(endX - startX)}px`;
-  draft.style.height = `${Math.abs(endY - startY)}px`;
-}
-
-function currentZoom(root: HTMLElement): number {
-  const value = root.querySelector<HTMLElement>(".pdsh-capture-zoom-reset")?.textContent;
-  return Number.parseInt(value ?? "100", 10) / 100;
 }

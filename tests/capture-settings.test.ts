@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖真实 CaptureSettingsCard、React/jsdom 与仅替代 Host Button 外观的桩。
- * [OUTPUT]: 验证拍照功能开关及导出设置的 revision、冲突、只读/失败/卸载围栏。
+ * [INPUT]: 依赖真实 CaptureSettingsCard、唯一 Host ConfigForm、React/jsdom 与仅替代原生控件外观的桩。
+ * [OUTPUT]: 验证身份/标题/截图展示顺序及独立截图身份遮挡开关与导出设置的 revision、冲突、只读/失败/卸载围栏。
  * [POS]: 唯一 pdsh ConfigForm 的拍照设置合同；不读文件或像素，也不启动任何 Main 连接。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -12,6 +12,7 @@ import { transformSync } from 'esbuild';
 import React, { act } from 'react';
 import { JSDOM } from 'jsdom';
 import * as exportModel from '../src/shared/capture-export.ts';
+import { readCaptureDirectoryPicker } from '../src/client/capture/directory.ts';
 import { dictionaries } from '../src/shared/locales.ts';
 async function fixture({ chooseDirectory = null } = {}) {
   const dom=new JSDOM('<body><main/></body>'), descriptors=new Map(['window','document','IS_REACT_ACT_ENVIRONMENT'].map(key=>[key,Object.getOwnPropertyDescriptor(globalThis,key)]));
@@ -21,7 +22,7 @@ async function fixture({ chooseDirectory = null } = {}) {
     if(id==='react')return React;if(id==='@deepseek-ai/dsh-client-ui-primitives')return {Button:({children,variant,...props})=>React.createElement('button',props,children),Switch:({checked,label,disabled,onChange})=>React.createElement('button',{type:'button',role:'switch','aria-label':label,'aria-checked':String(checked),disabled,onClick:onChange}),Input:props=>React.createElement('input',props),Tooltip:({children,label,...props})=>React.createElement('span',{'data-tooltip':label},children),IconEditOutlineRegular:()=>null,IconCheckOutlineRegular:()=>null};if(id==='../shared/capture-export.ts')return exportModel;throw new Error(id);
   }});
   const {createRoot}=await import('react-dom/client'),root=createRoot(dom.window.document.querySelector('main')),listeners=new Set(),writes=[];
-  let state={status:'ready',writable:true,revision:7,value:{...exportModel.DEFAULT_CAPTURE_EXPORT,captureEnabled:true,saveDirectory:'/tmp/pdsh-default/Downloads',allowMainBridge:false}},accepted=true;
+  let state={status:'ready',writable:true,revision:7,value:{...exportModel.DEFAULT_CAPTURE_EXPORT,captureEnabled:true,captureMaskIdentity:true,saveDirectory:'/tmp/pdsh-default/Downloads',allowMainBridge:false}},accepted=true;
   const form={getSnapshot:()=>state,subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},async mutate(ops,revision){writes.push({ops,revision});if(accepted){state={...state,revision:state.revision+1,value:{...state.value,[ops[0].path[0]]:ops[0].value}};for(const fn of listeners)fn();}return accepted;}};
   await act(async()=>root.render(React.createElement(module.exports.CaptureSettingsCard,{form,chooseDirectory,t:key=>dictionaries.zh[key]})));
   return {doc:dom.window.document,writes,accept(value){accepted=value;},async readonly(){await act(async()=>{state={...state,writable:false};for(const fn of listeners)fn();});},
@@ -31,12 +32,12 @@ async function fixture({ chooseDirectory = null } = {}) {
     async remoteTemplate(value){await act(async()=>{state={...state,revision:state.revision+1,value:{...state.value,fileNamePattern:value}};for(const fn of listeners)fn();});},
     async close(){await act(async()=>root.unmount());dom.window.close();for(const[key,descriptor]of descriptors){if(descriptor)Object.defineProperty(globalThis,key,descriptor);else delete globalThis[key];}assert.equal(listeners.size,0);}};
 }
-test('拍照设置只呈现导出选项，不再常驻风险警告和二次启用按钮',async()=>{
+test('拍照设置呈现独立身份遮挡和导出选项，不再常驻风险警告和二次启用按钮',async()=>{
   const h=await fixture();try{
     assert.doesNotMatch(h.doc.body.textContent,/调试接口|极端启动失败|接受风险|停用取像桥/);
     for(const name of ['PNG','JPEG','WebP'])assert.ok([...h.doc.querySelectorAll('button')].some(button=>button.textContent===name));
     assert.ok(h.doc.querySelector('button[aria-label="'+dictionaries.zh.editFileName+'"]'));
-    assert.equal(h.doc.querySelectorAll('.pdsh-detail-row').length,4);assert.equal(h.doc.querySelectorAll('.pdsh-hint').length,0);
+    assert.equal(h.doc.querySelectorAll('.pdsh-detail-row').length,5);assert.equal(h.doc.querySelectorAll('.pdsh-hint').length,0);
     assert.equal(h.doc.querySelector('[role="switch"]').getAttribute('aria-checked'),'true');
     assert.equal(h.writes.length,0,'挂载不重写用户配置');
   }finally{await h.close();}
@@ -49,7 +50,7 @@ test('格式即时保存沿用 Host revision，旧授权值不影响组件设置
 });
 test('保存失败有反馈，只读不能写，不因正式宿主桥而隐藏导出选项',async()=>{
   const h=await fixture();try{h.accept(false);await h.click();assert.ok(h.doc.querySelector('[role="alert"]'));await h.readonly();await h.click();assert.equal(h.writes.length,1);}finally{await h.close();}
-  const native=await fixture();try{assert.equal(native.doc.querySelectorAll('button').length,8);assert.doesNotMatch(native.doc.body.textContent,/调试接口/);}finally{await native.close();}
+  const native=await fixture();try{assert.equal(native.doc.querySelectorAll('button').length,9);assert.doesNotMatch(native.doc.body.textContent,/调试接口/);}finally{await native.close();}
 });
 
 test('拍照总开关写入唯一 pdsh ConfigForm 并遵守 Host revision 围栏',async()=>{
@@ -59,6 +60,19 @@ test('拍照总开关写入唯一 pdsh ConfigForm 并遵守 Host revision 围栏
     assert.equal(h.doc.querySelector('[role="switch"]').getAttribute('aria-checked'),'false');
     await h.click(dictionaries.zh.captureEnabled);
     assert.equal(h.writes.at(-1).revision,8);assert.equal(h.writes.at(-1).ops[0].value,true);
+  }finally{await h.close();}
+});
+
+test('截图身份遮挡开关默认开启并独立写入 Host revision，不改常驻身份覆盖',async()=>{
+  const h=await fixture();try{
+    const toggle=()=>h.doc.querySelector('[role="switch"][aria-label="'+dictionaries.zh.captureMaskIdentity+'"]');
+    assert.ok(h.doc.body.textContent.includes(dictionaries.zh.captureMaskIdentity),'Plugins 设置行显示明确身份遮挡标签');
+    assert.equal(toggle()?.getAttribute('aria-checked'),'true');
+    assert.equal(h.writes.length,0,'挂载不改写 Host 配置');
+    await h.click(dictionaries.zh.captureMaskIdentity);
+    assert.deepEqual(JSON.parse(JSON.stringify(h.writes)),[{ops:[{op:'set',path:['captureMaskIdentity'],value:false}],revision:7}]);
+    assert.equal(toggle()?.getAttribute('aria-checked'),'false');
+    assert.equal(h.writes.some(write=>write.ops[0].path[0]==='maskIdentity'),false,'拍照偏好不能改变常驻身份显示');
   }finally{await h.close();}
 });
 
@@ -79,7 +93,35 @@ test('模板仅确认写入；IME Enter 不提交，Escape 取消，远端字段
   }finally{await h.close();}
 });
 
- test('目录仅在原生选择和 Host 接受后写入；取消、卸载和只读不写',async()=>{
+test('目录仅在原生选择和 Host 接受后写入；取消、卸载和只读不写',async()=>{
   for(const selected of [null,'/tmp/pdsh-fixture']){const h=await fixture({chooseDirectory:async()=>selected});try{await h.click(dictionaries.zh.chooseDirectory);assert.equal(h.writes.length,selected?1:0);if(selected){assert.equal(h.writes[0].ops[0].path[0],'saveDirectory');assert.equal(h.writes[0].revision,7);assert.equal(h.writes[0].ops[0].value,selected);assert.ok(h.doc.body.textContent.includes('pdsh-fixture'));}await h.readonly();await h.click(dictionaries.zh.chooseDirectory);assert.equal(h.writes.length,selected?1:0);}finally{await h.close();}}
   let finish;const h=await fixture({chooseDirectory:()=>new Promise(resolve=>{finish=resolve;})});await h.click(dictionaries.zh.chooseDirectory);await h.close();finish('/tmp/pdsh-fixture');await new Promise(resolve=>setImmediate(resolve));assert.equal(h.writes.length,0);
+});
+
+test('目录校验往返接受 POSIX、Windows drive-root 与 UNC 路径并拒绝相对/控制字符路径', async () => {
+  const accepted = ['/Users/alice/Downloads', 'C:\\', 'C:\\Users\\alice\\Downloads', '\\\\server\\share', '\\\\server\\share\\exports'];
+  for (const path of accepted) {
+    assert.equal(exportModel.resolveCaptureExportPreferences({ saveDirectory: path }).saveDirectory, path);
+    const picker = readCaptureDirectoryPicker({ defaultView: { __DSH_DIRECTORY_PICKER__: { pick: async () => path } } } as unknown as Document);
+    assert.ok(picker);
+    assert.equal(await picker(), path);
+  }
+  for (const path of ['relative', 'C:relative', 'C:', '\\Users\\alice', 'C:/Users/alice', 'C:\\bad?folder', 'C:\\bad\nfolder', '/tmp/bad\u0085folder', '//?/C:/Users/alice', '//./pipe/endpoint', '\\\\.\\pipe\\endpoint', '\\\\.\\GLOBALROOT\\Device\\HarddiskVolume1\\dir']) {
+    assert.equal(exportModel.isCaptureSaveDirectory(path), false, `unsafe/non-native directory syntax: ${path}`);
+    assert.equal(exportModel.resolveCaptureExportPreferences({ saveDirectory: path }).saveDirectory, '');
+    const picker = readCaptureDirectoryPicker({ defaultView: { __DSH_DIRECTORY_PICKER__: { pick: async () => path } } } as unknown as Document);
+    assert.ok(picker);
+    await assert.rejects(picker(), /Directory selection unavailable/);
+  }
+});
+
+
+test('插件详情依次显示身份、标题打码和截图设置，不改字段所属表单', () => {
+  const source = readFileSync(new URL('../src/client/component-runtime.tsx', import.meta.url), 'utf8');
+  const render = source.slice(source.indexOf("if (view === 'summary')"), source.indexOf('export function apply'));
+  const identity = render.indexOf('<SettingsCard ');
+  const titles = render.indexOf('<TitleSettingsCard ');
+  const capture = render.indexOf('<CaptureSettingsCard ');
+  assert.ok(identity >= 0 && identity < titles && titles < capture, '身份必须先于标题打码和截图设置');
+  assert.match(render, /<SettingsCard[^>]*preferencesForm=\{form\}[^>]*showTitles=\{false\}/);
 });

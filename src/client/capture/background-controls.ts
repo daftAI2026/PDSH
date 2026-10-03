@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 model.ts 的背景命令与状态、color-popover.ts 的颜色同步、presets.ts 的分组语义
- * [OUTPUT]: 对外提供背景控件的事件绑定与稳定 DOM 状态同步
+ * [OUTPUT]: 对外提供背景控件的事件绑定、当前模式面板及稳定 DOM 状态同步
  * [POS]: capture-window 的背景交互边界，让 editor.ts 只负责编排编辑器生命周期
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -10,7 +10,8 @@ import type {
   CaptureWindowCommand,
   CaptureWindowState,
 } from "./model.ts";
-import { captureBackgroundSection, isCapturePlainColor } from "./presets.ts";
+import { captureBackgroundMode, syncCaptureBackgroundPanels } from "./background-modes.ts";
+import { isCapturePlainColor } from "./presets.ts";
 import {
   syncSystemWallpaperControls,
   wireSystemWallpaperActions,
@@ -58,10 +59,6 @@ export function wireCaptureBackgroundActions(
     "click",
     actions.pickWallpaper,
   );
-  root.querySelector<HTMLButtonElement>("[data-action='toggle-gradients']")?.addEventListener(
-    "click",
-    () => actions.dispatch({ kind: "toggle-gradients" }),
-  );
   if (actions.systemWallpapers) wireSystemWallpaperActions(root, actions.systemWallpapers);
 }
 
@@ -70,7 +67,6 @@ export function syncCaptureBackgroundControls(
   state: CaptureWindowState,
   lastBackgroundColor: string,
   wallpaperDataUrl: string | null,
-  gradientToggleLabels: { showLess: string; showMore: string },
 ): void {
   for (const option of root.querySelectorAll<HTMLElement>("[data-background]")) {
     const selected = state.background.kind === "preset" &&
@@ -87,41 +83,12 @@ export function syncCaptureBackgroundControls(
   if (custom) {
     const selected = state.background.kind === "color" && !isCapturePlainColor(state.background.color);
     custom.dataset.selected = String(selected);
-    custom.querySelector<HTMLElement>("[data-background-custom-icon]")?.toggleAttribute(
-      "hidden",
-      selected,
-    );
+    custom.setAttribute("aria-pressed", String(selected));
   }
-  syncActiveSection(root, captureBackgroundSection(state.background));
+  syncCaptureBackgroundPanels(root, captureBackgroundMode(state.background));
   syncCaptureColorPopover(root, "background", lastBackgroundColor);
   syncWallpaperControls(root, state, wallpaperDataUrl);
   syncSystemWallpaperControls(root, state);
-  syncGradientCatalog(root, state, gradientToggleLabels);
-}
-
-function syncGradientCatalog(
-  root: HTMLElement,
-  state: CaptureWindowState,
-  labels: { showLess: string; showMore: string },
-): void {
-  const section = root.querySelector<HTMLElement>("[data-background-section='gradients']");
-  if (section) section.dataset.expanded = String(state.gradientsExpanded);
-  for (const option of root.querySelectorAll<HTMLElement>("[data-gradient-overflow]")) {
-    option.hidden = !state.gradientsExpanded;
-  }
-  const toggle = root.querySelector<HTMLButtonElement>("[data-action='toggle-gradients']");
-  if (!toggle) return;
-  toggle.setAttribute("aria-expanded", String(state.gradientsExpanded));
-  toggle.textContent = state.gradientsExpanded ? labels.showLess : labels.showMore;
-}
-
-function syncActiveSection(
-  root: HTMLElement,
-  activeSection: ReturnType<typeof captureBackgroundSection>,
-): void {
-  for (const section of root.querySelectorAll<HTMLElement>("[data-background-section]")) {
-    section.dataset.active = String(section.dataset.backgroundSection === activeSection);
-  }
 }
 
 function syncWallpaperControls(

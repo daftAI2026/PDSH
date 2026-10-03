@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+[INPUT]: Windows 原生单窗 helper 的 Win32 UAC manifest。
+[OUTPUT]: 声明标准用户 `asInvoker`、`uiAccess=false`；不带捕获 capability，不触发提权或辅助功能访问。
+[POS]: 与 window-capture-x64.exe 嵌入的只读权限声明；系统采集边框由 WGC 管理。
+[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+-->
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <assemblyIdentity version="1.0.0.0" processorArchitecture="amd64" name="PDSH.Windows.WindowCapture" type="win32" />
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+</assembly>

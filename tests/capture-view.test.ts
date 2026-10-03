@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖工作台的纯状态、双语文案与 DOM 模板。
- * [OUTPUT]: 验证完整操作面板存在、无 adapter 不伪造系统壁纸，以及中英文语义一致。
+ * [OUTPUT]: 验证完整操作面板存在、无 adapter 不伪造系统壁纸，以及中英文语义一致，以及标题遮罩不冒充身份设置。
  * [POS]: DSH 工作台 UI 合同；不以模板测试冒充 Desktop 像素验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -26,3 +26,10 @@ for (const locale of ['zh', 'en']) {
     assert.doesNotMatch(markup, /data-system-wallpaper=/);
   });
 }
+
+test('工作台标题遮罩文案不冒充身份开关，明确引导到插件设置', () => {
+  assert.equal(captureWindowCopy('zh').privacy, '标题遮罩');
+  assert.match(captureWindowCopy('zh').privacyDescription, /头像和名称.*插件设置/);
+  assert.equal(captureWindowCopy('en').privacy, 'Mask titles');
+  assert.match(captureWindowCopy('en').privacyDescription, /Avatar and name.*plugin settings/);
+});

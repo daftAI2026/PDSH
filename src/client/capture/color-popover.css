@@ -1,12 +1,14 @@
 /**
- * [INPUT]: 依赖共享表面/文字 token、实时原生 Input 边线与颜色模型提供的色相；色谱中的黑白是颜色空间端点，不是主题文字。
- * [OUTPUT]: 提供颜色浮层、色谱和输入控件样式。
+ * [INPUT]: 依赖共享表面/文字 token、实时原生 Input 边线与颜色模型色相；取色指示器保留参考内容几何/白色对比环，内外层显式圆形以隔离Host全局曲率。
+ * [OUTPUT]: 提供自有浮层限定的颜色控件样式，外壳使用含发丝描边的DSH elevation，不叠第二条边；色谱指示器独立于主题控件。
  * [POS]: capture-window 的选色视觉边界，与背景选择器共用表面语义。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 .pdsh-capture-color-popover {
+  /* +--- 内容坐标指示器：参考Shot的28px，与原生按钮/焦点环无关。---+ */
+  --pdsh-capture-picker-pointer-size: 28px;
   background: var(--pdsh-capture-surface);
-  border: var(--pdsh-outline-width) solid var(--pdsh-capture-border);
+  border: 0;
   border-radius: var(--pdsh-capture-radius-md);
   box-shadow: var(--dsw-elevation-panel);
   box-sizing: border-box;
@@ -20,7 +22,7 @@
   z-index: 50;
 }
 
-.react-colorful {
+.pdsh-capture-color-popover .react-colorful {
   cursor: default;
   display: flex;
   flex-direction: column;
@@ -30,7 +32,7 @@
   width: 200px;
 }
 
-.react-colorful__saturation {
+.pdsh-capture-color-popover .react-colorful__saturation {
   /* 色谱底部纯黑是颜色空间端点，不是主题边框。 */
   background-color: var(--capture-picker-hue);
   background-image: linear-gradient(0deg, #000, transparent), linear-gradient(90deg, #fff, rgb(255 255 255 / 0%));
@@ -41,17 +43,17 @@
   position: relative;
 }
 
-.react-colorful__hue {
+.pdsh-capture-color-popover .react-colorful__hue {
   background: linear-gradient(90deg, red 0, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, red);
   height: 24px;
   position: relative;
 }
 
-.react-colorful__last-control {
+.pdsh-capture-color-popover .react-colorful__last-control {
   border-radius: 0 0 var(--dsw-radius-sm) var(--dsw-radius-sm);
 }
 
-.react-colorful__interactive {
+.pdsh-capture-color-popover .react-colorful__interactive {
   border-radius: inherit;
   inset: 0;
   outline: none;
@@ -59,36 +61,38 @@
   touch-action: none;
 }
 
-.react-colorful__pointer {
-  background: var(--dsw-alias-bg-layer-1);
-  border: var(--dsw-focus-ring-width) solid var(--dsw-alias-border-inverted);
+.pdsh-capture-color-popover .react-colorful__pointer {
+  /* 白色环在任意色相上保持对比，不是Host主题边框。 */
+  background: #fff;
+  border: 2px solid #fff;
   border-radius: 50%;
   corner-shape: round;
-  box-shadow: var(--dsw-elevation-panel);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 20%);
   box-sizing: border-box;
-  height: var(--pdsh-action-size);
+  height: var(--pdsh-capture-picker-pointer-size);
   position: absolute;
   transform: translate(-50%, -50%);
-  width: var(--pdsh-action-size);
+  width: var(--pdsh-capture-picker-pointer-size);
   z-index: 1;
 }
 
-.react-colorful__interactive:focus .react-colorful__pointer {
+.pdsh-capture-color-popover .react-colorful__interactive:focus .react-colorful__pointer {
   transform: translate(-50%, -50%) scale(1.1);
 }
 
-.react-colorful__pointer-fill {
+.pdsh-capture-color-popover .react-colorful__pointer-fill {
   border-radius: inherit;
+  corner-shape: round;
   inset: 0;
   pointer-events: none;
   position: absolute;
 }
 
-.react-colorful__saturation-pointer {
+.pdsh-capture-color-popover .react-colorful__saturation-pointer {
   z-index: 3;
 }
 
-.react-colorful__hue-pointer {
+.pdsh-capture-color-popover .react-colorful__hue-pointer {
   z-index: 2;
 }
 

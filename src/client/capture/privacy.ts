@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 sidebar-redaction 的标题识别与 presentation 的身份识别，共用 styles.css 灰条绘制。
- * [OUTPUT]: 提供拍摄前可恢复的标题/身份占位标记及严格比例校验后的建议遮挡区域。
- * [POS]: DSH 截图隐私边界；仅改临时 DOM 属性，最终像素由 Host 截取。
+ * [INPUT]: 依赖 sidebar-redaction 的标题识别与 presentation 的唯一侧栏身份识别，共用 capture 灰条样式。
+ * [OUTPUT]: 按独立标题/身份偏好临时标记标题、原生名称、自有名牌和头像，并提供比例安全的编辑建议区域。
+ * [POS]: DSH 截图隐私边界；不触碰账户设置/昵称编辑区域，只改可恢复 DOM 属性，最终像素由 Host 截取。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { recognizedSidebarTitles } from '../sidebar-redaction.ts';
@@ -11,17 +11,23 @@ import type { CaptureCandidate } from './model.ts';
 const REDACT = 'data-pdsh-capture-redact';
 const PROFILE = 'data-pdsh-capture-redact-profile';
 
-export function markDSHPrivacyPlaceholders(doc: Document): () => void {
+export function markDSHPrivacyPlaceholders(doc: Document, { maskTitles = true, maskIdentity = true }: { maskTitles?: boolean; maskIdentity?: boolean } = {}): () => void {
   const snapshots: Array<{ node: Element; key: string; value: string | null; owned: string }> = [];
   function mark(node: Element, key: string, value = '') {
     snapshots.push({ node, key, value: node.getAttribute(key), owned: value });
     node.setAttribute(key, value);
   }
-  for (const title of recognizedSidebarTitles(doc)) mark(title, REDACT, 'text');
-  const identity = recognizeSidebarIdentity(doc);
-  if (identity.status === 'recognized') {
-    if (identity.label) mark(identity.label, REDACT, 'text');
-    mark(identity.avatar, PROFILE);
+  if (maskTitles) for (const title of recognizedSidebarTitles(doc)) mark(title, REDACT, 'text');
+  if (maskIdentity) {
+    const identity = recognizeSidebarIdentity(doc);
+    if (identity.status === 'recognized') {
+      const names = new Set<Element>();
+      if (identity.label) names.add(identity.label);
+      const ownedName = identity.trigger.querySelector(':scope > [data-pdsh-name]');
+      if (ownedName) names.add(ownedName);
+      for (const name of names) mark(name, REDACT, 'text');
+      mark(identity.avatar, PROFILE);
+    }
   }
   let restored = false;
   return () => {

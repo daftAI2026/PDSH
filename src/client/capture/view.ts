@@ -1,9 +1,10 @@
 /**
  * [INPUT]: 依赖 model.ts 的编辑状态、copy.ts 的本地化文案、presets.ts 的背景分层与 icons.ts 的图标
- * [OUTPUT]: 对外提供稳定 DOM 模板，以及重建时保留检查器滚动和焦点的视图记忆工具；padding 刻度仅作装饰
+ * [OUTPUT]: 对外提供稳定四模式面板 DOM 模板，隐藏面板保留 ARIA 关联但退出焦点，以及重建时保留检查器滚动和焦点的视图记忆工具；类别不重复标题、渐变始终完整展开，padding 刻度仅作装饰
  * [POS]: DSH 工作台的声明式视图边界；无系统壁纸 adapter 时不展示失效控制，避免伪能力
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { captureBackgroundPanelAttributes, captureBackgroundMode } from "./background-modes.ts";
 import type { CaptureWindowCopy } from "./copy.ts";
 import { escapeAttribute } from "./color-popover.ts";
 import { captureIcon } from "./icons.ts";
@@ -29,6 +30,7 @@ import {
 } from "./presets.ts";
 
 export type CaptureWindowViewOptions = {
+  backgroundTabsId?: string;
   lastBackgroundColor?: string;
   systemWallpapers?: SystemWallpaperState;
   wallpaperDataUrl?: string | null;
@@ -98,7 +100,7 @@ export function captureWindowTemplate(
             </div>
           </div>
         </section>
-        ${inspectorTemplate(state, copy, lastBackgroundColor, wallpaperDataUrl, systemWallpapers)}
+        ${inspectorTemplate(state, copy, lastBackgroundColor, wallpaperDataUrl, systemWallpapers, options.backgroundTabsId ?? "pdsh-capture-background")}
       </div>
       ${footerTemplate(copy)}
     </section>
@@ -158,6 +160,7 @@ function inspectorTemplate(
   lastBackgroundColor: string,
   wallpaperDataUrl: string | null,
   systemWallpapers: SystemWallpaperState,
+  backgroundTabsId: string,
 ): string {
   return `
     <aside class="pdsh-capture-inspector">
@@ -165,7 +168,7 @@ function inspectorTemplate(
       <div class="pdsh-capture-inspector-scroll" tabindex="0" role="region" aria-labelledby="pdsh-capture-background-title">
       <div class="pdsh-capture-inspector-content">
       <section class="pdsh-capture-section">
-        ${backgroundGridTemplate(state, copy, lastBackgroundColor, wallpaperDataUrl, systemWallpapers)}
+        ${backgroundGridTemplate(state, copy, lastBackgroundColor, wallpaperDataUrl, systemWallpapers, backgroundTabsId)}
       </section>
       <section class="pdsh-capture-section">
         <div class="pdsh-capture-row pdsh-capture-padding-heading">
@@ -178,10 +181,6 @@ function inspectorTemplate(
             ${Array.from({ length: 11 }, (_, index) => `<i style="--capture-tick-position: ${index * 10}%"></i>`).join("")}
           </div>
         </div>
-      </section>
-      <section class="pdsh-capture-section pdsh-capture-row">
-        <h2 class="pdsh-capture-section-title">${copy.backgroundNone}</h2>
-        <input class="pdsh-capture-switch" data-input="none" type="checkbox" aria-label="${copy.backgroundNone}" ${checked(state.background.kind === "transparent")}>
       </section>
       <section class="pdsh-capture-section pdsh-capture-row">
         <h2 class="pdsh-capture-section-title">${copy.shadow}</h2>
@@ -214,16 +213,17 @@ function backgroundGridTemplate(
   lastBackgroundColor: string,
   wallpaperDataUrl: string | null,
   systemWallpapers: SystemWallpaperState,
+  backgroundTabsId: string,
 ): string {
   const custom = state.background.kind === "color" && !isCapturePlainColor(state.background.color);
   const wallpaper = state.background.kind === "wallpaper" && !state.background.systemId;
-  const customIcon = `<span data-background-custom-icon ${custom ? "hidden" : ""}>${captureIcon("pipette")}</span>`;
+  const customIcon = `<span data-background-custom-icon>${captureIcon("pipette")}</span>`;
   const wallpaperImage = wallpaperDataUrl ?? "";
   const changeImageHidden = wallpaper && wallpaperDataUrl ? "" : " hidden";
   const gradients = capturePresetSection("gradients");
   const wallpapers = capturePresetSection("wallpapers");
-  const activeSection = captureBackgroundSection(state.background);
-  const wallpapersActive = activeSection === "wallpapers" || activeSection === "system-wallpapers";
+  const activeSection = captureBackgroundMode(state.background);
+  const wallpapersActive = activeSection === "wallpapers";
   const visibleWallpapers = systemWallpapers.entries.filter((entry) => entry.id === SYSTEM_WALLPAPER_CURRENT_ID || entry.loadStatus !== undefined);
   const currentWallpaper = visibleWallpapers.length > 0 && visibleWallpapers.every((entry) =>
     entry.loadStatus === undefined || entry.loadStatus === "ready" || entry.loadStatus === "loading");
@@ -232,13 +232,13 @@ function backgroundGridTemplate(
   const currentWallpaperSelected = state.background.kind === "wallpaper" &&
     state.background.systemId === SYSTEM_WALLPAPER_CURRENT_ID;
   return `
+    <div data-background-tabs></div>
     <div class="pdsh-capture-background-sections">
-      ${presetSectionTemplate(gradients, copy.backgroundGradients, state, activeSection, copy)}
-      <section class="pdsh-capture-background-section" data-background-section="wallpapers" data-active="${wallpapersActive}" aria-label="${copy.backgroundWallpapers}">
-        <div class="pdsh-capture-background-section-heading">
-          <h3 class="pdsh-capture-background-section-title">${copy.backgroundWallpapers}</h3>
-          ${systemWallpapers.status === "unavailable" || currentWallpaper ? "" : `<button class="pdsh-capture-background-expand" data-action="load-current-wallpaper" data-pdsh-tooltip="${escapeAttribute(copy.wallpaperDownloadHint)}" data-selected="${currentWallpaperSelected}" type="button" aria-busy="${currentWallpaperLoading}" aria-pressed="${currentWallpaperSelected}"${currentWallpaperDisabled ? " disabled" : ""}>${copy.getCurrentWallpaper}</button>`}
-        </div>
+      <section class="pdsh-capture-background-section" data-background-section="none" data-active="${activeSection === 'none'}" ${captureBackgroundPanelAttributes(backgroundTabsId, 'none', activeSection === 'none')}>
+      </section>
+      ${presetSectionTemplate(gradients, state, activeSection, backgroundTabsId)}
+      <section class="pdsh-capture-background-section" data-background-section="wallpapers" data-active="${wallpapersActive}" ${captureBackgroundPanelAttributes(backgroundTabsId, "wallpapers", wallpapersActive)}>
+        ${systemWallpapers.status === "unavailable" || currentWallpaper ? "" : `<button class="pdsh-capture-background-expand" data-action="load-current-wallpaper" data-pdsh-tooltip="${escapeAttribute(copy.wallpaperDownloadHint)}" data-selected="${currentWallpaperSelected}" type="button" aria-busy="${currentWallpaperLoading}" aria-pressed="${currentWallpaperSelected}"${currentWallpaperDisabled ? " disabled" : ""}>${copy.getCurrentWallpaper}</button>`}
         <div class="pdsh-capture-background-grid">
           ${presetButtonsTemplate(wallpapers, state)}
           ${visibleWallpapers.map((entry) => {
@@ -254,11 +254,10 @@ function backgroundGridTemplate(
         <button class="pdsh-capture-change-wallpaper" data-action="change-wallpaper" type="button"${changeImageHidden}>${copy.changeImage}</button>
         ${currentWallpaperStatusTemplate(systemWallpapers.status, copy)}
       </section>
-      <section class="pdsh-capture-background-section" data-background-section="plain-color" data-active="${activeSection === "plain-color"}" aria-label="${copy.backgroundPlainColor}">
-        <h3 class="pdsh-capture-background-section-title">${copy.backgroundPlainColor}</h3>
+      <section class="pdsh-capture-background-section" data-background-section="plain-color" data-active="${activeSection === "plain-color"}" ${captureBackgroundPanelAttributes(backgroundTabsId, "plain-color", activeSection === "plain-color")}>
         <div class="pdsh-capture-background-grid pdsh-capture-background-grid-plain">
           ${plainColorButtonsTemplate(state, capturePlainColors)}
-          <button class="pdsh-capture-background-option pdsh-capture-color-label" data-background-custom data-color-trigger="background" data-selected="${custom}" type="button" aria-label="${copy.custom}" data-pdsh-tooltip="${copy.custom}" aria-haspopup="dialog" aria-expanded="false" data-state="closed" style="--capture-swatch:${lastBackgroundColor}">${customIcon}</button>
+          <button class="pdsh-capture-background-option pdsh-capture-color-label" data-background-custom data-color-trigger="background" data-selected="${custom}" aria-pressed="${custom}" type="button" aria-label="${copy.custom}" data-pdsh-tooltip="${copy.custom}" aria-haspopup="dialog" aria-expanded="false" data-state="closed" style="--capture-swatch:${lastBackgroundColor}">${customIcon}</button>
         </div>
       </section>
     </div>
@@ -292,21 +291,12 @@ function plainColorButtonsTemplate(
 
 function presetSectionTemplate(
   section: CapturePresetSection,
-  label: string,
   state: CaptureWindowState,
   activeSection: ReturnType<typeof captureBackgroundSection>,
-  copy?: Pick<CaptureWindowCopy, "backgroundShowLess" | "backgroundShowMore">,
+  backgroundTabsId: string,
 ): string {
-  const collapsible = section.id === "gradients" && copy;
-  const heading = collapsible
-    ? `<div class="pdsh-capture-background-section-heading">
-        <h3 class="pdsh-capture-background-section-title">${label}</h3>
-        <button class="pdsh-capture-background-expand" data-action="toggle-gradients" type="button" aria-expanded="${state.gradientsExpanded}">${state.gradientsExpanded ? copy.backgroundShowLess : copy.backgroundShowMore}</button>
-      </div>`
-    : `<h3 class="pdsh-capture-background-section-title">${label}</h3>`;
   return `
-    <section class="pdsh-capture-background-section" data-background-section="${section.id}" data-active="${activeSection === section.id}" data-expanded="${section.id === "gradients" && state.gradientsExpanded}" aria-label="${label}">
-      ${heading}
+    <section class="pdsh-capture-background-section" data-background-section="${section.id}" data-active="${activeSection === section.id}" ${captureBackgroundPanelAttributes(backgroundTabsId, section.id, activeSection === section.id)}>
       <div class="pdsh-capture-background-grid">${presetButtonsTemplate(section, state)}</div>
     </section>
   `;
@@ -316,11 +306,10 @@ function presetButtonsTemplate(
   section: CapturePresetSection,
   state: CaptureWindowState,
 ): string {
-  return section.presets.map((preset, index) => {
+  return section.presets.map((preset) => {
     const { id } = preset;
     const selected = state.background.kind === "preset" && state.background.id === id;
-    const overflow = section.id === "gradients" && index >= 5;
-    return `<button class="pdsh-capture-background-option" data-background="${id}"${overflow ? " data-gradient-overflow" : ""} type="button" aria-label="${id}" data-pdsh-tooltip="${id}" aria-pressed="${selected}" style="--capture-swatch:${capturePresetSwatch(preset)}"${overflow && !state.gradientsExpanded ? " hidden" : ""}></button>`;
+    return `<button class="pdsh-capture-background-option" data-background="${id}" type="button" aria-label="${id}" data-pdsh-tooltip="${id}" aria-pressed="${selected}" style="--capture-swatch:${capturePresetSwatch(preset)}"></button>`;
   }).join("");
 }
 

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 viewport.ts 与 page-capture-port.ts 的当前页面 PNG 窄契约；注入桥/解码桩，不克隆网页。
- * [OUTPUT]: 验证宿主与显式桥共用能力门、关联 ID、冻结解码/释放、尺寸上限、取消与视口变化拒绝。
+ * [OUTPUT]: 验证能力门、关联 ID、冻结解码/释放、预算与生命周期；保留正式 Main IPC 错误分类，不误报调试端口。
  * [POS]: 原生取像适配合同；桩桥不证明已安装 DSH 有这项能力。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -8,6 +8,37 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { captureViewport, readPageCapturePort, CaptureViewportError } from '../src/client/capture/viewport.ts';
+
+test('原生 Main 的固定错误与 Electron invoke 包装保留分类，忙碌不是调试端口冲突', async () => {
+  const cases = {
+    'invalid-request': 'capture-failed', unavailable: 'host-unavailable', busy: 'capture-busy',
+    cancelled: 'aborted', stale: 'viewport-changed', 'unsupported-content': 'unsupported-content',
+    'too-large': 'oversize', 'capture-failed': 'capture-failed',
+  };
+  for (const [nativeCode, expected] of Object.entries(cases)) {
+    for (const prefix of ['', "Error invoking remote method 'dsh-desktop:page-capture': Error: "]) {
+      const h = setup(async () => { throw new Error(`${prefix}dsh desktop page capture: ${nativeCode}`); });
+      try {
+        await assert.rejects(captureViewport(h.doc), error => error instanceof CaptureViewportError && error.code === expected);
+        assert.equal(h.calls.decode, 0); assert.equal(h.calls.draw, 0);
+      } finally { h.dom.window.close(); }
+    }
+  }
+});
+
+test('未知错误和其他 IPC 通道不冒充正式 Main 分类，不透传诊断文本', async () => {
+  for (const message of [
+    'dsh desktop page capture: unknown',
+    "Error invoking remote method 'other-channel': Error: dsh desktop page capture: unavailable",
+    'private-path: dsh desktop page capture: too-large',
+  ]) {
+    const h = setup(async () => { throw new Error(message); });
+    try {
+      await assert.rejects(captureViewport(h.doc), error => error instanceof CaptureViewportError
+        && error.code === 'capture-failed' && !error.message.includes(message));
+    } finally { h.dom.window.close(); }
+  }
+});
 
 function png(width = 640, height = 360) {
   const bytes = new Uint8Array(33);

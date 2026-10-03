@@ -1,3 +1,9 @@
+<!--
+[INPUT]: 依赖实际内联头像/Remote schema、复用编辑器/图稿/壁纸与锁定依赖的原始许可。
+[OUTPUT]: 保留实际分发代码和资产的第三方版权/许可，不将外置依赖误称本包零依赖。
+[POS]: 单 Bundle 分发告知；构建工具/外置 Host 库仍依其自身随包许可证。
+[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+-->
 # Third-party notices
 
 The browser bundle includes blobatar@2.7.0 for deterministic offline avatars.
@@ -49,6 +55,37 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 ## Capture workbench and camera artwork
 
-The capture editor TypeScript, CSS, and five bundled preset wallpaper JPEGs were adapted from InCodex Shot (the `feature/capture-generated-gradients` worktree). UI theme chrome was remapped to DeepSeek Harness semantic tokens. The camera glyph is Lucide-derived line artwork.
+The capture editor TypeScript, CSS, and five bundled preset wallpaper JPEGs were adapted from InCodex Shot (the `feature/capture-generated-gradients` worktree). UI theme chrome was remapped to DeepSeek Harness semantic tokens. The workbench's 29 glyphs and sidebar camera use canonical SVG paths from [Lucide 1.51.0](https://github.com/lucide-icons/lucide/tree/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons). Per-icon source URLs and content hashes are recorded in `style-sources.json`; no runtime Lucide dependency is added. Host-native controls retain their original artwork.
 
 Copyright (c) 2026 daftAI2026 and InCodex contributors. The MIT and Lucide ISC terms reproduced above apply.
+
+
+## Generated Remote schemas — Zod 4.4.3
+
+The Client includes Zod in its generated Remote schema. The generated Host/Remote entries use the exact runtime dependency. The following license is reproduced from the installed Zod package:
+
+```text
+MIT License
+
+Copyright (c) 2025 Colin McDonnell
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+The external Host dependency `@deepseek-ai/dsh-typert-protocol@0.2.0-rc.2` is official DeepSeek code (MIT, Copyright (c) 2026 DeepSeek), distributed with its own package license; the build-only protocol source reference is not a shipped runtime dependency.

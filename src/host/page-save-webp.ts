@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖原页面 Canvas 编码的 WebP 字节与 shared/capture-export 的输出像素预算；不使用 nativeImage 解码 WebP。
  * [OUTPUT]: 提供 readWebPDimensions；检查 RIFF 长度、分块边界、静态 VP8/VP8L/VP8X 尺寸一致性。
- * [POS]: Main 保存格式适配；只做封装/预算验证，不是通用 WebP 解码器，内容来自绑定的 Renderer 编码器。
+ * [POS]: 被 Host window-save-image.ts 复用的静态 WebP 尺寸边界；只验封装/预算，不是通用解码器或已退役 Main 保存入口。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { assertCaptureExportSize } from '../shared/capture-export.ts';

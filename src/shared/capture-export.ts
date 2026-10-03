@@ -1,13 +1,18 @@
 /**
  * [INPUT]: 依赖 Host 已接受的保存方式/目录/格式/文件名模板与本地 Date；不读取账号或截图。
- * [OUTPUT]: 提供询问/直接保存合同、独立导出预算与尺寸纯校验、PDSH 默认命名和仅含 basename 的文件名生成。
- * [POS]: 拍照设置到编辑器的纯数据合同；格式只作用保存，剪贴板保持 PNG。
+ * [OUTPUT]: 提供单slash POSIX与canonical Windows drive/UNC绝对目录语法（拒绝设备命名空间/控制字符）、询问/直接保存合同、独立导出预算与尺寸校验、PDSH 默认命名和 basename 生成。
+ * [POS]: 拍照设置到编辑器的纯数据合同；跨端只验证绝对路径形状，Host 仍用本机 path 语义决定能否写入。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 export const CAPTURE_SAVE_FORMATS = ['png', 'jpeg', 'webp'] as const;
 export type CaptureSaveFormat = typeof CAPTURE_SAVE_FORMATS[number];
 export const CAPTURE_SAVE_BEHAVIORS = ['ask', 'direct'] as const;
 export type CaptureSaveBehavior = typeof CAPTURE_SAVE_BEHAVIORS[number];
+// +--- POSIX只认单slash根；Windows只认规范反斜杠路径，UNC拒绝设备命名空间 ---+
+export const CAPTURE_SAVE_DIRECTORY_PATTERN = /^(?=.{0,4096}$)(?:|\/(?!\/)[^\u0000-\u001f\u007f-\u009f]*|[A-Za-z]:\\(?:[^\\/:*?"<>|\u0000-\u001f\u007f-\u009f]+(?:\\[^\\/:*?"<>|\u0000-\u001f\u007f-\u009f]+)*\\?)?|\\\\(?!\.{1,2}\\)[^\\/:*?"<>|\u0000-\u001f\u007f-\u009f]+\\[^\\/:*?"<>|\u0000-\u001f\u007f-\u009f]+(?:\\[^\\/:*?"<>|\u0000-\u001f\u007f-\u009f]+)*\\?)$/u;
+export function isCaptureSaveDirectory(value: unknown): value is string {
+  return typeof value === 'string' && CAPTURE_SAVE_DIRECTORY_PATTERN.test(value);
+}
 export const CAPTURE_FILE_NAME_TOKENS = ['date', 'time', 'title', 'width', 'height'] as const;
 export const CAPTURE_FILE_NAME_MAX_BYTES = 220;
 // +--- 编辑后输出与16MP原生采样分别计额；32MP容纳5K默认边距，编码最多128MB ---+
@@ -27,7 +32,7 @@ export function resolveCaptureExportPreferences(value): CaptureExportPreferences
   return {
     saveBehavior: CAPTURE_SAVE_BEHAVIORS.includes(value?.saveBehavior) ? value.saveBehavior : DEFAULT_CAPTURE_EXPORT.saveBehavior,
     saveFormat: CAPTURE_SAVE_FORMATS.includes(value?.saveFormat) ? value.saveFormat : DEFAULT_CAPTURE_EXPORT.saveFormat,
-    saveDirectory: typeof value?.saveDirectory === 'string' && (value.saveDirectory === '' || /^\/(?!.*[\u0000-\u001f\u007f]).{0,4095}$/u.test(value.saveDirectory)) ? value.saveDirectory : '',
+    saveDirectory: isCaptureSaveDirectory(value?.saveDirectory) ? value.saveDirectory : '',
     fileNamePattern: typeof value?.fileNamePattern === 'string' && CAPTURE_FILE_NAME_PATTERN.test(value.fileNamePattern)
       ? value.fileNamePattern : DEFAULT_CAPTURE_EXPORT.fileNamePattern,
   };

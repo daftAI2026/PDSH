@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖根 Bundle manifest、唯一构建入口和提交的 Host/Client/Main 产物。
+ * [INPUT]: 依赖根 Bundle manifest、唯一构建入口和提交的 Host/Client/Typert/native 产物。
  * [OUTPUT]: 验证一个安装包、一个 Cordis 入口、一个 Client factory；三个功能不得再次变成 Git 子依赖。
- * [POS]: 分发回归门；模块化不改变安装拓扑，Main 桥仍在同包内而不冒充已可用接口。
+ * [POS]: 分发回归门；模块化不改变安装拓扑，原生整窗Helper和生成 Remote face同包，旧 Main不参与运行。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
@@ -9,10 +9,10 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 const root = new URL('../', import.meta.url);
 
-test('手写脚本保持 TypeScript；唯一 Host/Client 和包内 Main 是生成产物', () => {
+test('手写脚本保持 TypeScript；唯一 Host/Client 是生成产物，手写脚本仍为TS', () => {
   const files = readdirSync(root);
   assert.deepEqual(files.filter(file => /\.(?:mjs|js)$/.test(file)).sort(), ['client.js', 'index.js']);
-  assert.ok(files.includes('build.ts') && files.includes('check-release.ts') && files.includes('main.cjs'));
+  assert.ok(files.includes('build.ts') && files.includes('check-release.ts'));
   const manifest = JSON.parse(readFileSync(new URL('package.json', root), 'utf8'));
   assert.match(manifest.scripts.build, /build\.ts/);
   assert.match(manifest.scripts['release:check'], /check-release\.ts/);
@@ -25,7 +25,9 @@ test('三个功能是源码模块，不是三个安装依赖或 Cordis 插件', 
   assert.deepEqual(Object.keys(manifest.dependencies).filter(name => name.startsWith('@daftai/pdsh')), []);
   assert.equal(manifest.bundledDependencies, undefined);
   assert.equal(manifest.files.includes('components/'), false);
-  assert.ok(manifest.files.includes('main.cjs'));
+  assert.equal(manifest.files.includes('main.cjs'),false);
+  assert.ok(manifest.files.some(path=>path.includes('typert')));
+  assert.ok(manifest.files.some(path=>path.includes('native')));
   assert.equal(manifest.dsh.bundle.patch, './cordis.patch.yml');
   assert.equal(manifest.exports['./client'], './client.js');
   const patch = readFileSync(new URL('cordis.patch.yml', root), 'utf8');

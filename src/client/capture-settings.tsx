@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖拍照 ConfigForm、Host Input/Button 与纯导出偏好合同。
- * [OUTPUT]: 提供保存方式、可见完整目录、格式和文件名模板设置；只使用 Host revision 保存。
- * [POS]: 拍照导出设置边界；保存目录来自 DSH 原生选择，名称/格式与目录只经 Host 配置接受，不含像素，不伪造可用文件能力。
+ * [OUTPUT]: 提供保存方式、目录、格式/文件名模板和独立截图身份遮挡开关；所有写入只使用 Host revision。
+ * [POS]: 官方 Plugins 拍照设置边界；截图身份遮挡与常驻身份替换、工作台标题预遮挡分别持有独立偏好。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -11,6 +11,7 @@ export function CaptureSettingsCard({ form, t, view, chooseDirectory = null }) {
   const accepted = useSyncExternalStore(fn => form.subscribe(fn), () => form.getSnapshot());
   const preferences = resolveCaptureExportPreferences(accepted.value);
   const captureEnabled = accepted.value?.captureEnabled !== false;
+  const captureMaskIdentity = accepted.value?.captureMaskIdentity !== false;
   const [pending, setPending] = useState(false), [failed, setFailed] = useState(false), [draft, setDraft] = useState<string | null>(null);
   const templateRow = useRef(null), returnFocus = useRef(null);
   const alive = useRef(true), busy = useRef(false), base = useRef<string | null>(null);
@@ -31,7 +32,8 @@ export function CaptureSettingsCard({ form, t, view, chooseDirectory = null }) {
   async function save(key, value, origin?) {
     const current = form.getSnapshot(); if (busy.current || current.status !== 'ready' || !current.writable) return;
     rememberFocus(origin, key === 'fileNamePattern');
-    if (resolveCaptureExportPreferences(current.value)[key] === value) { if (key === 'fileNamePattern') { setDraft(null); base.current = null; } return; }
+    const currentValue = key in (current.value ?? {}) ? current.value?.[key] : resolveCaptureExportPreferences(current.value)[key];
+    if (currentValue === value) { if (key === 'fileNamePattern') { setDraft(null); base.current = null; } return; }
     if (key === 'fileNamePattern' && (!CAPTURE_FILE_NAME_PATTERN.test(value) || base.current !== resolveCaptureExportPreferences(current.value).fileNamePattern)) { setFailed(true); return; }
     busy.current = true; setPending(true); setFailed(false);
     try {
@@ -62,6 +64,12 @@ export function CaptureSettingsCard({ form, t, view, chooseDirectory = null }) {
     <div className="pdsh-row pdsh-group-header" aria-busy={pending || undefined}><h4 id="pdsh-capture-title">{t('capture')}</h4>
       <Tooltip label={t('captureEnabled')} side="bottom" delayMs={500} focusDelayMs={0} portal><span className="pdsh-switch-tooltip">
         <Switch checked={captureEnabled} disabled={!writable} label={t('captureEnabled')} onChange={() => void save('captureEnabled', !captureEnabled)} />
+      </span></Tooltip>
+    </div>
+    <div className="pdsh-detail-row pdsh-row" aria-busy={pending || undefined}>
+      <span className="pdsh-label" id="pdsh-capture-mask-identity">{t('captureMaskIdentity')}</span>
+      <Tooltip label={t('captureMaskIdentity')} side="bottom" delayMs={500} focusDelayMs={0} portal><span className="pdsh-switch-tooltip">
+        <Switch checked={captureMaskIdentity} disabled={!writable} label={t('captureMaskIdentity')} onChange={() => void save('captureMaskIdentity', !captureMaskIdentity)} />
       </span></Tooltip>
     </div>
     <div className="pdsh-detail-row"><span className="pdsh-label" id="pdsh-save-behavior">{t('saveLocation')}</span>

@@ -1,7 +1,7 @@
 {
   "name": "@daftai/pdsh",
   "description": "Same-window presentation and local capture workbench for DeepSeek Harness; no session isolation.",
-  "version": "0.3.0-rc.11",
+  "version": "0.3.0-rc.21",
   "private": true,
   "type": "module",
   "main": "./index.js",
@@ -9,7 +9,16 @@
     "index.js",
     "client.js",
     "client.js.map",
-    "main.cjs",
+    "lib/typert.host.js",
+    "lib/typert.host.d.ts",
+    "lib/typert.remote-client.js",
+    "lib/typert.remote-client.d.ts",
+    "lib/types/shared/capture-export.d.ts",
+    "lib/types/shared/remote-types.d.ts",
+    "lib/types/shared/window-capture-protocol.d.ts",
+    "lib/types/shared/window-save-protocol.d.ts",
+    "native/window-capture",
+    "native/windows/window-capture-x64.exe",
     "cordis.patch.yml",
     "plugin-icon.svg",
     "style-sources.json",
@@ -20,14 +29,25 @@
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
+    "./types": {
+      "types": "./lib/types/shared/remote-types.d.ts"
+    },
+    "./typert": {
+      "types": "./lib/typert.host.d.ts",
+      "default": "./lib/typert.host.js"
+    },
+    "./remote": {
+      "types": "./lib/typert.remote-client.d.ts",
+      "default": "./lib/typert.remote-client.js"
+    },
     "./package.json": "./package.json",
     "./locale/*.json": "./locale/*.json"
   },
   "scripts": {
     "build": "node --experimental-strip-types build.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node --experimental-strip-types tools/generate-typert.ts && tsc -p tsconfig.remote-types.json && tsc --noEmit",
     "test": "pnpm typecheck && pnpm build && pnpm artifacts:check && node --experimental-strip-types --test tests/*.test.ts",
-    "bundle": "pnpm build && pnpm artifacts:check && pnpm pack --pack-destination output && pnpm archive:check",
+    "bundle": "pnpm build && pnpm artifacts:check && npm pack --ignore-scripts --pack-destination output && pnpm archive:check",
     "release:check": "node --experimental-strip-types check-release.ts",
     "artifacts:check": "node --experimental-strip-types --input-type=module -e \"import { validateBundleArtifacts } from './bundle-artifacts.ts'; validateBundleArtifacts(process.cwd())\"",
     "archive:check": "node --experimental-strip-types --input-type=module -e \"import { validatePackedBundle } from './bundle-artifacts.ts'; console.log(validatePackedBundle(process.cwd()))\""
@@ -46,19 +66,25 @@
     }
   },
   "dependencies": {
+    "@deepseek-ai/dsh-typert-protocol": "0.2.0-rc.2",
     "@deepseek-ai/schemastery": "3.18.4",
-    "blobatar": "2.7.0"
+    "blobatar": "2.7.0",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.4",
     "@types/node": "22",
     "@types/react": "18",
     "@types/react-dom": "18",
+    "@deepseek-ai/dsh-typert-generator": "0.2.0-rc.2",
     "esbuild": "0.25.12",
     "jsdom": "26.1.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "typescript": "6.0.3"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4"
   },
   "repository": {
     "type": "git",

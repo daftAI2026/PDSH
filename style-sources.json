@@ -130,7 +130,7 @@
       "selector": ".field",
       "property": "padding-top",
       "acquisition": "渲染官方 SettingsValueField；读取 root/head 的 computed style，无布局数字 fallback；身份卡片不叠加底内边距，昵称行对称承担上下留白，整体高度不变。",
-      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔，不加独立数字间距"
+      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔；身份开关动作槽以--pdsh-action-size等高，统一上下内边距，不加独立数字间距"
     },
     {
       "role": "settings label/control gap",
@@ -139,7 +139,7 @@
       "selector": ".field",
       "property": "gap",
       "acquisition": "渲染官方 SettingsValueField；读取 root/head 的 computed style，无布局数字 fallback",
-      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔，不加独立数字间距"
+      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔；身份开关动作槽以--pdsh-action-size等高，统一上下内边距，不加独立数字间距"
     },
     {
       "role": "settings inline actions gap",
@@ -148,7 +148,7 @@
       "selector": ".head",
       "property": "gap",
       "acquisition": "渲染官方 SettingsValueField；读取 root/head 的 computed style，无布局数字 fallback",
-      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔，不加独立数字间距"
+      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔；身份开关动作槽以--pdsh-action-size等高，统一上下内边距，不加独立数字间距"
     },
     {
       "role": "search left adjacency",
@@ -180,7 +180,7 @@
       "variable": "--dsw-alias-border-l2",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
       "consumer": "packages/client/ui-primitives/src/settings-form/fields.module.css .field + .field",
-      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔，不加独立数字间距"
+      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔；身份开关动作槽以--pdsh-action-size等高，统一上下内边距，不加独立数字间距"
     },
     {
       "role": "nickname edit affordance",
@@ -746,7 +746,7 @@
       "blendingMode": "behindWindow",
       "source": "https://developer.apple.com/documentation/appkit/nsvisualeffectview"
     },
-    "acquisition": "自有离屏 NSVisualEffectView 的 CALayer 只读取证，未激活窗口、未请求录屏；研究参数固化为编辑 recipe，运行时不使用原生 helper 或私有 API。",
+    "acquisition": "自有离屏 NSVisualEffectView 的 CALayer 只读取证，未激活窗口、未请求录屏；研究参数固化为编辑 recipe，该材质绘制自身不调用取像 helper 或私有 API；RC 的整窗取像另由显式调用的原生 helper 完成。",
     "light": {
       "blurRadius": 30,
       "saturation": 2.2,
@@ -764,5 +764,216 @@
       "toneBlend": "lighten"
     },
     "limits": "只模糊用户选择的编辑背景，原始 PNG 无滤镜并保留。缺少真实桌面背景、Chameleon 桌面着色及 SDR 归一化，Canvas blur 不是 Core Animation 的逐像素复刻；后续系统版本不保证参数一致。透明选项仅使窗口外围透明，窗口内部保留材质底层。"
+  },
+  "capturePicker": {
+    "role": "编辑内容色谱坐标指示器，不是Host按钮",
+    "pointerRole": "编辑内容色谱坐标指示器，不是Host按钮",
+    "implementation": "src/client/capture/color-popover.css",
+    "referenceFile": "src/runtime/capture-window/color-popover.css",
+    "referenceBranch": "feature/capture-generated-gradients",
+    "referenceCommit": "96f9ce30f06a255db572f4cc6092c2f15429fc76",
+    "pointerSize": 28,
+    "pointerBorder": {
+      "width": 2,
+      "color": "#fff"
+    },
+    "acquisition": "参考Shot原始几何保持在色谱内容内，白色对比环不跟主题反转；自有浮层限定所有react-colorful规则，外壳/Input仍消费DSH语义token。",
+    "pointerShadow": "0 2px 4px rgb(0 0 0 / 20%)",
+    "curveIsolation": "pointer和pointer-fill分别显式corner-shape:round；corner-shape本身不继承，Host universal selector直接为每个元素应用曲率，见ui-theme/src/styles/corner-shape.css与docs/ui-radius.md",
+    "popoverElevation": "border:0配合--dsw-elevation-panel；其阴影已含0.5px发丝描边，来源ui-theme/src/styles/gradient-shadow-text.css及docs/ui-radius.md"
+  },
+  "captureIcons": {
+    "release": "1.51.0",
+    "commit": "45b0e148db4ee4d748340d0f99982aa1c2159d52",
+    "implementation": "src/client/capture/icons.ts",
+    "geometry": "只同步24单位SVG路径；实际尺寸、描边与透明度由Host实时探针提供",
+    "icons": {
+      "camera": {
+        "name": "camera",
+        "bodySha256": "2e315804a007219b67a24638c682250e41765026bdc0f9e855b11f156427834e",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/camera.svg"
+      },
+      "check": {
+        "name": "check",
+        "bodySha256": "b1fae48e85719ffb4fc7c4bad64bdd2417de1911186b00482e8bb2df73983c2d",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/check.svg"
+      },
+      "chevron-down": {
+        "name": "chevron-down",
+        "bodySha256": "ff92e9c43a316c6e5364cff78e2636078b26ae26af90fb9b10a0eac642c1fa44",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/chevron-down.svg"
+      },
+      "copy": {
+        "name": "copy",
+        "bodySha256": "cc35b6ca38550b0e04022da3ed0e69be489a0fd4ef1fc0366bf21228185a3862",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/copy.svg"
+      },
+      "download": {
+        "name": "download",
+        "bodySha256": "91ac1cf0026ea1da294019a115d33b1545f08e8a149e4a4fad889ad8a048d68e",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/download.svg"
+      },
+      "droplet": {
+        "name": "droplet",
+        "bodySha256": "803503321a2a39442be14f3d5856508c24f3d37b6fb90ae204baaba72caa17a6",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/droplet.svg"
+      },
+      "grid-3x3": {
+        "name": "grid-3x3",
+        "bodySha256": "30b3fa95571a2a13a1b57e50c214b3a8f7c3f3f14870e9edb0cf25ac3105615d",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/grid-3x3.svg"
+      },
+      "hand": {
+        "name": "hand",
+        "bodySha256": "a3b0e0c30b094710dd9f8901a69a1bec542e5f78e89cea49c7d9d2b7aa8c8425",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/hand.svg"
+      },
+      "image": {
+        "name": "image",
+        "bodySha256": "76ec95a15e6daf74b7d898ecc26be828dc094de7177f1701f92309e3437f5281",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/image.svg"
+      },
+      "maximize": {
+        "name": "maximize",
+        "bodySha256": "178c7e81c3dbaf433f5ee6e4ec973f4dfdde40feeb53feaf1eddd830347e1d28",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/maximize.svg"
+      },
+      "move": {
+        "name": "move",
+        "bodySha256": "4bb6eec74d87dd98ded4a8f043d22fb4779cf6b6bad8ebc2f75d91e618f29fbf",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/move.svg"
+      },
+      "palette": {
+        "name": "palette",
+        "bodySha256": "6b3f48bf7bcde087c14f66e03bf896c5fc5ed963176e07c9632261707dc53254",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/palette.svg"
+      },
+      "pen-line": {
+        "name": "pencil-line",
+        "bodySha256": "51e5b170315951c7e43d6174a7c8efd8ff716b952894fbae2c827e5d102f0ac0",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/pencil-line.svg"
+      },
+      "pipette": {
+        "name": "pipette",
+        "bodySha256": "68561c4096e5ccb90738153a9d85bea1d726c67019b8607a3b3164dd00df5082",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/pipette.svg"
+      },
+      "plus": {
+        "name": "plus",
+        "bodySha256": "0b18b67a3f40c67f5c84e90480e7178178e8b9f4fbccde09bfec13df007a1742",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/plus.svg"
+      },
+      "redo": {
+        "name": "redo-2",
+        "bodySha256": "b80e0e2bfd66980e08607f4879e7ccfa0f1350a1c987e6e224d03df5693c4b0d",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/redo-2.svg"
+      },
+      "retake": {
+        "name": "rotate-ccw",
+        "bodySha256": "0b7a71ab728579816152a7abc0fce1ca806f38413efcffb7b75c5fdc71659b87",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/rotate-ccw.svg"
+      },
+      "scan": {
+        "name": "scan-line",
+        "bodySha256": "cb3a3532bfcbf837ed70a9d42edae0c6a31be8eaf72f6afe59ba72dec1cee3e0",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/scan-line.svg"
+      },
+      "scan-search": {
+        "name": "scan-search",
+        "bodySha256": "5042d43813ce7772736f76a8769a8bea453b03be8823157c952046d8803d43cd",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/scan-search.svg"
+      },
+      "save": {
+        "name": "save",
+        "bodySha256": "0a5fac16182892f25207e88ca8f33d3465013679f5c08cfcb6a43a4d22b64af5",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/save.svg"
+      },
+      "shield": {
+        "name": "shield-check",
+        "bodySha256": "bc7d946304aec795f2ccda00af7a96c8f431adfd254e8bfc3bbbef3697e09579",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/shield-check.svg"
+      },
+      "square": {
+        "name": "square",
+        "bodySha256": "c5097ee868b45f784688a8521911d7cd7cbf23fbbc0375094eb0a7fa81889ef5",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/square.svg"
+      },
+      "square-dashed": {
+        "name": "square-dashed",
+        "bodySha256": "e0299a53db7db49fb00b2a624188db4b3925beeffed6c36aa840479d85ac0d7e",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/square-dashed.svg"
+      },
+      "trash": {
+        "name": "trash",
+        "bodySha256": "b7a7cdd78f2f5188cb14a92b3df0ac1d3feee2114c0f3b057a6be18920b40efb",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/trash.svg"
+      },
+      "undo": {
+        "name": "undo-2",
+        "bodySha256": "3a5192fd77ee3f3a45e6837180190789ddfa295d54248861997377cebd47fc4f",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/undo-2.svg"
+      },
+      "wallpaper": {
+        "name": "wallpaper",
+        "bodySha256": "1e345898e1771885d7f8378a34e8e9f5d1d6519c6f5a0cc70d9ecaa2dcc94be8",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/wallpaper.svg"
+      },
+      "x": {
+        "name": "x",
+        "bodySha256": "da77ddd5cb8dcaec3320ce7322a4478c4efa66033dff4bb7cdbabce3a7ae28da",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/x.svg"
+      },
+      "zoom-in": {
+        "name": "zoom-in",
+        "bodySha256": "8e68b3a145ff69c9849ad65af393a274bb5ce028c6ea82fd49fa9c2e07f2d20c",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/zoom-in.svg"
+      },
+      "zoom-out": {
+        "name": "zoom-out",
+        "bodySha256": "327a396d06b0a083440286a39a16af3c4811bbdd7bb0620437941b9e4fa5d1ed",
+        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/zoom-out.svg"
+      }
+    }
+  },
+  "captureInspector": {
+    "implementation": [
+      "src/client/capture/capture-window.css",
+      "src/client/capture/background-picker.css"
+    ],
+    "gutterToken": "--dsw-focus-ring-width",
+    "gutterMultiplier": 2,
+    "widthPx": 240,
+    "widthReferenceFile": "src/runtime/capture-window/capture-window.css",
+    "widthDecision": "用户2026-10-03最终选择参考默认右侧240px、左侧剩余宽度；不固定4:1，也不把DSH field-gap/2改成4px。240px是产品布局约束而非缺失Host token的回退。",
+    "referenceFile": "src/runtime/capture-window/background-picker.css",
+    "referenceCommit": "96f9ce30f06a255db572f4cc6092c2f15429fc76",
+    "decision": "参考用4px空间保护4px双层环；DSH space并不保证同样预算，使用Host焦点环宽度两倍保护检查器和网格。拾色图标取Host尺寸与色块减安全边距的较小值，纯色改为与图片/渐变相同的五列圆角方框，局部选择器胜过全局探针尺寸；不去除裁切或缩小整个界面。",
+    "selectionRingMultiplier": 0.5,
+    "selectionRingDecision": "用户2026-10-04要求内外选中环更细，两层各取Host焦点宽度的一半；键盘焦点环及安全边距保留原宽。自选颜色入口始终显示pipette，表面/前景采用Host token，不让任意自选色吞掉图标。"
+  },
+  "captureBackgroundTabs": {
+    "implementation": [
+      "src/client/capture/background-tabs.tsx",
+      "src/client/capture/background-modes.ts",
+      "src/client/capture/view.ts",
+      "src/client/capture/background-picker.css"
+    ],
+    "component": "@deepseek-ai/dsh-client-ui-primitives SegmentedControl",
+    "hostVersion": "0.2.0-rc.2",
+    "hostFiles": [
+      "packages/client/ui-primitives/src/SegmentedControl.tsx",
+      "packages/client/ui-primitives/src/SegmentedControl.module.css"
+    ],
+    "installedExport": "app.asar/dsh/node_modules/@deepseek-ai/dsh-client-ui-primitives/lib/index.js",
+    "research": {
+      "shadcn": "https://ui.shadcn.com/docs/components/base/tabs",
+      "shadcnCommit": "295a1f114a138f23b5dfee0e0c6812394dfeb90c",
+      "baseUi": "https://base-ui.com/react/components/tabs",
+      "baseUiCommit": "19511bb171f3b360b006c94cf6d07e53cb446505"
+    },
+    "decision": "不引入BaseUI/Tailwind依赖。四类即刻应用并记住本次最近素材，实际background是唯一模式真源。沿用Host自动激活/四向箭头/循环/Home-End/禁用跳过，与BaseUI默认手动激活和可聚焦禁用项有意不同，不宣称完整行为复刻。",
+    "panelContract": "四面板始终保留稳定id/aria-labelledby，非当前面板hidden/inert/tabindex=-1；工作台Tab围栏跳过负tabindex与不可见项。 空的无背景面板不添加不可见焦点停靠。",
+    "layout": "240px检查器内四等宽轨道，局部移除Host tab左右16px内边距，不复制CSS Modules hash、主题色或指标几何。键盘走位关闭本控件过渡，指针和减少运动沿用Host。 不重复类别标题；20个渐变全部显示，不设展开/收起控制。",
+    "wallpaperBoundary": "内置与用户上传留在图片面板，本机壁纸入口按用户要求延期，缺真实adapter不伪造入口。"
   }
 }

@@ -1,12 +1,19 @@
 /**
- * [INPUT]: 依赖 shared/model.ts 的显示默认值、capture.ts 的拍照字段/Loader volatile-update 订阅与 Harness Settings 生命周期。
- * [OUTPUT]: 提供唯一 pdsh Config/apply；Settings form、显示偏好与拍照 route 共用 root Host，captureEnabled 原位撤回/重挂 route。
- * [POS]: PDSH 唯一 Cordis Host 入口，保留既有 pdsh 地址和配置字段，委托拍照 effect 而不另开 Host namespace。
+ * [INPUT]: 依赖 shared/model.ts 的显示默认值、capture.ts 的拍照字段/Loader volatile-update 订阅与平台原生 helper 可用性。
+ * [OUTPUT]: 提供唯一 pdsh Config/apply 与 Typert root 可见的 owned-window service；captureEnabled 撤回 capture/save 两路。
+ * [POS]: PDSH 唯一 Cordis Host 入口；仅在有对应平台 provider 时注册 capture service，不影响身份/标题设置。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import z from '@deepseek-ai/schemastery';
+import { lstatSync } from 'node:fs';
+import './context.ts'
 import { DEFAULTS, MAX_AVATAR_CHARS, MAX_NAME_CHARS, NICKNAME_PATTERN, LOCAL_AVATAR_PATTERN } from '../shared/model.ts';
-import { CAPTURE_CONFIG_FIELDS, apply as applyCapture } from './capture.ts';
+import { CAPTURE_CONFIG_FIELDS, apply as applyCapture, observeCaptureEnabled } from './capture.ts';
+import { shouldRegisterNativeCaptureProvider } from './native-window-capture.ts';
+import { WindowCaptureService } from './window-capture-service.ts';
+
+// +--- 官方 workspace Typert 通过此真实 Host entry 发现唯一 Remote service ---+
+export { WindowCaptureService } from './window-capture-service.ts';
 
 export const name = 'pdsh';
 export const Config = z.object({
@@ -21,5 +28,11 @@ export const Config = z.object({
 export function apply(ctx, config) {
   // +--- 只由产品设置页展示，不让通用编辑器成为第二套 UI ---+
   ctx.inject(['settings'], child => child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)));
-  applyCapture(ctx, config);
+  applyCapture(ctx);
+  // +--- Windows provider 只有确实打包 x64 helper 才暴露；不推测 ARM64 等未构建目标 ---+
+  if (shouldRegisterNativeCaptureProvider(process.platform, process.arch, path => {
+    try { return lstatSync(path).isFile(); } catch { return false; }
+  }, import.meta.url)) ctx.plugin(WindowCaptureService);
+  // +--- Loader volatile-update 是 Config owner-scoped；此 listener 必须留在 pdsh root fiber ---+
+  observeCaptureEnabled(ctx)
 }

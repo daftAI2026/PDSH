@@ -1,0 +1,42 @@
+# [INPUT]: native/windows/ 的 C++/WinRT 源码、Windows2022/VS SDK、锁定依赖和保存目录合同。
+# [OUTPUT]: 待本地核对并随单包提交的 x64 PE，以及原生 Windows 路径合同结果；不是实机取像验收。
+# [POS]: 发布前平台构建边界，不发布、不执行helper，不读取用户数据。
+# [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+name: Build Windows capture helper
+on:
+  push:
+    branches: [rc/native-capture]
+    paths:
+      - 'native/windows/**'
+      - '.github/workflows/native-windows.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Compile without running capture
+        shell: pwsh
+        run: ./native/windows/build.ps1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.23.1'
+      - name: Install locked test dependencies
+        shell: pwsh
+        run: |
+          npm install --global pnpm@10.6.1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify native Windows save paths without capture
+        shell: pwsh
+        run: node --experimental-strip-types --test tests/host.test.ts tests/capture-settings.test.ts tests/window-save-backend.test.ts
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pdsh-window-capture-windows-x64
+          path: native/windows/window-capture-x64.exe
+          if-no-files-found: error
+          retention-days: 3

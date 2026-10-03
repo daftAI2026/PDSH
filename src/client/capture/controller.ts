@@ -1,20 +1,23 @@
 /**
- * [INPUT]: 依赖主进程冻结 PNG、编辑器、DSH 主题标记/隐私标记、导出偏好、共同请求阶段诊断、本地背景与宿主通知。
+ * [INPUT]: 依赖冻结 PNG/原生整窗比例、编辑器与原生 Tabs 挂载端口、分离的标题与 Host 身份遮挡偏好、导出偏好及宿主通知。
  * [OUTPUT]: 提供相机点击→隐藏自有 UI→截图→工作台、重拍、分层失败反馈及异常/停用释放的单一控制器。
  * [POS]: capture Client 编排边界；截图像素不进入设置或会话持久化，编辑器只持有本地像素。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { capturePreparedWindow, waitForCaptureFrame } from './capture-lifecycle.ts';
+import type { CaptureBackgroundTabsMount } from "./background-tabs.tsx";
 import { mountCaptureWindowEditor } from './editor.ts';
 import { loadCapturePreferences } from './preferences.ts';
 import { markDSHPrivacyPlaceholders, collectDSHCandidates, mapCandidatesToPng } from './privacy.ts';
 import { configureCapturePresetAssets } from './presets.ts';
 
-import { captureViewport, CaptureViewportError } from './viewport.ts';
+import { CaptureViewportError } from './viewport.ts';
+import { CaptureClientError } from './window-capture-stream.ts';
 import { DEFAULT_CAPTURE_EXPORT } from '../../shared/capture-export.ts';
 import type { CaptureTrace } from '../../shared/capture-trace.ts';
+import { captureTraceFailureCode } from '../../shared/capture-trace.ts';
 
-export function mountCaptureController(doc: Document, { locale = () => doc.documentElement.lang || doc.defaultView.navigator.language, onState = () => {}, notify = (_message: string, _tone?: 'success') => {}, capture = captureViewport, openEditor = mountCaptureWindowEditor, waitFrame = waitForCaptureFrame, presetAssets = {}, onSave = undefined, exportPreferences = () => DEFAULT_CAPTURE_EXPORT, trace = (() => {}) as CaptureTrace } = {}) {
+export function mountCaptureController(doc: Document, { locale = () => doc.documentElement.lang || doc.defaultView.navigator.language, onState = () => {}, notify = (_message: string, _tone?: 'success') => {}, capture = async (_doc, _options): Promise<HTMLCanvasElement> => { throw new CaptureViewportError('host-unavailable'); }, openEditor = mountCaptureWindowEditor, waitFrame = waitForCaptureFrame, presetAssets = {}, onSave = undefined, exportPreferences = () => DEFAULT_CAPTURE_EXPORT, captureMaskIdentity = (): boolean => true, trace = (() => {}) as CaptureTrace, captureScope = 'current-page', sourceScale = (_source) => doc.defaultView.devicePixelRatio, mountBackgroundTabs = undefined as CaptureBackgroundTabsMount | undefined } = {}) {
   configureCapturePresetAssets(presetAssets);
   let busy = false, disposed = false, editor = null, host: HTMLElement | null = null, abort: AbortController | null = null;
   const state = () => ({ busy, disabled: busy || disposed || !!editor });
@@ -23,22 +26,28 @@ export function mountCaptureController(doc: Document, { locale = () => doc.docum
   async function snapshot(privacyEnabled: boolean, requestId = doc.defaultView.crypto.randomUUID()) {
     // +--- 原生 Toast 在下一帧清空，重拍不把自己的通知截进去 ---+
     report('');
-    const restore = privacyEnabled ? markDSHPrivacyPlaceholders(doc) : () => {};
+    const maskIdentity = captureMaskIdentity() !== false;
+    const hasPrivacyMasks = privacyEnabled || maskIdentity;
+    const restore = hasPrivacyMasks ? markDSHPrivacyPlaceholders(doc, { maskTitles: privacyEnabled, maskIdentity }) : () => {};
     abort = new AbortController();
     const request = abort;
     const materialAppearance = doc.querySelector('[data-ds-dark-theme]') ? 'dark' as const : 'light' as const;
-    const sourceScaleFactor = doc.defaultView.devicePixelRatio, fileMetadata = { title: doc.title, capturedAt: new Date() };
+    const pageScale = doc.defaultView.devicePixelRatio, fileMetadata = { title: doc.title, capturedAt: new Date() };
     try {
       trace('pixels-start', requestId);
       const result = await capturePreparedWindow({
         capture: () => capture(doc, { signal: request.signal, requestId }),
-        collectCandidates: () => collectDSHCandidates(doc),
-        privacyEnabled, root: doc.documentElement,
+        collectCandidates: () => captureScope === 'owned-window' ? [] : collectDSHCandidates(doc),
+        timeoutMs: captureScope === 'owned-window' ? null : undefined,
+        // Lifecycle 的同一灰条类覆盖任一开启的遮挡层，标题与身份配置仍各自独立。
+        privacyEnabled: hasPrivacyMasks, root: doc.documentElement,
         waitForFrame: waitFrame,
       });
-      if (sourceScaleFactor !== doc.defaultView.devicePixelRatio || materialAppearance !== (doc.querySelector('[data-ds-dark-theme]') ? 'dark' : 'light')) throw new CaptureViewportError('capture-failed');
+      const sourceScaleFactor = sourceScale(result.source);
+      if (!Number.isFinite(sourceScaleFactor) || sourceScaleFactor <= 0) throw new CaptureViewportError('capture-failed');
+      if ((captureScope !== 'owned-window' && pageScale !== doc.defaultView.devicePixelRatio) || materialAppearance !== (doc.querySelector('[data-ds-dark-theme]') ? 'dark' : 'light')) throw new CaptureViewportError('capture-failed');
       trace('pixels-ready', requestId);
-      return { source: result.source, fileMetadata, materialAppearance, sourceScaleFactor, automaticRegions: mapCandidatesToPng(result.candidates, result.source, { width: doc.defaultView.innerWidth, height: doc.defaultView.innerHeight }) };
+      return { source: result.source, fileMetadata, materialAppearance, sourceScaleFactor, automaticRegions: captureScope === 'owned-window' ? [] : mapCandidatesToPng(result.candidates, result.source, { width: doc.defaultView.innerWidth, height: doc.defaultView.innerHeight }) };
     } finally {
       abort = null; restore();
     }
@@ -56,17 +65,20 @@ export function mountCaptureController(doc: Document, { locale = () => doc.docum
       if (disposed) return;
       host = doc.createElement('div'); host.setAttribute('data-pdsh-capture-host', ''); doc.body.append(host);
       editor = openEditor(host, {
-        source: first.source, fileMetadata: first.fileMetadata, onSave, sourceScaleFactor: first.sourceScaleFactor, materialAppearance: first.materialAppearance, automaticRegions: first.automaticRegions, locale: locale(), exportPreferences: exportPreferences(),
+        mountBackgroundTabs, source: first.source, fileMetadata: first.fileMetadata, onSave, sourceScaleFactor: first.sourceScaleFactor, materialAppearance: first.materialAppearance, automaticRegions: first.automaticRegions, locale: locale(), exportPreferences: exportPreferences(),
         onRetake: (_revision, enabled) => snapshot(enabled),
         onClose: () => { editor = null; host?.remove(); host = null; publish(); },
         onNotify: (message, tone) => report(message, tone),
       });
       trace('editor-ready', requestId);
     } catch (error) {
-      trace('capture-failed', requestId);
+      const failureCode = error instanceof CaptureClientError ? captureTraceFailureCode(error.code) : undefined;
+      trace('capture-failed', requestId, failureCode);
       host?.remove(); host = null; editor = null;
       // +--- 不把取像或挂载失败臆断为系统权限问题 ---+
-      if (!disposed && !captured && error instanceof CaptureViewportError && error.code === 'host-unavailable') {
+      if (!disposed && !captured && error instanceof CaptureClientError && error.code === 'permission-not-granted') {
+        report(locale().startsWith('zh') ? '系统取像权限尚未授予；请由你确认屏幕录制权限后再点击拍照。' : 'Screen capture permission was not granted. Confirm it yourself, then click capture again.');
+      } else if (!disposed && !captured && error instanceof CaptureViewportError && error.code === 'host-unavailable') {
         report(locale().startsWith('zh') ? '当前 DSH 尚未提供页面像素采集接口，不能进行所见即所得截图。' : 'This DSH build does not expose current-page pixel capture. A faithful screenshot is unavailable.');
       } else if (!disposed && error instanceof CaptureViewportError && error.code === 'bridge-port-busy') {
         report(locale().startsWith('zh') ? '取像桥启动失败：DSH Main 的预设调试端口被占用。插件未开启调试接口，也未关闭其他程序。' : 'Capture bridge startup failed: the DSH Main inspector port is occupied. No inspector was opened and no other app was stopped.');
@@ -74,9 +86,10 @@ export function mountCaptureController(doc: Document, { locale = () => doc.docum
         report(locale().startsWith('zh') ? '无法确认取像连接已释放。已暂停拍照；请保留工作后重启 DSH，不会自动重连或重启。' : 'Capture connection release is unconfirmed. Preserve your work and restart DSH; no automatic reconnect or restart.');
       } else if (!disposed && error instanceof CaptureViewportError && error.code === 'bridge-cleanup-unconfirmed') {
         report(locale().startsWith('zh') ? '无法确认插件调试接口已关闭。请停用拍照，保留工作后确认重启 DSH；不会自动重启。' : 'Could not confirm closing the plugin inspector. Disable capture, preserve your work and confirm a DSH restart; no automatic restart.');
-      } else if (!disposed) report(locale().startsWith('zh')
+      } else if (!disposed) report((locale().startsWith('zh')
         ? captured ? '截图工作台未能打开，请重试。' : '无法截取当前 DSH 窗口，请重试。'
-        : captured ? 'Could not open the capture workbench. Try again.' : 'Could not capture this DSH window. Try again.');
+        : captured ? 'Could not open the capture workbench. Try again.' : 'Could not capture this DSH window. Try again.')
+        + (failureCode ? ` (${failureCode})` : ''));
     } finally {
       busy = false; publish();
     }

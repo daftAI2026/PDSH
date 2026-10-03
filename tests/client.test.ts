@@ -150,20 +150,27 @@ function environment({ value = {}, status = 'ready', bridge = false, failRoot = 
   const app = new Context(), diagnostics = [];
   app.logger.info = (...values) => diagnostics.push(values);
   app.logger.error = (...values) => diagnostics.push(['error', ...values]);
+  const pageCapture = {
+    pending: new Map(), cancelled: [],
+    capture(signal) {
+      const id=String(pageCapture.pending.size);
+      let fail;
+      const pending=new Promise((_resolve,reject)=>{fail=reject;pageCapture.pending.set(id,reject);});
+      const cancel=()=>{pageCapture.cancelled.push(id);pageCapture.pending.delete(id);fail(new Error('cancelled'));};
+      signal.addEventListener('abort',cancel,{once:true});
+      return {send(){},end(){},dispose(){signal.removeEventListener('abort',cancel);},
+        async *[Symbol.asyncIterator](){await pending;}};
+    },
+    save(){assert.fail('挂载不能保存');},
+  };
   const provider = app.plugin(ctx => {
     ctx.provide('slots', slots);
     ctx.provide('locale', locale);
     ctx.provide('configForms', configForms);
-    ctx.provide('remote', { pluginManager });
+    ctx.provide('remote', { pluginManager, ...(bridge?{pdshNativeWindowCapture:pageCapture}:{}), async $mount(){return ()=>{};} });
     ctx.provide('remote.pluginManager', pluginManager);
+    if(bridge)ctx.provide('remote.pdshNativeWindowCapture',pageCapture);
   });
-  const pageCapture = {
-    protocolVersion: 1, scope: 'current-page',
-    capturePng(requestId) { return new Promise((_resolve, reject) => { pageCapture.pending.set(requestId, reject); }); },
-    async cancel(requestId) { pageCapture.cancelled.push(requestId); pageCapture.pending.get(requestId)?.(new Error('cancelled')); pageCapture.pending.delete(requestId); },
-    pending: new Map(), cancelled: [],
-  };
-  if (bridge) Object.defineProperty(dom.window, 'dshDesktop', { configurable: true, value: { protocolVersion: 1, pageCapture } });
   const bundlePlugin = loadBundle(createRoot, doc);
   let bundle;
   const ready = (async () => { await provider; bundle = app.plugin(bundlePlugin); await bundle; })();
@@ -235,7 +242,7 @@ test('身份停用只归还覆盖并保留昵称；标题停用撤回灰条且�
   } finally { await h.close(); }
 });
 
-test('关闭拍照会取消在途页面取像并卸载工作台；身份与标题仍继续工作', async () => {
+test('关闭拍照会取消在途整窗取像并卸载工作台；身份与标题仍继续工作', async () => {
   const h = environment({ bridge: true });
   try {
     await h.start();
@@ -243,10 +250,10 @@ test('关闭拍照会取消在途页面取像并卸载工作台；身份与标�
     assert.ok(camera);
     camera.click();
     for (let attempt = 0; attempt < 40 && h.pageCapture.pending.size === 0; attempt++) await tick(h.dom);
-    assert.equal(h.pageCapture.pending.size, 1, `拍照点击发起当前页面请求；trace=${JSON.stringify(h.diagnostics)}`);
+    assert.equal(h.pageCapture.pending.size, 1, `拍照点击发起整窗请求；trace=${JSON.stringify(h.diagnostics)}`);
     await h.update({ captureEnabled: false });
     for (let attempt = 0; attempt < 40 && h.pageCapture.cancelled.length === 0; attempt++) await tick(h.dom);
-    assert.equal(h.pageCapture.cancelled.length, 1, '停用拍照向当前页桥取消同一请求');
+    assert.equal(h.pageCapture.cancelled.length, 1, '停用拍照取消所属 Remote 请求');
     assert.equal(h.doc.querySelector('[data-pdsh-capture-entry]'), null);
     assert.equal(h.doc.querySelector('[data-pdsh-capture-host]'), null, '迟到截图不能打开编辑器');
     assert.equal(h.doc.querySelector('[data-pdsh-name]').textContent, '别名');

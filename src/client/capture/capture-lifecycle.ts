@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 截图适配器、候选收集器与帧等待能力
- * [OUTPUT]: 串行截图、共用 30 秒取像预算、偏好先读与临时隐藏状态恢复流程
+ * [OUTPUT]: 串行截图、可选机器取像预算（原生授权等待不套页面计时器）、偏好先读与工作台/浮层临时隐藏状态恢复流程，侧栏入口保留
  * [POS]: Shot 截图时序边界，在成功/失败/超时后撤销临时样式
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -29,7 +29,7 @@ export type CapturePreparedWindowOptions<T> = {
   collectCandidates: () => CaptureCandidate[];
   privacyEnabled: boolean;
   root: CaptureRoot;
-  timeoutMs?: number;
+  timeoutMs?: number | null;
   waitForFrame: () => Promise<void>;
 };
 
@@ -76,10 +76,8 @@ export async function capturePreparedWindow<T>(
       candidates = options.collectCandidates();
     } catch {
     }
-    const source = await withCaptureTimeout(
-      Promise.resolve(options.capture()),
-      options.timeoutMs ?? CAPTURE_TIMEOUT_MS,
-    );
+    const pending = Promise.resolve(options.capture());
+    const source = await (options.timeoutMs === null ? pending : withCaptureTimeout(pending, options.timeoutMs ?? CAPTURE_TIMEOUT_MS));
     return { candidates, source };
   } finally {
     options.root.classList.remove(CAPTURE_ACTIVE_CLASS);

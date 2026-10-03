@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 通过 fixtureRoot/package.json 解析精确 DSH Host 依赖；在隔离 consumerProfile 中接收归档/GitHub 来源与 PNPM 命令 JSON。
- * [OUTPUT]: 经官方 PluginManager 安装、切换、设置写入与 Bundle 停用/恢复生命周期断言，打印可复核的 Host 验收结果。
+ * [OUTPUT]: 经官方 PluginManager 与 Typert Loader 验证安装字节、helper 执行位、设置和 service/descriptor 生命周期；不消费取像流或冒充 Remote/Desktop 验收。
  * [POS]: 仓库根目录的集成验收入口；只操作调用方指定且 owner/权限验证的临时 profile，不改写 DSH 用户 profile 或替代官方解析器。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -177,6 +177,18 @@ function assertSingleBundle(ctx: any): void {
   assert.ok(ctx.clientModules.clientPath(ROOT_BUNDLE), 'root Client 缺失')
 }
 
+/** 只等官方注册/撤回；不调用任何 product capture/save method。 */
+async function waitWindowCapability(ctx: any, present: boolean): Promise<void> {
+  const deadline = Date.now() + 5000
+  while (Date.now() < deadline) {
+    const states = [Boolean(ctx.get('pdshWindowCapture')), Boolean(ctx.typert.getPackage(ROOT_BUNDLE, 'host')),
+      Boolean(ctx.typert.local.get('pdshNativeWindowCapture/capture')), Boolean(ctx.typert.local.get('pdshNativeWindowCapture/save'))]
+    if (states.every(value => value === present)) return
+    await new Promise(resolve => setTimeout(resolve, 10))
+  }
+  throw new Error(`Host service/Typert descriptors did not become ${present ? 'ready' : 'withdrawn'}`)
+}
+
 function assertPnpm11(manager: PackageManagerCommand, profile: string): void {
   const hostEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(?:npm|pnpm)_config_/i.test(key)))
   const output = execFileSync(manager.command, [...manager.args!, '--version'], {
@@ -215,14 +227,15 @@ async function main(): Promise<void> {
   const requireFromHost = createRequire(installAnchor)
 
   // 使用 Host 安装树中的模块，不从当前项目 node_modules 偷渡 Host 版本。
-  const [cordis, loaderModule, settingsModule, editorModule, boot, clientModules, connectionModule, managerModule] = await Promise.all([
+  const [cordis, loaderModule, settingsModule, editorModule, boot, clientModules, registryModule, typertLoaderModule, managerModule] = await Promise.all([
     importHostModule(requireFromHost, '@deepseek-ai/cordis'),
     importHostModule(requireFromHost, '@deepseek-ai/cordis-plugin-loader'),
     importHostModule(requireFromHost, '@deepseek-ai/dsh-settings'),
     importHostModule(requireFromHost, '@deepseek-ai/dsh-config-editor'),
     importHostModule(requireFromHost, '@deepseek-ai/dsh-app-boot'),
     importHostModule(requireFromHost, '@deepseek-ai/dsh-client-modules'),
-    importHostModule(requireFromHost, '@deepseek-ai/dsh-client-connection'),
+    importHostModule(requireFromHost, '@deepseek-ai/dsh-typert-registry'),
+    importHostModule(requireFromHost, '@deepseek-ai/dsh-typert-loader'),
     importHostModule(requireFromHost, '@deepseek-ai/dsh-plugin-manager'),
   ])
 
@@ -232,9 +245,9 @@ async function main(): Promise<void> {
   const ConfigEditor = editorModule.default ?? editorModule.ConfigEditor
   const PluginPackages = boot.PluginPackages
   const ClientModuleRegistry = clientModules.ClientModuleRegistry
-  const HostConnectionService = connectionModule.HostConnectionService
+  const TypertRegistry = registryModule.default ?? registryModule.TypertRegistry
   const PluginManager = managerModule.PluginManager ?? managerModule.default
-  assert.ok(Context && Loader && Settings && ConfigEditor && PluginPackages && ClientModuleRegistry && HostConnectionService && PluginManager,
+  assert.ok(Context && Loader && Settings && ConfigEditor && PluginPackages && ClientModuleRegistry && TypertRegistry && typertLoaderModule.apply && PluginManager,
     '精确 DSH fixture 缺少验收所需官方模块')
 
   const profileName = basename(consumerProfile)
@@ -251,6 +264,7 @@ async function main(): Promise<void> {
   }
   const baseUrl = pathToFileURL(join(consumerProfile, 'package.json')).href
   const ctx = new Context()
+  ctx.baseUrl = baseUrl
   let queue = Promise.resolve()
   const hmrScheduleStub = {
     runExclusive<T>(operation: () => Promise<T> | T): Promise<T> {
@@ -261,7 +275,7 @@ async function main(): Promise<void> {
   }
 
   try {
-    new HostConnectionService(ctx, [], { isAuthenticated: () => false })
+    await ctx.plugin(TypertRegistry).await()
     ctx.provide('profileContext', profileContext)
     ctx.provide('hmr', hmrScheduleStub)
 
@@ -271,6 +285,7 @@ async function main(): Promise<void> {
     const resolution = await boot.createRuntimeResolution({ installAnchor, home: profileContext.home, profile: empty })
     await ctx.plugin(PluginPackages, { resolution }).await()
     await ctx.plugin(Loader, { baseUrl }).await()
+    await ctx.plugin(typertLoaderModule).await()
     await ctx.plugin(ConfigEditor).await()
     await ctx.plugin(Settings).await()
     await ctx.plugin(ClientModuleRegistry).await()
@@ -313,11 +328,13 @@ async function main(): Promise<void> {
     assert.equal(installed.packageResult?.exitCode, 0, '官方 Manager 内部 PNPM 未成功')
     await ctx.loader.await()
     assertSingleBundle(ctx)
+    await waitWindowCapability(ctx, true)
     const installedRoot = join(consumerProfile, 'node_modules', ROOT_BUNDLE)
+    assert.equal(lstatSync(join(installedRoot, 'native/window-capture')).mode & 0o777, 0o755, '官方安装必须保留 helper 执行位；摘要一致不能替代权限验证')
     const installedManifest = JSON.parse(readFileSync(join(installedRoot, 'package.json'), 'utf8'))
     assert.equal(installedManifest.version, candidate.version, '被测包版本不是当前候选')
     const runtimeHashes: Record<string, string> = {}
-    for (const file of ['index.js', 'client.js', 'client.js.map', 'main.cjs', 'cordis.patch.yml', 'plugin-icon.svg', 'locale/zh.json', 'locale/en.json']) {
+    for (const file of candidate.files.flatMap((file: string) => file === 'locale/*.json' ? ['locale/zh.json', 'locale/en.json'] : [file])) {
       const installedBytes = readFileSync(join(installedRoot, file))
       assert.deepEqual(installedBytes, readFileSync(join(candidateRoot, file)), `被测包 ${file} 不是当前候选字节`)
       runtimeHashes[file] = createHash('sha256').update(installedBytes).digest('hex')
@@ -348,19 +365,27 @@ async function main(): Promise<void> {
     assert.equal(rootBundles[0].rows[0]?.meta?.title?.zh, 'DSH 私密模式')
     console.log('PASS official-install: single root Bundle/Host/Client/metadata')
 
+    const service = ctx.get('pdshWindowCapture')[cordis.symbols.original]
+    let refreshCount = 0
+    const refresh = service.refreshCaptureEnabled.bind(service)
+    service.refreshCaptureEnabled = () => { refreshCount++; refresh() }
     const defaults = ctx.settings.describe().find((row: any) => row.ns === 'pdsh')
     assert.ok(defaults, 'root settings missing')
     const originalFields = FEATURE_FIELDS.map(key => ({key, own:Object.hasOwn(defaults.user ?? {}, key), value:defaults.user?.[key]}))
     for (let mask = 0; mask < 8; mask++) {
       const enabled = FEATURE_FIELDS.map((_field, index) => Boolean(mask & (1 << index)))
       const section = ctx.settings.describe().find((row: any) => row.ns === 'pdsh')
+      const priorEnabled = section.value.captureEnabled
+      const priorRefresh = refreshCount
       await ctx.settings.mutate('pdsh', FEATURE_FIELDS.map((key, index) => ({op:'set', path:[key], value:enabled[index]})), section.revision)
       await ctx.loader.await()
       assertSingleBundle(ctx)
       const accepted = ctx.settings.describe().find((row: any) => row.ns === 'pdsh')
       assert.deepEqual(FEATURE_FIELDS.map(key => accepted.value[key]), enabled)
-      assert.equal(ctx.connection.fetchRoutes.size, enabled[2] ? 1 : 0, `组合 ${mask} 的 capture route 未跟随设置`)
-      console.log(`PASS functional-toggle ${mask.toString(2).padStart(3, '0')}: routes=${ctx.connection.fetchRoutes.size}`)
+      await waitWindowCapability(ctx, true)
+      assert.equal(ctx.get('pdshWindowCapture')[cordis.symbols.original], service, 'volatile settings must retain the same service')
+      if (priorEnabled !== enabled[2]) assert.ok(refreshCount > priorRefresh, 'Config owner did not refresh capture lifetime')
+      console.log(`PASS functional-toggle ${mask.toString(2).padStart(3, '0')}: service/descriptors retained; owner refresh=${refreshCount}`)
     }
     const last = ctx.settings.describe().find((row: any) => row.ns === 'pdsh')
     await ctx.settings.mutate('pdsh', originalFields.map(({key,own,value}) => own ? {op:'set',path:[key],value} : {op:'unset',path:[key]}), last.revision)
@@ -394,15 +419,15 @@ async function main(): Promise<void> {
     assert.equal(disabledBundle.error, undefined)
     await ctx.loader.await()
     assert.equal(activePdshRows(ctx).length, 0, 'Bundle disable 后仍有 PDSH Host entry')
-    assert.equal(ctx.connection.fetchRoutes.size, 0, 'Bundle disable 后 capture route 未清理')
+    await waitWindowCapability(ctx, false)
     assert.equal(ctx.clientModules.graph().entries.filter((row: any) => row.id.startsWith('@daftai/pdsh')).length, 0, 'Bundle disable 后 PDSH Client registry 未清理')
     const reenabledBundle = await manager.setBundleEnabled(ROOT_BUNDLE, true)
     assert.equal(reenabledBundle.application, 'applied', '官方 Manager 未应用 Bundle re-enable')
     assert.equal(reenabledBundle.error, undefined)
     await ctx.loader.await()
     assertSingleBundle(ctx)
-    assert.equal(ctx.connection.fetchRoutes.size, 1, 'Bundle re-enable 后 capture route 未恢复')
-    console.log('PASS bundle lifecycle: official disable removed Host/Client/route ownership; re-enable restored single root and capture')
+    await waitWindowCapability(ctx, true)
+    console.log('PASS bundle lifecycle: official disable removed Host/Client/service/descriptors; re-enable restored single root capability (no pixels requested)')
     console.log(`PASS fixture: ${fixtureRoot}`)
     console.log(`PASS isolated profile: ${consumerProfile}`)
   } finally {

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖原生搜索结构、实时 class/显示尺寸/viewBox/计算线宽/根透明度/CSS 变量、可选标题/截图控制器；两者可分别关闭。
- * [OUTPUT]: 提供帽子及右侧相机入口与局部焦点修复；线宽按原生坐标比例换算、整体合成透明度，未知几何退让，卸载还原搜索。
+ * [OUTPUT]: 提供拍摄时保留的帽子及右侧相机入口与局部焦点修复；线宽按原生坐标比例换算、整体合成透明度，未知几何退让，卸载还原搜索。
  * [POS]: PDSH 版本相关 DOM 适配边界；非官方 child slot，与身份显示控制器相互独立。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -67,7 +67,6 @@ export function mountSearchEntry(doc: Document, { icon = null, label = (): strin
     svg.removeAttribute('width'); svg.removeAttribute('height');
     svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
     const button = doc.createElement('button'); button.type = 'button'; button.append(svg);
-    button.setAttribute('data-pdsh-capture-hide', '');
     const click = () => { if (button.isConnected && !button.hidden && !button.disabled && !disposed) activate(); };
     button.addEventListener('click', click);
     return { button, svg, marker, readState, readLabel, pressed, click, wasBusy: false, pendingFocus: false };

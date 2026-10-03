@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 page-capture-port 的窄桥接口、shared/capture-bridge 的统一预算、AbortSignal、共同请求诊断与浏览器解码；不管理连接或读取 DOM 样式/资源。
- * [OUTPUT]: 提供能力识别与 captureViewport；按整数 CSS 视口量化范围校验原生像素，不缩放、不回退重绘，取消丢弃迟到结果。
+ * [OUTPUT]: 提供 captureViewport 与固定错误分类；验证原生像素，不缩放或重绘，取消丢弃迟到结果，不将原生忙碌误报为调试端口冲突。
  * [POS]: controller 的唯一取像边界；装配层选择正式宿主桥或明确接受的内部桥，均需独立安装件能力验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -12,7 +12,7 @@ import { MAX_PAGE_PIXELS as MAX_CAPTURE_PIXELS, MAX_PNG_BYTES as MAX_CAPTURE_BYT
 import type { CaptureTrace } from '../../shared/capture-trace.ts';
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
 
-export type CaptureViewportErrorCode = 'host-unavailable' | 'aborted' | 'timeout' | 'oversize' | 'viewport-changed' | 'invalid-pixels' | 'capture-failed' | 'bridge-cleanup-unconfirmed' | 'bridge-port-busy' | 'control-cleanup-unconfirmed';
+export type CaptureViewportErrorCode = 'host-unavailable' | 'aborted' | 'timeout' | 'oversize' | 'viewport-changed' | 'invalid-pixels' | 'capture-failed' | 'capture-busy' | 'unsupported-content' | 'bridge-cleanup-unconfirmed' | 'bridge-port-busy' | 'control-cleanup-unconfirmed';
 export class CaptureViewportError extends Error {
   readonly code: CaptureViewportErrorCode;
   constructor(code: CaptureViewportErrorCode) {
@@ -21,11 +21,31 @@ export class CaptureViewportError extends Error {
       'control-cleanup-unconfirmed': '取像连接释放尚未确认',
       'bridge-cleanup-unconfirmed': '无法确认插件调试接口已关闭，请停用拍照并保留工作后确认重启 DSH。',
       'host-unavailable': '宿主尚未提供当前页面像素采集接口',
+      'capture-busy': '宿主仍有原生取像操作未完成', 'unsupported-content': '当前页面包含不能完整捕获的独立视图',
       aborted: '页面取像已取消', timeout: '页面取像超时', oversize: '截图超过像素或字节上限',
       'viewport-changed': '取像期间视口发生变化', 'invalid-pixels': '宿主返回的截图无效', 'capture-failed': '当前页面取像失败',
     }[code]);
     this.name = 'CaptureViewportError'; this.code = code;
   }
+}
+
+const NATIVE_FAILURES: Record<string, CaptureViewportErrorCode> = {
+  'invalid-request': 'capture-failed', unavailable: 'host-unavailable', busy: 'capture-busy',
+  cancelled: 'aborted', stale: 'viewport-changed', 'unsupported-content': 'unsupported-content',
+  'too-large': 'oversize', 'capture-failed': 'capture-failed',
+};
+function captureError(error: unknown): CaptureViewportError {
+  if (error instanceof CaptureViewportError) return error;
+  const wire = typeof error === 'object' && error !== null ? error as { code?: unknown; message?: unknown } : null;
+  if (wire?.code === 'bridge-cleanup-unconfirmed' || wire?.code === 'bridge-port-busy' || wire?.code === 'control-cleanup-unconfirmed') {
+    return new CaptureViewportError(wire.code);
+  }
+  // Electron invoke 仅保留 Main Error.message；只解析本取像通道的固定错误，不透传原生诊断。
+  const match = typeof wire?.message === 'string'
+    ? /^(?:Error invoking remote method 'dsh-desktop:page-capture': Error: )?dsh desktop page capture: ([a-z-]+)$/.exec(wire.message)
+    : null;
+  const code = match && Object.hasOwn(NATIVE_FAILURES, match[1]) ? NATIVE_FAILURES[match[1]] : 'capture-failed';
+  return new CaptureViewportError(code);
 }
 function viewport(doc: Document) {
   const view = doc.defaultView;
@@ -118,7 +138,7 @@ export async function captureViewport(doc: Document, { signal, port = readPageCa
     return canvas;
   } catch (error) {
     if (canvas) { canvas.width = 0; canvas.height = 0; }
-    throw error instanceof CaptureViewportError ? error : new CaptureViewportError(error?.code === 'bridge-cleanup-unconfirmed' ? 'bridge-cleanup-unconfirmed' : error?.code === 'bridge-port-busy' ? 'bridge-port-busy' : error?.code === 'control-cleanup-unconfirmed' ? 'control-cleanup-unconfirmed' : 'capture-failed');
+    throw captureError(error);
   } finally {
     bitmap?.close(); view.clearTimeout(timeout); signal?.removeEventListener('abort', abort);
     doc.removeEventListener('scroll', changed, true); view.removeEventListener('resize', changed);

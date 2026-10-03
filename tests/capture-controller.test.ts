@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 capture/controller.ts 的截图时序与可注入视口取像/工作台边界。
- * [OUTPUT]: 验证截图与工作台失败分层、不臆断系统权限、临时遮挡归还、挂载回收和停用取消。
+ * [INPUT]: 依赖 capture/controller.ts 的截图时序、Host 身份遮挡 getter 与可注入取像/工作台边界。
+ * [OUTPUT]: 验证初拍/重拍的标题-身份偏好独立、失败归因、临时遮挡归还、挂载回收和停用取消。
  * [POS]: Client 截图合同测试；真实像素另由 Desktop 实测验证。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -9,14 +9,46 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { CaptureViewportError } from '../src/client/capture/viewport.ts';
 import { mountCaptureController } from '../src/client/capture/controller.ts';
-function setup(capture) {
+function setup(capture, { captureMaskIdentity = () => true } = {}) {
   const dom = new JSDOM('<!doctype html><html lang="zh"><body><div data-slot="settings.launcher"><button aria-haspopup="menu" data-collapsed="false" data-signed-out="false"><span><img src="avatar.png"></span><span>本名</span></button></div></body></html>', { url: 'https://dsh.test/' });
   const doc = dom.window.document; const opened = [], notices = [];
-  const controller = mountCaptureController(doc, { capture, notify: message => notices.push(message), waitFrame: async () => {},
+  const controller = mountCaptureController(doc, { capture, captureMaskIdentity, notify: message => notices.push(message), waitFrame: async () => {},
     openEditor: (_host, options) => { opened.push(options); return { destroy: () => options.onClose() }; },
   });
   return { dom, doc, opened, notices, controller };
 }
+test('每次初拍与重拍读取 Host 身份开关，且与工作台标题预遮挡正交', async () => {
+  const dom = new JSDOM('<!doctype html><html lang="zh"><body><div data-slot="sidebar.workspaces"><div role="treeitem" data-row-key="session:one"><span></span><span>标题</span></div></div><div data-slot="settings.launcher"><button aria-haspopup="menu" data-collapsed="false" data-signed-out="false"><span><img src="avatar.png"></span><span>原生名称</span><span data-pdsh-name>自有名牌</span></button></div></body></html>', { url: 'https://dsh.test/' });
+  const doc = dom.window.document, snapshots = [], opened = [];
+  doc.defaultView.localStorage.setItem('pdsh-window-capture-prefs', JSON.stringify({ privacyEnabled: false }));
+  let maskIdentity = true;
+  const controller = mountCaptureController(doc, {
+    captureMaskIdentity: () => maskIdentity,
+    capture: async () => {
+      const trigger = doc.querySelector('[data-slot="settings.launcher"] button');
+      const title = doc.querySelector('[data-row-key="session:one"] span:nth-child(2)');
+      snapshots.push({
+        title: title.hasAttribute('data-pdsh-capture-redact'),
+        nativeName: trigger.children[1].hasAttribute('data-pdsh-capture-redact'),
+        ownedName: trigger.querySelector(':scope > [data-pdsh-name]').hasAttribute('data-pdsh-capture-redact'),
+        avatar: trigger.children[0].hasAttribute('data-pdsh-capture-redact-profile'),
+        redactionClass: doc.documentElement.classList.contains('pdsh-capture-redact'),
+      });
+      return { width: 2560, height: 1640 };
+    },
+    waitFrame: async () => {},
+    openEditor: (_host, options) => { opened.push(options); return { destroy() {} }; },
+  });
+  try {
+    await controller.activate();
+    assert.deepEqual(snapshots[0], { title: false, nativeName: true, ownedName: true, avatar: true, redactionClass: true }, '身份开启、标题预遮挡关闭');
+    maskIdentity = false;
+    await opened[0].onRetake(1, false);
+    assert.deepEqual(snapshots[1], { title: false, nativeName: false, ownedName: false, avatar: false, redactionClass: false }, '每次重拍都重新读取 Host 接受值');
+    await opened[0].onRetake(2, true);
+    assert.deepEqual(snapshots[2], { title: true, nativeName: false, ownedName: false, avatar: false, redactionClass: true }, '标题开启不反向打开身份遮挡');
+  } finally { controller.dispose(); dom.window.close(); }
+});
 test('点击截当前窗口后才打开工作台；拍摄态隐藏自有 UI 并恢复隐私标记', async () => {
   let captures = 0;
   const { dom, doc, opened, controller } = setup(async (_url, init) => {

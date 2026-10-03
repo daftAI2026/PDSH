@@ -1,0 +1,20 @@
+/**
+ * [INPUT]: 依赖 shared Remote DTO 门面与项目通用 TypeScript resolver。
+ * [OUTPUT]: 为 package `./types` 生成可归档的声明树；不发射运行时代码。
+ * [POS]: typert remote-client declaration 的唯一 DTO 源投影，路径保持 src/shared 同构。
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": true,
+    "composite": false,
+    "incremental": false,
+    "rootDir": "./src",
+    "outDir": "./lib/types"
+  },
+  "include": ["src/shared/remote-types.ts"]
+}

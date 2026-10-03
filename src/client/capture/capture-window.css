@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 view.ts 输出的 capture-window DOM、DSH 主题/动画 token 与实时原生 Button/Switch/图标/字段样式探针
- * [OUTPUT]: 工作台、画布、检查器与头像拍摄占位；标题临时灰条由 ../styles.css 统一绘制，外壳底色只绘制一次，窗口放大不改变控件密度。
+ * [OUTPUT]: 工作台、画布、检查器与头像拍摄占位；标题临时灰条由 ../styles.css 统一绘制，外壳底色只绘制一次，窗口放大不改变控件密度，右侧固定240px、左侧占剩余空间。 检查器内侧为双层焦点环保留空间，不靠溢出可见绕过滚动裁切。
  * [POS]: capture-window 的视觉契约，和 color-popover.css 分工维护主编辑器与浮层样式
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -12,6 +12,8 @@
   --pdsh-capture-chrome-height: calc(var(--pdsh-capture-space) * (14 + 14 + 13));
   --pdsh-capture-stage-height: calc((50vh + var(--pdsh-capture-chrome-height)) * var(--pdsh-capture-window-scale) - var(--pdsh-capture-chrome-height));
   --pdsh-capture-space: calc(var(--pdsh-field-gap) / 2);
+  /* 产品布局宽度独立于Host间距，不扩大所有控件。 */
+  --pdsh-capture-inspector-width: 240px;
   --pdsh-capture-surface: var(--dsw-alias-bg-layer-2);
   --pdsh-capture-surface-secondary: var(--dsw-alias-bg-layer-1);
   --pdsh-capture-surface-tertiary: var(--dsw-alias-bg-layer-3);
@@ -33,6 +35,7 @@
   --pdsh-capture-font-sm: var(--dsw-font-xs-13-font-size);
   --pdsh-capture-font-xs: var(--dsw-font-xxs-12-font-size);
   --pdsh-capture-icon-sm: var(--pdsh-native-icon-size);
+  --pdsh-capture-control-gutter: calc(var(--dsw-focus-ring-width) * 2);
   --pdsh-capture-icon-base: var(--pdsh-native-icon-size);
   --pdsh-capture-radius-sm: var(--dsw-radius-sm);
   --pdsh-capture-radius-md: var(--dsw-radius-md);
@@ -142,7 +145,7 @@ html.pdsh-capture-redact [data-pdsh-capture-redact-profile] > img {
 .pdsh-capture-workspace {
   display: grid;
   gap: calc(var(--pdsh-capture-space) * 5);
-  grid-template-columns: minmax(0, 1fr) calc(var(--pdsh-capture-space) * 60);
+  grid-template-columns: minmax(0, 1fr) var(--pdsh-capture-inspector-width);
   min-height: 0;
   padding: 0 calc(var(--pdsh-capture-space) * 5) calc(var(--pdsh-capture-space) * 4);
 }
@@ -302,7 +305,6 @@ html.pdsh-capture-redact [data-pdsh-capture-redact-profile] > img {
   max-width: 100%;
   position: relative;
   transform-origin: center;
-  transition: transform var(--pdsh-capture-duration) var(--pdsh-capture-ease);
   user-select: none;
 }
 
@@ -417,6 +419,7 @@ html.pdsh-capture-redact [data-pdsh-capture-redact-profile] > img {
   flex-direction: column;
   gap: calc(var(--pdsh-capture-space) * 5);
   padding-block: var(--pdsh-capture-space);
+  padding-inline: var(--pdsh-capture-control-gutter);
 }
 
 /* 只借用 alpha 遮罩算法；currentColor 仅提供不透明度，不在内容上绘制颜色。 */

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖编辑器颜色状态、浏览器 DOM 与浮层定位。
- * [OUTPUT]: 提供选色浮层生命周期及共享 HTML 属性转义。
+ * [OUTPUT]: 提供可显式关闭的选色浮层生命周期及共享 HTML 属性转义，切换背景模式不残留浮层。
  * [POS]: capture-window 的选色交互边界；view 复用属性转义保护本机缩略图属性。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -90,7 +90,7 @@ export function captureColorPopoverTemplate(
 export function wireCaptureColorPopovers(
   root: HTMLElement,
   options: CaptureColorPopoverOptions,
-): () => void {
+): (() => void) & { close: () => void } {
   let activeTarget: CaptureColorTarget | null = null;
   let activeTrigger: HTMLButtonElement | null = null;
   let activePopover: HTMLElement | null = null;
@@ -158,12 +158,12 @@ export function wireCaptureColorPopovers(
   root.addEventListener("click", onRootClick);
   root.addEventListener("keydown", onRootKeyDown, true);
   document.addEventListener("pointerdown", onDocumentPointerDown, true);
-  return () => {
+  return Object.assign(() => {
     close(false);
     root.removeEventListener("click", onRootClick);
     root.removeEventListener("keydown", onRootKeyDown, true);
     document.removeEventListener("pointerdown", onDocumentPointerDown, true);
-  };
+  }, { close: () => close(false) });
 }
 
 export function syncCaptureColorPopover(

@@ -59,3 +59,75 @@ test('5K 默认边距可编辑；超预算边距不分配输出、不改变有�
     assert.equal(h.editor.getState().padding,8);assert.equal(padding.value,'8');assert.match(h.notices.at(-1),/减小边距/);
   }finally{h.close();}
 });
+
+test('提交后断流保留编辑并提示检查目录，不伪称文件一定未保存',async()=>{
+  const h=fixture({onSave:async()=>{throw new Error('save-unconfirmed');}});
+  try{h.click();await h.flush();assert.equal(h.closed.length,0);assert.match(h.notices.at(-1),/无法确认.*检查.*目录/);}
+  finally{h.close();}
+});
+
+test('原生Tabs端口按背景选中、切类立即应用并记住素材，卸载和忙碌不能继续修改', async () => {
+  let props, latest, destroyed = 0;
+  const h = fixture({ mountBackgroundTabs: (_container, input) => {
+    props = input; latest = { value: input.value, disabled: input.disabled };
+    return { update(value, disabled) { latest = { value, disabled }; }, destroy() { destroyed++; } };
+  } });
+  try {
+    assert.equal(props.value, 'plain-color');
+    const root = h.dom.window.document.querySelector('[data-pdsh-capture]');
+    props.onChange('gradients');
+    assert.deepEqual(h.editor.getState().background, { kind: 'preset', id: 'rose' });
+    root.querySelector('[data-background="lagoon"]').click();
+    props.onChange('none');
+    assert.equal(h.editor.getState().background.kind, 'transparent');
+    assert.equal(root.querySelectorAll('[role=tabpanel]:not([hidden])').length, 1);
+    props.onChange('gradients');
+    assert.equal(h.editor.getState().background.id, 'lagoon');
+    assert.equal(latest.value, 'gradients');
+    props.onChange('plain-color');
+    assert.equal(h.editor.getState().background.color, '#ffffff');
+    root.querySelector('[data-color-trigger=background]').click();
+    assert.ok(root.querySelector('[data-color-popover]'));
+    props.onChange('wallpapers');
+    assert.equal(root.querySelector('[data-color-popover]'), null);
+    assert.equal(h.editor.getState().background.id, 'sea');
+    h.delay(); h.click();
+    assert.equal(latest.disabled, true);
+    props.onChange('none');
+    assert.equal(h.editor.getState().background.id, 'sea');
+    h.editor.destroy();
+    assert.equal(destroyed, 1);
+    props.onChange('none');
+    assert.equal(h.editor.getState().background.id, 'sea');
+    h.encoded[0]?.(); await h.flush();
+  } finally { h.close(); }
+});
+
+test('选图读取迟到不能覆盖后选的Tab或在卸载后改变状态/通知', async () => {
+  for (const action of ['switch', 'close']) {
+    let props, reader;
+    const oldReader = Object.getOwnPropertyDescriptor(globalThis, 'FileReader');
+    const h = fixture({ mountBackgroundTabs: (_container, input) => { props = input; return {update(){},destroy(){}}; } });
+    Object.defineProperty(globalThis, 'FileReader', { configurable: true, value: class {
+      handlers = {}; result = 'data:image/png;base64,fixture';
+      constructor() { reader = this; }
+      addEventListener(name, fn) { this.handlers[name] = fn; }
+      readAsDataURL() {}
+    } });
+    try {
+      props.onChange('wallpapers');
+      const input = h.dom.window.document.querySelector('[data-input=wallpaper]');
+      Object.defineProperty(input, 'files', { value: [new h.dom.window.File(['fixture'], 'fixture.png', {type:'image/png'})] });
+      input.dispatchEvent(new h.dom.window.Event('change', {bubbles:true}));
+      assert.ok(reader);
+      if (action === 'switch') props.onChange('none'); else h.editor.destroy();
+      const before = h.editor.getState();
+      reader.handlers.load(); await h.flush();
+      assert.equal(h.editor.getState(), before);
+      assert.equal(h.notices.length, 0);
+    } finally {
+      h.close();
+      if(oldReader) Object.defineProperty(globalThis,'FileReader',oldReader); else delete globalThis.FileReader;
+    }
+  }
+});

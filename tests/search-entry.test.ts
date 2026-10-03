@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 search-entry.ts、帽子/相机线稿资产、原生 SVG 实时 viewBox/strokeWidth/显示尺寸与 rc.2 搜索结构夹具。
- * [OUTPUT]: 验证邻接挂载、状态/导航隔离、动态等效笔画、原生样式/透明度、未知几何退让与资源释放。
+ * [OUTPUT]: 验证邻接挂载、状态/导航隔离、拍摄时保留两入口、动态等效笔画、原生样式/透明度、未知几何退让与资源释放。
  * [POS]: PDSH 入口适配合同；不能替代确切 runtime 的真实 React/布局验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -297,4 +297,28 @@ test('标题组件关闭后，相机单独挂载、搜索展开隐藏并卸载�
     }
     entry.dispose(); assert.equal(doc.body.outerHTML, wide ? before.replace('aria-expanded="false"', 'aria-expanded="true"') : before); dom.window.close();
   }
+});
+
+
+test('初拍和重拍阶段保留帽子及相机，仅隐藏拥有hide标记的工作台', () => {
+  const { dom, doc, options } = setup();
+  options.capture = { icon: readFileSync(new URL('../src/client/camera-icon.svg', import.meta.url), 'utf8'), label: () => '截取窗口', state: () => ({ busy: false, disabled: false }), onActivate: () => {} };
+  const style = doc.createElement('style');
+  style.textContent = readFileSync(new URL('../src/client/capture/capture-window.css', import.meta.url), 'utf8');
+  doc.head.append(style);
+  const workbench = doc.createElement('div'); workbench.setAttribute('data-pdsh-capture-hide', ''); doc.body.append(workbench);
+  const entry = mountSearchEntry(doc, options);
+  try {
+    for (let shot = 0; shot < 2; ++shot) {
+      doc.documentElement.classList.add('pdsh-capturing');
+      for (const marker of ['data-pdsh-search-entry', 'data-pdsh-capture-entry']) {
+        const button = doc.querySelector(`[${marker}]`);
+        assert.ok(button); assert.equal(button.hasAttribute('data-pdsh-capture-hide'), false);
+        assert.equal(dom.window.getComputedStyle(button).visibility, 'visible');
+      }
+      assert.equal(dom.window.getComputedStyle(workbench).visibility, 'hidden');
+      doc.documentElement.classList.remove('pdsh-capturing');
+      assert.equal(dom.window.getComputedStyle(workbench).visibility, 'visible');
+    }
+  } finally { entry.dispose(); dom.window.close(); }
 });

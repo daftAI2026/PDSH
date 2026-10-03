@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖唯一 pdsh ConfigForm、locale/slot/PluginManager 服务和可选 connection 服务属性。
- * [OUTPUT]: 装配身份、标题与拍照三个内部控制器；共享原生探针、Tooltip、设置槽和更新状态各一份。
- * [POS]: 单 Bundle Client 组合根；身份/标题始终独立于可选拍照桥，captureEnabled 关闭时归还取像资源。
+ * [INPUT]: 依赖唯一 pdsh ConfigForm、locale/slot/PluginManager 服务和可选官方 macOS/Windows 平台 Remote 服务。
+ * [OUTPUT]: 按身份、标题打码、截图顺序呈现设置，装配三个内部控制器与 DSH 原生背景 Tabs；拍照每次初拍/重拍读取 Host accepted 身份遮挡值。
+ * [POS]: 单 Bundle Client 组合根；常驻身份、标题预遮挡与截图身份遮挡独立，共享唯一 ConfigForm；相机只在 Mac/Win Navigator 与实际 Remote provider 同时存在时装配。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useSyncExternalStore } from 'react';
@@ -17,14 +17,14 @@ import { mountSidebarRedaction } from './sidebar-redaction.ts';
 import { mountTitleToggle } from './title-toggle.ts';
 import { mountSearchEntry } from './search-entry.ts';
 import { mountDomTooltips } from './dom-tooltip.ts';
+import { mountCaptureBackgroundTabs } from './capture/background-tabs.tsx';
 import { mountCaptureController } from './capture/controller.ts';
 import { mountCaptureNotices } from './capture-notice.tsx';
-import { readPageCapturePort } from './capture/page-capture-port.ts';
 import { readCaptureDirectoryPicker } from './capture/directory.ts';
-import { captureViewport } from './capture/viewport.ts';
+import { captureOwnedWindow, capturedWindowScale } from './capture/window-capture.ts';
+import { saveWindowImage, prepareWindowSaveDirectory } from './capture/window-save.ts';
 import { SettingsCard } from './settings-card.tsx';
 import { CaptureSettingsCard } from './capture-settings.tsx';
-import { mountPluginCapturePort } from './capture/plugin-port.ts';
 import { TitleSettingsCard } from './title-settings.tsx';
 import { createUpdateController } from './updater.ts';
 import { loadReleaseTags } from './update-source.ts';
@@ -50,8 +50,8 @@ function BundleSettings({ view, form, t, presentation, titleControl, subscribe, 
   useSyncExternalStore(subscribe, snapshot);
   if (view === 'summary') return t('description');
   return <>
-    <TitleSettingsCard view={view} form={form} control={titleControl} t={t} />
     <SettingsCard view={view} preferencesForm={form} presentation={presentation} t={t} showTitles={false} />
+    <TitleSettingsCard view={view} form={form} control={titleControl} t={t} />
     <CaptureSettingsCard view={view} form={form} t={t} chooseDirectory={chooseDirectory} />
   </>;
 }
@@ -63,10 +63,9 @@ export function mountComponent(ctx, doc: Document = document) {
   ctx.effect(() => ctx.configForms.whileServed(['pdsh'], () => {
     const cleanup: Array<() => void> = [];
     let disposed = false;
-    let connection: any;
+    let captureRemote: any;
     let captureController: any;
     let captureNotices: any;
-    let portConnection: any;
     let entry: any;
     let entryHasCamera = false;
     const listeners = new Set<() => void>();
@@ -133,12 +132,11 @@ export function mountComponent(ctx, doc: Document = document) {
       }
 
       function stopCapture() {
-        const hadCapture = Boolean(captureController || captureNotices || portConnection);
+        const hadCapture = Boolean(captureController || captureNotices);
         const oldController = captureController; captureController = undefined;
         const oldNotices = captureNotices; captureNotices = undefined;
-        const oldPort = portConnection; portConnection = undefined;
         try {
-          disposeAll([oldController && (() => oldController.dispose()), oldNotices && (() => oldNotices.dispose()), oldPort && (() => oldPort.dispose())].filter(Boolean));
+          disposeAll([oldController && (() => oldController.dispose()), oldNotices && (() => oldNotices.dispose())].filter(Boolean));
         } finally {
           if (hadCapture && !disposed) syncEntry();
         }
@@ -152,30 +150,38 @@ export function mountComponent(ctx, doc: Document = document) {
 
       function syncCapture() {
         if (disposed || !captureSettingEnabled()) { stopCapture(); return; }
-        const native = readPageCapturePort(doc);
-        const canUsePluginPort = doc.location.protocol === 'dsh-app:' && typeof connection?.rpc?.call === 'function';
-        const portKind = native ? 'native' : canUsePluginPort ? 'plugin' : null;
-        const currentKind = portConnection ? 'plugin' : captureController ? 'native' : null;
-        if (!doc.defaultView.navigator.platform.startsWith('Mac') || !portKind) { stopCapture(); return; }
-        if (captureController && currentKind === portKind) return;
+        const navigatorPlatform = doc.defaultView.navigator.platform;
+        const supportedPlatform = navigatorPlatform.startsWith('Mac') || navigatorPlatform.startsWith('Win');
+        if (!supportedPlatform || !captureRemote) { stopCapture(); return; }
+        if (captureController) return;
         stopCapture();
 
         const trace = createCaptureTrace(ctx.logger, 'renderer');
         try {
-          if (!native) portConnection = mountPluginCapturePort(doc, connection.rpc, trace);
-          const port = native ?? portConnection.port;
+          const remote = captureRemote;
           captureNotices = mountCaptureNotices(doc);
           captureController = mountCaptureController(doc, {
-            capture: (document, options) => captureViewport(document, { ...options, port, trace }),
+            capture: (document, options) => captureOwnedWindow(document, signal => remote.capture(signal), options),
+            captureScope: 'owned-window', sourceScale: capturedWindowScale,
+            captureMaskIdentity: () => {
+              const current = form.getSnapshot();
+              return current.status !== 'ready' || current.value?.captureMaskIdentity !== false;
+            },
             exportPreferences: () => resolveCaptureExportPreferences(form.getSnapshot().value),
             trace,
-            onSave: portConnection
-              ? (blob, name, directory, behavior, signal) => portConnection.save(blob, name, directory, behavior, signal)
-              : undefined,
+            onSave: async (blob, _name, directory, behavior, signal, metadata) => {
+              const current = form.getSnapshot();
+              const accepted = resolveCaptureExportPreferences(current.value);
+              if (current.status !== 'ready' || accepted.saveFormat !== metadata.format || (behavior === 'direct' && accepted.saveDirectory !== directory)) throw new Error('save-failed');
+              const target = await prepareWindowSaveDirectory(form, readCaptureDirectoryPicker(doc), behavior, signal);
+              if (target === null) return 'cancelled';
+              return saveWindowImage(blob, {requestId: doc.defaultView.crypto.randomUUID(), ...metadata}, (request, abort) => remote.save(request, abort), {signal, crypto: doc.defaultView.crypto});
+            },
             locale: () => ctx.locale.getSnapshot?.().active ?? doc.documentElement.lang ?? doc.defaultView.navigator.language,
             onState: publish,
             notify: captureNotices.show,
             presetAssets,
+            mountBackgroundTabs: mountCaptureBackgroundTabs,
           });
           syncEntry();
       } catch (error) {
@@ -221,17 +227,17 @@ export function mountComponent(ctx, doc: Document = document) {
       inject: () => ({ updater, version: __PDSH_VERSION__ }),
     }, UpdateBadge)));
 
-    // +--- 可选子 Fiber 只供拍照桥；缺少 Connection 不阻塞身份与标题 ---+
-    const connectionFiber = ctx.inject(['connection'], (connectionCtx) => {
-      const current = connectionCtx.connection;
-      connection = current;
+    // +--- 可选官方 namespace；缺少取像服务不阻塞身份与标题 ---+
+    const captureFiber = ctx.inject(['remote.pdshNativeWindowCapture'], (captureCtx) => {
+      const current = captureCtx.remote.pdshNativeWindowCapture;
+      captureRemote = current;
       syncCapture();
-      connectionCtx.effect(() => () => {
-        if (connection === current) connection = undefined;
+      captureCtx.effect(() => () => {
+        if (captureRemote === current) captureRemote = undefined;
         syncCapture();
-      }, 'pdsh optional capture connection');
+      }, 'pdsh optional capture remote');
     });
-    cleanup.push(() => { void connectionFiber.dispose(); });
+    cleanup.push(() => { void captureFiber.dispose(); });
 
     return disposeBundle;
     } catch (error) {
