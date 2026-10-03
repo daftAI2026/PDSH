@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 Host 显式授权请求、window-owner 的进程/窗口归属校验，以及 Windows.Graphics.Capture、D3D11 与 WIC。
+ * [INPUT]: 依赖 Host 显式授权请求、window-owner 的进程/窗口归属校验，以及 WGC、`::Windows::Graphics::DirectX::Direct3D11` DXGI interop 与 WIC。
  * [OUTPUT]: `--check-api` 返回无GUI能力状态；身份门通过后仅捕获唯一可见 Main 窗口，并以有界 PNG 写 stdout、固定状态写 stderr。
  * [POS]: native/windows 的一次性 x64 取像编排器；复用 window-owner 安全门，隔离 WGC/D3D/WIC，不启动 picker、显示器捕获或提权。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -280,8 +280,10 @@ Status CopyFramePixels(Direct3D11CaptureFrame const& frame, ComPtr<ID3D11Device>
   uint64_t rawBytes = 0;
   if (!ValidSize(w, h, &rawBytes)) return Status::NativeSizeInvalidOrOverBudget;
 
-  winrt::com_ptr<IDirect3DDxgiInterfaceAccess> access;
-  try { access = frame.Surface().as<IDirect3DDxgiInterfaceAccess>(); }
+  winrt::com_ptr<::Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess> access;
+  try {
+    access = frame.Surface().as<::Windows::Graphics::DirectX::Direct3D11::IDirect3DDxgiInterfaceAccess>();
+  }
   catch (...) { return Status::CaptureFailed; }
   ComPtr<ID3D11Texture2D> source;
   if (FAILED(access->GetInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(source.GetAddressOf())))) {
