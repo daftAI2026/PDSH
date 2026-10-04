@@ -1321,6 +1321,7 @@ var WindowCaptureService = class extends (_a = TypertRemoteService, _capture_dec
     serviceContext.effect(() => () => this.dispose(), "pdsh-window-capture: close streams and helper");
   }
   capture(signal) {
+    this.refreshCaptureEnabled();
     const serviceContext = this.ctx;
     logCaptureObservation(serviceContext, "invocation");
     const frames = createCaptureFrameStream({
@@ -1346,6 +1347,7 @@ var WindowCaptureService = class extends (_a = TypertRemoteService, _capture_dec
     return observeCaptureFrames(frames, serviceContext);
   }
   save(request, signal) {
+    this.refreshCaptureEnabled();
     const ctx = this.ctx;
     const invocation = ctx.invocation;
     if (!invocation) throw new Error("Window save requires an active Remote invocation");
@@ -1355,8 +1357,9 @@ var WindowCaptureService = class extends (_a = TypertRemoteService, _capture_dec
       uplink: invocation.uplink()
     });
   }
-  /** 由 Config owner 的 owner-scoped volatile listener 同步调用。 */
+  /** 显式调用先核对 accepted 设置；owner-scoped listener 继续负责在途同步撤权。 */
   refreshCaptureEnabled() {
+    if (this.disposal) return;
     const preferences = acceptedWindowSavePreferences(this.ctx);
     const enabled = preferences.captureEnabled === true;
     this.lifetime.setEnabled(enabled);

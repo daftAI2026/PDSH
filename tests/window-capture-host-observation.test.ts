@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 WindowCaptureService、Node fake child 与只记录 formatter 参数的内存 logger。
- * [OUTPUT]: 验证 Host 只观测固定服务状态、阶段及白名单失败码；不启动原生 helper 或访问用户目录。
+ * [OUTPUT]: 验证 Host 在每次显式调用核对设置时只观测固定服务状态、阶段及白名单失败码；不启动原生 helper 或访问用户目录。
  * [POS]: Remote capture 可诊断性的边界合同；证明 native owner 状态在 shared terminal 折叠前可见。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -99,10 +99,12 @@ test('Host capture logs mounted/enabled, invocation, phase, native status and sa
     assert.deepEqual(records, [
       ['PDSH capture event=service-mounted enabled=%s', false],
       ['PDSH capture event=enabled enabled=%s', true],
+      ['PDSH capture event=enabled enabled=%s', true],
       ['PDSH capture event=invocation'],
       ['PDSH capture event=phase phase=%s', 'authorization-required'],
       ['PDSH capture event=native-result code=%s', 'host-parent-mismatch'],
       ['PDSH capture event=terminal code=%s', 'helper-failed'],
+      ['PDSH capture event=enabled enabled=%s', false],
       ['PDSH capture event=enabled enabled=%s', false],
       ['PDSH capture event=invocation'],
       ['PDSH capture event=terminal code=%s', 'disposed'],

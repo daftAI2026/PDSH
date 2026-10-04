@@ -74,9 +74,9 @@
 
 - `bundle-fixture.ts`: 共用合成单包、可解析但不可运行的双架构Mach-O及x64 PE头部与精确归档成员；不执行假helper。
 
-- `window-capture-host-gate.test.ts`: 真实 Cordis owner-filter 与构建 Host service 连线，假 helper/uplink 验证撤权同时中止和实际 settle；不取像。
+- `window-capture-host-gate.test.ts`: 真实 Cordis owner-filter 与构建 Host service 连线，假 helper/uplink 验证撤权同时中止和实际 settle；已取消调用覆盖 Settings 迟到就绪、撤权与终态卸载，防止挂载时的空投影永久锁死；不取像。
 
-- `window-capture-host-observation.test.ts`: fake child 的固定Host mount/enabled/phase/native/terminal日志和懒启动合同；不启动原生 helper或读取用户资料。
+- `window-capture-host-observation.test.ts`: fake child 的固定Host mount/逐调用enabled核对/phase/native/terminal日志和懒启动合同；不启动原生 helper或读取用户资料。
 
 - `capture-icons.test.ts`: 锁定官方Lucide路径摘要与相机同源，保证Host运行几何及ISC告知不变。
 

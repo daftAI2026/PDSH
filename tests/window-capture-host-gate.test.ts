@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实 Cordis Loader-owner event、正式 WindowCaptureService、Host capture/save stream 与 Node 子进程边界。
- * [OUTPUT]: 验证 accepted captureEnabled 撤回同时 abort 两路并等待真实 fake-child settle；重新启用不自动取像。
+ * [OUTPUT]: 验证 accepted captureEnabled 撤回同时 abort 两路并等待真实 fake-child settle；Settings 迟到就绪可恢复显式调用，但不复活已卸载服务。
  * [POS]: Host 生命周期集成合同；只替换 child_process.spawn 为可控假子进程，不运行 helper、不触发 TCC、不写图像。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -113,6 +113,69 @@ function deferredCount(items: readonly unknown[]) {
   }
 }
 
+test('Settings becoming ready after service mount is revalidated on explicit capture without a volatile toggle', async () => {
+  const childProcess = createRequire(import.meta.url)('node:child_process') as { spawn: (...args: any[]) => unknown }
+  const originalSpawn = childProcess.spawn
+  let nativeCalls = 0
+  childProcess.spawn = () => { nativeCalls++; throw new Error('cancelled readiness probe must not spawn') }
+  syncBuiltinESMExports()
+  const root = new Context()
+  let accepted: Record<string, unknown> | undefined
+  let service!: WindowCaptureService
+  const { WindowCaptureService: RuntimeWindowCaptureService } = await import('../index.js')
+  const owner = root.plugin({ apply(ctx: Context) {
+    ctx.provide('settings', { describe: () => accepted ? [{ ns: 'pdsh', value: accepted }] : [] })
+    service = new RuntimeWindowCaptureService(ctx) as WindowCaptureService
+  } })
+  await owner
+  const aborter = new AbortController()
+  aborter.abort()
+  // +--- 已取消请求只探测生命周期，不运行 helper、不请求录屏授权 ---+
+  const terminal = () => collect(service.capture(aborter.signal))
+  try {
+    assert.deepEqual(await terminal(), [{ type: 'terminal', status: 'disposed' }], 'missing Settings stays closed')
+    accepted = { captureEnabled: true }
+    assert.deepEqual(await terminal(), [{ type: 'terminal', status: 'cancelled' }], 'ready Settings must not remain latched off')
+    accepted.captureEnabled = false
+    assert.deepEqual(await terminal(), [{ type: 'terminal', status: 'disposed' }], 'fresh accepted revocation wins without an event')
+    accepted.captureEnabled = true
+    assert.deepEqual(await terminal(), [{ type: 'terminal', status: 'cancelled' }])
+    await owner.dispose()
+    assert.deepEqual(await terminal(), [{ type: 'terminal', status: 'disposed' }], 'accepted true cannot revive a disposed service')
+    assert.equal(nativeCalls, 0, 'mount/ready/revoke/dispose 均不执行原生 helper')
+  } finally {
+    await owner.dispose()
+    childProcess.spawn = originalSpawn
+    syncBuiltinESMExports()
+  }
+})
+
+test('First save after late Settings readiness does not inherit the aborted mount generation', async () => {
+  const root = new Context()
+  let ready = false
+  let uplinkReads = 0
+  let service!: WindowCaptureService
+  const { WindowCaptureService: RuntimeWindowCaptureService } = await import('../index.js')
+  const owner = root.plugin({ apply(ctx: Context) {
+    ctx.provide('settings', { describe: () => ready ? [{ ns: 'pdsh', value: {
+      captureEnabled: true, saveDirectory: tmpdir(), saveFormat: 'png', fileNamePattern: 'PDSH-{date}-{time}',
+    } }] : [] })
+    service = new RuntimeWindowCaptureService(ctx.extend({ invocation: { uplink: () => {
+      uplinkReads++
+      return { async *[Symbol.asyncIterator]() {} }
+    } } })) as WindowCaptureService
+  } })
+  await owner
+  try {
+    ready = true
+    // +--- 无效请求应进入正常校验而非旧 generation 的 cancelled；不读像素、不写文件 ---+
+    const frames = await collect(service.save({} as WindowSaveRequest, new AbortController().signal))
+    assert.equal(frames.at(-1)?.type, 'terminal')
+    assert.equal((frames.at(-1) as { code: string }).code, 'invalid-request')
+    assert.equal(uplinkReads, 1, 'Remote 构造取得 carrier，但后端校验不迭代像素')
+  } finally { await owner.dispose() }
+})
+
 test('Loader owner volatile update aborts the active Host capture and save, then re-enable waits for another click', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'pdsh-window-host-gate-'))
   const childProcess = createRequire(import.meta.url)('node:child_process') as { spawn: (...args: any[]) => unknown }
@@ -186,13 +249,13 @@ test('Loader owner volatile update aborts the active Host capture and save, then
     // A sibling Loader row and an unrelated volatile path cannot revoke this service.
     emitLoaderVolatileUpdate(otherFiber, [['captureEnabled']])
     emitLoaderVolatileUpdate(ownerFiber, [['maskIdentity']])
-    assert.equal(refreshCount, 0)
+    assert.equal(refreshCount, 2, 'capture/save 调用各核对一次；旁系事件不刷新')
     assert.deepEqual(children[0]!.kills, [])
     assert.equal(pendingUplink.closed, false)
 
     accepted.captureEnabled = false
     emitLoaderVolatileUpdate(ownerFiber, [['captureEnabled']])
-    assert.equal(refreshCount, 1)
+    assert.equal(refreshCount, 3)
     assert.equal(activeLifetimeSignal.aborted, true, 'the service generation is synchronously revoked')
     assert.deepEqual(children[0]!.kills, ['SIGTERM'])
     await pendingUplink.closedPromise
@@ -212,7 +275,7 @@ test('Loader owner volatile update aborts the active Host capture and save, then
 
     accepted.captureEnabled = true
     emitLoaderVolatileUpdate(ownerFiber, [['captureEnabled']])
-    assert.equal(refreshCount, 2)
+    assert.equal(refreshCount, 4)
     assert.equal(children.length, 1, 're-enabling only creates a new generation; it does not restart capture')
 
     explicitRetryAborter = new AbortController()

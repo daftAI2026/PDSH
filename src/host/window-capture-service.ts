@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖官方 Typert Remote stream、accepted pdsh Settings、universal macOS/Windows x64 helper、Host logger 与同 namespace 保存后端。
+ * [INPUT]: 依赖官方 Typert Remote stream、调用时重新核对的 accepted pdsh Settings、universal macOS/Windows x64 helper、Host logger 与同 namespace 保存后端。
  * [OUTPUT]: 提供 `pdshNativeWindowCapture.capture/save` 与不含内容/路径的固定状态诊断；按 Host 平台解析包内 helper，构造不授权、不取像、不写文件。
- * [POS]: 唯一 capture capability adapter；统一拥有 captureEnabled generation，原生失败在协议折叠前仅记白名单码。
+ * [POS]: 唯一 capture capability adapter；统一拥有 captureEnabled generation，修复父 Fiber 尚未 ACTIVE 时的空 Settings 投影，不复活已卸载实例。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { Context } from '@deepseek-ai/cordis'
@@ -101,6 +101,8 @@ export class WindowCaptureService extends TypertRemoteService {
   /** 权限只在该 Remote iterable 首次被拉取时经原生 helper 请求。 */
   @Remote({ mode: 'stream' })
   capture(signal: AbortSignal): AsyncIterable<CaptureFrame> {
+    // +--- 子 Service 可先于 Config owner ACTIVE；挂载时的空投影不是永久撤权 ---+
+    this.refreshCaptureEnabled()
     const serviceContext = this.ctx
     logCaptureObservation(serviceContext, 'invocation')
     const frames = createCaptureFrameStream({
@@ -129,6 +131,7 @@ export class WindowCaptureService extends TypertRemoteService {
   /** 保存仅接受当前 Config 目录与模板；wire 不含 path/name，像素走有界 uplink。 */
   @Remote({ mode: 'stream' })
   save(request: WindowSaveRequest, signal: AbortSignal): RemoteStream<WindowSaveFrame, WindowSaveInputFrame> {
+    this.refreshCaptureEnabled()
     const ctx = this.ctx as HostServiceContext
     const invocation = ctx.invocation
     if (!invocation) throw new Error('Window save requires an active Remote invocation')
@@ -139,8 +142,9 @@ export class WindowCaptureService extends TypertRemoteService {
     }) as RemoteStream<WindowSaveFrame, WindowSaveInputFrame>
   }
 
-  /** 由 Config owner 的 owner-scoped volatile listener 同步调用。 */
+  /** 显式调用先核对 accepted 设置；owner-scoped listener 继续负责在途同步撤权。 */
   refreshCaptureEnabled(): void {
+    if (this.disposal) return
     const preferences = acceptedWindowSavePreferences(this.ctx as HostServiceContext)
     const enabled = preferences.captureEnabled === true
     this.lifetime.setEnabled(enabled)

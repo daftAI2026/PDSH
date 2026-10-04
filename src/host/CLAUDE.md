@@ -4,7 +4,7 @@
 - `index.ts`: 唯一 `pdsh` Host Config/apply 与 Typert 源面；保留根 Config 地址，macOS 保持注册 capture service，Windows 仅在 x64 且包内 exe 为普通文件时注册；其余功能与 captureEnabled 撤回独立。
 - `capture.ts`: 声明 `captureEnabled`、独立身份遮挡与导出设置，引用 shared POSIX/Windows 绝对目录语法；保留历史默认迁移和 root owner-scoped listener，实际写入仍受 Host native path 校验。默认目录沿用本机用户home下Downloads，不探测重定向known folder。
 - `context.ts`: 以类型扩充 Cordis Context，描述唯一已注册 capture service；不制造 runtime binding 或 Typert descriptor。
-- `window-capture-service.ts`: Host capability adapter；按 `process.platform/arch` 解析包内 universal macOS 或 Windows x64 helper，把用户点击的 owned-window capture 与有界 save uplink 留在同一 namespace；accepted settings 撤权时等待两路真实 settle，logger 仅记固定白名单码。
+- `window-capture-service.ts`: Host capability adapter；按 `process.platform/arch` 解析包内 universal macOS 或 Windows x64 helper，把用户点击的 owned-window capture 与有界 save uplink 留在同一 namespace；每次 Remote 调用先核对 accepted settings，避免父 Fiber 尚未 ACTIVE 的空投影锁死新服务；在途撤权等待两路真实 settle，终态卸载不可复活，logger 仅记固定白名单码。
 - `window-capture-stream.ts`: 纯异步 capture 编排；惰性首拉、单航班、固定阶段/终态和≤32KiB PNG chunk，取消不微任务自旋且在锁释放前等待 helper Promise settle。
 - `native-window-capture.ts`: Node adapter 只选择已支持的 macOS/Windows x64 包内 helper，Windows 隐藏子进程窗口；校验固定状态与 PNG envelope，取消后 SIGTERM/强制结束仍等待 close；不持久化图像、不挂 Main 或网络路由。
 - `window-save-backend.ts`: 单 service 调用的 Host save backend；复核 shared 绝对目录语法与本机 path.isAbsolute/normalize，规范化 UNC share root 后从 accepted Config 取目录/模板，验证有序 uplink/hash/图像后委托既有安全 writer，真实提交后才回 receipt。
