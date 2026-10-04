@@ -73,4 +73,13 @@ test('RC 原生能力只读取自身 accepted Settings，不误读停用的正�
   accepted.captureEnabled = false;
   service.refreshCaptureEnabled();
   assert.equal(observations.at(-1), false);
+  // +--- Host 可能先建 service 后公开 Settings；只构造 iterable，不拉流或启动 helper。 ---+
+  let sections: unknown[] = [];
+  ctx.settings.describe = () => sections as any;
+  const lateService = new module.exports.WindowCaptureService(ctx);
+  assert.equal(observations.at(-1), false);
+  assert.equal(lateService.lifetime.signal.aborted, true);
+  sections = [{ ns: 'pdsh-rc', value: { captureEnabled: true } }];
+  lateService.capture(new AbortController().signal);
+  assert.equal(lateService.lifetime.signal.aborted, false);
 });

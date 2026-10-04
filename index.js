@@ -1322,13 +1322,13 @@ var WindowCaptureService = class extends (_a = TypertRemoteService, _capture_dec
     }));
     __publicField(this, "disposal");
     const serviceContext = this.ctx;
-    const enabled = acceptedWindowSavePreferences(serviceContext).captureEnabled === true;
-    this.lifetime.setEnabled(enabled);
+    const enabled = this.syncCaptureEnabled();
     logCaptureObservation(this.ctx, "service-mounted", enabled);
     serviceContext.effect(() => () => this.dispose(), "pdsh-window-capture: close streams and helper");
   }
   capture(signal) {
     const serviceContext = this.ctx;
+    this.syncCaptureEnabled();
     logCaptureObservation(serviceContext, "invocation");
     const frames = createCaptureFrameStream({
       signal,
@@ -1356,6 +1356,7 @@ var WindowCaptureService = class extends (_a = TypertRemoteService, _capture_dec
     const ctx = this.ctx;
     const invocation = ctx.invocation;
     if (!invocation) throw new Error("Window save requires an active Remote invocation");
+    this.syncCaptureEnabled();
     return this.saveBackend.save(request, {
       signal,
       lifetimeSignal: this.lifetime.signal,
@@ -1364,10 +1365,14 @@ var WindowCaptureService = class extends (_a = TypertRemoteService, _capture_dec
   }
   /** 由 Config owner 的 owner-scoped volatile listener 同步调用。 */
   refreshCaptureEnabled() {
+    const enabled = this.syncCaptureEnabled();
+    logCaptureObservation(this.ctx, "enabled", enabled);
+  }
+  syncCaptureEnabled() {
     const preferences = acceptedWindowSavePreferences(this.ctx);
     const enabled = preferences.captureEnabled === true;
     this.lifetime.setEnabled(enabled);
-    logCaptureObservation(this.ctx, "enabled", enabled);
+    return enabled;
   }
   dispose() {
     if (!this.disposal) {

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖官方 Typert Remote stream、当前包身份的 accepted Settings、universal macOS/Windows x64 helper、Host logger 与同 namespace 保存后端。
  * [OUTPUT]: 提供 `pdshNativeWindowCapture.capture/save` 与不含内容/路径的固定状态诊断；按 Host 平台解析包内 helper，构造不授权、不取像、不写文件。
- * [POS]: 唯一 capture capability adapter；统一拥有 captureEnabled generation，原生失败在协议折叠前仅记白名单码。
+ * [POS]: 唯一 capture capability adapter；调用时复核已挂载的 accepted Settings，统一拥有 captureEnabled generation，原生失败仅记白名单码。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { ROOT_ENTRY_ID } from '../shared/components.ts'
@@ -93,8 +93,7 @@ export class WindowCaptureService extends TypertRemoteService {
   constructor(ctx: Context) {
     super(ctx, 'pdshWindowCapture', { namespace: 'pdshNativeWindowCapture' })
     const serviceContext = this.ctx as HostServiceContext
-    const enabled = acceptedWindowSavePreferences(serviceContext).captureEnabled === true
-    this.lifetime.setEnabled(enabled)
+    const enabled = this.syncCaptureEnabled()
     logCaptureObservation(this.ctx, 'service-mounted', enabled)
     serviceContext.effect(() => () => this.dispose(), 'pdsh-window-capture: close streams and helper')
   }
@@ -103,6 +102,8 @@ export class WindowCaptureService extends TypertRemoteService {
   @Remote({ mode: 'stream' })
   capture(signal: AbortSignal): AsyncIterable<CaptureFrame> {
     const serviceContext = this.ctx
+    // +--- service 可能先于 Settings 视图挂载；用户调用时重读，不把初始缺失缓存为永久停用。 ---+
+    this.syncCaptureEnabled()
     logCaptureObservation(serviceContext, 'invocation')
     const frames = createCaptureFrameStream({
       signal,
@@ -133,6 +134,7 @@ export class WindowCaptureService extends TypertRemoteService {
     const ctx = this.ctx as HostServiceContext
     const invocation = ctx.invocation
     if (!invocation) throw new Error('Window save requires an active Remote invocation')
+    this.syncCaptureEnabled()
     return this.saveBackend.save(request, {
       signal,
       lifetimeSignal: this.lifetime.signal,
@@ -142,10 +144,15 @@ export class WindowCaptureService extends TypertRemoteService {
 
   /** 由 Config owner 的 owner-scoped volatile listener 同步调用。 */
   refreshCaptureEnabled(): void {
+    const enabled = this.syncCaptureEnabled()
+    logCaptureObservation(this.ctx, 'enabled', enabled)
+  }
+
+  private syncCaptureEnabled(): boolean {
     const preferences = acceptedWindowSavePreferences(this.ctx as HostServiceContext)
     const enabled = preferences.captureEnabled === true
     this.lifetime.setEnabled(enabled)
-    logCaptureObservation(this.ctx, 'enabled', enabled)
+    return enabled
   }
 
   private dispose(): Promise<void> {
