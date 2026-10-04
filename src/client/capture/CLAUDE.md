@@ -14,7 +14,8 @@
 - `plugin-port.ts`: 已退出装配的 Renderer/connection.rpc 调试控制实验；保留历史 owner/nonce 回归，不是现行能力 provider 或备用像素通道。
 - `page-capture-port.ts`: 取像桥的版本、current-page 范围与 capturePng/cancel 窄契约及唯一运行时验证；装配层选择桥提供方，viewport 只消费接口，不把进程连接塞进拍照/编辑器。协议声明不是已安装 Host 的能力证明。
 - `capture-lifecycle.ts`: 串行拍摄、双帧等待与可选机器取像预算，整窗授权由原生阶段治理而非页面计时器；采样之前只隐藏工作台/浮层，保留帽子与相机入口，成功、失败或超时后归还临时状态，不删除布局盒。
-- `privacy.ts`: 标题与身份临时标记分别受控；身份仅对唯一识别的侧栏 launcher 同时标记头像、原生 label 与自有 `[data-pdsh-name]`，不碰设置页账号/昵称编辑，恢复只归还本次仍拥有的属性。
+- `candidates.ts`: 合并严格识别的侧栏标题/唯一身份与有限语义 DOM 节点；检查隐藏状态、视口/滚动祖先裁切和150项早停，遇变换裁切祖先退让，WeakMap ID 绑定当前文档节点，不推断原生整窗原点。
+- `privacy.ts`: 标题与身份临时标记分别受控；身份仅对唯一识别的侧栏 launcher 同时标记头像、原生 label 与自有 `[data-pdsh-name]`，不碰设置页账号/昵称编辑，恢复只归还本次仍拥有的属性；候选薄委托独立 DOM 层，等比例映射只供旧页面路线，不证明整窗原点。
 - `editor-keyboard.ts`: 工作台可见tab stop焦点/Escape/导出/历史快捷键输入适配，隐藏/inert面板与负tabindex不入循环；忙碌阶段只允许取消与焦点移动，不绕过串行导出。
 - `editor.ts`: 工作台受控原生 Tabs/交互/重拍/导出/卸载编排；切类立即应用各类最近素材、本地选图迟到拒绝覆盖；标题/时间和保存方式冻结，尺寸来自合成；超预算边距拒绝并反馈，恢复旧偏好或重拍按本帧预算调整；本机保存须有回执，缺 provider 不假装直接写目录；关闭取消所属保存，通知交给 Host Toast。
 - `editor-viewport.ts`: 独立视口控制器；模型是 zoom 唯一真源、控制器独占 pan，归一化并限幅滚轮输入，按帧合并 transform 且 dispose 取消待办，不触发像素合成。

@@ -1,11 +1,12 @@
 /**
- * [INPUT]: 依赖 sidebar-redaction 的标题识别与 presentation 的唯一侧栏身份识别，共用 capture 灰条样式。
- * [OUTPUT]: 按独立标题/身份偏好临时标记标题、原生名称、自有名牌和头像，并提供比例安全的编辑建议区域。
- * [POS]: DSH 截图隐私边界；不触碰账户设置/昵称编辑区域，只改可恢复 DOM 属性，最终像素由 Host 截取。
+ * [INPUT]: 依赖 sidebar-redaction/presentation 的严格识别、capture 候选层和共享灰条样式。
+ * [OUTPUT]: 按独立标题/身份偏好临时标记身份与标题，委托 DOM 候选识别，并保留旧页面路线的等比例映射。
+ * [POS]: DSH 截图隐私边界；临时遮挡与自动建议分离，不触碰账户设置编辑，最终像素由 Host 截取。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { recognizedSidebarTitles } from '../sidebar-redaction.ts';
 import { recognizeSidebarIdentity } from '../presentation.ts';
+import { collectDOMCandidates } from './candidates.ts';
 import type { CaptureCandidate } from './model.ts';
 
 const REDACT = 'data-pdsh-capture-redact';
@@ -40,18 +41,7 @@ export function markDSHPrivacyPlaceholders(doc: Document, { maskTitles = true, m
 }
 
 export function collectDSHCandidates(doc: Document): CaptureCandidate[] {
-  const nodes = recognizedSidebarTitles(doc);
-  const identity = recognizeSidebarIdentity(doc);
-  if (identity.status === 'recognized') {
-    nodes.push(identity.avatar);
-    const visibleLabel = identity.trigger.querySelector(':scope > [data-pdsh-name]') ?? identity.label;
-    if (visibleLabel) nodes.push(visibleLabel);
-  }
-  return nodes.flatMap((node, index) => {
-    const rect = node.getBoundingClientRect();
-    if (!(rect.width > 0 && rect.height > 0 && rect.left >= 0 && rect.top >= 0)) return [];
-    return [{ id: `dsh:${index}`, x: rect.left, y: rect.top, width: rect.width, height: rect.height }];
-  });
+  return collectDOMCandidates(doc);
 }
 
 export function mapCandidatesToPng(candidates: CaptureCandidate[], source: { width: number; height: number }, viewport: { width: number; height: number }): CaptureCandidate[] {

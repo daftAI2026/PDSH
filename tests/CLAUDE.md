@@ -18,6 +18,7 @@
 - `capture-material.test.ts`: 当前 macOS sidebar 配方、仅背景模糊与临时画布释放合同；不冒充原生窗口覆盖证明。
 - `capture-pixels.test.ts`: 宿主/显式 PNG 桥的能力、目标范围与关联 ID；预算/DPR/130% 缩放量化、冻结解码及取消/视口变化；固定 Main 错误和 Electron invoke 包装保持分类，未知通道不冒充、忙碌不误报端口；桩桥不是安装件能力证据。
 - `capture-privacy.test.ts`: 标题与截图身份独立；唯一识别后遮挡自有名牌/原生名称/头像，未知结构及账号编辑退让，属性按所有权归还并守候选比例。
+- `capture-candidates.test.ts`: 通用 DOM 候选的有限几何/最小边、视口/滚动容器裁切、变换祖先退让、隐藏/空内容过滤、嵌套去重、150项几何早停及严格侧栏优先；真实 redactions 解析证明同节点移动重定位、新节点不继承旧选择，不验证原生整窗映射。
 - `capture-styles.test.ts`: 五列统一圆角色块、固定240px检查器与设置开关等高槽；检查器选中环安全边距与圆形拾色图标局部约束， 工作台Host token来源/实时几何消费及自有色谱28px白环及内层圆形隔离、浮层单一elevation描边；禁Codex主题、数值回退与宿主拾色器样式污染。
 - `capture-editor-keyboard.test.ts`: 背景面板Tab围栏跳过hidden/inert/CSS隐藏、disabled与负tabindex；不替代原生键盘验收。
 - `capture-view.test.ts`: 双语编辑器操作面板、标题遮罩与身份设置分界，无系统壁纸adapter时不伪造入口。
