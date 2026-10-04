@@ -6,12 +6,12 @@
 这些 TypeScript 合同运行在 Node/jsdom；只能证明源码和生成产物，不替代 Desktop 实窗验收。
 
 - `component-host.test.ts`: 生成唯一Config、root owner captureEnabled observer、配置不触发旧连接与Mac/Windows helper包内相对路径；新代码的单航班/结算另列专门合同，不冒充真实Loader或实机。
-- `client-injection.test.ts`: Cordis 4.0.4 真注册器运行唯一生成 Client；Mac/Win navigator 还须同时有实际 Remote provider 才增减相机，旧 Connection/pageCapture 不参与路径，三个设置独立、挂载不拍摄、不发调试 RPC；不冒充真实宿主像素验收。
-- `client.test.ts`: 唯一 root Client 的八种功能设置组合、身份/标题恢复、相机资源撤回与装配失败归还；真实 ReactDOM 探针完整子树隐藏和移除样式负例，不冒充 Host 控件/CSP 或实窗验收。
+- `client-injection.test.ts`: Cordis 4.0.4 真注册器运行唯一生成 Client；旧 ready Host 缺少截图字段时身份/标题照常而相机撤回，完整 snapshot 可恢复；另验平台/Remote provider、旧桥隔离与 namespace 生命周期，不冒充实机像素验收。
+- `client.test.ts`: 唯一 root Client 在完整截图配置下的八种功能组合、身份/标题恢复、相机资源撤回与装配失败归还；真实 ReactDOM 探针完整子树隐藏和移除样式负例，不冒充 Host 控件/CSP 或实窗验收。
 - `capture-bootstrap.test.ts`: 副作用适配下的真实启动编排，拒绝身份/端口、ACK 失败、关闭 unknown 与取消，系统临时根内私有目录独占创建/分别归还，只读真实 macOS ps 路径格式；不操作真实 Main。
 - `capture-control.test.ts`: 生成 Main 与真实 Host socket transport 的畸形帧、握手、控制 ACK、取消与资源归还；新增系统临时根内真实 Unix socket 两端握手及目录边界/权限/符号链接拒绝及根别名接受；不打开真实应用调试端口。
 - `capture-route.test.ts`: 官方 RPC 控制封套、owner 世代与迟到 release 围栏；Host 自己撤回 consent 即刻取消，不依赖 Renderer 消息；确认归还后的断连不永久缓存；Main/control 关闭未知不随新 owner/排队/release/重装清除。
-- `capture-settings.test.ts`: 拍照设置独立开关、导出 revision/目录围栏与共享单slash POSIX/canonical drive/UNC语法验证，拒绝相对、控制字符和设备namespace；不改变常驻身份开关或保留二次桥授权警告。
+- `capture-settings.test.ts`: 完整 accepted capture 字段就绪门、旧 Host ready 只读提示/无写入无 picker且隐藏 fallback 目录文案、loading 不误报与后续完整快照恢复；完整但空目录沿用原目录状态；另验导出 revision/路径围栏，不改变常驻身份开关。
 - `inspector-ownership.test.ts`: 隔离 VM 的 PID/nonce/原调试地址围栏与 watchdog 归还，不打开真实 Main 调试端口。
 - `capture-controller.test.ts`: 初拍/重拍实时读取 Host 身份遮挡并与本地标题遮挡正交；并覆盖截图/挂载错误分层及卸载清理，不臆断系统权限。
 - `capture-notice.test.ts`: 官方 Toast 参数和默认生命周期委托、同文重显、旧完成围栏及 React 根回收；不另模拟宿主计时器。
@@ -31,8 +31,8 @@
 - `native-style-probe.test.ts`: 原生 Input/Button/Switch/设置字段/Tooltip 几何与动效采样，SVG 笔画比例/透明度/尺寸及主题/DOM/resize 重采；合法零长度保真、无效值或探针节点缺席时撤销旧值，节点重建后重采，root 脱离后清空且卸载恢复原值。
 - `styles.test.ts`: 视觉规则与上游 token 来源；入口只合成 SVG 根透明度、按压态不绘常驻底色且复用原生按钮交互，实时原生控件测量由独立可卸载 controller 负责；视觉隐藏 probe 不入页面流且保留几何采样，Tooltip 只发自有 mouseover，不抢焦点，并校验来源文本间距和昵称行对称留白。
 - `title-toggle.test.ts`: Host 单路径切换及失败状态。
-- `updater.test.ts`: 稳定 tag、固定提交、官方 Remote 回包封套、显式安装与失败分类。
-- `update-badge.test.ts`: 官方详情徽标仅自身自动探测、仅新版展示细线图标；SVG 笔画/尺寸/透明度来自实时原生测量合同，安装需二次确认。
+- `updater.test.ts`: 稳定 tag、固定提交、官方 Remote 回包封套、显式安装；安装失败保留目标版本，因为 Manager 配置失败可能发生在磁盘清单前移之后，不假定回滚。
+- `update-badge.test.ts`: 官方详情更新状态只由当前 Client 版本探测；验证 installing 中磁盘版本先变仍显示进度、成功/失败终态保留、失配时无旧 Client 检查/重试，restart Modal 与“稍后”只关闭提示且不模拟一键重启；restart 行内测试只覆盖同一挂载；另以真正详情卸载/重挂验证同 updater 的失败结果，不作跨 Fiber 承诺。
 - `update-source.test.ts`: 公共 GitHub tag 请求的无凭据网络边界；不冒充 Desktop CSP 证明。
 - `dom-tooltip.test.ts`: 非 React 控件跟随宿主 Tooltip 延时与方位参数，卸载彻底清理。
 - `release-check.test.ts`: 隔离 Git 单包候选与稳定 tag/版本/生成物/脏树守门，不创建 tag。
@@ -62,7 +62,7 @@
 
 - `window-capture-client-stream.test.ts`: 整窗元数据、帧序/PNG envelope/CRC/浏览器解码接缝及取消释放；不是实机像素证据。
 
-- `window-save-client.test.ts`: ACK 背压、finish 半关闭、真实保存回执和目录 revision 围栏的内存合同，不冒充实机保存。
+- `window-save-client.test.ts`: ACK 背压、finish 半关闭、真实保存回执和完整截图配置的目录 revision 围栏；旧 Host 不开 picker/不 mutate，等待期间 schema 回退不接受 fallback，不冒充实机保存。
 
 - `window-save-backend.test.ts`: 纯 Host 有界 uplink、真实 Chromium Canvas sRGB ICC字节保留/未知metadata拒绝、accepted POSIX/Windows native-path双边界、UNC share-root规范化、配置/生命周期围栏与临时目录真实独占提交/不覆盖合同；仅非Windows断言 POSIX 0600 mode，Windows 文件 mode 不代表 ACL，Windows专项路径用例须在Windows runner运行。
 - `window-save-roundtrip.test.ts`: 实际 Client↔Host 双向状态机和两块PNG落盘/重复basename编号；内存carrier不是DSH实机Gateway。

@@ -9,7 +9,7 @@
 - `window-capture.ts`: 冻结 PNG 等尺寸解码至编辑器画布；WeakMap 留存原生比例，不猜 renderer 原点或页面 DPR，不重绘 DOM。
 - `window-capture-stream.ts`: 官方 Remote 的一次性 PNG 流消费；严格帧序/CRC/预算/解码与本地 URL 释放，保留整窗原生比例，无重连、路径或持久化。
 - `viewport.ts`: 已退出装配的旧 current-page PNG 桥消费者与错误分类；旧合同回归仍使用它，当前 controller 从 window-capture 获取原生整窗，不回退此路线。
-- `window-save.ts`: 官方目录选择经 Host revision 接受后，同一 Remote uplink 按 ACK 上传、Host 命名与独占写入回执闭环；Client 不传路径或假报下载成功，提交后断流明确提示结果未知/先检查目录。
+- `window-save.ts`: 仅完整有效且 `captureEnabled` 明确为 true 的 Host accepted 配置可进入目录保存；picker 前、等待后与 mutate 回执后均重新围栏，避免旧 Host 投影默认值成为可写目录；保存仍用同一 Remote uplink/ACK/Host 独占回执。
 - `save-port.ts`: 已退出装配的 Main 固定接收器导出实验；保留历史回执/取消回归，现行保存仅用 window-save 的官方 Remote uplink。
 - `plugin-port.ts`: 已退出装配的 Renderer/connection.rpc 调试控制实验；保留历史 owner/nonce 回归，不是现行能力 provider 或备用像素通道。
 - `page-capture-port.ts`: 取像桥的版本、current-page 范围与 capturePng/cancel 窄契约及唯一运行时验证；装配层选择桥提供方，viewport 只消费接口，不把进程连接塞进拍照/编辑器。协议声明不是已安装 Host 的能力证明。

@@ -1,12 +1,12 @@
 /**
- * [INPUT]: 依赖同一 Host ConfigForm 的接受值/修订围栏、官方目录 picker 和 Remote 双向保存流。
- * [OUTPUT]: 目录选择后按 ACK 背压上传 Blob；仅实际 commit 回执与自然流结束才返回 saved，取消/失败释放 handle。
- * [POS]: 编辑器导出 effect 边界；Host 决定目录与文件名，Client 不发路径、不走 HTTP/Main/调试桥，不重复保存。
+ * [INPUT]: 依赖同一 Host ConfigForm 的完整截图字段/修订围栏、官方目录 picker 和 Remote 双向保存流。
+ * [OUTPUT]: 只在初始、picker 后与 mutate 后仍接受完整且启用的截图配置时接受目录；上传按 ACK 背压，提交须有回执与自然流结束。
+ * [POS]: 编辑器导出 effect 边界；旧 Host 的默认投影不是可写配置，Host 决定目录与文件名，Client 不发路径或另建桥。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { RemoteStreamHandle } from '@deepseek-ai/dsh-typert-protocol';
 import { WINDOW_SAVE_CHUNK_BYTES, WINDOW_SAVE_MAX_BYTES, type WindowSaveRequest, type WindowSaveFrame, type WindowSaveInputFrame } from '../../shared/window-save-protocol.ts';
-import { resolveCaptureExportPreferences } from '../../shared/capture-export.ts';
+import { isCaptureConfigurationReady, resolveCaptureExportPreferences } from '../../shared/capture-export.ts';
 const failed = () => new Error('save-failed');
 function check(signal?: AbortSignal) {
   if (signal?.aborted) throw new Error('cancelled');
@@ -14,7 +14,7 @@ function check(signal?: AbortSignal) {
 export async function prepareWindowSaveDirectory(form, chooseDirectory, behavior: 'ask' | 'direct', signal?: AbortSignal): Promise<string | null> {
   check(signal);
   const initial = form.getSnapshot();
-  if (initial.status !== 'ready' || !initial.writable)
+  if (initial.status !== 'ready' || !initial.writable || !isCaptureConfigurationReady(initial.value) || initial.value.captureEnabled !== true)
     throw failed();
   const base = resolveCaptureExportPreferences(initial.value);
   if (base.saveBehavior !== behavior)
@@ -31,12 +31,12 @@ export async function prepareWindowSaveDirectory(form, chooseDirectory, behavior
   if (selected === null)
     return null;
   const latest = form.getSnapshot();
-  if (latest.status !== 'ready' || !latest.writable || JSON.stringify(resolveCaptureExportPreferences(latest.value)) !== JSON.stringify(base))
+  if (latest.status !== 'ready' || !latest.writable || !isCaptureConfigurationReady(latest.value) || latest.value.captureEnabled !== true || JSON.stringify(resolveCaptureExportPreferences(latest.value)) !== JSON.stringify(base))
     throw failed();
   const accepted = await form.mutate([{ op: 'set', path: ['saveDirectory'], value: selected }], latest.revision);
   check(signal);
   const current = form.getSnapshot();
-  if (!accepted || current.status !== 'ready' || !current.writable || current.value?.captureEnabled === false || resolveCaptureExportPreferences(current.value).saveDirectory !== selected)
+  if (!accepted || current.status !== 'ready' || !current.writable || !isCaptureConfigurationReady(current.value) || current.value.captureEnabled !== true || resolveCaptureExportPreferences(current.value).saveDirectory !== selected)
     throw failed();
   return selected;
 }

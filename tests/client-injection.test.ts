@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖唯一生成 Client、Cordis 4.0.4 真注册器、Mac/Win Navigator fixture、官方 Remote namespace 与遗留桥负例。
- * [OUTPUT]: 验证 Win 相机仅随可用 Remote provider 装配，namespace 撤回时归还；三个设置独立启停，不启用旧桥。
+ * [OUTPUT]: 验证旧 ready Host 缺少截图字段时不装相机、完整后续快照恢复；并覆盖平台/provider 围栏、namespace 撤回和独立设置。
  * [POS]: Client 服务图回归；不直调 apply 绕过注入，React root 仅作生命周期桩，不冒充界面或 Main 取像。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -14,6 +14,7 @@ import React from 'react';
 import * as jsx from 'react/jsx-runtime';
 import { JSDOM } from 'jsdom';
 import { DEFAULTS } from '../src/shared/model.ts';
+import { DEFAULT_CAPTURE_EXPORT } from '../src/shared/capture-export.ts';
 
 function fixture(platform = 'MacIntel') {
   const dom = new JSDOM(`<body><main>原页面</main><div data-slot="settings.launcher"><button type="button" data-collapsed="false" data-signed-out="false" aria-haspopup="menu" aria-expanded="false"><span><img src="native.png"></span><span>原身份</span></button></div><div data-slot="sidebar.workspaces"><div><div><div><div><button type="button" class="native-search" aria-label="搜索会话" aria-expanded="false"><svg viewBox="0 0 16 16" style="width:14px;height:14px;stroke-width:1"><circle cx="7" cy="7" r="4"></circle><path d="m10 10 4 4"></path></svg></button><input type="text"></div></div></div><div role="tree" aria-label="工作区与会话"><div role="treeitem" data-row-key="session:one" aria-selected="false"><span><span>状态</span></span><span>秘密标题</span><span>现在</span><span>操作</span></div></div></div></div></body>`, { url: 'dsh-app://app/', pretendToBeVisual: true });
@@ -38,7 +39,7 @@ function fixture(platform = 'MacIntel') {
 
 test('正式单根 Client 无取像服务也启动；官方 Remote namespace 加入/撤回仅改变相机所有权', async () => {
   const h = fixture(), ctx = new Context(), registrations = new Set();
-  const value = { ...DEFAULTS, maskIdentity: true, maskTitles: true, captureEnabled: true };
+  const value = { ...DEFAULTS, ...DEFAULT_CAPTURE_EXPORT, maskIdentity: true, maskTitles: true, captureEnabled: true, captureMaskIdentity: true };
   const form = { getSnapshot: () => ({ status: 'ready', writable: true, revision: 1, value }), subscribe: () => () => {} };
   let registeredLocale = false, served = 0;
   const calls: string[] = [];
@@ -82,9 +83,52 @@ test('正式单根 Client 无取像服务也启动；官方 Remote namespace 加
   } finally { await ctx.fiber.dispose(); h.dom.window.close(); }
 });
 
+test('旧 ready Host config 保留身份/标题但不装相机；完整 accepted snapshot 到达后恢复', async () => {
+  const h = fixture(), ctx = new Context(), listeners = new Set<() => void>();
+  let value = { ...DEFAULTS, maskIdentity: true, maskTitles: true }, revision = 1;
+  const form = {
+    getSnapshot: () => ({ status: 'ready', writable: true, revision, value }),
+    subscribe(listener: () => void) { listeners.add(listener); return () => listeners.delete(listener); },
+  };
+  const manager = { listBundles: async () => ({ ok: true, value: [] }) };
+  const namespace = { capture() { assert.fail('安装完成不能自动取像'); }, save() { assert.fail('安装完成不能自动保存'); } };
+  let bundle;
+  try {
+    await ctx.plugin(child => {
+      child.provide('slots', { inject: (_name, callback) => callback(), register: () => () => {} });
+      child.provide('locale', { register: () => () => {}, bind: () => key => key, subscribe: () => () => {}, getSnapshot: () => ({ active: 'zh' }) });
+      child.provide('configForms', { get: () => form, whileServed: (_ids, callback) => callback() });
+      child.provide('remote', { pluginManager: manager, async $mount() { return () => {}; } });
+      child.provide('remote.pluginManager', manager);
+    }).await();
+    bundle = ctx.plugin(h.plugin); await bundle.await();
+    assert.equal(h.doc.querySelector('[data-pdsh-name]')?.textContent, '临时访客');
+    assert.equal(h.doc.querySelectorAll('[data-pdsh-redacted-title="session"]').length, 1);
+
+    const provider = ctx.plugin({ inject: ['remote'], apply(child) {
+      child.remote.pdshNativeWindowCapture = namespace;
+      child.provide('remote.pdshNativeWindowCapture', namespace);
+      child.effect(() => () => { delete child.remote.pdshNativeWindowCapture; });
+    } });
+    await provider.await(); await bundle.await();
+    assert.equal(h.doc.querySelector('[data-pdsh-capture-entry]'), null, 'old Host 缺失六个 accepted 截图字段时必须关闸');
+    assert.equal(h.doc.querySelector('[data-pdsh-name]')?.textContent, '临时访客', '身份功能不依赖截图配置');
+    assert.equal(h.doc.querySelectorAll('[data-pdsh-redacted-title="session"]').length, 1, '标题功能不依赖截图配置');
+
+    value = { ...value, ...DEFAULT_CAPTURE_EXPORT, captureEnabled: true, captureMaskIdentity: true }; revision++;
+    for (const listener of listeners) listener(); await bundle.await();
+    assert.ok(h.doc.querySelector('[data-pdsh-capture-entry]'), '完整 accepted snapshot 后截图入口恢复');
+    assert.equal(h.doc.querySelector('[data-pdsh-name]')?.textContent, '临时访客');
+    assert.equal(h.doc.querySelectorAll('[data-pdsh-redacted-title="session"]').length, 1);
+    await provider.dispose(); await bundle.await();
+    await bundle.dispose();
+    assert.equal(h.doc.body.outerHTML, h.before);
+  } finally { await ctx.fiber.dispose(); h.dom.window.close(); }
+});
+
 test('Windows Client camera requires both a Win navigator and the actual Host Remote provider', async () => {
   const h = fixture('Win32'), ctx = new Context();
-  const value = { ...DEFAULTS, captureEnabled: true };
+  const value = { ...DEFAULTS, ...DEFAULT_CAPTURE_EXPORT, captureEnabled: true, captureMaskIdentity: true };
   const form = { getSnapshot: () => ({ status: 'ready', writable: true, revision: 1, value }), subscribe: () => () => {} };
   const calls: string[] = [];
   try {
@@ -128,7 +172,7 @@ test('坏声明负例：Connection.rpc 对象不满足虚构的 connection.rpc �
 
 test('生成 Client 仅使用官方取像流；旧 pageCapture/Connection 不影响其独立设置与生命周期', async () => {
   const h = fixture(), ctx = new Context(), listeners = new Set<() => void>();
-  let value = { ...DEFAULTS, maskIdentity: true, maskTitles: true, captureEnabled: true }, revision = 1;
+  let value = { ...DEFAULTS, ...DEFAULT_CAPTURE_EXPORT, maskIdentity: true, maskTitles: true, captureEnabled: true, captureMaskIdentity: true }, revision = 1;
   const calls: string[] = [];
   Object.defineProperty(h.dom.window, 'dshDesktop', { value: Object.freeze({
     protocolVersion: 1,

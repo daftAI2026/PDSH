@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖唯一 pdsh ConfigForm、locale/slot/PluginManager 服务和可选官方 macOS/Windows 平台 Remote 服务。
- * [OUTPUT]: 按身份、标题打码、截图顺序呈现设置，装配三个内部控制器与 DSH 原生背景 Tabs；拍照每次初拍/重拍读取 Host accepted 身份遮挡值。
- * [POS]: 单 Bundle Client 组合根；常驻身份、标题预遮挡与截图身份遮挡独立，共享唯一 ConfigForm；相机只在 Mac/Win Navigator 与实际 Remote provider 同时存在时装配。
+ * [OUTPUT]: 按身份、标题打码、截图顺序呈现设置，仅用完整有效的 Host accepted 截图配置装配相机；拍照每次初拍/重拍读取 Host accepted 身份遮挡值。
+ * [POS]: 单 Bundle Client 组合根；常驻身份、标题预遮挡与截图身份遮挡独立，共享唯一 ConfigForm；截图配置尚未就绪时只撤回相机，不影响身份/标题，后续快照可恢复。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useSyncExternalStore } from 'react';
@@ -9,7 +9,7 @@ import { createRoot } from 'react-dom/client';
 import { BUNDLE_NAME } from '../shared/components.ts';
 import { NS, dictionaries } from '../shared/locales.ts';
 import { DEFAULTS, resolvePreferences } from '../shared/model.ts';
-import { resolveCaptureExportPreferences } from '../shared/capture-export.ts';
+import { isCaptureConfigurationReady, resolveCaptureExportPreferences } from '../shared/capture-export.ts';
 import { createCaptureTrace } from '../shared/capture-trace.ts';
 import { NativeStyleProbe } from './native-style-view.tsx';
 import { mountPresentation } from './presentation.ts';
@@ -145,7 +145,7 @@ export function mountComponent(ctx, doc: Document = document) {
 
       function captureSettingEnabled() {
         const snapshot = form.getSnapshot();
-        return snapshot.status === 'ready' && snapshot.value?.captureEnabled !== false;
+        return snapshot.status === 'ready' && isCaptureConfigurationReady(snapshot.value) && snapshot.value?.captureEnabled === true;
       }
 
       function syncCapture() {
@@ -165,14 +165,14 @@ export function mountComponent(ctx, doc: Document = document) {
             captureScope: 'owned-window', sourceScale: capturedWindowScale,
             captureMaskIdentity: () => {
               const current = form.getSnapshot();
-              return current.status !== 'ready' || current.value?.captureMaskIdentity !== false;
+              return current.status !== 'ready' || !isCaptureConfigurationReady(current.value) || current.value.captureMaskIdentity !== false;
             },
             exportPreferences: () => resolveCaptureExportPreferences(form.getSnapshot().value),
             trace,
             onSave: async (blob, _name, directory, behavior, signal, metadata) => {
               const current = form.getSnapshot();
               const accepted = resolveCaptureExportPreferences(current.value);
-              if (current.status !== 'ready' || accepted.saveFormat !== metadata.format || (behavior === 'direct' && accepted.saveDirectory !== directory)) throw new Error('save-failed');
+              if (current.status !== 'ready' || !isCaptureConfigurationReady(current.value) || accepted.saveFormat !== metadata.format || (behavior === 'direct' && accepted.saveDirectory !== directory)) throw new Error('save-failed');
               const target = await prepareWindowSaveDirectory(form, readCaptureDirectoryPicker(doc), behavior, signal);
               if (target === null) return 'cancelled';
               return saveWindowImage(blob, {requestId: doc.defaultView.crypto.randomUUID(), ...metadata}, (request, abort) => remote.save(request, abort), {signal, crypto: doc.defaultView.crypto});

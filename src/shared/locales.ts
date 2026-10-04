@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖宿主 locale 命名空间字典协议；不读取或持久化独立语言偏好。
- * [OUTPUT]: 提供 pdsh 的 NS 与齐全 zh/en 运行文案，含独立截图身份遮挡设置文案。
+ * [OUTPUT]: 提供 pdsh 的 NS 与齐全 zh/en 运行文案，含旧 Host 截图配置重启提示和更新后重启确认文案。
  * [POS]: PDSH 文案归属层；界面语言由 Harness 拥有，包展示元信息由 locale/*.json 离线提供。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -9,7 +9,7 @@ export const dictionaries = {
   zh: {
     identityDescription: '自定义侧栏显示的头像与昵称，不修改账号资料。',
     saveLocation: '保存位置', chooseDirectory: '选择目录', saveAsk: '每次选择', saveDirect: '默认目录', saveDirectory: '保存目录', directoryUnavailable: '目录尚未就绪', editFileName: '编辑文件名模板', doneFileName: '保存文件名模板', templateTokens: '{date} 日期 · {time} 时间 · {title} 页面标题 · {width} 宽 · {height} 高', saveFormat: '保存格式', fileNamePattern: '文件名模板', exportSaveFailed: '设置未保存，请重试。',
-    entry: '遮挡侧栏标题', entryOn: '显示侧栏标题', toggleFailed: '未能保存切换，请重试', capture: '截取当前窗口', captureEnabled: '开启拍照功能', captureMaskIdentity: '截图时遮挡头像和名称',
+    entry: '遮挡侧栏标题', entryOn: '显示侧栏标题', toggleFailed: '未能保存切换，请重试', capture: '截取当前窗口', captureEnabled: '开启拍照功能', captureMaskIdentity: '截图时遮挡头像和名称', captureConfigurationUnavailable: '截图组件尚未加载此版本配置，保留工作后重新启动DSH。',
     languageHint: '界面语言跟随 Harness。可在“设置 → 通用设置 → 语言”切换中文 / English。',
     titlesHint: '工作区与会话名称',
     identityPreview: '显示身份摘要', editNickname: '编辑显示昵称', doneEditing: '保存昵称',
@@ -29,12 +29,13 @@ export const dictionaries = {
     installUpdate: '安装版本', 'update.cancel': '取消', 'update.retry': '重新检查',
     'update.available': '有新版本可安装',
     'update.installing': '正在通过宿主安装…', 'update.installed': '宿主已应用版本', 'update.restart': '安装完成；请在合适时机重启 Harness，启用版本',
+    'update.restartTitle': '更新已安装，需要重新启动 DSH', 'update.restartDescription': '请先保存未完成的工作，再退出并重新打开 DSH，使新版本的 Host 配置和截图接口生效。当前 DSH 未向插件提供一键重启接口。', 'update.later': '稍后重启',
     'update.installFailed': '安装结果未确认；请在官方插件页核对状态后重试。',
   },
   en: {
     identityDescription: 'Customize the sidebar avatar and nickname without changing account data.',
     saveLocation: 'Save location', chooseDirectory: 'Choose folder', saveAsk: 'Choose each time', saveDirect: 'Default folder', saveDirectory: 'Save folder', directoryUnavailable: 'Folder is not ready', editFileName: 'Edit file name template', doneFileName: 'Save file name template', templateTokens: '{date} Date · {time} Time · {title} Page title · {width} Width · {height} Height', saveFormat: 'Save format', fileNamePattern: 'File name template', exportSaveFailed: 'Settings were not saved. Try again.',
-    entry: 'Mask sidebar titles', entryOn: 'Show sidebar titles', toggleFailed: 'Toggle was not saved. Try again', capture: 'Capture current window', captureEnabled: 'Enable capture', captureMaskIdentity: 'Mask avatar and name in screenshots',
+    entry: 'Mask sidebar titles', entryOn: 'Show sidebar titles', toggleFailed: 'Toggle was not saved. Try again', capture: 'Capture current window', captureEnabled: 'Enable capture', captureMaskIdentity: 'Mask avatar and name in screenshots', captureConfigurationUnavailable: 'Capture settings have not loaded for this version. Save your work, then restart DSH.',
     languageHint: 'Language follows Harness. Switch in Settings → General → Language: 中文 / English.',
     titlesHint: 'Workspace and session names',
     identityPreview: 'Display identity summary', editNickname: 'Edit display nickname', doneEditing: 'Save nickname',
@@ -54,6 +55,7 @@ export const dictionaries = {
     installUpdate: 'Install version', 'update.cancel': 'Cancel', 'update.retry': 'Check again',
     'update.available': 'A newer version is available',
     'update.installing': 'Installing through the host…', 'update.installed': 'The host applied version', 'update.restart': 'Installed; restart Harness when convenient to activate version',
+    'update.restartTitle': 'Update installed; restart DSH', 'update.restartDescription': 'Save unfinished work, then quit and reopen DSH to load the new Host configuration and capture interface. This DSH build does not expose one-click restart to plugins.', 'update.later': 'Restart later',
     'update.installFailed': 'Installation was not confirmed. Verify the official Plugins page before retrying.',
   },
 };

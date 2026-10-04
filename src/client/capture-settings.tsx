@@ -1,17 +1,18 @@
 /**
- * [INPUT]: 依赖拍照 ConfigForm、Host Input/Button 与纯导出偏好合同。
- * [OUTPUT]: 提供保存方式、目录、格式/文件名模板和独立截图身份遮挡开关；所有写入只使用 Host revision。
- * [POS]: 官方 Plugins 拍照设置边界；截图身份遮挡与常驻身份替换、工作台标题预遮挡分别持有独立偏好。
+ * [INPUT]: 依赖拍照 ConfigForm、Host Input/Button 与完整配置就绪/纯导出合同。
+ * [OUTPUT]: 对 ready 但缺失或无效的旧 Host 配置提示重启并禁用全部截图写入/目录 picker；完整配置仍以 Host revision 保存。
+ * [POS]: 官方 Plugins 拍照设置边界；配置恢复由后续 accepted snapshot 驱动，截图身份偏好与常驻身份替换、标题预遮挡相互独立。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Button, Input, Switch, Tooltip, IconEditOutlineRegular, IconCheckOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives';
-import { CAPTURE_SAVE_BEHAVIORS, CAPTURE_SAVE_FORMATS, CAPTURE_FILE_NAME_PATTERN, resolveCaptureExportPreferences } from '../shared/capture-export.ts';
+import { CAPTURE_SAVE_BEHAVIORS, CAPTURE_SAVE_FORMATS, CAPTURE_FILE_NAME_PATTERN, isCaptureConfigurationReady, resolveCaptureExportPreferences } from '../shared/capture-export.ts';
 export function CaptureSettingsCard({ form, t, view, chooseDirectory = null }) {
   const accepted = useSyncExternalStore(fn => form.subscribe(fn), () => form.getSnapshot());
+  const captureReady = accepted.status === 'ready' && isCaptureConfigurationReady(accepted.value);
   const preferences = resolveCaptureExportPreferences(accepted.value);
-  const captureEnabled = accepted.value?.captureEnabled !== false;
-  const captureMaskIdentity = accepted.value?.captureMaskIdentity !== false;
+  const captureEnabled = captureReady && accepted.value?.captureEnabled === true;
+  const captureMaskIdentity = captureReady && accepted.value?.captureMaskIdentity === true;
   const [pending, setPending] = useState(false), [failed, setFailed] = useState(false), [draft, setDraft] = useState<string | null>(null);
   const templateRow = useRef(null), returnFocus = useRef(null);
   const alive = useRef(true), busy = useRef(false), base = useRef<string | null>(null);
@@ -28,9 +29,9 @@ export function CaptureSettingsCard({ form, t, view, chooseDirectory = null }) {
     returnFocus.current = origin && origin.ownerDocument.activeElement === origin ? { origin, template } : null;
   }
   if (view === 'summary') return t('capture');
-  const writable = accepted.status === 'ready' && accepted.writable && !pending;
+  const writable = captureReady && accepted.writable && !pending;
   async function save(key, value, origin?) {
-    const current = form.getSnapshot(); if (busy.current || current.status !== 'ready' || !current.writable) return;
+    const current = form.getSnapshot(); if (busy.current || current.status !== 'ready' || !current.writable || !isCaptureConfigurationReady(current.value)) return;
     rememberFocus(origin, key === 'fileNamePattern');
     const currentValue = key in (current.value ?? {}) ? current.value?.[key] : resolveCaptureExportPreferences(current.value)[key];
     if (currentValue === value) { if (key === 'fileNamePattern') { setDraft(null); base.current = null; } return; }
@@ -45,13 +46,13 @@ export function CaptureSettingsCard({ form, t, view, chooseDirectory = null }) {
   function cancel(origin?) { if (!busy.current) { rememberFocus(origin, true); setDraft(null); base.current = null; setFailed(false); } }
   async function selectDirectory(origin?) {
     const current = form.getSnapshot();
-    if (!chooseDirectory || busy.current || current.status !== 'ready' || !current.writable) return;
+    if (!chooseDirectory || busy.current || current.status !== 'ready' || !current.writable || !isCaptureConfigurationReady(current.value)) return;
     rememberFocus(origin); busy.current = true; setPending(true); setFailed(false);
     try {
       const selected = await chooseDirectory();
       if (!alive.current || selected === null) return;
       const latest = form.getSnapshot();
-      if (latest.status !== 'ready' || !latest.writable || resolveCaptureExportPreferences(latest.value).saveDirectory !== resolveCaptureExportPreferences(current.value).saveDirectory) { setFailed(true); return; }
+      if (latest.status !== 'ready' || !latest.writable || !isCaptureConfigurationReady(latest.value) || resolveCaptureExportPreferences(latest.value).saveDirectory !== resolveCaptureExportPreferences(current.value).saveDirectory) { setFailed(true); return; }
       const accepted = await form.mutate([{ op: 'set', path: ['saveDirectory'], value: selected }], latest.revision);
       if (alive.current) setFailed(!accepted);
     } catch { if (alive.current) setFailed(true); }
@@ -66,6 +67,7 @@ export function CaptureSettingsCard({ form, t, view, chooseDirectory = null }) {
         <Switch checked={captureEnabled} disabled={!writable} label={t('captureEnabled')} onChange={() => void save('captureEnabled', !captureEnabled)} />
       </span></Tooltip>
     </div>
+    {accepted.status === 'ready' && !captureReady && <p className="pdsh-hint" role="status">{t('captureConfigurationUnavailable')}</p>}
     <div className="pdsh-detail-row pdsh-row" aria-busy={pending || undefined}>
       <span className="pdsh-label" id="pdsh-capture-mask-identity">{t('captureMaskIdentity')}</span>
       <Tooltip label={t('captureMaskIdentity')} side="bottom" delayMs={500} focusDelayMs={0} portal><span className="pdsh-switch-tooltip">
@@ -77,7 +79,7 @@ export function CaptureSettingsCard({ form, t, view, chooseDirectory = null }) {
         <Button key={behavior} variant={preferences.saveBehavior === behavior ? 'outline' : 'ghost'} aria-pressed={preferences.saveBehavior === behavior} disabled={!writable || (behavior === 'direct' && (!chooseDirectory || !preferences.saveDirectory))} onClick={event => void save('saveBehavior', behavior, event.currentTarget)}>{t(behavior === 'ask' ? 'saveAsk' : 'saveDirect')}</Button>)}</div>
     </div>
     <div className="pdsh-detail-row"><span className="pdsh-label">{t('saveDirectory')}</span><div className="pdsh-value-action">
-      <span>{preferences.saveDirectory || t('directoryUnavailable')}</span>
+      <span>{captureReady ? preferences.saveDirectory || t('directoryUnavailable') : '—'}</span>
       <Button variant="ghost" disabled={!writable || !chooseDirectory} onClick={event => void selectDirectory(event.currentTarget)}>{t('chooseDirectory')}</Button>
     </div></div>
     <div className="pdsh-detail-row"><span className="pdsh-label" id="pdsh-save-format">{t('saveFormat')}</span>

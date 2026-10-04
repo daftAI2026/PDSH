@@ -5,6 +5,13 @@
   "note": "安装包的 build commit 在公开仓无法拉取；以确切包内 client.js 为运行证据，公共 tag 为可链接源码。无数值颜色 fallback。 当前源码的原生测量由一个可卸载探针控制器拥有；主题 token 直接引用，控件常数只从真实计算样式读取。布局比例和编辑内容参数不伪称宿主控件参数。",
   "styles": [
     {
+      "role": "plugin upgrade restart prompt",
+      "file": "packages/client/ui-primitives/src/Modal.tsx",
+      "selector": "Modal / Button outline",
+      "providerVersion": "0.2.0-rc.2",
+      "acquisition": "直接渲染精确 Host 官方 Modal 和 Button；宿主拥有 portal、焦点/退出交互、遮罩、排版与主题，不复制 Modal.module.css 或数值几何。稍后只关闭提示，不模拟不可用的重启接口。"
+    },
+    {
       "role": "capture and workbench transient feedback",
       "file": "packages/client/ui-primitives/src/Toast.tsx",
       "selector": "Toast / IconWarningOutlineRegular / tone success",

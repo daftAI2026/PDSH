@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖版本标签选择与官方 pluginManager 适配器的可控桩。
- * [OUTPUT]: 验证仅高版本固定 SHA 可更新、显式确认、失败保留旧包和卸载后不通知。
+ * [OUTPUT]: 验证仅高版本固定 SHA 可更新、显式确认、失败保留尝试的目标版本和卸载后不通知。
  * [POS]: 自更新合同；不以网络 fixture 充当 Desktop 远端安装证明。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -58,12 +58,28 @@ test('宿主即时应用、安装失败与卸载期间异步返回均不假报�
   assert.deepEqual(update.getSnapshot(), { phase: 'installed', version: '0.2.0' });
   update.dispose();
   const failed = createUpdateController({ ...manager, async installBundle() { return { ok: true, value: { changed: false, application: 'failed' } }; } }, async () => [newer], '0.1.0');
-  await failed.check(); await failed.install(); assert.deepEqual(failed.getSnapshot(), { phase: 'failed', operation: 'install' }); failed.dispose();
+  await failed.check(); await failed.install(); assert.deepEqual(failed.getSnapshot(), { phase: 'failed', operation: 'install', version: '0.2.0' }); failed.dispose();
   let finish: (value: (typeof newer)[]) => void;
   const held = new Promise<(typeof newer)[]>(resolve => { finish = resolve; });
   const pending = createUpdateController(manager, () => held, '0.1.0');
   const check = pending.check(); pending.dispose(); finish([newer]); await check;
   assert.equal(pending.getSnapshot().phase, 'checking');
+});
+
+test('安装配置应用失败但磁盘清单已前移时，failed 结果仍保留目标版本', async () => {
+  let installedVersion = '0.1.0';
+  const manager = {
+    async listBundles() { return { ok: true, value: [{ name: '@daftai/pdsh', version: installedVersion, installed: true, enabled: true }] }; },
+    async installBundle() {
+      installedVersion = '0.2.0';
+      return { ok: true, value: { changed: true, application: 'failed' } };
+    },
+  };
+  const update = createUpdateController(manager, async () => [newer], '0.1.0');
+  await update.check();
+  await update.install();
+  assert.deepEqual(update.getSnapshot(), { phase: 'failed', operation: 'install', version: '0.2.0' });
+  update.dispose();
 });
 
 test('远端封套失败不能误判为已安装；不访问网络', async () => {

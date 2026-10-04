@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 Host 已接受的保存方式/目录/格式/文件名模板与本地 Date；不读取账号或截图。
- * [OUTPUT]: 提供单slash POSIX与canonical Windows drive/UNC绝对目录语法（拒绝设备命名空间/控制字符）、询问/直接保存合同、独立导出预算与尺寸校验、PDSH 默认命名和 basename 生成。
- * [POS]: 拍照设置到编辑器的纯数据合同；跨端只验证绝对路径形状，Host 仍用本机 path 语义决定能否写入。
+ * [INPUT]: 依赖 Host accepted 的完整截图配置、保存方式/目录/格式/文件名模板与本地 Date；不读取账号或截图。
+ * [OUTPUT]: 提供截图配置完整性就绪判定、单slash POSIX与canonical Windows drive/UNC绝对目录语法（拒绝设备命名空间/控制字符）、保存合同、导出预算校验及 basename 生成。
+ * [POS]: 拍照设置到编辑器的纯数据合同；配置就绪只判定已接受字段与其现有纯合同有效性，不推断权限或 Host 版本；跨端路径只判形状。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 export declare const CAPTURE_SAVE_FORMATS: readonly ["png", "jpeg", "webp"];
@@ -17,6 +17,7 @@ export declare const CAPTURE_EXPORT_MAX_BYTES = 128000000;
 export declare function isCaptureExportSizeAllowed(width: number, height: number): boolean;
 export declare function assertCaptureExportSize(width: number, height: number): void;
 export declare const CAPTURE_FILE_NAME_PATTERN: RegExp;
+export declare function isCaptureConfigurationReady(value: unknown): boolean;
 export declare const DEFAULT_CAPTURE_EXPORT: {
     saveBehavior: CaptureSaveBehavior;
     saveFormat: CaptureSaveFormat;

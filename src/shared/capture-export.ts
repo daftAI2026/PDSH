@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 Host 已接受的保存方式/目录/格式/文件名模板与本地 Date；不读取账号或截图。
- * [OUTPUT]: 提供单slash POSIX与canonical Windows drive/UNC绝对目录语法（拒绝设备命名空间/控制字符）、询问/直接保存合同、独立导出预算与尺寸校验、PDSH 默认命名和 basename 生成。
- * [POS]: 拍照设置到编辑器的纯数据合同；跨端只验证绝对路径形状，Host 仍用本机 path 语义决定能否写入。
+ * [INPUT]: 依赖 Host accepted 的完整截图配置、保存方式/目录/格式/文件名模板与本地 Date；不读取账号或截图。
+ * [OUTPUT]: 提供截图配置完整性就绪判定、单slash POSIX与canonical Windows drive/UNC绝对目录语法（拒绝设备命名空间/控制字符）、保存合同、导出预算校验及 basename 生成。
+ * [POS]: 拍照设置到编辑器的纯数据合同；配置就绪只判定已接受字段与其现有纯合同有效性，不推断权限或 Host 版本；跨端路径只判形状。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 export const CAPTURE_SAVE_FORMATS = ['png', 'jpeg', 'webp'] as const;
@@ -26,6 +26,18 @@ export function assertCaptureExportSize(width: number, height: number): void {
   if (!isCaptureExportSizeAllowed(width, height)) throw Object.assign(new Error('Capture export budget exceeded'), { code: 'export-oversize' });
 }
 export const CAPTURE_FILE_NAME_PATTERN = /^(?=.{1,160}$)(?![\s.]+$)(?:[^{}\\/:*?"<>|\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u206f]|\{(?:date|time|title|width|height)\})+$/u;
+const CAPTURE_CONFIGURATION_FIELDS = ['captureEnabled', 'captureMaskIdentity', 'saveBehavior', 'saveDirectory', 'saveFormat', 'fileNamePattern'] as const;
+export function isCaptureConfigurationReady(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const config = value as Record<string, unknown>;
+  if (!CAPTURE_CONFIGURATION_FIELDS.every(field => Object.prototype.hasOwnProperty.call(config, field))) return false;
+  return typeof config.captureEnabled === 'boolean'
+    && typeof config.captureMaskIdentity === 'boolean'
+    && CAPTURE_SAVE_BEHAVIORS.includes(config.saveBehavior as CaptureSaveBehavior)
+    && isCaptureSaveDirectory(config.saveDirectory)
+    && CAPTURE_SAVE_FORMATS.includes(config.saveFormat as CaptureSaveFormat)
+    && typeof config.fileNamePattern === 'string' && CAPTURE_FILE_NAME_PATTERN.test(config.fileNamePattern);
+}
 export const DEFAULT_CAPTURE_EXPORT = { saveBehavior: 'ask' as CaptureSaveBehavior, saveFormat: 'png' as CaptureSaveFormat, fileNamePattern: 'PDSH-screenshot-{date}-{time}', saveDirectory: '' };
 export type CaptureExportPreferences = typeof DEFAULT_CAPTURE_EXPORT;
 export function resolveCaptureExportPreferences(value): CaptureExportPreferences {

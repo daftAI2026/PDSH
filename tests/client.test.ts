@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖生成的唯一 Bundle Client、Cordis 4 服务注册、ReactDOM 与 rc.2 DOM fixture。
- * [OUTPUT]: 验证单根生命周期、三个内部设置的八种组合、独立恢复、取像取消、CSS 正负例与回滚。
+ * [OUTPUT]: 验证单根生命周期、完整截图配置下的八种设置组合、独立恢复、取像取消、CSS 正负例与回滚。
  * [POS]: Client 集成合同；本测试证明源码/生成 Client 的服务图，不冒充 Host primitives、CSP 或实窗验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -15,6 +15,7 @@ import * as jsxRuntime from 'react/jsx-runtime';
 import { createRoot as reactCreateRoot } from 'react-dom/client';
 import { JSDOM } from 'jsdom';
 import { DEFAULTS } from '../src/shared/model.ts';
+import { DEFAULT_CAPTURE_EXPORT } from '../src/shared/capture-export.ts';
 import { dictionaries, NS } from '../src/shared/locales.ts';
 
 const CLIENT = new URL('../client.js', import.meta.url);
@@ -103,7 +104,7 @@ function environment({ value = {}, status = 'ready', bridge = false, failRoot = 
   };
   const snapshot = {
     status, writable: true, revision: 0,
-    value: { ...DEFAULTS, maskIdentity: true, maskTitles: true, captureEnabled: true, nickname: '别名', ...value },
+    value: { ...DEFAULTS, ...DEFAULT_CAPTURE_EXPORT, maskIdentity: true, maskTitles: true, captureEnabled: true, captureMaskIdentity: true, nickname: '别名', ...value },
   };
   const formListeners = new Set(), writes = [];
   const form = {
