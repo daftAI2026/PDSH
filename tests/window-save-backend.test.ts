@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖窗口保存 backend、Chromium Canvas 编码夹具、固定输出格式与 Node 文件写入适配。
- * [OUTPUT]: 验证有界 uplink、精确sRGB ICC/metadata、POSIX/Windows native-directory围栏、独占落盘及真实回执。
- * [POS]: Host保存边界的临时目录合同；UNC native-path用例在Windows runner验证，保留已知profile原字节，不访问用户目录、不调用Electron、不证明Desktop UI。
+ * [INPUT]: 依赖窗口保存 backend、Chromium Canvas 编码夹具、固定输出格式、Node 文件写入适配与 node:process 平台语义。
+ * [OUTPUT]: 验证有界 uplink、精确sRGB ICC/metadata、POSIX/Windows native-directory围栏、跨平台真实独占落盘及回执；仅非Windows断言POSIX 0600 mode。
+ * [POS]: Host保存边界的临时目录合同；Windows 的 Node 文件 mode 不代表 ACL，UNC native-path用例在Windows runner验证；保留真实文件字节与不覆盖证据，不访问用户目录、不调用Electron、不证明Desktop UI。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
@@ -11,6 +11,7 @@ import { deflateSync } from 'node:zlib';
 import { mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { platform } from 'node:process';
 import { createWindowSaveBackend } from '../src/host/window-save-backend.ts';
 import type { WindowSaveInputFrame, WindowSaveRequest } from '../src/shared/window-save-protocol.ts';
 import { captureExportFileName } from '../src/shared/capture-export.ts';
@@ -225,7 +226,9 @@ test('惰性保存只接受 Host 已接受目录，分块 ack 后真实独占提
     assert.deepEqual(output,[{type:'ack',requestId:request.requestId,nextIndex:1},{type:'receipt',requestId:request.requestId,outcome:'saved',format:'png',byteLength:bytes.length,width:2,height:1}]);
     assert.deepEqual(await readdir(directory),[fileName]);
     assert.deepEqual(await readFile(join(directory,fileName)),bytes);
-    assert.equal((await stat(join(directory,fileName))).mode&0o777,0o600);
+    const savedFile = await stat(join(directory,fileName));
+    assert.equal(savedFile.isFile(), true);
+    if (platform !== 'win32') assert.equal(savedFile.mode & 0o777, 0o600);
   } finally { await backend.dispose(); await rm(directory,{recursive:true,force:true}); }
 });
 

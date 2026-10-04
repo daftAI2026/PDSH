@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 node:test、真实 Schemastery root/capture Config 与平台 provider 注册谓词，不模拟校验结果。
+ * [INPUT]: 依赖 node:test、node:os/node:path 的本机 Downloads 路径语义、真实 Schemastery root/capture Config 与平台 provider 注册谓词，不模拟校验结果。
  * [OUTPUT]: 验证唯一 Host Config 与平台能力分流；无 helper 平台仍配置 Settings 并保留独立功能。
  * [POS]: PDSH Host 合同，防止 Client 验证通过却绕过 Host 的保存边界。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -7,6 +7,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import { transformSync } from 'esbuild';
 import schema from '@deepseek-ai/schemastery';
@@ -25,7 +27,7 @@ test('Host 默认和 live 配置字段', () => {
   assert.equal(value.avatar.get(), '');
   assert.equal(value.captureEnabled.get(), true);
   assert.equal(value.saveBehavior.get(), 'ask');
-  assert.equal(value.saveDirectory.get().endsWith('/Downloads'), true);
+  assert.equal(value.saveDirectory.get(), join(homedir(), 'Downloads'));
   assert.equal(value.saveFormat.get(), 'png');
   assert.equal(value.fileNamePattern.get(), 'PDSH-screenshot-{date}-{time}');
   assert.equal(Config({ captureEnabled: false }).captureEnabled.get(), false);

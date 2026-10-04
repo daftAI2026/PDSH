@@ -21,7 +21,7 @@
 - `capture-styles.test.ts`: 五列统一圆角色块、固定240px检查器与设置开关等高槽；检查器选中环安全边距与圆形拾色图标局部约束， 工作台Host token来源/实时几何消费及自有色谱28px白环及内层圆形隔离、浮层单一elevation描边；禁Codex主题、数值回退与宿主拾色器样式污染。
 - `capture-editor-keyboard.test.ts`: 背景面板Tab围栏跳过hidden/inert/CSS隐藏、disabled与负tabindex；不替代原生键盘验收。
 - `capture-view.test.ts`: 双语编辑器操作面板、标题遮罩与身份设置分界，无系统壁纸adapter时不伪造入口。
-- `host.test.ts`: 真实 Schemastery Config/路径边界与平台provider分流，覆盖 POSIX/Windows drive-root/UNC 并拒绝相对、非canonical及device namespace；缺 helper/不支持架构仍保留设置。
+- `host.test.ts`: 真实 Schemastery Config/路径边界与平台provider分流；默认 Downloads 使用宿主 `homedir()` 与 `path.join` 精确比较，覆盖 POSIX/Windows drive-root/UNC 并拒绝相对、非canonical及device namespace；缺 helper/不支持架构仍保留设置。
 - `localization.test.ts`: 单 Bundle 离线品牌元信息与内部三功能 zh/en 文案；透明底单路径图标。
 - `model.test.ts`: 昵称、头像和旧字段投影验证。
 - `presentation.test.ts`: 账号视觉适配的唯一归属与卸载。
@@ -64,7 +64,7 @@
 
 - `window-save-client.test.ts`: ACK 背压、finish 半关闭、真实保存回执和目录 revision 围栏的内存合同，不冒充实机保存。
 
-- `window-save-backend.test.ts`: 纯 Host 有界 uplink、真实 Chromium Canvas sRGB ICC字节保留/未知metadata拒绝、accepted POSIX/Windows native-path双边界、UNC share-root规范化、配置/生命周期围栏与临时目录独占提交合同；Windows专项路径用例须在Windows runner运行。
+- `window-save-backend.test.ts`: 纯 Host 有界 uplink、真实 Chromium Canvas sRGB ICC字节保留/未知metadata拒绝、accepted POSIX/Windows native-path双边界、UNC share-root规范化、配置/生命周期围栏与临时目录真实独占提交/不覆盖合同；仅非Windows断言 POSIX 0600 mode，Windows 文件 mode 不代表 ACL，Windows专项路径用例须在Windows runner运行。
 - `window-save-roundtrip.test.ts`: 实际 Client↔Host 双向状态机和两块PNG落盘/重复basename编号；内存carrier不是DSH实机Gateway。
 
 - `window-capture-stream.test.ts`: Host 惰性取像、整窗帧、单航班真实结算与取消时事件循环不自旋的定时器合同，不执行 helper。
