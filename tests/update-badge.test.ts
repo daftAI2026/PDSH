@@ -1,10 +1,11 @@
 /**
- * [INPUT]: 依赖真实 UpdateBadge JSX、React/jsdom 与可订阅的更新控制器桩。
+ * [INPUT]: 依赖真实共享包身份及真实 UpdateBadge JSX、React/jsdom 与可订阅的更新控制器桩。
  * [OUTPUT]: 验证仅自身 Bundle 自动探测、有新版才显示细线版本旁图标、二次确认才安装。
  * [POS]: 官方 detail.badge slot 的交互合同；不把 fixture 结果当成 Desktop 网络证明。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
+import * as identity from '../src/shared/components.ts';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
@@ -21,6 +22,7 @@ async function mountBadge(subject = { kind: 'bundle', pkg: { name: '@daftai/pdsh
   runInNewContext(transformSync(source, { loader: 'tsx', format: 'cjs' }).code, {
     module, exports: module.exports,
     require(id) {
+      if (id === '../shared/components.ts') return identity;
       if (id === 'react') return React;
       if (id === 'react/jsx-runtime') return requireJsx;
       if (id === '@deepseek-ai/dsh-client-ui-primitives') return {

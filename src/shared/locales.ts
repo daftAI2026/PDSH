@@ -1,10 +1,11 @@
 /**
- * [INPUT]: 依赖宿主 locale 命名空间字典协议；不读取或持久化独立语言偏好。
- * [OUTPUT]: 提供 pdsh 的 NS 与齐全 zh/en 运行文案，含独立截图身份遮挡设置文案。
+ * [INPUT]: 依赖 shared/components.ts 的配置身份与宿主 locale 命名空间字典协议；不读取或持久化独立语言偏好。
+ * [OUTPUT]: 提供当前包独立的 NS 与齐全 zh/en 运行文案，含独立截图身份遮挡设置文案。
  * [POS]: PDSH 文案归属层；界面语言由 Harness 拥有，包展示元信息由 locale/*.json 离线提供。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-export const NS = 'pdsh';
+import { ROOT_ENTRY_ID } from './components.ts';
+export const NS = ROOT_ENTRY_ID;
 export const dictionaries = {
   zh: {
     identityDescription: '自定义侧栏显示的头像与昵称，不修改账号资料。',

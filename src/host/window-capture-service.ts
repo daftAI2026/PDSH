@@ -1,9 +1,10 @@
 /**
- * [INPUT]: 依赖官方 Typert Remote stream、accepted pdsh Settings、universal macOS/Windows x64 helper、Host logger 与同 namespace 保存后端。
+ * [INPUT]: 依赖官方 Typert Remote stream、当前包身份的 accepted Settings、universal macOS/Windows x64 helper、Host logger 与同 namespace 保存后端。
  * [OUTPUT]: 提供 `pdshNativeWindowCapture.capture/save` 与不含内容/路径的固定状态诊断；按 Host 平台解析包内 helper，构造不授权、不取像、不写文件。
  * [POS]: 唯一 capture capability adapter；统一拥有 captureEnabled generation，原生失败在协议折叠前仅记白名单码。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { ROOT_ENTRY_ID } from '../shared/components.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { RemoteStream } from '@deepseek-ai/dsh-typert-protocol'
@@ -157,7 +158,7 @@ export class WindowCaptureService extends TypertRemoteService {
 }
 
 function acceptedWindowSavePreferences(ctx: HostServiceContext): WindowSavePreferences {
-  const accepted = ctx.settings.describe().find(section => section.ns === 'pdsh')?.value
+  const accepted = ctx.settings.describe().find(section => section.ns === ROOT_ENTRY_ID)?.value
   const read = (field: unknown): unknown => {
     if (field && typeof field === 'object' && 'get' in field && typeof field.get === 'function') return field.get()
     return field

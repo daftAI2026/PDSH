@@ -1,9 +1,10 @@
 /**
- * [INPUT]: 依赖编辑器状态机、presets.ts 唯一预设目录与既有浏览器偏好存储。
+ * [INPUT]: 依赖 shared 包配置身份、编辑器状态机、presets.ts 唯一预设目录与既有浏览器偏好存储。
  * [OUTPUT]: 保存非敏感编辑偏好及当前桌面的来源 ID，不保存图片或本地路径；旧像素记录在取得源尺寸后迁移为百分比。
  * [POS]: capture-window 的偏好边界；来源可用性由主机恢复，背景选择由此处语义恢复，新增预设不另维护会漂移的 ID 白名单。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { ROOT_ENTRY_ID } from "../../shared/components.ts";
 import {
   applyCaptureCommand,
   CAPTURE_DEFAULT_PADDING,
@@ -19,7 +20,7 @@ const LEGACY_MAX_PADDING = 160;
 
 import { capturePresets } from "./presets.ts";
 
-export const CAPTURE_PREFERENCES_KEY = "pdsh-window-capture-prefs";
+export const CAPTURE_PREFERENCES_KEY = `${ROOT_ENTRY_ID}-window-capture-prefs`;
 
 export type CapturePreferenceStorage = {
   getItem: (key: string) => string | null;

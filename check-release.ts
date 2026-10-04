@@ -11,6 +11,7 @@ import { execFileSync } from 'node:child_process';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const manifest = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+if (manifest.name !== '@daftai/pdsh') throw new Error('stable release cannot use the temporary RC identity');
 const expected = `v${manifest.version}`;
 const tag = process.argv[2] ?? expected;
 if (tag !== expected) throw new Error(`tag ${tag} does not match package.json ${expected}`);

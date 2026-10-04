@@ -3,7 +3,7 @@
 
 - `model.ts`: 定义并校验 Host/Client 共用的显示偏好合同，生成本地头像；不把真实账户 URL 写回配置。
 - `locales.ts`: 提供 Client 运行文案，含独立截图身份遮挡开关文案；语言所有权仍在 Harness locale 服务，区别于包元信息 `locale/*.json`。
-- `components.ts`: 唯一 Bundle 名；内部功能模块共用 pdsh 配置域，不创建额外依赖包。
+- `components.ts`: 构建注入包名及 root 配置身份；正式 pdsh 兼容，临时 RC 独立 pdsh-rc，更新被显式禁用；不按功能拆包。
 
 - `capture-bridge.ts`: 已退出运行时的 Main/Inspector 实验控制合同；保留历史回归，不是现行 Remote 路由，也不作为取像失败回退。
 

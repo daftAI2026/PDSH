@@ -4,7 +4,7 @@ This is the project constitution for PDSH; root `CLAUDE.md` links here. Module `
 
 ## Project
 
-Public code repository: `https://github.com/daftAI2026/PDSH` (uppercase repository name). The npm package identifier remains lowercase `@daftai/pdsh`; it is not published to npm.
+Public code repository: `https://github.com/daftAI2026/PDSH` (uppercase repository name). The stable npm package identifier remains lowercase `@daftai/pdsh`; it is not published to npm. A user-requested temporary local RC artifact uses `@daftai/pdsh-rc` / `pdsh-rc`, never renames the stable package, and is enabled only after disabling stable. RC has independent settings/editor preferences and no stable updater; uninstall only RC after testing, then re-enable stable. This is a test-channel identity exception, not a second production capability bundle.
 
 PDSH means Private DeepSeek Harness; public display names are `DSH 私密模式` / `DSH Private Mode`. The brand does not imply that isolation is implemented.
 
@@ -52,6 +52,7 @@ Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatG
 - `check-release.ts`: rejects stable tag/version/generated-artifact drift and dirty release trees; `package.json.version` is the sole authored version.
 - `package.json`/`pnpm-lock.yaml`: bundle manifest and reproducible dependencies; `cordis.patch.yml`: the sole Cordis insertion layer.
 - `bundle-artifacts.ts`: verifies the single Bundle entries, packaged helper and generated Typert faces, macOS universal/minimum-14 and Windows x64/asInvoker headers, archive allowlist, real tgz members/types/bytes and sole root version; no network or installation side effects.
+- `tools/pack-rc.ts`: Explicit public-source staging and same-source RC build/validation; never installs into a live profile.
 - `build.ts`/`tsconfig.json`/`tsconfig.remote-types.json`: TypeScript-to-Host build and source typecheck; runtime JavaScript and public declarations are generated, not separately authored.
 - `plugin-icon.svg`: generated manifest artwork; `THIRD_PARTY_NOTICES.md` and `LICENSE`: distribution notices.
 - `main.cjs`: retired generated Main experiment, excluded from the manifest and installed runtime; current build never regenerates or imports it.

@@ -16,6 +16,14 @@ macOS helper 经 `native/build.sh` 构建为最低 macOS 14 的 arm64/x86_64 uni
 
 Windows helper 经 `native/windows/build.ps1` 在 Windows SDK/MSVC 上编译。`native-windows.yml` 运行真实 Windows 保存目录合同，上传短期 x64 构建物，不执行截图或自动发布。按构建提交核对 CI 与下载摘要，再将真实 PE 提交到 `native/windows/window-capture-x64.exe`。发布门校验 x64、控制台 PE 与 `asInvoker` manifest；缺失或伪造产物不得发包。编译、目录合同和 PE 检查都不是 Windows Desktop 实机验收。
 
+## 临时 RC 共存测试包
+
+`pnpm bundle:rc 1` 从当前公开源码建立独立临时 staging，以同一构建器生成 `@daftai/pdsh-rc` / `pdsh-rc` 和编号候选版本（基础版本取正式 manifest）；正式包名、版本及已有发布归档不改。界面元数据标明 RC，配置和浏览器编辑偏好隔离，不提供正式更新安装。输出放在 `output/rc/`，同一候选不覆盖；收据记录源码脏状态与摘要，不把未提交代码冒充稳定 tag。
+
+安装仍走官方插件管理器：先停用正式包，再安装并启用 RC；通过后卸载 RC、重新启用正式包，不卸载正式包。两个包不能同时启用，Remote 服务和视觉适配器仍是同一能力；包准备成功不等于实际共存、卸载或 Desktop UI 已验收。此工具不安装到用户 profile、不重启 Host，也不自动发布 RC 或稳定版。
+
+合并时不做反向改名或恢复备份：正式 manifest/locale/patch 始终保留正式身份，RC 转换只作用于临时 staging。只提交同源功能和打包工具，`output/rc/` 归档不入 Git；正常 `pnpm test` 验证正式身份兼容，`pnpm build` 仍生成正式运行产物。不得把 staging 中的 RC manifest、入口或生成文件复制回正式源码树。
+
 ## 必须分开的检查
 
 1. 运行 `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm build` 和 `pnpm run bundle`。检查当前版本真实 tgz 的成员、字节、权限、版本与依赖许可，不复用旧包冒充当前结果。归档只包含 manifest allowlist，不包含 node_modules、profile、凭据、日志或私有研究。

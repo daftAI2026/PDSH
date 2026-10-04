@@ -57,6 +57,8 @@
 - `host-acceptance.test.ts`: 集成 CLI 安全前置；自有临时/生成目录验证 owner/写权限、路径、符号链接、凭据和精确 PNPM 版本门，不启动用户 DSH 或替代安装件验收。
 
 - `bundle-artifacts.test.ts`: Mac helper双架构/最低macOS14、Windows x64 console/asInvoker PE与归档0755丢失的正反回归，单包分发/生成版本/入口与真实 tgz 成员、类型、字节门；拒绝功能子依赖、宽泛 files 与安装 hook，不执行用户安装。
+- `rc-identity.test.ts`: 以 esbuild 注入 stable/RC 名称验证根配置、locale、编辑偏好键隔离及原生 service 只读自身 accepted Settings，并证明 RC 更新控制器不触发正式更新边界；不验证 Manager 共存或 Desktop UI。
+- `rc-packaging.test.ts`: 独立候选身份/白名单 staging、私有路径排除、stable 源不变、locale 提示、native helper 执行位、符号链接/同名归档拒绝与失败清理；不运行 SDK GUI 或真实安装。
 - `capture-defaults.test.ts`: 旧导出默认只通过根 pdsh revision 修正；自定义值、已移除子域与迟到卸载不覆盖偏好。
 
 - `window-capture-controller.test.ts`: 整窗元数据比例、禁猜页面坐标和人工授权等待的 Client 合同，不冒充实机证据。

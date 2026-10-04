@@ -48,6 +48,7 @@
     "typecheck": "node --experimental-strip-types tools/generate-typert.ts && tsc -p tsconfig.remote-types.json && tsc --noEmit",
     "test": "pnpm typecheck && pnpm build && pnpm artifacts:check && node --experimental-strip-types --test tests/*.test.ts",
     "bundle": "pnpm build && pnpm artifacts:check && npm pack --ignore-scripts --pack-destination output && pnpm archive:check",
+    "bundle:rc": "node --experimental-strip-types tools/pack-rc.ts",
     "release:check": "node --experimental-strip-types check-release.ts",
     "artifacts:check": "node --experimental-strip-types --input-type=module -e \"import { validateBundleArtifacts } from './bundle-artifacts.ts'; validateBundleArtifacts(process.cwd())\"",
     "archive:check": "node --experimental-strip-types --input-type=module -e \"import { validatePackedBundle } from './bundle-artifacts.ts'; console.log(validatePackedBundle(process.cwd()))\""

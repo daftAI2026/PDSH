@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 PDSH Host/shared TypeScript、固定 upstream protocol reference 与官方 WorkspaceTypertGenerator。
+ * [INPUT]: 依赖 staging manifest 包身份、PDSH Host/shared TypeScript、固定 upstream protocol reference 与官方 WorkspaceTypertGenerator。
  * [OUTPUT]: 把官方模型生成的 Host descriptor、Remote client 类型/API 与 schemas 写入 package/lib；不手写 wire descriptor。
  * [POS]: 单 Bundle 的 build-only generator bridge；真实源在临时 packages/ workspace 内按路径复制，规避 Generator 的 realpath package boundary。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -23,6 +23,8 @@ const REFERENCE_FILES = {
 
 /** Official generator resolves only real packages beneath workspace/packages. */
 export async function generateTypertArtifacts(root = fileURLToPath(new URL('../', import.meta.url))): Promise<void> {
+  const { name: packageName } = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+  if (!['@daftai/pdsh', '@daftai/pdsh-rc'].includes(packageName)) throw new Error('unsupported Typert package identity')
   await verifyProtocolReference(root)
   const workspace = await mkdtemp(join(tmpdir(), 'pdsh-typert-workspace-'))
   try {
@@ -33,10 +35,10 @@ export async function generateTypertArtifacts(root = fileURLToPath(new URL('../'
     await copySourceFiles(root, packageRoot)
     await cp(join(root, 'tools/typert-protocol-reference'), protocolRoot, { recursive: true })
     await symlink(join(root, 'node_modules'), join(workspace, 'node_modules'), 'dir')
-    await writeWorkspaceFiles(workspace, packageRoot)
+    await writeWorkspaceFiles(workspace, packageRoot, packageName)
 
-    const artifacts = new WorkspaceTypertGenerator(workspace).generate(['@daftai/pdsh'], ['host'])
-    if (artifacts.length !== 1 || artifacts[0].package !== '@daftai/pdsh' || artifacts[0].face !== 'host') {
+    const artifacts = new WorkspaceTypertGenerator(workspace).generate([packageName], ['host'])
+    if (artifacts.length !== 1 || artifacts[0].package !== packageName || artifacts[0].face !== 'host') {
       throw new Error('official Typert workspace must emit exactly one PDSH Host artifact')
     }
     const artifact = artifacts[0]
@@ -73,9 +75,9 @@ async function copyTypeTree(source: string, destination: string): Promise<void> 
   }
 }
 
-async function writeWorkspaceFiles(workspace: string, packageRoot: string): Promise<void> {
+async function writeWorkspaceFiles(workspace: string, packageRoot: string, packageName: string): Promise<void> {
   const packageManifest = {
-    name: '@daftai/pdsh',
+    name: packageName,
     version: '0.0.0-build-only',
     type: 'module',
     exports: {

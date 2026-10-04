@@ -1,10 +1,11 @@
 /**
- * [INPUT]: 依赖 shared/model.ts 的显示默认值、capture.ts 的拍照字段/Loader volatile-update 订阅与平台原生 helper 可用性。
+ * [INPUT]: 依赖 shared/components.ts 的配置身份、shared/model.ts 的显示默认值、capture.ts 的拍照字段/Loader volatile-update 订阅与平台原生 helper 可用性。
  * [OUTPUT]: 提供唯一 pdsh Config/apply 与 Typert root 可见的 owned-window service；captureEnabled 撤回 capture/save 两路。
  * [POS]: PDSH 唯一 Cordis Host 入口；仅在有对应平台 provider 时注册 capture service，不影响身份/标题设置。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import z from '@deepseek-ai/schemastery';
+import { ROOT_ENTRY_ID } from '../shared/components.ts';
 import { lstatSync } from 'node:fs';
 import './context.ts'
 import { DEFAULTS, MAX_AVATAR_CHARS, MAX_NAME_CHARS, NICKNAME_PATTERN, LOCAL_AVATAR_PATTERN } from '../shared/model.ts';
@@ -15,7 +16,7 @@ import { WindowCaptureService } from './window-capture-service.ts';
 // +--- 官方 workspace Typert 通过此真实 Host entry 发现唯一 Remote service ---+
 export { WindowCaptureService } from './window-capture-service.ts';
 
-export const name = 'pdsh';
+export const name = ROOT_ENTRY_ID;
 export const Config = z.object({
   maskTitles: z.boolean().default(DEFAULTS.maskTitles).description('Mask sidebar titles / 遮挡侧栏标题').volatile(),
   maskIdentity: z.boolean().default(DEFAULTS.maskIdentity).description('Local display alias only / 仅替换显示身份').volatile(),

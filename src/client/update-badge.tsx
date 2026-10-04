@@ -1,18 +1,19 @@
 /**
- * [INPUT]: 依赖官方 plugins.detail.badge 的 Bundle subject、更新控制器、宿主 Button/Tooltip 与实时原生图标样式探针。
+ * [INPUT]: 依赖 shared 包身份与官方 plugins.detail.badge 的 Bundle subject、更新控制器、宿主 Button/Tooltip 与实时原生图标样式探针。
  * [OUTPUT]: 仅自身有稳定新版本时显示版本旁细线绿色上箭头；展开来源提示后才允许确认安装。
  * [POS]: 更新交互的独立 detail slot；探测跟随详情挂载，不增设后台轮询或设置卡片。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { BUNDLE_NAME, IS_RC_BUNDLE } from '../shared/components.ts';
 import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import { Button, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives';
 
-const PACKAGE = '@daftai/pdsh';
+const PACKAGE = BUNDLE_NAME;
 
 export function UpdateBadge({ subject, updater, version, t }) {
   const update = useSyncExternalStore(fn => updater.subscribe(fn), () => updater.getSnapshot());
   const [expanded, setExpanded] = useState(false);
-  const ownBundle = subject.kind === 'bundle' && subject.pkg.name === PACKAGE
+  const ownBundle = !IS_RC_BUNDLE && subject.kind === 'bundle' && subject.pkg.name === PACKAGE
     && subject.pkg.installed && subject.pkg.version === version;
 
   useEffect(() => {

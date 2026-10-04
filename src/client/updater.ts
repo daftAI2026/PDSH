@@ -1,9 +1,10 @@
 /**
- * [INPUT]: 依赖官方 remote.pluginManager 的 {ok,value} 调用封套与经校验的 GitHub tag 数据。
+ * [INPUT]: 依赖 shared/components.ts 的包身份与官方 remote.pluginManager 的 {ok,value} 调用封套与经校验的 GitHub tag 数据。
  * [OUTPUT]: 提供详情挂载自动探测、用户确认安装和可订阅状态的更新控制器。
- * [POS]: Client 更新决策层；探测无副作用，固定提交安装需确认，不自行重启或推断安装来源。
+ * [POS]: Client 更新决策层；临时 RC 完全禁用探测与安装；探测无副作用，固定提交安装需确认，不自行重启或推断安装来源。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { BUNDLE_NAME, IS_RC_BUNDLE } from '../shared/components.ts';
 export interface ReleaseTag { name: string; commit: { sha: string } }
 interface Bundle { name: string; version: string; installed: boolean; enabled: boolean }
 type RemoteReply<T> = { ok: true; value: T } | { ok: false; error?: { message?: string } };
@@ -13,7 +14,7 @@ interface Manager {
 }
 type Phase = 'idle' | 'checking' | 'current' | 'available' | 'installing' | 'installed' | 'restart' | 'failed';
 export interface UpdateState { phase: Phase; version?: string; operation?: 'check' | 'install' }
-const PACKAGE = '@daftai/pdsh';
+const PACKAGE = BUNDLE_NAME;
 const REPOSITORY = 'github:daftAI2026/PDSH#';
 
 function parts(value: string): number[] | null {
@@ -61,7 +62,7 @@ export function createUpdateController(manager: Manager, loadTags: () => Promise
     getSnapshot: () => state,
     subscribe(notify: () => void) { listeners.add(notify); return () => listeners.delete(notify); },
     async check() {
-      if (disposed || busy || state.phase === 'restart' || state.phase === 'installed') return;
+      if (IS_RC_BUNDLE || disposed || busy || state.phase === 'restart' || state.phase === 'installed') return;
       busy = true; candidate = null; setState({ phase: 'checking' });
       try {
         if (!await ownBundle()) throw new Error('installed bundle differs from running code');
@@ -73,7 +74,7 @@ export function createUpdateController(manager: Manager, loadTags: () => Promise
       finally { busy = false; }
     },
     async install() {
-      if (disposed || busy || state.phase !== 'available' || !candidate) return;
+      if (IS_RC_BUNDLE || disposed || busy || state.phase !== 'available' || !candidate) return;
       busy = true;
       const target = candidate;
       setState({ phase: 'installing', version: target.version });

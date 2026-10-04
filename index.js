@@ -1,6 +1,6 @@
 /**
  * [INPUT]: src/host/index.ts 与官方 Typert service，由 build.ts 生成。
- * [OUTPUT]: 唯一 pdsh Config/name/apply 与 owned-window capture/save。
+ * [OUTPUT]: @daftai/pdsh 唯一 Config/name/apply 与 owned-window capture/save。
  * [POS]: 单包运行产物；PDSH build "0.3.0"，不手工修改。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -55,6 +55,13 @@ var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "acce
 
 // src/host/index.ts
 import z2 from "@deepseek-ai/schemastery";
+
+// src/shared/components.ts
+var BUNDLE_NAME = true ? "@daftai/pdsh" : "@daftai/pdsh";
+var IS_RC_BUNDLE = BUNDLE_NAME === "@daftai/pdsh-rc";
+var ROOT_ENTRY_ID = IS_RC_BUNDLE ? "pdsh-rc" : "pdsh";
+
+// src/host/index.ts
 import { lstatSync } from "node:fs";
 
 // src/shared/model.ts
@@ -125,7 +132,7 @@ function captureExportFileName(value, date = /* @__PURE__ */ new Date(), context
 
 // src/host/capture.ts
 var INITIAL_SAVE_DIRECTORY = join(homedir(), "Downloads");
-var ROOT_NAMESPACE = "pdsh";
+var ROOT_NAMESPACE = ROOT_ENTRY_ID;
 var CAPTURE_CONFIG_FIELDS = {
   captureEnabled: z.boolean().default(true).description("Enable owned-window capture / \u542F\u7528\u6240\u5C5E\u7A97\u53E3\u62CD\u6444").volatile(),
   captureMaskIdentity: z.boolean().default(true).description("Mask sidebar avatar and name in captures / \u622A\u56FE\u65F6\u906E\u6321\u5934\u50CF\u548C\u540D\u79F0").volatile(),
@@ -1375,7 +1382,7 @@ __decorateElement(_init, 1, "save", _save_dec, WindowCaptureService);
 __decoratorMetadata(_init, WindowCaptureService);
 __publicField(WindowCaptureService, "inject", ["typert", "settings"]);
 function acceptedWindowSavePreferences(ctx) {
-  const accepted = ctx.settings.describe().find((section) => section.ns === "pdsh")?.value;
+  const accepted = ctx.settings.describe().find((section) => section.ns === ROOT_ENTRY_ID)?.value;
   const read = (field) => {
     if (field && typeof field === "object" && "get" in field && typeof field.get === "function") return field.get();
     return field;
@@ -1389,7 +1396,7 @@ function acceptedWindowSavePreferences(ctx) {
 }
 
 // src/host/index.ts
-var name = "pdsh";
+var name = ROOT_ENTRY_ID;
 var Config = z2.object({
   maskTitles: z2.boolean().default(DEFAULTS.maskTitles).description("Mask sidebar titles / \u906E\u6321\u4FA7\u680F\u6807\u9898").volatile(),
   maskIdentity: z2.boolean().default(DEFAULTS.maskIdentity).description("Local display alias only / \u4EC5\u66FF\u6362\u663E\u793A\u8EAB\u4EFD").volatile(),

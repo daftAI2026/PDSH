@@ -1,10 +1,11 @@
 /**
- * [INPUT]: 依赖 node:test、node:os/node:path 的本机 Downloads 路径语义、真实 Schemastery root/capture Config 与平台 provider 注册谓词，不模拟校验结果。
+ * [INPUT]: 依赖真实共享包身份及 node:test、node:os/node:path 的本机 Downloads 路径语义、真实 Schemastery root/capture Config 与平台 provider 注册谓词，不模拟校验结果。
  * [OUTPUT]: 验证唯一 Host Config 与平台能力分流；无 helper 平台仍配置 Settings 并保留独立功能。
  * [POS]: PDSH Host 合同，防止 Client 验证通过却绕过 Host 的保存边界。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
+import * as identity from '../src/shared/components.ts';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -80,6 +81,7 @@ test('单 Host apply 按平台配置唯一 Remote service，Settings 与root own
   const context = {
     module, exports: module.exports, process: { platform, arch },
     require(id) {
+      if (id === '../shared/components.ts') return identity;
       if (id === '@deepseek-ai/schemastery') return schema;
       if (id === '../shared/model.ts') return model;
       if (id === './capture.ts') return capture;

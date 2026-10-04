@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 esbuild、官方 Typert workspace generator、唯一 Host/Client 源与 macOS helper 编译器。
+ * [INPUT]: 依赖 esbuild、官方 Typert workspace generator、当前 staging manifest 身份、唯一 Host/Client 源与 macOS helper 编译器。
  * [OUTPUT]: 生成唯一 Host/Client bundle、官方 Typert faces、公开 DTO 声明和包内 native helper；不生成 Main route。
  * [POS]: GitHub 单 Bundle 的唯一构建边界；identity、camera 与 save 复用一个 Host service/Client entry。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -11,7 +11,10 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { generateTypertArtifacts } from './tools/generate-typert.ts';
 const root = fileURLToPath(new URL('.', import.meta.url));
-const { version } = JSON.parse(await readFile(new URL('./package.json', import.meta.url), 'utf8'));
+const { name: packageName, version } = JSON.parse(await readFile(new URL('./package.json', import.meta.url), 'utf8'));
+if (!['@daftai/pdsh', '@daftai/pdsh-rc'].includes(packageName) ||
+  (packageName === '@daftai/pdsh-rc' && !/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)-rc\.[1-9]\d*$/.test(version))) throw new Error('unsupported build identity');
+const identityDefine = { __PDSH_BUNDLE_NAME__: JSON.stringify(packageName) };
 const { artwork } = JSON.parse(await readFile(new URL('./style-sources.json', import.meta.url), 'utf8'));
 // +--- 先发射同源协议声明/官方反射，再构建 bundle；源码和 runtime map 不分叉。 ---+
 await generateTypertArtifacts(root);
@@ -22,10 +25,10 @@ const glyph = (await readFile(new URL('./src/client/entry-icon.svg', import.meta
 // +--- 官方 img 不继承宿主变量：只固化标识前景，不添加背景 ---+
 await writeFile(join(root, 'plugin-icon.svg'), `<!--\n[INPUT]: src/client/entry-icon.svg 与 style-sources.json，由 build.ts 生成。\n[OUTPUT]: 透明底帽子图稿。\n[POS]: 单 Bundle 标识，不手工修改。\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n-->\n${glyph.replace('stroke="currentColor"', `stroke="${artwork.foreground.value}"`)}`);
 const banner = (source: string, output: string) => `/**\n * [INPUT]: ${source}，由 build.ts 生成。\n * [OUTPUT]: ${output}。\n * [POS]: 单包运行产物；PDSH build ${JSON.stringify(version)}，不手工修改。\n * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n */`;
-await build({ absWorkingDir: root, entryPoints: ['src/host/index.ts'], outfile: 'index.js', bundle: true, format: 'esm', platform: 'node', target: 'es2022',
-  external: ['@deepseek-ai/cordis', '@deepseek-ai/dsh-typert-protocol', '@deepseek-ai/schemastery', 'blobatar/uri'], banner: { js: banner('src/host/index.ts 与官方 Typert service', '唯一 pdsh Config/name/apply 与 owned-window capture/save') } });
+await build({ absWorkingDir: root, entryPoints: ['src/host/index.ts'], outfile: 'index.js', bundle: true, format: 'esm', define: identityDefine, platform: 'node', target: 'es2022',
+  external: ['@deepseek-ai/cordis', '@deepseek-ai/dsh-typert-protocol', '@deepseek-ai/schemastery', 'blobatar/uri'], banner: { js: banner('src/host/index.ts 与官方 Typert service', `${packageName} 唯一 Config/name/apply 与 owned-window capture/save`) } });
 await build({ absWorkingDir: root, entryPoints: ['src/client/client-entry.tsx'], outfile: 'client.js', bundle: true, format: 'cjs', platform: 'browser', target: 'es2022', sourcemap: true, minify: true,
-  loader: { '.css': 'text', '.svg': 'text', '.jpg': 'dataurl' }, define: { __PDSH_VERSION__: JSON.stringify(version) },
+  loader: { '.css': 'text', '.svg': 'text', '.jpg': 'dataurl' }, define: { ...identityDefine, __PDSH_VERSION__: JSON.stringify(version) },
   external: ['react', 'react/jsx-runtime', 'react-dom/client', '@deepseek-ai/dsh-client-ui-primitives'],
-  banner: { js: `${banner('src/client/client-entry.tsx 与宿主 module table', '唯一 @daftai/pdsh lazy factory')}\nwindow.__ModuleLoader__.load({id:"@daftai/pdsh",factory:(require)=>{var module={exports:{}};var exports=module.exports;` },
+  banner: { js: `${banner('src/client/client-entry.tsx 与宿主 module table', `${packageName} 唯一 lazy factory`)}\nwindow.__ModuleLoader__.load({id:${JSON.stringify(packageName)},factory:(require)=>{var module={exports:{}};var exports=module.exports;` },
   footer: { js: 'return module.exports;}});' } });
