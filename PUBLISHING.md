@@ -1,27 +1,35 @@
+<!--
+[INPUT]: 依赖唯一 package.json 版本、官方插件管理器、原生平台构建与独立验收证据
+[OUTPUT]: 规定 GitHub 单包交付、产物验证、稳定发布及版本限定的未验边界
+[POS]: 根发布契约；区分源码、归档、实际安装和桌面行为，不将构建成功冒充实机通过
+[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+-->
 # PDSH 分发与验收
 
-PDSH 从 GitHub 仓库作为一个 Harness Bundle 安装。项目链接直接安装默认分支，不需要 tag、Git 命令或 npm 账号。tag 为稳定版本固定锚点与插件内更新服务，GitHub Release 页面可选。package.json.version 是唯一手写版本；运行 JavaScript 由 build.ts 预构建提交，不在用户安装时编译。
+PDSH 通过 GitHub 仓库作为一个 Harness Bundle 安装。普通用户在官方插件页填写项目链接，安装默认分支；不需要 Git 命令、npm 账号或另装截图助手。稳定 tag 是固定版本与插件内更新提示的锚点，GitHub Release 页面可选。`package.json.version` 是唯一手写版本，运行产物预构建后提交，不在用户安装时编译。
 
-Native helper 的 tarball 使用 `npm pack --ignore-scripts` 保留 0755，由 `pnpm run bundle` 统一调用。源文件和归档权限必须分别验证；安装后再核对执行位。字节 SHA 一致不代表可执行，禁止用 bin、安装 hook 或用户运行时 chmod 弥补打包错误。
+## 单包和原生产物
 
-Windows x64 helper 由 `native/windows/build.ps1` 在 Windows SDK/MSVC 上编译。首次接入可先推 RC 源码提交以触发 `native-windows.yml`；它运行 Windows 目录合同并产出短期构建物，不运行截图。随后按该提交核对 CI、下载真实 PE、验证 x64/asInvoker 后提交到 `native/windows/window-capture-x64.exe`，再执行完整测试、归档和安装门。缺少 PE 的源码提交不是可发布安装包，构建物也不是 Windows 实机验收。
+保留一个 `@daftai/pdsh` Bundle、一个 `pdsh` Host 和一个 root Client。身份、标题遮挡、截图是内部功能，不拆成依赖包。包内 macOS 和 Windows 助手仅由 Host 在用户点击截图后启动，完成后退出；不增加安装器、常驻服务、本地服务器或 Main 调试桥。
 
-## RC 渠道
+macOS helper 经 `native/build.sh` 构建为最低 macOS 14 的 arm64/x86_64 universal 文件。用 `npm pack --ignore-scripts` 保留 0755，由 `pnpm run bundle` 统一调用；源文件、归档和实际安装均核对执行位，不能只比较摘要，也不以安装 hook 或运行时 chmod 修补包装错误。
 
-仅保留 rc/native-capture 一个实验分支。RC11 回到单一 @daftai/pdsh 包、pdsh Host 和 root Client；身份、标题遮挡、拍照是内部模块，使用独立设置开关，不是三个子依赖或用户分别安装的 Bundle。RC10 的 Git 子依赖被目标 PNPM 11.7.0 拒绝，旧冷启动/图谱测试不能替代真正安装。
+Windows helper 经 `native/windows/build.ps1` 在 Windows SDK/MSVC 上编译。`native-windows.yml` 运行真实 Windows 保存目录合同，上传短期 x64 构建物，不执行截图或自动发布。按构建提交核对 CI 与下载摘要，再将真实 PE 提交到 `native/windows/window-capture-x64.exe`。发布门校验 x64、控制台 PE 与 `asInvoker` manifest；缺失或伪造产物不得发包。编译、目录合同和 PE 检查都不是 Windows Desktop 实机验收。
 
-1. 运行 pnpm install --frozen-lockfile、pnpm test、pnpm run bundle，检查归档和依赖许可；archive:check 自动核对明确当前版本的真实 tgz 成员/类型/字节和 SHA，不靠 output 中的旧包。归档含根 index.js、client.js/map、生成 Typert Host/Remote face 与 native helper、patch、图标和 locale，不含 components/、node_modules、profile、凭据、日志或私有研究。
-2. 用 verify-host.ts 在独立临时 profile，明确提供并核对目标安装的工具路径/指纹，通过目标 Host 实际 PluginManager 和自带 PNPM 验证首装/热启用、单根元信息/Client、八组合功能设置、配置 revision 与停用/恢复。不关闭 blockExoticSubdeps，不接管全局解析器。HMR 排队适配不证明 Desktop UI。
-3. 审查后提交、只推 RC；不推 main、不打稳定 tag、不发布 npm。GitHub 分支来源为 github:daftAI2026/PDSH#rc/native-capture。维护者固定 SHA 是复核步骤，不是普通用户安装前提；新远端 SHA 要重新通过官方 Manager，验收器核对被测版本/运行字节和锁文件解析 SHA。
-4. 在实际 DSH 官方插件页装同一远端产物，核对来源/版本、即时启用、三个功能开关、原账号/标题恢复、搜索展开、折叠、主题、原生 Tooltip/Toast 和卸载清理。不打开或编辑用户配置文件。安装替换若由 Host 提示下次启动加载，先保留工作再正常退出；普通功能开关和拍照不能要求重启。
-5. 当前候选改用原生 owned-window helper 与官方 Remote，不再进入旧 Main/Inspector 路径，边框已接受。研究包成功不覆盖新 RC：验证首次点击权限、拒绝/撤销、整窗覆盖/比例、重拍/复制、选目录/直接保存、取消/停用与真实资源结算；不要用 DOM 回退、应用补丁/重签或反复启动绕过。
+## 必须分开的检查
 
-Git push 不会更新正在运行的插件。RC 不触发稳定 tag 更新提示；每次变动须重新生成、测试、推送，再经官方管理器安装。实验重装不是旧用户升级兼容证据。稳定 root name/id 不变；历史拆包/name-qualified 覆盖是否残留须用官方机制查证，不假设卸载等于清空配置。
+1. 运行 `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm build` 和 `pnpm run bundle`。检查当前版本真实 tgz 的成员、字节、权限、版本与依赖许可，不复用旧包冒充当前结果。归档只包含 manifest allowlist，不包含 node_modules、profile、凭据、日志或私有研究。
+2. 通过 `verify-host.ts` 在当前用户拥有的全新临时 profile 中运行目标 DSH 的实际 PluginManager、Typert Loader 和自带 PNPM。绑定被装版本、运行字节和来源摘要，检查单 root 行/Client、八组合功能设置、revision 写入与恢复、停用与重新启用。不得关闭 `blockExoticSubdeps`、替换解析器或伪造活动状态。此检查不拍摄像素，也不代替 Desktop UI。
+3. 实际 Desktop 验收独立记录：目标安装件的主题、入口、搜索展开/折叠、三个开关、截图覆盖/比例、重拍、复制、选目录/直接保存及取消/停用。旧版到新版的官方管理器升级也单独验证；实验重装不是升级证据。普通功能开关无需重启，替换包仅遵从宿主明确的加载/重启提示并保护未保存工作。
 
-## 稳定发布
+## 0.3.0 发布决定
 
-正常稳定门是上述完整 Desktop 与原生拍照验收。v0.2.1 曾获明确允许带 Desktop 验收缺口发布；那是单版本例外，不适用于 RC11。旧 tag 不覆盖。
+用户明确批准先交付 Windows 接入及编译好的包，Windows DSH 实机留待后续验收；拒绝/撤销 macOS 录屏授权与保存中异常退出不作为本版本发布阻碍。它们必须标为未实测，不描述为已发现故障或已经通过。正常取消、真实提交回执和不覆盖已有文件仍需保留。
 
-完成验收、同步 README/AGENTS 当前稳定版本、提交且工作树清洁后，运行 pnpm release:check，再明确创建并推送 v<version> tag；该命令故意拒绝 RC。插件详情徽标只查稳定 tag，安装需要第二次确认，经官方 Manager 固定 SHA，不自动重启、不写偏好或轮询。来源切换须明示。
+已有 macOS 候选的常规截图与工作台交互证据，不等于精确最终安装件完整验收。用户将本次交付明确收口为合并发版，更新标及 `0.2.1 → 0.3.0` 实际升级由用户后续检查，README 保留未验边界。本版本批准不延伸至以后版本，也不免除真实 helper、源码测试、归档或精确 Host 安装检查。历史 0.2.1 的例外不是当前版本的依据。
 
-npm 不是当前渠道；无发布账号不阻碍 GitHub 单包交付。不得引入未发布 npm 组件依赖。普通用户只安装 PDSH 一次，包内功能完整；任何升级失败以官方 application/error、Fiber/Client 和实际页面为准，不能伪造 ACTIVE。
+同步 README/AGENTS 当前版本、审查并提交所有分发产物，在清洁的 `main` 上运行 `pnpm release:check`，再创建并推送 `v0.3.0`。旧 tag 不移动。RC 分支仅用于候选构建，不触发稳定更新提示；稳定发布需本次明确授权。
+
+插件详情只在打开自身页面时查稳定 tag，展开来源说明后还需一次明确安装确认，经官方 Manager 固定 SHA，不自动重启、不轮询或写入更新偏好。Git 推送不会更新已安装插件；不能通过外部 CLI 修改被 Desktop 独占的用户 profile。
+
+npm 不是当前发布渠道。升级或加载状态以官方 `application/error`、Fiber/Client 和实际页面为准，不因源码、tag 或归档成功而宣称安装完成。
