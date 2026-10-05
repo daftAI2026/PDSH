@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实 Cordis Loader-owner event、正式 WindowCaptureService、Host capture/save stream 与 Node 子进程边界。
- * [OUTPUT]: 验证 accepted captureEnabled 撤回同时 abort 两路并等待真实 fake-child settle；Settings 迟到就绪可恢复显式调用，但不复活已卸载服务。
+ * [OUTPUT]: 验证 accepted captureEnabled 撤回同时 abort 两路并等待真实 fake-child settle；Settings 迟到就绪可恢复显式调用，但不复活已卸载服务；版本闭包不接受异版本实例。
  * [POS]: Host 生命周期集成合同；只替换 child_process.spawn 为可控假子进程，不运行 helper、不触发 TCC、不写图像。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -296,5 +296,26 @@ test('Loader owner volatile update aborts the active Host capture and save, then
     childProcess.spawn = originalSpawn
     syncBuiltinESMExports()
     await rm(directory, { recursive: true, force: true })
+  }
+})
+
+
+test('版本业务闭包在相机调用前拒绝异版本实例，不启动 helper', async () => {
+  const { readFile } = await import('node:fs/promises')
+  const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
+  const payload = await import(new URL(`../lib/capture-runtime/${manifest.version}.js`, import.meta.url).href)
+  const root = new Context()
+  let runtime: any
+  const owner = root.plugin({ apply(ctx: Context) {
+    ctx.provide('settings', { describe: () => [{ ns: 'pdsh', value: { captureEnabled: true } }] })
+    runtime = payload.create(ctx)
+  } })
+  await owner
+  try {
+    Object.defineProperty(runtime, 'version', { value: '0.0.0', configurable: true })
+    assert.throws(() => runtime.capture(AbortSignal.abort()), /capture-runtime-version-mismatch/)
+  } finally {
+    await runtime?.dispose()
+    await owner.dispose()
   }
 })

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖稳定 service 的调用上下文、调用时重新核对的 accepted pdsh Settings、universal macOS/Windows x64 helper、Host logger 与同 namespace 保存后端。
  * [OUTPUT]: 提供版本化 create/CaptureRuntime 与 capture/save 业务实现 与不含内容/路径的固定状态诊断；按 Host 平台解析包内 helper，构造不授权、不取像、不写文件。
- * [POS]: 可更新 Host 业务闭包；不注册 Cordis/Remote service，统一拥有 captureEnabled generation，修复父 Fiber 尚未 ACTIVE 时的空 Settings 投影，不复活已卸载实例。
+ * [POS]: 可更新 Host 业务闭包；不注册 Cordis/Remote service，统一拥有 captureEnabled generation，修复父 Fiber 尚未 ACTIVE 时的空 Settings 投影，不复活已卸载实例，调用前拒绝异版本实例。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { Context } from '@deepseek-ai/cordis'
@@ -102,6 +102,8 @@ export class CaptureRuntime {
 
   /** 权限只在该 Remote iterable 首次被拉取时经原生 helper 请求。 */
   capture(signal: AbortSignal): AsyncIterable<CaptureFrame> {
+    // +--- 固定外壳不能把异版本实现当成当前业务执行 ---+
+    if (this.version !== version) throw new Error('capture-runtime-version-mismatch')
     // +--- 子 Service 可先于 Config owner ACTIVE；挂载时的空投影不是永久撤权 ---+
     this.refreshCaptureEnabled()
     const serviceContext = this.ctx
