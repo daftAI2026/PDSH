@@ -1,5 +1,5 @@
 <!--
-[INPUT]: 依赖唯一 package.json 版本、官方插件管理器、原生平台构建与独立验收证据
+[INPUT]: 依赖唯一 package.json 版本、公开元信息源、本地 tag 守门、官方插件管理器与独立验收证据
 [OUTPUT]: 规定 GitHub 单包交付、产物验证、稳定发布及版本限定的未验边界
 [POS]: 根发布契约；区分源码、归档、实际安装和桌面行为，不将构建成功冒充实机通过
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -7,6 +7,25 @@
 # PDSH 分发与验收
 
 PDSH 通过 GitHub 仓库作为一个 Harness Bundle 安装。普通用户在官方插件页填写项目链接，安装默认分支；不需要 Git 命令、npm 账号或另装截图助手。稳定 tag 是固定版本与插件内更新提示的锚点，GitHub Release 页面可选。`package.json.version` 是唯一手写版本，运行产物预构建后提交，不在用户安装时编译。
+
+## 公开元信息与 tag 守门
+
+公开简介和 Topics 的唯一源是 `tools/release-metadata.ts` 的 `PUBLIC_METADATA`。README 只管理标记之间的一行简介，正文与展示图仍由人工审查；机器比对不能证明功能或隐私承诺属实。
+
+```sh
+pnpm metadata:sync          # 同步 README 简介、包简介和中英文插件元信息；不改版本
+pnpm metadata:check         # 本地只读校验
+pnpm metadata:sync-github   # 显式同步 About、主页和 Topics，并读回核对
+pnpm metadata:check-github  # 远端只读校验，网络/鉴权失败即失败
+pnpm test
+pnpm run bundle
+# 审查并提交后，在干净 main 执行：
+pnpm release:check
+```
+
+首次使用本仓时先检查 `git config --get core.hooksPath` 与默认 `.git/hooks/` 中的有效 hooks。未配置且没有用户自建 hooks，或已指向 `.githooks` 时，才执行 `git config --local core.hooksPath .githooks`；已有其他 hook 不覆盖。版本化 pre-push 会在创建稳定 tag 的推送前运行对应 `release:check`，About/Topics 或本地简介未同步即拒绝；旧稳定 tag 不允许改写或删除。普通分支/RC 推送不受稳定门影响。
+
+这是本地保护，可被 `--no-verify` 或未启用 hook 的其他克隆绕过，不是 GitHub 服务器规则。校验只读，不自动修补、提交、发布或操作 DSH。发布之后才发现插件简介漏改，需随下一版本交付，不移动已发布的旧 tag。
 
 ## 单包和原生产物
 

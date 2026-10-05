@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "types": ["node", "react", "react-dom"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "build.ts", "check-release.ts", "verify-host.ts", "tools/pack-rc.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "build.ts", "check-release.ts", "verify-host.ts", "tools/pack-rc.ts", "tools/release-metadata.ts"]
 }

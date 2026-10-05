@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "DSH Private Mode",
-    "description": "Mask sidebar titles and customize local identity; capture and edit this window on macOS."
+    "description": "Mask sidebar titles, customize display aliases, and capture and redact this window. No session isolation."
   }
 }

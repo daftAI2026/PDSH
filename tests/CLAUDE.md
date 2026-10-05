@@ -35,7 +35,9 @@
 - `update-badge.test.ts`: 官方详情更新状态只由当前 Client 版本探测；验证 installing 中磁盘版本先变仍显示进度、成功/失败终态保留、失配时无旧 Client 检查/重试，restart Modal 与“稍后”只关闭提示且不模拟一键重启；restart 行内测试只覆盖同一挂载；另以真正详情卸载/重挂验证同 updater 的失败结果，不作跨 Fiber 承诺。
 - `update-source.test.ts`: 公共 GitHub tag 请求的无凭据网络边界；不冒充 Desktop CSP 证明。
 - `dom-tooltip.test.ts`: 非 React 控件跟随宿主 Tooltip 延时与方位参数，卸载彻底清理。
-- `release-check.test.ts`: 隔离 Git 单包候选与稳定 tag/版本/生成物/脏树守门，不创建 tag。
+- `release-check.test.ts`: 隔离 Git 单包候选与稳定 tag/版本/生成物/脏树及本地简介、远端 About/Topics 守门；假 gh 拒绝写请求，不创建 tag。
+- `release-metadata.test.ts`: 真实临时 package/locale/README 的公开文案同源与受限同步，GitHub About/topics 集合验证及注入 API 的远端请求边界；不联网、不写真实远端。
+- `release-push.test.ts`: 稳定 tag pre-push 发布门、同名 ref、不可改删旧 tag 与多记录 stdin 隔离；普通分支/RC 排除，假 pnpm 不触及真实远端。
 - `profile-loading.test.ts`: 隔离 profile 根包链接结构桩验证唯一 Host/Client/locale 解析与缺包负例；不冒充官方安装。
 - `source-layout.test.ts`: 手写 TypeScript 与宿主所需生成 JavaScript 的边界。
 

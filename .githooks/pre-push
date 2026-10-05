@@ -1,0 +1,26 @@
+#!/bin/sh
+# [INPUT]: Git pre-push 的本地/远端 ref 与 object ID、项目 release:check 和 pnpm。
+# [OUTPUT]: 同名本地稳定 tag 仅在公开元信息及发布门通过后允许推送；旧稳定 tag 不可改删。
+# [POS]: 项目本地发布入口；需配置 core.hooksPath，非服务器强制规则，不自动安装或同步元信息。
+# [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+set -eu
+root=$(git rev-parse --show-toplevel)
+zero=0000000000000000000000000000000000000000
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/tags/v*)
+      tag=${remote_ref#refs/tags/}
+      if ! printf '%s\n' "$tag" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then continue; fi
+      if [ "$local_sha" = "$zero" ] || { [ "$remote_sha" != "$zero" ] && [ "$local_sha" != "$remote_sha" ]; }; then
+        printf '%s\n' "拒绝改写或删除稳定 tag: $tag" >&2
+        exit 1
+      fi
+      if [ "$local_sha" = "$remote_sha" ]; then continue; fi
+      if [ "$local_ref" != "$remote_ref" ]; then
+        printf '%s\n' "稳定 tag 只能从同名本地 tag 推送: $tag" >&2
+        exit 1
+      fi
+      (cd "$root" && pnpm release:check "$tag") < /dev/null || exit 1
+      ;;
+  esac
+done

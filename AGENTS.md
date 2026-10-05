@@ -38,6 +38,8 @@ Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatG
 
 ## Repository map
 
+- `.githooks/`: Versioned pre-push stable-tag gate; enabled through local core.hooksPath after checking existing hooks. It refuses immutable stable-tag replacement/deletion and runs release:check for new stable tags; ordinary branch/RC pushes are unaffected. This is a local safeguard, not a server rule.
+- `docs/`: User-authorized README demonstration artwork; not an acceptance receipt or runtime dependency.
 - `.github/workflows/`: Pinned Windows SDK build job for the x64 helper; artifact output is not Desktop acceptance and never auto-publishes.
 
 - `tools/`: Official Typert generator workspace adapter and pinned build-only protocol reference; never a runtime dependency or archive member.
@@ -49,7 +51,8 @@ Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatG
 - `tests/`: TypeScript contracts for configuration, DOM recognition, lifecycle, settings, localization, style provenance and generated entries.
 - `locale/`: exported zh/en package metadata, available even when disabled.
 - `README.md`: public product contract and installation; `PUBLISHING.md`: channel/release gates; `style-sources.json`: upstream visual rule provenance.
-- `check-release.ts`: rejects stable tag/version/generated-artifact drift and dirty release trees; `package.json.version` is the sole authored version.
+- `check-release.ts`: rejects stable tag/version/generated-artifact drift, local public-copy drift, GitHub About/homepage/Topics mismatch, and dirty release trees; `package.json.version` is the sole authored version. Network/auth failures fail the release gate rather than skipping it.
+- `tools/release-metadata.ts`: PUBLIC_METADATA owns the public short copy/topics; explicit local/GitHub sync preserves version/settings, checks are read-only. Package description, exported locale metadata and the single README description block must match it. Prose outside that block still requires human feature/compatibility review.
 - `package.json`/`pnpm-lock.yaml`: bundle manifest and reproducible dependencies; `cordis.patch.yml`: the sole Cordis insertion layer.
 - `bundle-artifacts.ts`: verifies the single Bundle entries, packaged helper and generated Typert faces, macOS universal/minimum-14 and Windows x64/asInvoker headers, archive allowlist, real tgz members/types/bytes and sole root version; no network or installation side effects.
 - `tools/pack-rc.ts`: Explicit public-source staging and same-source RC build/validation; never installs into a live profile.
@@ -90,6 +93,12 @@ Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatG
 Prefer an already enabled loopback CDP connection. Do not activate or steal the user's foreground window; do not silently restart Desktop just to enable CDP. A Host HTTP listener is not a CDP endpoint. If CUA is unavailable and CDP is not enabled, background inspection may establish the remaining gap, but cannot substitute for real Desktop verification.
 
 Use the installed build-macos-apps `swiftui-patterns` skill as a desktop-interaction reference for editing, cancellation, focus and discoverability, not as a framework dependency. Harness owns the settings surface, controls, persistence and commands; do not add a SwiftUI window, AppStorage, a second settings store or global shortcuts merely to mimic native macOS.
+
+## Public metadata and stable-tag gate
+
+Before a stable release, review actual feature/platform/acceptance changes against PUBLIC_METADATA and README. A script compares copies; it cannot prove a sentence is true. Update the canonical metadata, run metadata:sync, then explicitly metadata:sync-github and metadata:check-github. These commands do not commit, tag, publish or install. Commit intended changes; release:check requires clean main, matching generated artifacts/version/docs and read-back of GitHub About/homepage/Topics. Keep existing tags immutable; metadata changes after a published tag belong to the next version, not a retag.
+
+The versioned pre-push hook must be enabled in a development clone only after checking that core.hooksPath has no user-owned configuration and the default hooks directory has no active user hooks (or the path already equals .githooks). Do not overwrite or shadow other hooks. The local hook guards new stable-tag pushes with release:check and refuses stable-tag replacement/deletion; --no-verify or another clone can bypass it, so do not describe it as GitHub server enforcement. No installation hook, automatic metadata write or live DSH update is added.
 
 ## 0.4.0 release contract
 

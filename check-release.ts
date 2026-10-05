@@ -1,12 +1,13 @@
 /**
- * [INPUT]: 依赖根唯一版本、Git 工作树与单包运行产物验证器。
- * [OUTPUT]: 校验稳定 tag、文档版本、生成产物与 HEAD，拒绝脏发布树与非 main 稳定发布。
+ * [INPUT]: 依赖根唯一版本、Git 工作树、单包产物与公开元信息校验器及只读 GitHub 仓库状态。
+ * [OUTPUT]: 校验稳定 tag、文档版本、生成产物与 HEAD，并拒绝本地简介或 GitHub About/Topics 漂移、脏树与非 main 稳定发布。
  * [POS]: 发布前防漂移门；不推送、打 tag、发布 npm 或修改版本。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { validateBundleArtifacts } from './bundle-artifacts.ts';
+import { validatePublicMetadata, checkGithubMetadata } from './tools/release-metadata.ts';
 import { execFileSync } from 'node:child_process';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
@@ -17,6 +18,7 @@ const tag = process.argv[2] ?? expected;
 if (tag !== expected) throw new Error(`tag ${tag} does not match package.json ${expected}`);
 if (!/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(tag)) throw new Error('release tag must be stable semver');
 validateBundleArtifacts(root);
+validatePublicMetadata(root);
 const readme = readFileSync(new URL('./README.md', import.meta.url), 'utf8');
 const guide = readFileSync(new URL('./AGENTS.md', import.meta.url), 'utf8');
 if (!readme.includes(tag) || !readme.includes(`**${manifest.version} `)) throw new Error('README active release does not match package.json');
@@ -26,6 +28,8 @@ if (git('branch', '--show-current') !== 'main') throw new Error('stable release 
 const existing = git('tag', '--list', tag);
 if (existing && git('rev-list', '-n', '1', tag) !== git('rev-parse', 'HEAD')) throw new Error(`${tag} already points to another commit`);
 if (git('status', '--porcelain')) throw new Error('release working tree must be clean');
+// +--- 公开仓库状态也属于发布件；离线、鉴权失败或漂移均不能冒充通过。 ---+
+checkGithubMetadata(root);
 process.stdout.write(existing
   ? `${tag} matches package.json, generated artifacts and HEAD.\n`
   : `${tag} candidate matches package.json and generated artifacts; tag not created.\n`);
