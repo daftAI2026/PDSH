@@ -1,7 +1,7 @@
 {
   "name": "@daftai/pdsh",
   "description": "Same-window presentation and local capture workbench for DeepSeek Harness; no session isolation.",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "type": "module",
   "main": "./index.js",
@@ -9,6 +9,7 @@
     "index.js",
     "client.js",
     "client.js.map",
+    "lib/capture-runtime/*.js",
     "lib/typert.host.js",
     "lib/typert.host.d.ts",
     "lib/typert.remote-client.js",

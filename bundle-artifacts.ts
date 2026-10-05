@@ -11,7 +11,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { join } from 'node:path';
 
 const ARCHIVE_FILES = [
-  'index.js', 'client.js', 'client.js.map',
+  'index.js', 'client.js', 'client.js.map', 'lib/capture-runtime/*.js',
   'lib/typert.host.js', 'lib/typert.host.d.ts', 'lib/typert.remote-client.js', 'lib/typert.remote-client.d.ts',
   'lib/types/shared/capture-export.d.ts', 'lib/types/shared/remote-types.d.ts',
   'lib/types/shared/window-capture-protocol.d.ts', 'lib/types/shared/window-save-protocol.d.ts',
@@ -66,6 +66,8 @@ export function validateBundleArtifacts(root: string): void {
   for (const file of ['index.js', 'client.js']) {
     if (!read(file).includes(`PDSH build ${JSON.stringify(manifest.version)}`)) throw new Error(`bundle artifact ${file} version drift; rebuild`);
   }
+  const runtime = read(`lib/capture-runtime/${manifest.version}.js`);
+  if (!runtime.includes(`PDSH build ${JSON.stringify(manifest.version)}`) || !runtime.includes('pdsh-capture-runtime-v1')) throw new Error('bundle capture runtime version/contract drift');
   const helper = lstatSync(join(root, 'native/window-capture'));
   if (!helper.isFile() || (helper.mode & 0o777) !== 0o755) throw new Error('native helper must be a packaged executable regular file with mode 0755');
   validateMacHelper(readFileSync(join(root, 'native/window-capture')));
@@ -82,7 +84,7 @@ export function validateBundleArtifacts(root: string): void {
   const hostTypert = read('lib/typert.host.js');
   const remote = read('lib/typert.remote-client.js');
   const remoteTypes = read('lib/typert.remote-client.d.ts');
-  for (const method of ['capture', 'save']) {
+  for (const method of ['capture', 'save', 'implementationVersion']) {
     if (!hostTypert.includes(`method: '${method}'`) || !remote.includes(`method: '${method}'`)) throw new Error(`generated Typert artifacts missing ${method}`);
   }
   if (!hostTypert.includes("service: 'pdshWindowCapture'") || !hostTypert.includes("namespace: 'pdshNativeWindowCapture'")) throw new Error('generated Host descriptor lost its owned-window service identity');
@@ -151,7 +153,7 @@ export function validatePackedBundle(root: string, archive?: string): { archive:
   if (!stat.isFile() || stat.size > MAX_ARTIFACT_BYTES) throw new Error('bundle archive must be a bounded regular file');
   const tar = (...args: string[]) => execFileSync('tar', args, { encoding: 'utf8', maxBuffer: MAX_ARTIFACT_BYTES });
   const members = tar('-tzf', archive).trim().split('\n');
-  const expected = [...ARCHIVE_FILES.filter(file => file !== 'locale/*.json'), 'locale/zh.json', 'locale/en.json', 'package.json', 'README.md'].map(file => `package/${file}`);
+  const expected = [...ARCHIVE_FILES.filter(file => !file.includes('*')), `lib/capture-runtime/${manifest.version}.js`, 'locale/zh.json', 'locale/en.json', 'package.json', 'README.md'].map(file => `package/${file}`);
   if (members.length !== expected.length || new Set(members).size !== expected.length || expected.some(file => !members.includes(file))) throw new Error('bundle archive contains missing, duplicate or unexpected members');
   if (tar('-tvzf', archive).trim().split('\n').some(line => !line.startsWith('-'))) throw new Error('bundle archive must contain regular files only');
   const helperMode = tar('-tvzf', archive, 'package/native/window-capture').slice(0, 10);

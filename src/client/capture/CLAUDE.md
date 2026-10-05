@@ -49,4 +49,6 @@
 
 - `directory.ts`: DSH 原生目录选择窄端口；复用 shared POSIX/Windows 绝对目录语法，取消保持 null，不引入路径输入或第二偏好仓。
 
+- `runtime-readiness.ts`: 更新反馈和显式 capture/save 的只读版本围栏；用官方 Remote 实际实现版本判断，不触发像素或修改用户设置。
+
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

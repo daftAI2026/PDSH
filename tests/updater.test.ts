@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖版本标签选择与官方 pluginManager 适配器的可控桩。
- * [OUTPUT]: 验证仅高版本固定 SHA 可更新、显式确认、失败保留尝试的目标版本和卸载后不通知。
+ * [OUTPUT]: 验证仅高版本固定 SHA 可更新、显式确认、失败保留目标版本；第四参只有确认实现后才将 restart-required 标为 installed，旧三参与卸载围栏不变。
  * [POS]: 自更新合同；不以网络 fixture 充当 Desktop 远端安装证明。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -34,6 +34,62 @@ test('仅显式安装高版本，调用官方管理器固定 SHA，不自行重�
   assert.deepEqual(installs, [{ spec: `github:daftAI2026/PDSH#${'b'.repeat(40)}`, options: { enabled: true } }]);
   assert.deepEqual(update.getSnapshot(), { phase: 'restart', version: '0.2.0' });
   update.dispose();
+});
+
+test('restart-required 只有 activation hook 确认目标实现已加载才升级为 installed', async () => {
+  const events: string[] = [];
+  const manager = {
+    async listBundles() { return { ok: true, value: [{ name: '@daftai/pdsh', version: '0.1.0', installed: true, enabled: true }] }; },
+    async installBundle() { events.push('install'); return { ok: true, value: { changed: true, application: 'restart-required' } }; },
+  };
+  const update = createUpdateController(manager, async () => [newer], '0.1.0', async targetVersion => {
+    events.push(`activate:${targetVersion}`);
+    return true;
+  });
+  await update.check(); await update.install();
+  assert.deepEqual(events, ['install', 'activate:0.2.0']);
+  assert.deepEqual(update.getSnapshot(), { phase: 'installed', version: '0.2.0' });
+  update.dispose();
+});
+
+test('activation 未确认或抛错时保留 restart，不把已安装误报为已加载', async () => {
+  const manager = {
+    async listBundles() { return { ok: true, value: [{ name: '@daftai/pdsh', version: '0.1.0', installed: true, enabled: true }] }; },
+    async installBundle() { return { ok: true, value: { changed: true, application: 'restart-required' } }; },
+  };
+  for (const activate of [async () => false, async () => { throw new Error('activation unavailable'); }]) {
+    const update = createUpdateController(manager, async () => [newer], '0.1.0', activate);
+    await update.check(); await update.install();
+    assert.deepEqual(update.getSnapshot(), { phase: 'restart', version: '0.2.0' });
+    update.dispose();
+  }
+});
+
+test('卸载期间 activation hook 迟到不能发布 installed 状态', async () => {
+  const manager = {
+    async listBundles() { return { ok: true, value: [{ name: '@daftai/pdsh', version: '0.1.0', installed: true, enabled: true }] }; },
+    async installBundle() { return { ok: true, value: { changed: true, application: 'restart-required' } }; },
+  };
+  let entered!: () => void, settle!: (value: boolean) => void;
+  const activationStarted = new Promise<void>(resolve => { entered = resolve; });
+  const activationResult = new Promise<boolean>(resolve => { settle = resolve; });
+  const update = createUpdateController(manager, async () => [newer], '0.1.0', () => {
+    entered();
+    return activationResult;
+  });
+  await update.check();
+  const installing = update.install();
+  let hookStarted = false;
+  await Promise.race([activationStarted.then(() => { hookStarted = true; }), installing]);
+  if (!hookStarted) {
+    update.dispose();
+    assert.fail('restart-required install must await the activation hook');
+  }
+  assert.deepEqual(update.getSnapshot(), { phase: 'installing', version: '0.2.0' });
+  update.dispose();
+  settle(true);
+  await installing;
+  assert.deepEqual(update.getSnapshot(), { phase: 'installing', version: '0.2.0' });
 });
 
 test('宿主没有唯一已安装自身时拒绝更新；失败不报告成功', async () => {

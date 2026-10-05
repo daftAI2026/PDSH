@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖唯一 pdsh ConfigForm、locale/slot/PluginManager 服务和可选官方 macOS/Windows 平台 Remote 服务。
+ * [INPUT]: 依赖唯一 pdsh ConfigForm、locale/slot/PluginManager 服务、实际后台版本围栏和可选官方 macOS/Windows 平台 Remote 服务。
  * [OUTPUT]: 按身份、标题打码、截图顺序呈现设置，仅用完整有效的 Host accepted 截图配置装配相机；拍照每次初拍/重拍读取 Host accepted 身份遮挡值。
  * [POS]: 单 Bundle Client 组合根；常驻身份、标题预遮挡与截图身份遮挡独立，共享唯一 ConfigForm；截图配置尚未就绪时只撤回相机，不影响身份/标题，后续快照可恢复。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -21,6 +21,7 @@ import { mountCaptureBackgroundTabs } from './capture/background-tabs.tsx';
 import { mountCaptureController } from './capture/controller.ts';
 import { mountCaptureNotices } from './capture-notice.tsx';
 import { readCaptureDirectoryPicker } from './capture/directory.ts';
+import { isCaptureRuntimeCurrent, requireCaptureRuntimeCurrent } from './capture/runtime-readiness.ts';
 import { captureOwnedWindow, capturedWindowScale } from './capture/window-capture.ts';
 import { saveWindowImage, prepareWindowSaveDirectory } from './capture/window-save.ts';
 import { SettingsCard } from './settings-card.tsx';
@@ -101,7 +102,7 @@ export function mountComponent(ctx, doc: Document = document) {
       root.render(<NativeStyleProbe doc={doc} />);
       const offTooltips = mountDomTooltips(doc);
       cleanup.push(offTooltips);
-      const updater = createUpdateController(ctx.remote.pluginManager, loadReleaseTags, __PDSH_VERSION__);
+      const updater = createUpdateController(ctx.remote.pluginManager, loadReleaseTags, __PDSH_VERSION__, version => isCaptureRuntimeCurrent(captureRemote, version));
       cleanup.push(() => updater.dispose());
 
       const presentation = mountPresentation(doc);
@@ -161,7 +162,10 @@ export function mountComponent(ctx, doc: Document = document) {
           const remote = captureRemote;
           captureNotices = mountCaptureNotices(doc);
           captureController = mountCaptureController(doc, {
-            capture: (document, options) => captureOwnedWindow(document, signal => remote.capture(signal), options),
+            capture: async (document, options) => {
+              await requireCaptureRuntimeCurrent(remote, __PDSH_VERSION__, options.signal);
+              return captureOwnedWindow(document, signal => remote.capture(signal), options);
+            },
             captureScope: 'owned-window', sourceScale: capturedWindowScale,
             captureMaskIdentity: () => {
               const current = form.getSnapshot();
@@ -170,6 +174,7 @@ export function mountComponent(ctx, doc: Document = document) {
             exportPreferences: () => resolveCaptureExportPreferences(form.getSnapshot().value),
             trace,
             onSave: async (blob, _name, directory, behavior, signal, metadata) => {
+              await requireCaptureRuntimeCurrent(remote, __PDSH_VERSION__, signal);
               const current = form.getSnapshot();
               const accepted = resolveCaptureExportPreferences(current.value);
               if (current.status !== 'ready' || !isCaptureConfigurationReady(current.value) || accepted.saveFormat !== metadata.format || (behavior === 'direct' && accepted.saveDirectory !== directory)) throw new Error('save-failed');
@@ -231,6 +236,8 @@ export function mountComponent(ctx, doc: Document = document) {
     const captureFiber = ctx.inject(['remote.pdshNativeWindowCapture'], (captureCtx) => {
       const current = captureCtx.remote.pdshNativeWindowCapture;
       captureRemote = current;
+      // +--- Client 热装配后只读激活当前后台；权限与像素仍只由明确拍照动作触发 ---+
+      void isCaptureRuntimeCurrent(current, __PDSH_VERSION__);
       syncCapture();
       captureCtx.effect(() => () => {
         if (captureRemote === current) captureRemote = undefined;

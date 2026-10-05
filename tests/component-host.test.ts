@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖生成 Host Config、root owner 的 captureEnabled observer、平台 helper 路径解析与纯 Settings 默认迁移。
+ * [INPUT]: 依赖生成 Host Config、版本业务闭包、root owner 的 captureEnabled observer、平台 helper 路径解析与纯 Settings 默认迁移。
  * [OUTPUT]: 验证唯一配置地址、仅所属事件刷新官方取像服务以及无 Main/Fetch 控制回退。
  * [POS]: 新 RC Host 组合合同；不执行原生 helper、不申请权限或写用户 profile，旧桥独立测试不证明此路径。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -36,11 +36,12 @@ test('capture 配置 apply 只处理默认迁移，不碰 connection/Main/bootst
  assert.doesNotMatch(source,/capture-bootstrap|createCaptureRoute|main\.cjs|fetch\.register|openCaptureBridge/);
 });
 test('原生 helper 是生成 Host 的包内相对资源，scope如实声明owned-window',()=>{
- const source=readFileSync(new URL('../src/host/window-capture-service.ts',import.meta.url),'utf8');
- assert.match(source,/helperPath: resolveNativeCaptureHelperPath\(process\.platform, process\.arch, import\.meta\.url\)/);
+ const source=readFileSync(new URL('../src/host/capture-runtime.ts',import.meta.url),'utf8');
+ const service=readFileSync(new URL('../src/host/window-capture-service.ts',import.meta.url),'utf8');
+ assert.match(source,/helperPath: resolveNativeCaptureHelperPath\(process\.platform, process\.arch, new URL\('\.\.\/\.\.\/index\.js', import\.meta\.url\)\.href\)/);
  const bundle = new URL('../index.js', import.meta.url);
  for (const arch of ['arm64', 'x64']) assert.equal(resolveNativeCaptureHelperPath('darwin', arch, bundle), fileURLToPath(new URL('./native/window-capture', bundle)));
  assert.equal(resolveNativeCaptureHelperPath('win32', 'x64', bundle), fileURLToPath(new URL('./native/windows/window-capture-x64.exe', bundle)));
  assert.equal(resolveNativeCaptureHelperPath('win32', 'arm64', bundle), undefined);
- assert.match(source,/pdshNativeWindowCapture/);assert.doesNotMatch(source,/capture-bootstrap|page-save-main|inspector/);
+ assert.match(service,/pdshNativeWindowCapture/);assert.doesNotMatch(source,/capture-bootstrap|page-save-main|inspector/);
 });

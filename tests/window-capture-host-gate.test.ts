@@ -244,18 +244,18 @@ test('Loader owner volatile update aborts the active Host capture and save, then
     }
     saveTask = collect(service.save(request, saveAborter.signal))
     await pendingUplink.started
-    const activeLifetimeSignal = (service as any).lifetime.signal as AbortSignal
+    const activeLifetimeSignal = (await (service as any).runtime.current()).lifetime.signal as AbortSignal
 
     // A sibling Loader row and an unrelated volatile path cannot revoke this service.
     emitLoaderVolatileUpdate(otherFiber, [['captureEnabled']])
     emitLoaderVolatileUpdate(ownerFiber, [['maskIdentity']])
-    assert.equal(refreshCount, 2, 'capture/save 调用各核对一次；旁系事件不刷新')
+    assert.equal(refreshCount, 0, '业务实现逐调用核对；外壳只接收 owner 事件，旁系事件不刷新')
     assert.deepEqual(children[0]!.kills, [])
     assert.equal(pendingUplink.closed, false)
 
     accepted.captureEnabled = false
     emitLoaderVolatileUpdate(ownerFiber, [['captureEnabled']])
-    assert.equal(refreshCount, 3)
+    assert.equal(refreshCount, 1)
     assert.equal(activeLifetimeSignal.aborted, true, 'the service generation is synchronously revoked')
     assert.deepEqual(children[0]!.kills, ['SIGTERM'])
     await pendingUplink.closedPromise
@@ -275,7 +275,7 @@ test('Loader owner volatile update aborts the active Host capture and save, then
 
     accepted.captureEnabled = true
     emitLoaderVolatileUpdate(ownerFiber, [['captureEnabled']])
-    assert.equal(refreshCount, 4)
+    assert.equal(refreshCount, 2)
     assert.equal(children.length, 1, 're-enabling only creates a new generation; it does not restart capture')
 
     explicitRetryAborter = new AbortController()

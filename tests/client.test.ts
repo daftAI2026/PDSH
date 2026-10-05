@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖生成的唯一 Bundle Client、Cordis 4 服务注册、ReactDOM 与 rc.2 DOM fixture。
- * [OUTPUT]: 验证单根生命周期、完整截图配置下的八种设置组合、独立恢复、取像取消、CSS 正负例与回滚。
+ * [OUTPUT]: 验证单根生命周期、实际后台版本确认下的八种设置组合、独立恢复、取像取消、CSS 正负例与回滚。
  * [POS]: Client 集成合同；本测试证明源码/生成 Client 的服务图，不冒充 Host primitives、CSP 或实窗验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -153,6 +153,7 @@ function environment({ value = {}, status = 'ready', bridge = false, failRoot = 
   app.logger.error = (...values) => diagnostics.push(['error', ...values]);
   const pageCapture = {
     pending: new Map(), cancelled: [],
+    async implementationVersion() { return {ok: true, value: JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version}; },
     capture(signal) {
       const id=String(pageCapture.pending.size);
       let fail;

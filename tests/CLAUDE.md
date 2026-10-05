@@ -31,7 +31,7 @@
 - `native-style-probe.test.ts`: 原生 Input/Button/Switch/设置字段/Tooltip 几何与动效采样，SVG 笔画比例/透明度/尺寸及主题/DOM/resize 重采；合法零长度保真、无效值或探针节点缺席时撤销旧值，节点重建后重采，root 脱离后清空且卸载恢复原值。
 - `styles.test.ts`: 视觉规则与上游 token 来源；入口只合成 SVG 根透明度、按压态不绘常驻底色且复用原生按钮交互，实时原生控件测量由独立可卸载 controller 负责；视觉隐藏 probe 不入页面流且保留几何采样，Tooltip 只发自有 mouseover，不抢焦点，并校验来源文本间距和昵称行对称留白。
 - `title-toggle.test.ts`: Host 单路径切换及失败状态。
-- `updater.test.ts`: 稳定 tag、固定提交、官方 Remote 回包封套、显式安装；安装失败保留目标版本，因为 Manager 配置失败可能发生在磁盘清单前移之后，不假定回滚。
+- `updater.test.ts`: 稳定 tag、固定提交、官方 Remote 回包封套、显式安装；第四参 activation hook 仅以 `true` 确认升格 `restart-required`，false/throw 保留 restart，旧三参兼容且 dispose 拒绝迟到成功；安装失败保留目标版本，不假定 Manager 回滚磁盘清单。
 - `update-badge.test.ts`: 官方详情更新状态只由当前 Client 版本探测；验证 installing 中磁盘版本先变仍显示进度、成功/失败终态保留、失配时无旧 Client 检查/重试，restart Modal 与“稍后”只关闭提示且不模拟一键重启；restart 行内测试只覆盖同一挂载；另以真正详情卸载/重挂验证同 updater 的失败结果，不作跨 Fiber 承诺。
 - `update-source.test.ts`: 公共 GitHub tag 请求的无凭据网络边界；不冒充 Desktop CSP 证明。
 - `dom-tooltip.test.ts`: 非 React 控件跟随宿主 Tooltip 延时与方位参数，卸载彻底清理。
@@ -83,5 +83,11 @@
 - `capture-background-modes.test.ts`: 四模式从真实背景派生、素材记忆与隐藏面板 ARIA/焦点合同、无重复标题、渐变完整展开/全预设恢复与拾色图标常显，保留内置和上传入口。
 
 - `capture-background-tabs.test.ts`: 原生 SegmentedControl 参数/受控更新/忙碌与卸载围栏，根桩不模拟 Host 键盘或视觉。
+
+- `capture-runtime-loader.test.ts`: 固定 Remote 桥的版本换载、并发合并、协议拒绝、旧实例真实结算及加载中卸载合同；无 helper/像素/用户配置操作。
+
+- `capture-runtime-readiness.test.ts`: 固定实际后台版本封套与取消围栏；旧版本/错误不得报告热更新成功，纯内存 Remote 不取像。
+
+- `capture-runtime-location.test.ts`: 临时版本包与稳定链接的真实 realpath/ESM 换载；拒绝 foreign 包，非 Manager/实机验收。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

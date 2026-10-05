@@ -11,16 +11,17 @@ export function artifactFixture() {
   const root = mkdtempSync(join(tmpdir(), 'pdsh-artifacts-'));
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   manifest.version = '0.3.0'; manifest.scripts = {};
-  const files: string[] = [...manifest.files.filter((file: string) => file !== 'locale/*.json'), 'locale/zh.json', 'locale/en.json', 'package.json', 'README.md'];
+  const files: string[] = [...manifest.files.filter((file: string) => !file.includes('*')), `lib/capture-runtime/${manifest.version}.js`, 'locale/zh.json', 'locale/en.json', 'package.json', 'README.md'];
   const write = (file: string, value: string) => { mkdirSync(dirname(join(root, file)), {recursive:true}); writeFileSync(join(root, file), value); };
   const save = () => write('package.json', JSON.stringify(manifest));
   for (const file of files) write(file, 'fixture');
   save();
   write('cordis.patch.yml', '- insert:\n    - id: pdsh\n      name: "@daftai/pdsh"\n');
   write('index.js', '/* PDSH build "0.3.0" */ @deepseek-ai/dsh-typert-protocol ./native/window-capture');
+  write('lib/capture-runtime/0.3.0.js', '/* PDSH build \"0.3.0\" */ pdsh-capture-runtime-v1');
   write('client.js', '/* PDSH build "0.3.0" */\nwindow.__ModuleLoader__.load({id:"@daftai/pdsh",factory:()=>({})});');
-  write('lib/typert.host.js', "service: 'pdshWindowCapture' namespace: 'pdshNativeWindowCapture' method: 'capture' method: 'save' uplink:");
-  write('lib/typert.remote-client.js', "method: 'capture' method: 'save'");
+  write('lib/typert.host.js', "service: 'pdshWindowCapture' namespace: 'pdshNativeWindowCapture' method: 'capture' method: 'save' method: 'implementationVersion' uplink:");
+  write('lib/typert.remote-client.js', "method: 'capture' method: 'save' method: 'implementationVersion'");
   write('lib/typert.remote-client.d.ts', 'RemoteStreamHandle<WindowSaveFrame, WindowSaveInputFrame>');
   // +--- 只有可解析的头部，没有机器指令；从不作为可运行 helper 使用 ---+
   const helper = Buffer.alloc(160);
