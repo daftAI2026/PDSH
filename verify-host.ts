@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 通过 fixtureRoot/package.json 解析精确 DSH Host 依赖；在隔离 consumerProfile 中接收归档/GitHub 来源与 PNPM 命令 JSON。
- * [OUTPUT]: 经官方 PluginManager 与 Typert Loader 验证安装字节、helper 执行位、设置和 service/descriptor 生命周期；不消费取像流或冒充 Remote/Desktop 验收。
+ * [OUTPUT]: 经官方 PluginManager 与 Typert Loader 验证安装及当前版本业务闭包字节、helper 执行位、设置和 service/descriptor 生命周期；不消费取像流或冒充 Remote/Desktop 验收。
  * [POS]: 仓库根目录的集成验收入口；只操作调用方指定且 owner/权限验证的临时 profile，不改写 DSH 用户 profile 或替代官方解析器。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -334,7 +334,12 @@ async function main(): Promise<void> {
     const installedManifest = JSON.parse(readFileSync(join(installedRoot, 'package.json'), 'utf8'))
     assert.equal(installedManifest.version, candidate.version, '被测包版本不是当前候选')
     const runtimeHashes: Record<string, string> = {}
-    for (const file of candidate.files.flatMap((file: string) => file === 'locale/*.json' ? ['locale/zh.json', 'locale/en.json'] : [file])) {
+    // +--- manifest glob 是分发规则，不是磁盘文件；只展开已校验的两个固定成员模式。 ---+
+    for (const file of candidate.files.flatMap((file: string) => {
+      if (file === 'locale/*.json') return ['locale/zh.json', 'locale/en.json'];
+      if (file === 'lib/capture-runtime/*.js') return [`lib/capture-runtime/${candidate.version}.js`];
+      return [file];
+    })) {
       const installedBytes = readFileSync(join(installedRoot, file))
       assert.deepEqual(installedBytes, readFileSync(join(candidateRoot, file)), `被测包 ${file} 不是当前候选字节`)
       runtimeHashes[file] = createHash('sha256').update(installedBytes).digest('hex')

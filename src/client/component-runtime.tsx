@@ -1,12 +1,12 @@
 /**
- * [INPUT]: 依赖唯一 pdsh ConfigForm、locale/slot/PluginManager 服务、实际后台版本围栏和可选官方 macOS/Windows 平台 Remote 服务。
+ * [INPUT]: 依赖当前稳定/RC 包身份的唯一 ConfigForm、locale/slot/PluginManager 服务、实际后台版本围栏和可选官方 macOS/Windows 平台 Remote 服务。
  * [OUTPUT]: 按身份、标题打码、截图顺序呈现设置，仅用完整有效的 Host accepted 截图配置装配相机；拍照每次初拍/重拍读取 Host accepted 身份遮挡值。
- * [POS]: 单 Bundle Client 组合根；常驻身份、标题预遮挡与截图身份遮挡独立，共享唯一 ConfigForm；截图配置尚未就绪时只撤回相机，不影响身份/标题，后续快照可恢复。
+ * [POS]: 单 Bundle Client 组合根；临时 RC 隔离配置且不注册正式更新入口，常驻身份、标题预遮挡与截图身份遮挡独立，共享唯一 ConfigForm；截图配置尚未就绪时只撤回相机，不影响身份/标题，后续快照可恢复。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BUNDLE_NAME } from '../shared/components.ts';
+import { BUNDLE_NAME, ROOT_ENTRY_ID, IS_RC_BUNDLE } from '../shared/components.ts';
 import { NS, dictionaries } from '../shared/locales.ts';
 import { DEFAULTS, resolvePreferences } from '../shared/model.ts';
 import { isCaptureConfigurationReady, resolveCaptureExportPreferences } from '../shared/capture-export.ts';
@@ -39,7 +39,6 @@ import captureCss from './capture/capture-window.css';
 import pickerCss from './capture/background-picker.css';
 import colorCss from './capture/color-popover.css';
 
-const ROOT_ENTRY_ID = 'pdsh';
 
 function disposeAll(disposers: Array<() => void>) {
   let failure;
@@ -59,9 +58,9 @@ function BundleSettings({ view, form, t, presentation, titleControl, subscribe, 
 
 /** 装配一个 Host Client Fiber；页面资源跟随唯一 root Bundle 释放。 */
 export function mountComponent(ctx, doc: Document = document) {
-  const form = ctx.configForms.get('pdsh');
+  const form = ctx.configForms.get(ROOT_ENTRY_ID);
   ctx.effect(() => ctx.locale.register(NS, dictionaries), 'pdsh dictionaries');
-  ctx.effect(() => ctx.configForms.whileServed(['pdsh'], () => {
+  ctx.effect(() => ctx.configForms.whileServed([ROOT_ENTRY_ID], () => {
     const cleanup: Array<() => void> = [];
     let disposed = false;
     let captureRemote: any;
@@ -227,7 +226,7 @@ export function mountComponent(ctx, doc: Document = document) {
     cleanup.push(ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
       name: 'plugins.bundle.config', key: BUNDLE_NAME, locale: NS,
     }, RowSettings)));
-    cleanup.push(ctx.slots.inject('plugins.detail.badge', () => ctx.slots.register({
+    if (!IS_RC_BUNDLE) cleanup.push(ctx.slots.inject('plugins.detail.badge', () => ctx.slots.register({
       name: 'plugins.detail.badge', id: 'pdsh-update', locale: NS,
       inject: () => ({ updater, version: __PDSH_VERSION__ }),
     }, UpdateBadge)));

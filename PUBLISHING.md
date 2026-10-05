@@ -16,11 +16,27 @@ macOS helper 经 `native/build.sh` 构建为最低 macOS 14 的 arm64/x86_64 uni
 
 Windows helper 经 `native/windows/build.ps1` 在 Windows SDK/MSVC 上编译。`native-windows.yml` 运行真实 Windows 保存目录合同，上传短期 x64 构建物，不执行截图或自动发布。按构建提交核对 CI 与下载摘要，再将真实 PE 提交到 `native/windows/window-capture-x64.exe`。发布门校验 x64、控制台 PE 与 `asInvoker` manifest；缺失或伪造产物不得发包。编译、目录合同和 PE 检查都不是 Windows Desktop 实机验收。
 
+## 临时 RC 共存测试包
+
+`pnpm bundle:rc 1` 从当前公开源码建立独立临时 staging，以同一构建器生成 `@daftai/pdsh-rc` / `pdsh-rc` 和编号候选版本（基础版本取正式 manifest）；正式包名、版本及已有发布归档不改。界面元数据标明 RC，配置和浏览器编辑偏好隔离，不提供正式更新安装。输出放在 `output/rc/`，同一候选不覆盖；收据记录源码脏状态与摘要，不把未提交代码冒充稳定 tag。
+
+安装仍走官方插件管理器：先停用正式包，再安装并启用 RC；通过后卸载 RC、重新启用正式包，不卸载正式包。两个包不能同时启用，Remote 服务和视觉适配器仍是同一能力；包准备成功不等于实际共存、卸载或 Desktop UI 已验收。此工具不安装到用户 profile、不重启 Host，也不自动发布 RC 或稳定版。
+
+合并时不做反向改名或恢复备份：正式 manifest/locale/patch 始终保留正式身份，RC 转换只作用于临时 staging。只提交同源功能和打包工具，`output/rc/` 归档不入 Git；正常 `pnpm test` 验证正式身份兼容，`pnpm build` 仍生成正式运行产物。不得把 staging 中的 RC manifest、入口或生成文件复制回正式源码树。
+
 ## 必须分开的检查
 
 1. 运行 `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm build` 和 `pnpm run bundle`。检查当前版本真实 tgz 的成员、字节、权限、版本与依赖许可，不复用旧包冒充当前结果。归档只包含 manifest allowlist，不包含 node_modules、profile、凭据、日志或私有研究。
 2. 通过 `verify-host.ts` 在当前用户拥有的全新临时 profile 中运行目标 DSH 的实际 PluginManager、Typert Loader 和自带 PNPM。绑定被装版本、运行字节和来源摘要，检查单 root 行/Client、八组合功能设置、revision 写入与恢复、停用与重新启用。不得关闭 `blockExoticSubdeps`、替换解析器或伪造活动状态。此检查不拍摄像素，也不代替 Desktop UI。
 3. 实际 Desktop 验收独立记录：目标安装件的主题、入口、搜索展开/折叠、三个开关、截图覆盖/比例、重拍、复制、选目录/直接保存及取消/停用。旧版到新版的官方管理器升级也单独验证；实验重装不是升级证据。普通功能开关无需重启，替换包仅遵从宿主明确的加载/重启提示并保护未保存工作。
+
+## 0.4.0 主线合并，不发布稳定 tag
+
+本次授权是合并功能分支、清理过期的已合并分支与工作树，且不在本地点击更新。0.4.0 保留 0.3.5 的固定 SHA 更新、有限重试、配置就绪与后台实际版本围栏。RC 转换仅作用于临时 staging，不把独立 RC 身份写回正式 manifest 或设置。
+
+RC9 已有 macOS 明亮主题的候选点击、手绘切换、遮罩保留、撤销/重做、工具高亮和统一内边距证据。当前生产映射、状态、合成与 PNG 编码已另做 DPR 1/2 浏览器像素检查：选中区域按含边距坐标遮挡，未选区域不变，切手绘保留遮挡，解码 PNG 与预览逐像素相同。两者都不能证明原生整窗 PNG 的内容原点。精确最终 Desktop 安装件、原生打码落点、Windows 实机和当前深色主题仍待验收；不得写成已通过。
+
+在源码、类型、当前归档和精确 Host 隔离检查通过后，可将 0.4.0 合入 main；不创建或推送 `v0.4.0`。最新已发布稳定锚点保留 `v0.3.5`。补齐原生对位与最终安装件验收后再独立判断稳定发版，旧版的发布例外不继承。本次不触碰用户的 DSH 安装或设置。
 
 ## 0.3.5 首次更新失败修复
 

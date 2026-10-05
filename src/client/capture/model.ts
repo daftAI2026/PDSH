@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 geometry.ts 的区域归一化能力，接收编辑器命令与背景选择
- * [OUTPUT]: 对外提供截图状态、背景模型、命令类型与纯函数状态转移；目录始终展开，不再持有渐变折叠状态
+ * [OUTPUT]: 对外提供截图状态、命令与纯函数状态转移；指针意图消费工具及区域来源，检测模式不冒充手绘。
  * [POS]: capture-window 的唯一业务状态源，padding 表示内容短边的单边整数百分比；系统壁纸只通过 wallpaper.systemId 进入这里
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -148,14 +148,15 @@ export function createCaptureWindowState(source: CaptureSource): CaptureWindowSt
 }
 
 export function capturePointerIntent(
-  tool: CaptureTool,
+  state: Pick<CaptureWindowState, "tool" | "redactionSource">,
   button: number,
   overRegion: boolean,
 ): CapturePointerIntent {
   if (button === 1) return "pan";
   if (button !== 0) return "ignore";
-  if (tool === "move") return "pan";
-  return overRegion ? "region" : "draw";
+  if (state.tool === "move") return "pan";
+  if (overRegion && state.redactionSource === "auto") return "region";
+  return state.redactionSource === "draw" ? "draw" : "ignore";
 }
 
 export function scaleCaptureZoom(zoom: number, factor: number): number {

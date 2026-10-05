@@ -1,7 +1,7 @@
 /**
  * [INPUT]: src/host/index.ts 与官方 Typert service，由 build.ts 生成。
  * [OUTPUT]: 唯一 pdsh Config/name/apply 与 owned-window capture/save。
- * [POS]: 单包运行产物；PDSH build "0.3.5"，不手工修改。
+ * [POS]: 单包运行产物；PDSH build "0.4.0"，不手工修改。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 var __create = Object.create;
@@ -55,6 +55,13 @@ var __privateMethod = (obj, member, method) => (__accessCheck(obj, member, "acce
 
 // src/host/index.ts
 import z2 from "@deepseek-ai/schemastery";
+
+// src/shared/components.ts
+var BUNDLE_NAME = true ? "@daftai/pdsh" : "@daftai/pdsh";
+var IS_RC_BUNDLE = BUNDLE_NAME === "@daftai/pdsh-rc";
+var ROOT_ENTRY_ID = IS_RC_BUNDLE ? "pdsh-rc" : "pdsh";
+
+// src/host/index.ts
 import { lstatSync } from "node:fs";
 
 // src/shared/model.ts
@@ -83,7 +90,7 @@ var DEFAULT_CAPTURE_EXPORT = { saveBehavior: "ask", saveFormat: "png", fileNameP
 
 // src/host/capture.ts
 var INITIAL_SAVE_DIRECTORY = join(homedir(), "Downloads");
-var ROOT_NAMESPACE = "pdsh";
+var ROOT_NAMESPACE = ROOT_ENTRY_ID;
 var CAPTURE_CONFIG_FIELDS = {
   captureEnabled: z.boolean().default(true).description("Enable owned-window capture / \u542F\u7528\u6240\u5C5E\u7A97\u53E3\u62CD\u6444").volatile(),
   captureMaskIdentity: z.boolean().default(true).description("Mask sidebar avatar and name in captures / \u622A\u56FE\u65F6\u906E\u6321\u5934\u50CF\u548C\u540D\u79F0").volatile(),
@@ -176,7 +183,7 @@ var VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[\w.-]+)?$/;
 async function locateCaptureRuntime(packageLink) {
   const root = await realpath(packageLink);
   const manifest = JSON.parse(await readFile(join2(root, "package.json"), "utf8"));
-  if (manifest.name !== "@daftai/pdsh" || !VERSION.test(manifest.version)) throw new Error("invalid capture runtime package");
+  if (manifest.name !== BUNDLE_NAME || !VERSION.test(manifest.version)) throw new Error("invalid capture runtime package");
   const path = join2(root, "lib", "capture-runtime", `${manifest.version}.js`);
   if (!(await lstat(path)).isFile()) throw new Error("invalid capture runtime file");
   const physical = await realpath(path);
@@ -270,7 +277,7 @@ var WindowCaptureService = class extends (_a = TypertRemoteService, _implementat
     __publicField(this, "runtime");
     __publicField(this, "disposed", false);
     const profile = ctx.get("profileContext");
-    const packageLink = profile?.dir ? join3(profile.dir, "node_modules", "@daftai", "pdsh") : dirname(fileURLToPath2(import.meta.url));
+    const packageLink = profile?.dir ? join3(profile.dir, "node_modules", ...BUNDLE_NAME.split("/")) : dirname(fileURLToPath2(import.meta.url));
     this.runtime = createCaptureRuntimeLoader({ locate: () => locateCaptureRuntime(packageLink), context: this.ctx });
     this.ctx.effect(() => () => {
       this.disposed = true;
@@ -333,7 +340,7 @@ __decoratorMetadata(_init, WindowCaptureService);
 __publicField(WindowCaptureService, "inject", ["typert", "settings"]);
 
 // src/host/index.ts
-var name = "pdsh";
+var name = ROOT_ENTRY_ID;
 var Config = z2.object({
   maskTitles: z2.boolean().default(DEFAULTS.maskTitles).description("Mask sidebar titles / \u906E\u6321\u4FA7\u680F\u6807\u9898").volatile(),
   maskIdentity: z2.boolean().default(DEFAULTS.maskIdentity).description("Local display alias only / \u4EC5\u66FF\u6362\u663E\u793A\u8EAB\u4EFD").volatile(),

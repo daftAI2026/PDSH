@@ -1,9 +1,10 @@
 /**
- * [INPUT]: 依赖稳定 service 的调用上下文、调用时重新核对的 accepted pdsh Settings、universal macOS/Windows x64 helper、Host logger 与同 namespace 保存后端。
- * [OUTPUT]: 提供版本化 create/CaptureRuntime 与 capture/save 业务实现 与不含内容/路径的固定状态诊断；按 Host 平台解析包内 helper，构造不授权、不取像、不写文件。
+ * [INPUT]: 依赖稳定 service 的调用上下文、调用时重新核对的当前构建身份 accepted Settings、universal macOS/Windows x64 helper、Host logger 与同 namespace 保存后端。
+ * [OUTPUT]: 提供版本化 create/CaptureRuntime 与 capture/save 业务实现与不含内容/路径的固定状态诊断；按 Host 平台解析包内 helper，构造不授权、不取像、不写文件。
  * [POS]: 可更新 Host 业务闭包；不注册 Cordis/Remote service，统一拥有 captureEnabled generation，修复父 Fiber 尚未 ACTIVE 时的空 Settings 投影，不复活已卸载实例，调用前拒绝异版本实例。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { ROOT_ENTRY_ID } from '../shared/components.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import type { RemoteStream } from '@deepseek-ai/dsh-typert-protocol'
 import { createClickCapture, resolveNativeCaptureHelperPath, runNativeCapture, isNativeCaptureFailureCode } from './native-window-capture.ts'
@@ -160,7 +161,7 @@ export class CaptureRuntime {
 }
 
 function acceptedWindowSavePreferences(ctx: HostServiceContext): WindowSavePreferences {
-  const accepted = ctx.settings.describe().find(section => section.ns === 'pdsh')?.value
+  const accepted = ctx.settings.describe().find(section => section.ns === ROOT_ENTRY_ID)?.value
   const read = (field: unknown): unknown => {
     if (field && typeof field === 'object' && 'get' in field && typeof field.get === 'function') return field.get()
     return field

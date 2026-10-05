@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖单包 manifest、唯一 Cordis patch 与 build.ts 生成的 Host/Client/official Typert/helper 产物。
  * [OUTPUT]: 提供 validateBundleArtifacts/validatePackedBundle；拒绝运行条目、平台架构/最低系统、权限或归档漂移。
- * [POS]: 构建与发布共用的静态分发门；只读本包与明确版本 tgz，不执行 bundle/helper，不访问用户 profile。
+ * [POS]: 构建与发布共用的静态分发门；支持独立临时 RC 身份且维持同一产物门；只读本包与明确版本 tgz，不执行 bundle/helper，不访问用户 profile。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { lstatSync, readFileSync } from 'node:fs';
@@ -32,7 +32,10 @@ export function validateBundleArtifacts(root: string): void {
     } catch { throw new Error(`bundle artifact ${file} must be a nonempty regular file`); }
   };
   const manifest = JSON.parse(read('package.json'));
-  if (manifest.name !== '@daftai/pdsh' || typeof manifest.version !== 'string' || !/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[\w.-]+)?$/.test(manifest.version)) throw new Error('bundle identity/version drift');
+  if (!['@daftai/pdsh', '@daftai/pdsh-rc'].includes(manifest.name) || typeof manifest.version !== 'string' || !/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[\w.-]+)?$/.test(manifest.version)) throw new Error('bundle identity/version drift');
+  const rc = manifest.name === '@daftai/pdsh-rc';
+  if (rc && !/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)-rc\.[1-9]\d*$/.test(manifest.version)) throw new Error('RC bundle requires a numbered candidate version');
+  const entryId = rc ? 'pdsh-rc' : 'pdsh';
   if (manifest.private !== true) throw new Error('bundle must remain private for GitHub distribution');
   if (manifest.bundledDependencies || manifest.bundleDependencies || manifest.files?.includes('components/')) throw new Error('bundle must not contain legacy component package topology');
   if (!Array.isArray(manifest.files) || manifest.files.length !== ARCHIVE_FILES.length || ARCHIVE_FILES.some(file => !manifest.files.includes(file))) throw new Error('bundle archive files must match the explicit single-package allowlist');
@@ -60,7 +63,7 @@ export function validateBundleArtifacts(root: string): void {
     throw new Error('official Typert/type subpath export drift');
   }
   const patch = read('cordis.patch.yml');
-  if ([...patch.matchAll(/- id:/g)].length !== 1 || !/id: pdsh\s+name: "@daftai\/pdsh"/.test(patch)) throw new Error('bundle must retain the single pdsh root entry');
+  if ([...patch.matchAll(/- id:/g)].length !== 1 || !new RegExp(`id: ${entryId}\\s+name: "${manifest.name}"`).test(patch)) throw new Error('bundle must retain the single pdsh root entry');
 
   for (const file of PACKAGED_TEXT) read(file);
   for (const file of ['index.js', 'client.js']) {
@@ -91,7 +94,7 @@ export function validateBundleArtifacts(root: string): void {
   if (!hostTypert.includes('uplink:') || !remoteTypes.includes('RemoteStreamHandle<WindowSaveFrame, WindowSaveInputFrame>')) throw new Error('generated save uplink codec/type missing');
 
   const client = read('client.js');
-  if ([...client.matchAll(/window\.__ModuleLoader__\.load\(/g)].length !== 1 || !client.includes('id:"@daftai/pdsh"')) throw new Error('bundle must provide exactly one root Client factory');
+  if ([...client.matchAll(/window\.__ModuleLoader__\.load\(/g)].length !== 1 || !client.includes(`id:${JSON.stringify(manifest.name)}`)) throw new Error('bundle must provide exactly one root Client factory');
 }
 
 /** 只读 Mach-O 头部；不能把构建机架构或测试用文本当成双架构分发物。 */

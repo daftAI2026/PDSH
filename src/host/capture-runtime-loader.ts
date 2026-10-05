@@ -1,9 +1,10 @@
 /**
- * [INPUT]: 依赖当前安装包定位器、标准 ESM import 与同协议 capture 实现的真实 dispose。
+ * [INPUT]: 依赖当前稳定/RC 构建身份对应的安装包定位器、标准 ESM import 与同协议 capture 实现的真实 dispose。
  * [OUTPUT]: 提供按当前安装版本换载的单实例协调器，拒绝不兼容协议与卸载后复活。
  * [POS]: 稳定 Remote 外壳和可更新业务实现之间的边界；不改 Node cache、不启停 Bundle、不修改设置。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { BUNDLE_NAME } from '../shared/components.ts'
 import { lstat, readFile, realpath } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -27,7 +28,7 @@ interface RuntimeModule {
 export async function locateCaptureRuntime(packageLink: string): Promise<{ version: string; url: string }> {
   const root = await realpath(packageLink)
   const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
-  if (manifest.name !== '@daftai/pdsh' || !VERSION.test(manifest.version)) throw new Error('invalid capture runtime package')
+  if (manifest.name !== BUNDLE_NAME || !VERSION.test(manifest.version)) throw new Error('invalid capture runtime package')
   const path = join(root, 'lib', 'capture-runtime', `${manifest.version}.js`)
   if (!(await lstat(path)).isFile()) throw new Error('invalid capture runtime file')
   const physical = await realpath(path)

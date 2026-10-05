@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖编辑器当前 CaptureWindowState、舞台/画布 DOM 与模型命令入口；缩放单位按 WheelEvent.deltaMode 归一。
- * [OUTPUT]: 提供独立视口控制器，协调 fit/zoom/pan/区域指针手势并按帧提交 transform，不合成像素。
+ * [OUTPUT]: 提供独立视口控制器，协调 fit/zoom/pan/区域指针手势、模式/阶段切换取消，并按帧提交 transform，不合成像素。
  * [POS]: capture 编辑器的高频交互边界；zoom 仍由模型持有，pan 仅由该控制器持有，二者不从 DOM 文本回读。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -31,6 +31,7 @@ type PointerGesture = {
 
 export type CaptureEditorViewportController = {
   bind: (stage: HTMLElement, frame: HTMLElement, canvas: HTMLCanvasElement) => void;
+  cancelGesture: () => void;
   destroy: () => void;
   fit: () => void;
   isAtDefault: () => boolean;
@@ -196,7 +197,7 @@ export function createCaptureEditorViewport(
       const state = options.readState();
       const targetElement = event.target instanceof Element ? event.target : null;
       const intent = capturePointerIntent(
-        state.tool,
+        state,
         event.button,
         Boolean(targetElement?.closest('[data-region]')),
       );
@@ -259,6 +260,7 @@ export function createCaptureEditorViewport(
 
   return {
     bind,
+    cancelGesture: () => detachGesture(false),
     destroy() {
       if (disposed) return;
       disposed = true;

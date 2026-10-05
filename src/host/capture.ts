@@ -1,16 +1,17 @@
 /**
- * [INPUT]: 依赖 shared export/跨平台目录语法与官方 accepted Settings revision；不再依赖 Fetch、Main 或 Inspector。
+ * [INPUT]: 依赖 shared 包配置身份、export/跨平台目录语法与官方 accepted Settings revision；不再依赖 Fetch、Main 或 Inspector。
  * [OUTPUT]: 提供 root Config 的拍照身份遮挡/导出字段与仅修正历史默认值的配置 effect。
  * [POS]: Host 配置适配边界；截图身份开关与常驻 maskIdentity 独立，Native Remote 生命周期由 service 单独持有。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { ROOT_ENTRY_ID } from '../shared/components.ts'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import z from '@deepseek-ai/schemastery'
 import { CAPTURE_FILE_NAME_PATTERN, CAPTURE_SAVE_DIRECTORY_PATTERN, DEFAULT_CAPTURE_EXPORT } from '../shared/capture-export.ts'
 
 const INITIAL_SAVE_DIRECTORY = join(homedir(), 'Downloads')
-const ROOT_NAMESPACE = 'pdsh'
+const ROOT_NAMESPACE = ROOT_ENTRY_ID
 
 // +--- 字段只声明一次，再由 root Host Config 原位合并 ---+
 export const CAPTURE_CONFIG_FIELDS = {

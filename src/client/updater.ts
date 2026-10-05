@@ -1,9 +1,10 @@
 /**
  * [INPUT]: 依赖官方 remote.pluginManager 的 {ok,value} 调用封套、经校验的 GitHub tag 数据、官方 Git 安装与可选实现版本确认回调。
  * [OUTPUT]: 提供详情挂载自动探测、用户确认安装和可订阅状态；restart-required 仅在回调确认目标实现已加载时标记 installed，否则保留 restart。
- * [POS]: Client Fiber 内的更新决策状态；探测无副作用，固定提交安装需确认，只保留失败原因白名单、仅未安装的预检查超时重试一次且末次失败按实际阶段提示、不自行重启、不重装未知结果、不切设置，也不持久化跨 Fiber 结果。
+ * [POS]: Client Fiber 内的更新决策状态；临时 RC 禁止更新，探测无副作用，固定提交安装需确认，只保留失败原因白名单、仅未安装的预检查超时重试一次且末次失败按实际阶段提示、不自行重启、不重装未知结果、不切设置，也不持久化跨 Fiber 结果。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { BUNDLE_NAME, IS_RC_BUNDLE } from '../shared/components.ts';
 export interface ReleaseTag { name: string; commit: { sha: string } }
 interface Bundle { name: string; version: string; installed: boolean; enabled: boolean }
 type RemoteReply<T> = { ok: true; value: T } | { ok: false; error?: { message?: string } };
@@ -21,7 +22,7 @@ type Phase = 'idle' | 'checking' | 'current' | 'available' | 'installing' | 'ins
 const INSTALL_FAILURE_REASONS = ['network', 'timeout', 'integrity', 'disk-full', 'permission', 'pnpm-missing', 'build-blocked', 'not-found', 'no-matching-version'] as const;
 export type UpdateFailureReason = typeof INSTALL_FAILURE_REASONS[number];
 export interface UpdateState { phase: Phase; version?: string; operation?: 'check' | 'install'; reason?: UpdateFailureReason; attempt?: 2 }
-const PACKAGE = '@daftai/pdsh';
+const PACKAGE = BUNDLE_NAME;
 const REPOSITORY = 'github:daftAI2026/PDSH#';
 
 function isUnchangedGitTimeout(reply: RemoteReply<InstallResult>): boolean {
@@ -79,7 +80,7 @@ export function createUpdateController(
     getSnapshot: () => state,
     subscribe(notify: () => void) { listeners.add(notify); return () => listeners.delete(notify); },
     async check() {
-      if (disposed || busy || state.phase === 'restart' || state.phase === 'installed') return;
+      if (IS_RC_BUNDLE || disposed || busy || state.phase === 'restart' || state.phase === 'installed') return;
       busy = true; candidate = null; setState({ phase: 'checking' });
       try {
         if (!await ownBundle()) throw new Error('installed bundle differs from running code');
@@ -91,7 +92,7 @@ export function createUpdateController(
       finally { busy = false; }
     },
     async install() {
-      if (disposed || busy || state.phase !== 'available' || !candidate) return;
+      if (IS_RC_BUNDLE || disposed || busy || state.phase !== 'available' || !candidate) return;
       busy = true;
       const target = candidate;
       setState({ phase: 'installing', version: target.version });

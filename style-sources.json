@@ -732,6 +732,13 @@
       "selector": "body theme scope",
       "property": "font",
       "acquisition": "工作台按钮和 Input 使用完整字号/行高 token。"
+    },
+    {
+      "role": "capture toolbar persistent selection",
+      "variable": "--dsw-alias-bg-module-platform",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css",
+      "selector": "packages/client/ui-theme/src/AppearanceRow.module.css .selected",
+      "acquisition": "复用宿主外观选项的持久选择表面；浅色与 dialog layer-2 的同白 layer-3 分离，深色沿宿主模块表面；不冻结 RGB 或复制 CSS Modules hash。"
     }
   ],
   "artwork": {
@@ -982,5 +989,26 @@
     "panelContract": "四面板始终保留稳定id/aria-labelledby，非当前面板hidden/inert/tabindex=-1；工作台Tab围栏跳过负tabindex与不可见项。 空的无背景面板不添加不可见焦点停靠。",
     "layout": "240px检查器内四等宽轨道，局部移除Host tab左右16px内边距，不复制CSS Modules hash、主题色或指标几何。键盘走位关闭本控件过渡，指针和减少运动沿用Host。 不重复类别标题；20个渐变全部显示，不设展开/收起控制。",
     "wallpaperBoundary": "内置与用户上传留在图片面板，本机壁纸入口按用户要求延期，缺真实adapter不伪造入口。"
+  },
+  "captureToolbar": {
+    "stateOwner": "src/client/capture/model.ts",
+    "referenceBehavior": "Alma 0.4.160 toolbar: mode、redactSource、style 为三个正交选中状态；只参考交互，不复用主题类。",
+    "consumer": "src/client/capture/view.ts / capture-window.css",
+    "selectedBackground": "--dsw-alias-bg-module-platform",
+    "selectedForeground": "--dsw-alias-label-primary",
+    "hoverBackground": "--dsw-alias-interactive-bg-hover",
+    "pressedBackground": "--dsw-alias-interactive-bg-active",
+    "sourceFile": "packages/client/ui-theme/src/styles/design-platform.css",
+    "decision": "aria-pressed 是唯一选中标记；复用 DSH AppearanceRow 的持久选择底色。rc.2 浅色 layer-2/3 同为 neutral-bluish-00，不可用表面层级充当可见选中。普通 ghost hover/active 仅作用于未选按钮；焦点仍消费 DSH focus ring。不复制 Alma bg-muted/text-foreground 或数值主题色。",
+    "selectedSourceFile": "packages/client/ui-theme/src/AppearanceRow.module.css",
+    "selectedSelector": ".selected"
+  },
+  "captureShell": {
+    "implementation": "src/client/capture/capture-window.css",
+    "spacingSource": "--pdsh-field-gap",
+    "spacingSourceFile": "packages/client/ui-primitives/src/settings-form/fields.module.css",
+    "spaceDivisor": 2,
+    "insetMultiplier": 5,
+    "decision": "用户2026-10-04要求外壳上下留白按现有左右对齐；header顶部、workspace左右、footer底部复用同一inset。段落间隔与视口边距不属于外壳inset，保留原值；chrome高度预算补上新增的上下两格。"
   }
 }

@@ -1,9 +1,10 @@
 /**
- * [INPUT]: 依赖官方 Typert 固定 Remote ABI、Manager 当前自身包位置与版本实现协调器。
+ * [INPUT]: 依赖官方 Typert 固定 Remote ABI、当前构建身份对应的 Manager 包位置与版本实现协调器。
  * [OUTPUT]: 提供唯一 capture/save service 与只读 implementationVersion；每次调用选择实际已安装后台版本。
  * [POS]: 稳定 Cordis/Remote 外壳；业务实现可热换，Config、service key 和 wire 合同不随业务版本更名。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { BUNDLE_NAME } from '../shared/components.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { RemoteStream } from '@deepseek-ai/dsh-typert-protocol'
@@ -25,7 +26,7 @@ export class WindowCaptureService extends TypertRemoteService {
     const profile = ctx.get('profileContext') as { dir?: string } | undefined
     // +--- Host profile link 是安装器所有的稳定地址；无 profile 的独立 Cordis 合同使用本包 ---+
     const packageLink = profile?.dir
-      ? join(profile.dir, 'node_modules', '@daftai', 'pdsh')
+      ? join(profile.dir, 'node_modules', ...BUNDLE_NAME.split('/'))
       : dirname(fileURLToPath(import.meta.url))
     this.runtime = createCaptureRuntimeLoader({ locate: () => locateCaptureRuntime(packageLink), context: this.ctx })
     this.ctx.effect(() => () => {

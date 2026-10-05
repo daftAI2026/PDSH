@@ -2,7 +2,7 @@
 > L2 | 父级: ../CLAUDE.md
 
 - `client-entry.tsx`: 唯一 `@daftai/pdsh` Client 入口；先注册真实生成 Remote 描述，不触发取像/权限；必需 Cordis 服务只声明一次，身份/标题/拍照为共享 Bundle 内的独立设置而非运行时子入口。
-- `component-runtime.tsx`: 更新反馈与显式 capture/save 共用实际 Host 版本围栏； 唯一 Bundle Fiber 的原生背景 Tabs 注入、样式、原生探针、Tooltip、设置与更新生命周期；详情按身份/标题打码/截图排列；只有 ready 且六个截图设置字段完整有效、`captureEnabled` 明确为 true 时装配相机，快照恢复后可重装而不影响身份/标题；另要求 Mac/Win Navigator 与实际 Remote provider。
+- `component-runtime.tsx`: 临时 RC 绑定独立 Config 地址且无稳定更新 slot； 更新反馈与显式 capture/save 共用实际 Host 版本围栏； 唯一 Bundle Fiber 的原生背景 Tabs 注入、样式、原生探针、Tooltip、设置与更新生命周期；详情按身份/标题打码/截图排列；只有 ready 且六个截图设置字段完整有效、`captureEnabled` 明确为 true 时装配相机，快照恢复后可重装而不影响身份/标题；另要求 Mac/Win Navigator 与实际 Remote provider。
 - `native-style-view.tsx`: 唯一真实原生控件探针视图；布局测量与 React 生命周期绑定，不持有功能配置。
 - `title-settings.tsx`: 共享唯一 `pdsh` ConfigForm 的标题即时开关；复用帽子控制器和官方控件，不建立独立 namespace，也不读身份偏好。
 - `capture-settings.tsx`: Plugins 截图区提供独立身份遮挡开关与询问/直接保存、完整目录、格式/文件名模板；旧/无效 ready 配置显示中英重启提示并锁住全部字段与目录 picker，目录位不泄漏 fallback/不误报目录故障；loading 不误报，完整后续快照恢复原 revision 写入；身份开关不改常驻 maskIdentity 或工作台标题偏好。
@@ -19,7 +19,7 @@
 - `camera-icon.svg`: 截图入口的 Lucide 线条图形；交互几何与整体透明度由原生搜索同步。
 - `capture/`: 截图工作台独立模块；仅通过官方 Remote 接收原生 owned-window 冻结像素与保存回执，以 DSH token 渲染编辑器；装配层不调用旧 Main/Inspector 桥，不回退 DOM 重绘。
 - `title-toggle.ts`: 通过单一路径提交 Host `maskTitles`，处理 pending、失败和版本围栏。
-- `updater.ts`: 详情驱动的探测与显式安装状态机；解开官方 Remote 结果封套、校验唯一已安装自身和稳定版本，只安装固定 Git 提交，仅官方明确未安装的 spec-host timeout 重试同一目标一次；可选 activation hook 仅能在确认目标实现运行后将 `restart-required` 升为 `installed`，缺失/失败仍保留重启提示；不重装未知结果、不切功能设置，状态仅属当前 Client Fiber。
+- `updater.ts`: 临时 RC 禁用探测和安装； 详情驱动的探测与显式安装状态机；解开官方 Remote 结果封套、校验唯一已安装自身和稳定版本，只安装固定 Git 提交，仅官方明确未安装的 spec-host timeout 重试同一目标一次；可选 activation hook 仅能在确认目标实现运行后将 `restart-required` 升为 `installed`，缺失/失败仍保留重启提示；不重装未知结果、不切功能设置，状态仅属当前 Client Fiber。
 - `update-source.ts`: GitHub 公共 tag 读取边界；不带凭据，网络失败不影响既有设置与遮挡。
 - `styles.css`: 开关字段复用原生按钮等高槽与统一留白；自有呈现与唯一标题灰条绘制；常驻遮挡和拍照临时标记共用同一选择器组，宿主变量与上游来源由 style-sources.json 记录。
 - `entry-icon.svg`: 透明底单复合路径的 Lucide/InCodex 图形；运行线宽由原生搜索换算，整体透明度在根合成，构建复用为透明包图标。

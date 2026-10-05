@@ -1,14 +1,15 @@
 /**
- * [INPUT]: 依赖官方 plugins.detail.badge 的 Bundle subject、更新控制器、宿主 Button/Tooltip/Modal 与实时原生图标样式探针。
- * [OUTPUT]: 仅当前 Client 匹配自身 Bundle 时探测；清单前移仍显示当前控制器的安装/重启/失败结果，已知安装失败与未知结果分开呈现，失败重试仅对运行版本开放，不承诺跨 Fiber 恢复。
+ * [INPUT]: 依赖 shared/components 的稳定/RC 身份、官方 plugins.detail.badge 的 Bundle subject、更新控制器、宿主 Button/Tooltip/Modal 与实时原生图标样式探针。
+ * [OUTPUT]: 仅正式 Client 匹配自身 Bundle 时探测，RC 不提供更新；清单前移仍显示当前控制器的安装/重启/失败结果，已知安装失败与未知结果分开呈现，失败重试仅对运行版本开放，不承诺跨 Fiber 恢复。
  * [POS]: 更新交互的独立 detail slot；探测跟随详情挂载，不增设后台轮询或设置卡片。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { BUNDLE_NAME, IS_RC_BUNDLE } from '../shared/components.ts';
 import type { UpdateFailureReason } from './updater.ts';
 import React, { useEffect, useState, useSyncExternalStore } from 'react';
 import { Button, Tooltip, Modal } from '@deepseek-ai/dsh-client-ui-primitives';
 
-const PACKAGE = '@daftai/pdsh';
+const PACKAGE = BUNDLE_NAME;
 const FAILURE_MESSAGES: Record<UpdateFailureReason, string> = {
   timeout: 'update.installTimeout', network: 'update.installNetworkFailed',
   integrity: 'update.installIntegrityFailed', 'disk-full': 'update.installDiskFull',
@@ -21,7 +22,7 @@ export function UpdateBadge({ subject, updater, version, t }) {
   const update = useSyncExternalStore(fn => updater.subscribe(fn), () => updater.getSnapshot());
   const [expanded, setExpanded] = useState(false);
   const [restartPromptOpen, setRestartPromptOpen] = useState(false);
-  const ownBundle = subject.kind === 'bundle' && subject.pkg.name === PACKAGE
+  const ownBundle = !IS_RC_BUNDLE && subject.kind === 'bundle' && subject.pkg.name === PACKAGE
     && subject.pkg.installed;
   const runningBundle = ownBundle && subject.pkg.version === version;
 

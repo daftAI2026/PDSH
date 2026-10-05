@@ -88,6 +88,12 @@
 
 - `capture-runtime-readiness.test.ts`: 固定实际后台版本封套与取消围栏；旧版本/错误不得报告热更新成功，旧后台与连接未知提示分账，纯内存 Remote 不取像。
 
-- `capture-runtime-location.test.ts`: 临时版本包与稳定链接的真实 realpath/ESM 换载；拒绝 foreign 包，非 Manager/实机验收。
+- `capture-runtime-location.test.ts`: 稳定/RC 构建身份只接受同名 manifest；真实 realpath/ESM 换载并拒绝 foreign 包和包根外模块，非 Manager/实机验收。
+
+- `capture-candidates.test.ts`: 通用 DOM 候选的有限几何/最小边、视口/滚动容器裁切、变换祖先退让、隐藏/空内容过滤、嵌套去重、150项几何早停及严格侧栏优先；真实 redactions 解析证明同节点移动重定位、新节点不继承旧选择，不验证原生整窗映射。
+
+- `rc-identity.test.ts`: 以 esbuild 注入 stable/RC 名称验证根配置、locale、编辑偏好键与更新边界；实例化版本化 capture 业务闭包，以 Remote iterable 终态黑盒验证只读自身 accepted Settings、启停和迟挂载恢复，不启动 helper；不验证 Manager 共存或 Desktop UI。
+
+- `rc-packaging.test.ts`: 独立候选身份/白名单 staging、私有路径排除、stable 源不变、locale 提示、native helper 执行位、符号链接/同名归档拒绝与失败清理；不运行 SDK GUI 或真实安装。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

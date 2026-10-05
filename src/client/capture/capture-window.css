@@ -1,17 +1,18 @@
 /**
  * [INPUT]: 依赖 view.ts 输出的 capture-window DOM、DSH 主题/动画 token 与实时原生 Button/Switch/图标/字段样式探针
- * [OUTPUT]: 工作台、画布、检查器与头像拍摄占位；标题临时灰条由 ../styles.css 统一绘制，外壳底色只绘制一次，窗口放大不改变控件密度，右侧固定240px、左侧占剩余空间。 检查器内侧为双层焦点环保留空间，不靠溢出可见绕过滚动裁切。
+ * [OUTPUT]: 工作台、画布、检查器与头像拍摄占位；工具选中复用 DSH AppearanceRow 持久选择底色，不被普通 hover/按压覆盖；外壳四边共用左右基准 inset；右侧固定240px，检查器为双层焦点环保留空间。
  * [POS]: capture-window 的视觉契约，和 color-popover.css 分工维护主编辑器与浮层样式
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 [data-pdsh-capture],
 [data-pdsh-capture-preview] {
   --pdsh-capture-window-scale: 1.2;
-  /* 原布局非画布高度：header 14 格 + footer 14 格 + 工具栏及留白 13 格。
+  /* 原布局非画布高度：header 15 格 + footer 15 格 + 工具栏及留白 13 格。
      控件不缩放，窗口新增的高度全部让给画布。 */
-  --pdsh-capture-chrome-height: calc(var(--pdsh-capture-space) * (14 + 14 + 13));
+  --pdsh-capture-chrome-height: calc(var(--pdsh-capture-space) * (15 + 15 + 13));
   --pdsh-capture-stage-height: calc((50vh + var(--pdsh-capture-chrome-height)) * var(--pdsh-capture-window-scale) - var(--pdsh-capture-chrome-height));
   --pdsh-capture-space: calc(var(--pdsh-field-gap) / 2);
+  --pdsh-capture-shell-inset: calc(var(--pdsh-capture-space) * 5);
   /* 产品布局宽度独立于Host间距，不扩大所有控件。 */
   --pdsh-capture-inspector-width: 240px;
   --pdsh-capture-surface: var(--dsw-alias-bg-layer-2);
@@ -121,7 +122,7 @@ html.pdsh-capture-redact [data-pdsh-capture-redact-profile] > img {
 
 .pdsh-capture-header {
   min-width: 0;
-  padding: calc(var(--pdsh-capture-space) * 4) calc(var(--pdsh-capture-space) * 5) calc(var(--pdsh-capture-space) * 3);
+  padding: var(--pdsh-capture-shell-inset) var(--pdsh-capture-shell-inset) calc(var(--pdsh-capture-space) * 3);
 }
 
 .pdsh-capture-heading {
@@ -147,7 +148,7 @@ html.pdsh-capture-redact [data-pdsh-capture-redact-profile] > img {
   gap: calc(var(--pdsh-capture-space) * 5);
   grid-template-columns: minmax(0, 1fr) var(--pdsh-capture-inspector-width);
   min-height: 0;
-  padding: 0 calc(var(--pdsh-capture-space) * 5) calc(var(--pdsh-capture-space) * 4);
+  padding: 0 var(--pdsh-capture-shell-inset) calc(var(--pdsh-capture-space) * 4);
 }
 
 .pdsh-capture-preview-pane {
@@ -247,16 +248,17 @@ html.pdsh-capture-redact [data-pdsh-capture-redact-profile] > img {
 }
 
 .pdsh-capture-icon-button[aria-pressed="true"] {
-  background: var(--pdsh-capture-surface-tertiary);
+  /* 浅色 layer-2/3 同为白色；使用宿主持久选择配方，而非表面层级充当高亮。 */
+  background: var(--dsw-alias-bg-module-platform);
   color: var(--pdsh-capture-text);
 }
 
-.pdsh-capture-icon-button:hover:not(:disabled),
+.pdsh-capture-icon-button:hover:not(:disabled):not([aria-pressed="true"]),
 .pdsh-capture-button:hover:not(:disabled) {
   background: var(--pdsh-capture-hover);
 }
 
-.pdsh-capture-icon-button:active:not(:disabled),
+.pdsh-capture-icon-button:active:not(:disabled):not([aria-pressed="true"]),
 .pdsh-capture-button:active:not(:disabled) {
   background: var(--pdsh-capture-active);
 }
@@ -343,10 +345,6 @@ html.pdsh-capture-redact [data-pdsh-capture-redact-profile] > img {
 .pdsh-capture-region-candidate[data-interactive="true"]:hover {
   background: color-mix(in srgb, var(--pdsh-capture-ring) 10%, transparent);
   border-color: var(--pdsh-capture-ring);
-}
-
-.pdsh-capture-region-candidate[data-interactive="false"] {
-  opacity: var(--pdsh-action-disabled-opacity);
 }
 
 .pdsh-capture-region-confirmed[data-interactive="true"] {
@@ -563,7 +561,7 @@ html.pdsh-capture-redact [data-pdsh-capture-redact-profile] > img {
 
 .pdsh-capture-footer {
   justify-content: flex-end;
-  padding: var(--pdsh-capture-space) calc(var(--pdsh-capture-space) * 5) calc(var(--pdsh-capture-space) * 4);
+  padding: var(--pdsh-capture-space) var(--pdsh-capture-shell-inset) var(--pdsh-capture-shell-inset);
 }
 
 .pdsh-capture-footer-spacer {
