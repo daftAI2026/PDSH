@@ -56,7 +56,8 @@
     "metadata:check": "node --experimental-strip-types tools/release-metadata.ts check",
     "metadata:sync": "node --experimental-strip-types tools/release-metadata.ts sync-local",
     "metadata:check-github": "node --experimental-strip-types tools/release-metadata.ts check-github",
-    "metadata:sync-github": "node --experimental-strip-types tools/release-metadata.ts sync-github"
+    "metadata:sync-github": "node --experimental-strip-types tools/release-metadata.ts sync-github",
+    "compat:assess": "node --experimental-strip-types tools/assess-host-compatibility.ts"
   },
   "dsh": {
     "client": {

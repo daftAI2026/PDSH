@@ -38,6 +38,7 @@ Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatG
 
 ## Repository map
 
+- `.agents/skills/pdsh-host-compatibility/`: Project-local, self-contained DSH host compatibility skill; use for host-upgrade impact assessment and authorized source migration, not ordinary PDSH update installation. It reuses project contracts and tests, never enters the runtime bundle or installs upstream skills.
 - `.githooks/`: Versioned pre-push stable-tag gate; enabled through local core.hooksPath after checking existing hooks. It refuses immutable stable-tag replacement/deletion and runs release:check for new stable tags; ordinary branch/RC pushes are unaffected. This is a local safeguard, not a server rule.
 - `docs/`: User-authorized README demonstration artwork; not an acceptance receipt or runtime dependency.
 - `.github/workflows/`: Pinned Windows SDK build job for the x64 helper; artifact output is not Desktop acceptance and never auto-publishes.
@@ -53,6 +54,7 @@ Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatG
 - `README.md`: public product contract and installation; `PUBLISHING.md`: channel/release gates; `style-sources.json`: upstream visual rule provenance.
 - `check-release.ts`: rejects stable tag/version/generated-artifact drift, local public-copy drift, GitHub About/homepage/Topics mismatch, and dirty release trees; `package.json.version` is the sole authored version. Network/auth failures fail the release gate rather than skipping it.
 - `tools/release-metadata.ts`: PUBLIC_METADATA owns the public short copy/topics; explicit local/GitHub sync preserves version/settings, checks are read-only. Package description, exported locale metadata and the single README description block must match it. Prose outside that block still requires human feature/compatibility review.
+- `tools/assess-host-compatibility.ts`: Read-only PDSH host touchpoint inventory via compat:assess; scans explicit source/build inputs, reports declared dependencies/imports and heuristic locations without exposing source snippets. It never installs, runs the host, or certifies target compatibility; skipped/truncated input remains visible.
 - `package.json`/`pnpm-lock.yaml`: bundle manifest and reproducible dependencies; `cordis.patch.yml`: the sole Cordis insertion layer.
 - `bundle-artifacts.ts`: verifies the single Bundle entries, packaged helper and generated Typert faces, macOS universal/minimum-14 and Windows x64/asInvoker headers, archive allowlist, real tgz members/types/bytes and sole root version; no network or installation side effects.
 - `tools/pack-rc.ts`: Explicit public-source staging and same-source RC build/validation; never installs into a live profile.

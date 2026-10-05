@@ -5,6 +5,8 @@
 
 这些 TypeScript 合同运行在 Node/jsdom；只能证明源码和生成产物，不替代 Desktop 实窗验收。
 
+- `host-compatibility-assessment.test.ts`: 临时源码仓的只读触点/imports、原生几何与历史路径提示、遍历预算及敏感路径/CLI/导入副作用合同；始终未验证兼容，不联网、不启动宿主或原生助手。
+
 - `component-host.test.ts`: 生成唯一Config、root owner captureEnabled observer、配置不触发旧连接与Mac/Windows helper包内相对路径；新代码的单航班/结算另列专门合同，不冒充真实Loader或实机。
 - `client-injection.test.ts`: Cordis 4.0.4 真注册器运行唯一生成 Client；旧 ready Host 缺少截图字段时身份/标题照常而相机撤回，完整 snapshot 可恢复；另验平台/Remote provider、旧桥隔离与 namespace 生命周期，不冒充实机像素验收。
 - `client.test.ts`: 唯一 root Client 在完整截图配置下的八种功能组合、身份/标题恢复、相机资源撤回与装配失败归还；真实 ReactDOM 探针完整子树隐藏和移除样式负例，不冒充 Host 控件/CSP 或实窗验收。
