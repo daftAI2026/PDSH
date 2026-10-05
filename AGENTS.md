@@ -102,7 +102,7 @@ Installation and enablement do not start capture or request permission. The firs
 
 Save retains `saveBehavior` ask/direct, accepted full `saveDirectory`, PNG/JPEG/WebP and basename template. Ask uses the official directory picker then revision-fenced Settings acceptance; it is a folder chooser, not a native filename Save dialog. Direct uses the accepted directory without a new prompt. Both send bounded ordered bytes via the same namespace uplink with per-chunk ACK, finish/hash and half-close; Host derives the basename and uses fsync/close/exclusive commit with automatic numbering and no overwrite. Only a verified commit receipt followed by natural stream end reports saved. PNG clipboard stays independent. Do not add another installer, settings store, local server or bridge to export bytes.
 
-## 0.3.4 remote-upgrade acceptance
+## 0.3.4 release contract
 
 The user explicitly authorized a new remote stable version to test the own update badge. This candidate changes the actual versioned capture implementation, retaining 0.3.3 Config, Remote descriptors, stable-shell source and runtime dependencies. Regression must fail on 0.3.3 and pass on this payload. Publish only after full source/build/archive and exact-Host gates; then measure 0.3.3 to 0.3.4 through the own badge with unchanged Main/Host process starts, no Bundle/camera toggles and direct capture. The earlier 0.3.2 to 0.3.3 remote upgrade needed one normal bootstrap load and is not a hot-upgrade pass. The final live result must be recorded separately; no implied Windows or general Desktop acceptance.
 
