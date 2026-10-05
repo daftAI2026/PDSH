@@ -143,3 +143,140 @@ test('远端封套失败不能误判为已安装；不访问网络', async () =>
   const update = createUpdateController(manager, async () => { throw new Error('must not fetch'); }, '0.1.0');
   await update.check(); assert.equal(update.getSnapshot().phase, 'failed'); update.dispose();
 });
+
+
+test('官方明确回滚的网络失败保留白名单原因，未知或已变化的结果不猜测', async () => {
+  const cases = [
+    { value: { changed: false, application: 'failed', packageResult: { kind: 'timeout', output: '/private/path secret' } }, reason: 'timeout' },
+    { value: { changed: false, application: 'failed', packageResult: { kind: 'network' } }, reason: 'network' },
+    { value: { changed: true, application: 'failed', packageResult: { kind: 'timeout' } }, reason: undefined },
+    { value: { changed: false, application: 'failed', packageResult: { kind: 'permission' } }, reason: 'permission' },
+  ]
+  for (const { value, reason } of cases) {
+    let installs = 0
+    const manager = {
+      async listBundles() { return { ok: true, value: [{ name: '@daftai/pdsh', version: '0.1.0', installed: true, enabled: true }] } },
+      async installBundle() { installs++; return { ok: true, value } },
+    }
+    const update = createUpdateController(manager, async () => [newer], '0.1.0')
+    await update.check(); await update.install()
+    assert.deepEqual(update.getSnapshot(), { phase: 'failed', operation: 'install', version: '0.2.0', ...(reason ? { reason } : {}) })
+    assert.equal(installs, 1, '不把未知结果自动重装，也不自动重试网络失败')
+    assert.ok(!JSON.stringify(update.getSnapshot()).includes('/private/path'))
+    update.dispose()
+  }
+})
+
+
+test('仅未改变安装状态的 Git 预检查超时自动重试同一固定提交一次', async () => {
+  const calls: string[] = []
+  const manager = {
+    async listBundles() { return { ok: true, value: [{ name: '@daftai/pdsh', version: '0.1.0', installed: true, enabled: true }] } },
+    async installBundle(spec: string) {
+      calls.push(spec)
+      return calls.length === 1
+        ? { ok: true, value: { changed: false, application: 'failed', failedAt: 'spec-host', packageResult: { kind: 'timeout' } } }
+        : { ok: true, value: { changed: true, application: 'applied' } }
+    },
+  }
+  const update = createUpdateController(manager, async () => [newer], '0.1.0')
+  await update.check(); await update.install()
+  assert.deepEqual(calls, Array(2).fill(`github:daftAI2026/PDSH#${'b'.repeat(40)}`))
+  assert.deepEqual(update.getSnapshot(), { phase: 'installed', version: '0.2.0' })
+  update.dispose()
+})
+
+test('重试最多一次；PNPM超时、Remote未知结果、磁盘前移与取消均不自动重试', async () => {
+  const values = [
+    { changed: false, application: 'failed', failedAt: 'spec-host', packageResult: { kind: 'timeout' } },
+    { changed: false, application: 'failed', failedAt: 'registry', packageResult: { kind: 'timeout' } },
+    { changed: true, application: 'failed', failedAt: 'spec-host', packageResult: { kind: 'timeout' } },
+    { changed: false, application: 'cancelled', failedAt: 'spec-host', packageResult: { kind: 'timeout' } },
+  ]
+  for (const [index, value] of values.entries()) {
+    let calls = 0
+    const manager = {
+      async listBundles() { return { ok: true, value: [{ name: '@daftai/pdsh', version: '0.1.0', installed: true, enabled: true }] } },
+      async installBundle() { calls++; return { ok: true, value } },
+    }
+    const update = createUpdateController(manager, async () => [newer], '0.1.0')
+    await update.check(); await update.install()
+    assert.equal(calls, index === 0 ? 2 : 1)
+    assert.equal(update.getSnapshot().phase, 'failed')
+    update.dispose()
+  }
+  for (const result of ['transport', 'dispose']) {
+    let calls = 0
+    const manager = {
+      async listBundles() { return { ok: true, value: [{ name: '@daftai/pdsh', version: '0.1.0', installed: true, enabled: true }] } },
+      async installBundle() {
+        calls++
+        if (result === 'transport') throw new Error('unknown transport result')
+        update.dispose()
+        return { ok: true, value: values[0] }
+      },
+    }
+    const update = createUpdateController(manager, async () => [newer], '0.1.0')
+    await update.check(); await update.install()
+    assert.equal(calls, 1)
+  }
+})
+
+
+test('所有已知失败只输出本地白名单，不输出 Host 原始诊断', async () => {
+  for (const kind of ['network', 'timeout', 'integrity', 'disk-full', 'permission', 'pnpm-missing', 'build-blocked', 'not-found', 'no-matching-version']) {
+    const manager = {
+      async listBundles() { return {ok:true,value:[{name:'@daftai/pdsh',version:'0.1.0',installed:true,enabled:true}]} },
+      async installBundle() { return {ok:true,value:{changed:false,application:'failed',packageResult:{kind, output:'/private/secret raw diagnostic'}}} },
+    }
+    const update = createUpdateController(manager, async () => [newer], '0.1.0')
+    await update.check(); await update.install()
+    assert.equal(update.getSnapshot().reason, kind)
+    assert.ok(!JSON.stringify(update.getSnapshot()).includes('raw diagnostic'))
+    update.dispose()
+  }
+})
+
+
+test('首次安装前的清单等待中卸载，不再触发安装副作用', async () => {
+  let release!: (value: any) => void
+  let reads = 0, installs = 0
+  const inventory = {ok:true,value:[{name:'@daftai/pdsh',version:'0.1.0',installed:true,enabled:true}]}
+  const manager = {
+    async listBundles() { return ++reads === 1 ? inventory : new Promise(resolve => {release = resolve}) },
+    async installBundle() { installs++; return {ok:true,value:{changed:true,application:'applied'}} },
+  }
+  const update = createUpdateController(manager as any, async () => [newer], '0.1.0')
+  await update.check()
+  const pending = update.install()
+  update.dispose(); release(inventory)
+  await pending
+  assert.equal(installs, 0)
+})
+
+
+test('首次 Git 超时重试后 PNPM 超时，不误报 GitHub 再次超时', async () => {
+  let installs = 0
+  const manager = {
+    async listBundles() { return {ok:true,value:[{name:'@daftai/pdsh',version:'0.1.0',installed:true,enabled:true}]} },
+    async installBundle() { return {ok:true,value:{changed:false,application:'failed',failedAt: ++installs === 1 ? 'spec-host' : 'registry',packageResult:{kind:'timeout'}}} },
+  }
+  const update = createUpdateController(manager, async () => [newer], '0.1.0')
+  await update.check(); await update.install()
+  assert.equal(installs, 2)
+  assert.deepEqual(update.getSnapshot(), {phase:'failed',operation:'install',version:'0.2.0',reason:'timeout'})
+  update.dispose()
+})
+
+
+test('重试进度通知触发卸载，不能继续第二次安装', async () => {
+  let installs = 0
+  const manager = {
+    async listBundles() { return {ok:true,value:[{name:'@daftai/pdsh',version:'0.1.0',installed:true,enabled:true}]} },
+    async installBundle() { installs++; return {ok:true,value:{changed:false,application:'failed',failedAt:'spec-host',packageResult:{kind:'timeout'}}} },
+  }
+  const update = createUpdateController(manager, async () => [newer], '0.1.0')
+  update.subscribe(() => {if (update.getSnapshot().attempt === 2) update.dispose()})
+  await update.check(); await update.install()
+  assert.equal(installs, 1)
+})

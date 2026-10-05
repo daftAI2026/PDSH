@@ -16,7 +16,7 @@ test('升级验收只认 Remote 返回的新实现，磁盘/旧后台/失败不�
   const current = { implementationVersion: async () => ({ok: true, value: '0.3.3'}) }
   assert.equal(await isCaptureRuntimeCurrent(current, '0.3.3'), true)
   await requireCaptureRuntimeCurrent(current, '0.3.3')
-  await assert.rejects(requireCaptureRuntimeCurrent(current, '0.3.4'), /stream-failed/)
+  await assert.rejects(requireCaptureRuntimeCurrent(current, '0.3.4'), /runtime-not-current/)
 })
 
 test('取消发生在 Remote 等待期间，不得继续打开 capture/save', async () => {
@@ -29,4 +29,11 @@ test('取消发生在 Remote 等待期间，不得继续打开 capture/save', as
   let reads = 0
   await assert.rejects(requireCaptureRuntimeCurrent({ implementationVersion: () => {reads++;} }, '0.3.3', controller.signal), /cancelled/)
   assert.equal(reads, 0)
+})
+
+
+test('旧后台与连接未知分开提示，不因 transport 失败臆断需要重启', async () => {
+  await assert.rejects(requireCaptureRuntimeCurrent({}, '0.3.5'), /runtime-not-current/)
+  await assert.rejects(requireCaptureRuntimeCurrent({ implementationVersion: async () => ({ok:false}) }, '0.3.5'), /stream-failed/)
+  await assert.rejects(requireCaptureRuntimeCurrent({ implementationVersion: async () => {throw Error('raw secret')} }, '0.3.5'), /stream-failed/)
 })

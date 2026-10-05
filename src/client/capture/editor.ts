@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖模型、受控原生 Tabs 挂载端口、视口控制器、输出预算、取消、背景/外观资源、DOM 模板与已接受的保存配置
- * [OUTPUT]: 提供工作台挂载、编辑命令协调、像素合成/导出与资源生命周期控制
+ * [OUTPUT]: 提供工作台挂载、编辑命令协调、像素合成/导出与资源生命周期控制，旧后台和保存结果未知各自提示
  * [POS]: capture-window 总协调器；高频视口手势由 editor-viewport.ts 拥有，系统壁纸加载由 system-wallpapers.ts 拥有，本地选图用背景意图世代拒绝迟到覆盖
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -481,7 +481,8 @@ export function mountCaptureWindowEditor(
     } catch (error) {
       if (destroyed) return;
       setPhase("editing");
-      notify(error instanceof Error && error.message === 'save-unconfirmed' ? copy.saveUnconfirmed : copy.saveFailed);
+      notify(error instanceof Error && error.message === 'runtime-not-current' ? copy.runtimeOutdated
+        : error instanceof Error && error.message === 'save-unconfirmed' ? copy.saveUnconfirmed : copy.saveFailed);
     }
   }
   function hydrateBackground(background: CaptureWindowState["background"]): void {

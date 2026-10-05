@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实 UpdateBadge JSX、React/jsdom 与可订阅的更新控制器桩。
- * [OUTPUT]: 验证仅当前 Client 探测、二次确认安装，以及清单前移后保留安装/重启结果；同 updater 详情重挂保留失败，失配不提供旧 Client 重试。
+ * [OUTPUT]: 验证仅当前 Client 探测、二次确认安装，以及清单前移后保留安装/重启结果；同 updater 详情重挂保留失败，失配不提供旧 Client 重试；已知网络失败不使用未知结果文案。
  * [POS]: 官方 detail.badge slot 的交互合同；不把 fixture 结果当成 Desktop 网络证明。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -181,3 +181,29 @@ test('同一 updater 存活时详情重挂保留安装失败，不自动重新�
     assert.ok([...h.doc.querySelectorAll('button')].find(button => button.textContent === 'update.retry'));
   } finally { await h.close(); }
 });
+
+
+test('安装网络错误只渲染已知原因白名单，未知结果继续提示核对', async () => {
+  const h = await mountBadge()
+  try {
+    await h.render()
+    for (const [reason, key] of [['timeout', 'update.installTimeout'], ['network', 'update.installNetworkFailed'], ['permission', 'update.installPermissionFailed'], [undefined, 'update.installFailed']]) {
+      await h.state({ phase: 'failed', operation: 'install', version: '0.2.0', ...(reason ? { reason } : {}) })
+      assert.equal(h.doc.querySelector('[role="alert"]')?.textContent, key)
+      assert.equal(h.doc.querySelector('[role="dialog"]'), null)
+    }
+  } finally { await h.close() }
+})
+
+
+test('第二次预检查期间明确提示只自动重试一次，不显示未知失败', async () => {
+  const h = await mountBadge()
+  try {
+    await h.render()
+    await h.state({ phase: 'installing', version: '0.2.0', attempt: 2 })
+    assert.match(h.doc.querySelector('[role="status"]')?.textContent ?? '', /update.retrying/)
+    assert.equal(h.doc.querySelector('[role="alert"]'), null)
+    await h.state({ phase: 'failed', operation: 'install', version: '0.2.0', reason: 'timeout', attempt: 2 })
+    assert.equal(h.doc.querySelector('[role="alert"]')?.textContent, 'update.installRetryTimeout')
+  } finally { await h.close() }
+})

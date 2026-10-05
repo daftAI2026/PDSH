@@ -2,7 +2,7 @@
 > L2 | 父级: ../CLAUDE.md
 
 - `model.ts`: 定义并校验 Host/Client 共用的显示偏好合同，生成本地头像；不把真实账户 URL 写回配置。
-- `locales.ts`: 提供 Client 运行文案，含截图配置未加载时的中英文重启提示与更新后重启确认文案；语言所有权仍在 Harness locale 服务，区别于包元信息 `locale/*.json`。
+- `locales.ts`: 提供 Client 运行文案，含截图配置未加载时的中英文重启提示与更新后重启、已知安装失败、重试进度和未知安装结果文案；语言所有权仍在 Harness locale 服务，区别于包元信息 `locale/*.json`。
 - `components.ts`: 唯一 Bundle 名；内部功能模块共用 pdsh 配置域，不创建额外依赖包。
 
 - `capture-bridge.ts`: 已退出运行时的 Main/Inspector 实验控制合同；保留历史回归，不是现行 Remote 路由，也不作为取像失败回退。

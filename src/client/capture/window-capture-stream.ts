@@ -9,9 +9,9 @@ import { CAPTURE_LIMITS, CAPTURE_FAILURE_CODES } from '../../shared/window-captu
 import type { CaptureFailureCode, CaptureFrame, CapturePhase } from '../../shared/window-capture-protocol.ts'
 
 /** 经净化的固定 Client 结果码；原始 carrier error 不越过此边界。 */
-export type CaptureClientErrorCode = CaptureFailureCode | 'invalid-capture' | 'stream-failed'
+export type CaptureClientErrorCode = CaptureFailureCode | 'invalid-capture' | 'stream-failed' | 'runtime-not-current'
 
-/** 只包含公开结果码的固定错误对象。 */
+/** 只包含公开结果码的固定错误对象，版本不匹配为 Client 本地码，不改变 Host wire。 */
 export class CaptureClientError extends Error {
   readonly code: CaptureClientErrorCode
 

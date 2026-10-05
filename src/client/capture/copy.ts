@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖调用方传入的 locale，并遵循截图编辑器已经确认的产品术语
- * [OUTPUT]: 对外提供 CaptureWindowCopy 双语文案与 captureWindowCopy 本地化选择器
+ * [OUTPUT]: 对外提供 CaptureWindowCopy 双语文案、captureWindowCopy 与固定失败码提示选择器
  * [POS]: capture-window 的唯一文案边界，让背景层级、标题遮罩与编辑动作同义，身份遮挡引导至官方设置
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -42,6 +42,7 @@ export type CaptureWindowCopy = {
   retake: string;
   retakeFailed: string;
   save: string;
+  runtimeOutdated: string;
   saveFailed: string;
   saveUnconfirmed: string;
   exportTooLarge: string;
@@ -103,7 +104,8 @@ const ENGLISH: CaptureWindowCopy = {
   retake: "Retake",
   retakeFailed: "Unable to capture the window again.",
   save: "Save",
-  saveFailed: "Could not export the image.",
+  runtimeOutdated: "The capture backend does not match this plugin version. Save unfinished work, then quit and reopen DSH before capturing or saving.",
+  saveFailed: "Could not export the image. Keep your edits, then check the save folder and plugin status before retrying.",
   saveUnconfirmed: "Could not confirm saving. Check the selected folder before retrying.",
   exportTooLarge: "Image size exceeds the export limit. Reduce the padding.",
   saved: "Image saved",
@@ -164,7 +166,8 @@ const CHINESE: CaptureWindowCopy = {
   retake: "重拍",
   retakeFailed: "无法重新截取窗口。",
   save: "保存",
-  saveFailed: "无法导出图片。",
+  runtimeOutdated: "截图后台尚未匹配当前插件版本。请保留工作，退出并重新打开 DSH 后再截图或保存。",
+  saveFailed: "无法导出图片。请保留当前编辑，检查保存目录和插件状态后重试。",
   saveUnconfirmed: "无法确认保存结果，请先检查所选目录再重试。",
   exportTooLarge: "图片超出导出尺寸限制，请减小边距。",
   saved: "图片已保存",
@@ -189,4 +192,36 @@ const CHINESE: CaptureWindowCopy = {
 
 export function captureWindowCopy(locale: string): CaptureWindowCopy {
   return locale.toLowerCase().startsWith("zh") ? CHINESE : ENGLISH;
+}
+
+
+/** 只解释已校验结果码；未知异常正文不进入用户提示。 */
+export function captureFailureMessage(code: string | undefined, locale: string): string | undefined {
+  const zh = locale.startsWith('zh')
+  if (code === 'runtime-not-current') return captureWindowCopy(locale).runtimeOutdated
+  if (['native-size-invalid-or-over-budget', 'byte-budget-exceeded', 'encoded-byte-budget-exceeded'].includes(code ?? '')) {
+    return zh ? '截图尺寸或数据超过限制，请缩小 DSH 窗口后重试。' : 'Capture dimensions or data exceed the limit. Make the DSH window smaller and retry.'
+  }
+  if (['invalid-png', 'metadata-mismatch', 'invalid-capture'].includes(code ?? '')) {
+    return zh ? '截图数据未通过校验，请重试；再次失败时检查插件版本。' : 'Capture data validation failed. Retry; check the plugin version if it happens again.'
+  }
+  const messages: Record<string, readonly [string, string]> = {
+    'permission-not-granted': ['DSH 尚未获得屏幕录制权限，请在系统设置中允许后再截图。', 'DSH has not received screen recording permission. Allow it in system settings, then capture again.'],
+    cancelled: ['截图已取消，可重新点击相机。', 'Capture was cancelled. You can click the camera again.'],
+    'helper-failed': ['原生截图助手未能完成取像，请重试；再次失败时检查插件状态。', 'The native helper could not complete capture. Retry; check plugin status if it happens again.'],
+    busy: ['上一张截图还在处理，请稍后再试。', 'The previous capture is still processing. Try again shortly.'],
+    disposed: ['拍照组件已关闭或正在更新，请确认插件和拍照功能已启用后重试。', 'Capture is disabled or updating. Check that the plugin and capture are enabled, then retry.'],
+    'capture-timeout': ['截图处理超时，请重试。', 'Capture processing timed out. Please retry.'],
+    'helper-start-timeout': ['截图助手启动超时，请重试；再次失败时检查插件安装。', 'The capture helper took too long to start. Retry; check the plugin installation if it happens again.'],
+    'helper-start-failed': ['截图助手未能启动，请在官方插件页检查安装状态。', 'The capture helper could not start. Check the installation on the official Plugins page.'],
+    'requires-macos-14': ['原生截图需要 macOS 14 或更新版本。', 'Native capture requires macOS 14 or later.'],
+    'api-unavailable': ['当前系统未提供所需截图接口，请检查系统版本。', 'The required capture API is unavailable. Check the system version.'],
+    'no-ordinary-window-for-main-pid': ['未找到可截取的普通 DSH 窗口，请打开主窗口后重试。', 'No ordinary DSH window is available. Open the main window and retry.'],
+    'ambiguous-multiple-windows-refuse': ['找到多个普通 DSH 窗口，无法确定截图目标。请保留一个后重试。', 'Multiple ordinary DSH windows were found. Keep one open and retry.'],
+    'process-changed': ['DSH 进程已变化，请重新截图。', 'The DSH process changed. Capture again.'],
+    'window-changed': ['DSH 窗口在截图期间发生变化，请重新截图。', 'The DSH window changed during capture. Capture again.'],
+    'stream-failed': ['与截图后台的连接未完成，请检查插件状态后重试。', 'The capture backend connection did not complete. Check plugin status and retry.'],
+  }
+  const message = code && messages[code]
+  return message ? message[zh ? 0 : 1] : undefined
 }

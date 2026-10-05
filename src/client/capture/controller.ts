@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖冻结 PNG/原生整窗比例、编辑器与原生 Tabs 挂载端口、分离的标题与 Host 身份遮挡偏好、导出偏好及宿主通知。
- * [OUTPUT]: 提供相机点击→隐藏自有 UI→截图→工作台、重拍、分层失败反馈及异常/停用释放的单一控制器。
+ * [OUTPUT]: 提供相机点击→隐藏自有 UI→截图→工作台、重拍、固定码对应可执行提示、分层失败反馈及异常/停用释放的单一控制器。
  * [POS]: capture Client 编排边界；截图像素不进入设置或会话持久化，编辑器只持有本地像素。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -12,6 +12,7 @@ import { markDSHPrivacyPlaceholders, collectDSHCandidates, mapCandidatesToPng } 
 import { configureCapturePresetAssets } from './presets.ts';
 
 import { CaptureViewportError } from './viewport.ts';
+import { captureFailureMessage } from './copy.ts';
 import { CaptureClientError } from './window-capture-stream.ts';
 import { DEFAULT_CAPTURE_EXPORT } from '../../shared/capture-export.ts';
 import type { CaptureTrace } from '../../shared/capture-trace.ts';
@@ -86,9 +87,9 @@ export function mountCaptureController(doc: Document, { locale = () => doc.docum
         report(locale().startsWith('zh') ? '无法确认取像连接已释放。已暂停拍照；请保留工作后重启 DSH，不会自动重连或重启。' : 'Capture connection release is unconfirmed. Preserve your work and restart DSH; no automatic reconnect or restart.');
       } else if (!disposed && error instanceof CaptureViewportError && error.code === 'bridge-cleanup-unconfirmed') {
         report(locale().startsWith('zh') ? '无法确认插件调试接口已关闭。请停用拍照，保留工作后确认重启 DSH；不会自动重启。' : 'Could not confirm closing the plugin inspector. Disable capture, preserve your work and confirm a DSH restart; no automatic restart.');
-      } else if (!disposed) report((locale().startsWith('zh')
+      } else if (!disposed) report((!captured && captureFailureMessage(failureCode, locale()) || (locale().startsWith('zh')
         ? captured ? '截图工作台未能打开，请重试。' : '无法截取当前 DSH 窗口，请重试。'
-        : captured ? 'Could not open the capture workbench. Try again.' : 'Could not capture this DSH window. Try again.')
+        : captured ? 'Could not open the capture workbench. Try again.' : 'Could not capture this DSH window. Try again.'))
         + (failureCode ? ` (${failureCode})` : ''));
     } finally {
       busy = false; publish();

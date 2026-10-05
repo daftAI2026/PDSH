@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实编辑器、jsdom、Canvas 编码/绘制窄桩与可控保存回执。
- * [OUTPUT]: 验证模板冻结元数据和实际合成尺寸、目录/格式传递、取消/失败留在编辑、迟到编码不导出或通知。
+ * [OUTPUT]: 验证模板冻结元数据和实际合成尺寸、目录/格式传递、取消/失败留在编辑、迟到编码不导出或通知；已知旧后台保留编辑并说明加载，不误报目录。
  * [POS]: 编辑器导出状态机合同；绘制桩不证明图像视觉或 Electron 保存面板实机行为。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -131,3 +131,14 @@ test('选图读取迟到不能覆盖后选的Tab或在卸载后改变状态/通�
     }
   }
 });
+
+
+test('旧后台阻止保存时保留编辑，提示正常加载而不误报目录', async () => {
+  const h = fixture({onSave: async () => { throw new Error('runtime-not-current') }})
+  try {
+    h.click(); await h.flush()
+    assert.equal(h.closed.length, 0)
+    assert.match(h.notices.at(-1), /后台.*插件版本.*保留工作.*重新打开 DSH/)
+    assert.doesNotMatch(h.notices.at(-1), /目录|权限/)
+  } finally { h.close() }
+})

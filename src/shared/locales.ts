@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖宿主 locale 命名空间字典协议；不读取或持久化独立语言偏好。
- * [OUTPUT]: 提供 pdsh 的 NS 与齐全 zh/en 运行文案，含旧 Host 截图配置重启提示和更新后重启确认文案。
+ * [OUTPUT]: 提供 pdsh 的 NS 与齐全 zh/en 运行文案，含旧 Host 截图配置重启提示和已知安装失败、受控重试/未知结果区分文案。
  * [POS]: PDSH 文案归属层；界面语言由 Harness 拥有，包展示元信息由 locale/*.json 离线提供。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -30,6 +30,17 @@ export const dictionaries = {
     'update.available': '有新版本可安装',
     'update.installing': '正在通过宿主安装…', 'update.installed': '宿主已应用版本', 'update.restart': '安装完成；请在合适时机重启 Harness，启用版本',
     'update.restartTitle': '更新已安装，需要重新启动 DSH', 'update.restartDescription': '请先保存未完成的工作，再退出并重新打开 DSH，使新版本的 Host 配置和截图接口生效。当前 DSH 未向插件提供一键重启接口。', 'update.later': '稍后重启',
+    'update.installRetryTimeout': '连接 GitHub 再次超时，未完成更新。请检查网络后重试。',
+    'update.retrying': '连接 GitHub 超时，正在自动重试一次…',
+    'update.installIntegrityFailed': '插件下载校验失败，未完成更新。请核对官方来源后重试。',
+    'update.installDiskFull': '磁盘空间不足，未完成更新。请释放空间后重试。',
+    'update.installPermissionFailed': '安装目录无法写入，未完成更新。请检查目录权限。',
+    'update.installManagerMissing': 'DSH 找不到包管理器，未完成更新。请检查或重新安装 DSH。',
+    'update.installBuildBlocked': 'DSH 阻止了安装脚本，未完成更新。请在官方插件页查看详情；不要授权未知脚本。',
+    'update.installNotFound': '未找到插件下载来源，未完成更新。请核对官方来源后重试。',
+    'update.installVersionMissing': '未找到所需依赖版本，未完成更新。请在官方插件页查看详情。',
+    'update.installTimeout': '安装过程超时，未完成更新。请在官方插件页查看详情后重试。',
+    'update.installNetworkFailed': '连接插件来源失败，未完成更新，请检查网络后重试。',
     'update.installFailed': '安装结果未确认；请在官方插件页核对状态后重试。',
   },
   en: {
@@ -56,6 +67,17 @@ export const dictionaries = {
     'update.available': 'A newer version is available',
     'update.installing': 'Installing through the host…', 'update.installed': 'The host applied version', 'update.restart': 'Installed; restart Harness when convenient to activate version',
     'update.restartTitle': 'Update installed; restart DSH', 'update.restartDescription': 'Save unfinished work, then quit and reopen DSH to load the new Host configuration and capture interface. This DSH build does not expose one-click restart to plugins.', 'update.later': 'Restart later',
+    'update.installRetryTimeout': 'GitHub connection timed out again. Update not completed; check your network and retry.',
+    'update.retrying': 'GitHub connection timed out. Retrying once…',
+    'update.installIntegrityFailed': 'Download verification failed. Update not completed; verify the official source before retrying.',
+    'update.installDiskFull': 'Not enough disk space. Update not completed; free up space and retry.',
+    'update.installPermissionFailed': 'The installation directory is not writable. Update not completed; check directory permissions.',
+    'update.installManagerMissing': 'DSH could not find its package manager. Update not completed; check or reinstall DSH.',
+    'update.installBuildBlocked': 'DSH blocked an installation script. Update not completed; inspect the official Plugins page. Do not approve unknown scripts.',
+    'update.installNotFound': 'The plugin source was not found. Update not completed; verify the official source before retrying.',
+    'update.installVersionMissing': 'A required dependency version was not found. Update not completed; inspect the official Plugins page.',
+    'update.installTimeout': 'Installation timed out. Update not completed; inspect the official Plugins page before retrying.',
+    'update.installNetworkFailed': 'The plugin source connection failed. Update not completed; check your network and retry.',
     'update.installFailed': 'Installation was not confirmed. Verify the official Plugins page before retrying.',
   },
 };
