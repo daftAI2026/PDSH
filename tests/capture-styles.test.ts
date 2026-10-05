@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖截图工作台三份 CSS 与 style-sources 的 Host 来源账。
- * [OUTPUT]: 阻止 Codex token/fallback 混入 DSH 主题，验证语义 token 可追溯与实时原生几何/动画消费链与色谱内容几何隔离，固定检查器布局与等高设置动作槽。
+ * [OUTPUT]: 阻止外部主题/fallback 混入 DSH，验证工具选中复用浅/深主题有对比的宿主持久选择配方、不被 hover/按压覆盖、外壳四边统一留白、token 可追溯、原生几何/动画与色谱内容隔离。
  * [POS]: 工作台视觉移植合同；色谱、透明棋盘格属于编辑内容而非宿主主题。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -9,6 +9,15 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const css = ['capture-window.css', 'background-picker.css', 'color-popover.css'].map(file => readFileSync(new URL(`../src/client/capture/${file}`, import.meta.url), 'utf8')).join('\n');
 const sources = JSON.parse(readFileSync(new URL('../style-sources.json', import.meta.url), 'utf8'));
+test('工具选中复用DSH AppearanceRow持久选择底色，不依赖浅色相同的layer-2/3', () => {
+  const selected = css.match(/\.pdsh-capture-icon-button\[aria-pressed="true"\]\s*\{([^}]*)\}/)?.[1];
+  assert.match(selected ?? '', /background:\s*var\(--dsw-alias-bg-module-platform\)/);
+  assert.equal(sources.captureToolbar.selectedBackground, '--dsw-alias-bg-module-platform');
+  assert.equal(sources.captureToolbar.selectedSourceFile, 'packages/client/ui-theme/src/AppearanceRow.module.css');
+  for (const pseudo of ['hover', 'active']) {
+    assert.ok(css.includes(`.pdsh-capture-icon-button:${pseudo}:not(:disabled):not([aria-pressed="true"])`), pseudo);
+  }
+});
 test('工作台不携带 Codex 主题变量、数值回退或 UI 硬编码主题色', () => {
   assert.doesNotMatch(css, /--(?:color|radius|font|text|height|shadow|transition|ease|spacing|vscode|cursor)-/);
   assert.doesNotMatch(css, /var\([^)]*,\s*(?:#|rgb|\d+px|\d+ms|\d+rem)/);
@@ -108,4 +117,17 @@ test('色球填色层显式保持圆形，DSH elevation浮层不叠第二道描�
   const shell = picker.match(/\.pdsh-capture-color-popover \{([\s\S]*?)\n\}/)?.[1];
   assert.match(shell ?? '', /border:\s*0;/);
   assert.match(shell ?? '', /box-shadow:\s*var\(--dsw-elevation-panel\)/);
+});
+
+
+test('工作台外壳以上下对齐左右的同一 inset，内部段落间隔保持独立', () => {
+  assert.match(css, /--pdsh-capture-shell-inset:\s*calc\(var\(--pdsh-capture-space\) \* 5\)/);
+  const header = css.match(/\.pdsh-capture-header\s*\{([^}]*)\}/)?.[1] ?? '';
+  const workspace = css.match(/\.pdsh-capture-workspace\s*\{([^}]*)\}/)?.[1] ?? '';
+  const footer = css.match(/\.pdsh-capture-footer\s*\{(\s*justify-content:[^}]*)\}/)?.[1] ?? '';
+  assert.match(header, /padding:\s*var\(--pdsh-capture-shell-inset\) var\(--pdsh-capture-shell-inset\) calc\(var\(--pdsh-capture-space\) \* 3\)/);
+  assert.match(workspace, /padding:\s*0 var\(--pdsh-capture-shell-inset\) calc\(var\(--pdsh-capture-space\) \* 4\)/);
+  assert.match(footer, /padding:\s*var\(--pdsh-capture-space\) var\(--pdsh-capture-shell-inset\) var\(--pdsh-capture-shell-inset\)/);
+  assert.match(css, /--pdsh-capture-chrome-height:\s*calc\(var\(--pdsh-capture-space\) \* \(15 \+ 15 \+ 13\)\)/);
+  assert.equal(sources.captureShell.insetMultiplier, 5);
 });

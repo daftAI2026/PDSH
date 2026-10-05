@@ -19,7 +19,7 @@
 - `capture-pixels.test.ts`: 宿主/显式 PNG 桥的能力、目标范围与关联 ID；预算/DPR/130% 缩放量化、冻结解码及取消/视口变化；固定 Main 错误和 Electron invoke 包装保持分类，未知通道不冒充、忙碌不误报端口；桩桥不是安装件能力证据。
 - `capture-privacy.test.ts`: 标题与截图身份独立；唯一识别后遮挡自有名牌/原生名称/头像，未知结构及账号编辑退让，属性按所有权归还并守候选比例。
 - `capture-candidates.test.ts`: 通用 DOM 候选的有限几何/最小边、视口/滚动容器裁切、变换祖先退让、隐藏/空内容过滤、嵌套去重、150项几何早停及严格侧栏优先；真实 redactions 解析证明同节点移动重定位、新节点不继承旧选择，不验证原生整窗映射。
-- `capture-styles.test.ts`: 五列统一圆角色块、固定240px检查器与设置开关等高槽；检查器选中环安全边距与圆形拾色图标局部约束， 工作台Host token来源/实时几何消费及自有色谱28px白环及内层圆形隔离、浮层单一elevation描边；禁Codex主题、数值回退与宿主拾色器样式污染。
+- `capture-styles.test.ts`: 工具选中复用DSH AppearanceRow持久选择底色而非浅色同值layer-2/3，hover/按压不覆盖；五列统一圆角色块、固定240px检查器与设置开关等高槽；外壳四边共用左右基准inset与chrome预算、检查器选中环安全边距与圆形拾色图标局部约束， 工作台Host token来源/实时几何消费及自有色谱28px白环及内层圆形隔离、浮层单一elevation描边；禁Codex主题、数值回退与宿主拾色器样式污染。
 - `capture-editor-keyboard.test.ts`: 背景面板Tab围栏跳过hidden/inert/CSS隐藏、disabled与负tabindex；不替代原生键盘验收。
 - `capture-view.test.ts`: 双语编辑器操作面板、标题遮罩与身份设置分界，无系统壁纸adapter时不伪造入口。
 - `host.test.ts`: 真实 Schemastery Config/路径边界与平台provider分流；默认 Downloads 使用宿主 `homedir()` 与 `path.join` 精确比较，覆盖 POSIX/Windows drive-root/UNC 并拒绝相对、非canonical及device namespace；缺 helper/不支持架构仍保留设置。
@@ -52,7 +52,7 @@
 - `page-save-main.test.ts`: 面板/直接保存回执、5K默认边距的PNG/JPEG输出预算、真实文件提交前取消/导航/停用及跨装配串行锁；不冒充实机验收。
 
 - `capture-editor-export.test.ts`: 背景 Tabs 派生与最近选择、切类关闭选色浮层、迟到本地图不覆盖新模式；关闭后取消在途保存、忙碌快捷键不启动并发导出； 真实编辑器的取消/保存/失败/迟到编码状态；Canvas 桩覆盖数据传递，不证明视觉或本机文件面板。
-- `capture-editor-viewport.test.ts`: 真实编辑器的滚轮 deltaMode/限幅、精确缩放源、无像素重合成、内容/重拍仍重绘、按帧拖动、忙碌拦截、pointercancel 与 dispose 合同；不冒充 Desktop 动效实测。
+- `capture-editor-viewport.test.ts`: 真实编辑器的精确缩放/按帧变换与像素合成隔离；候选单击/再点移除/undo/redo、手绘隐藏未选候选/检测恢复且保留遮罩/样式、旧区域点击来源围栏、工具/来源/样式切换不分配合成画布、实际重拍等待的候选添加/移除拒绝与恢复、检测/手绘意图、模式切换取消旧手势和工具栏选中焦点、忙碌/pointercancel/dispose 合同；不冒充 Desktop 动效实测。
 
 - `host-acceptance.test.ts`: 集成 CLI 安全前置；自有临时/生成目录验证 owner/写权限、路径、符号链接、凭据和精确 PNPM 版本门，不启动用户 DSH 或替代安装件验收。
 
@@ -61,7 +61,7 @@
 - `rc-packaging.test.ts`: 独立候选身份/白名单 staging、私有路径排除、stable 源不变、locale 提示、native helper 执行位、符号链接/同名归档拒绝与失败清理；不运行 SDK GUI 或真实安装。
 - `capture-defaults.test.ts`: 旧导出默认只通过根 pdsh revision 修正；自定义值、已移除子域与迟到卸载不覆盖偏好。
 
-- `window-capture-controller.test.ts`: 整窗元数据比例、禁猜页面坐标和人工授权等待的 Client 合同，不冒充实机证据。
+- `window-capture-controller.test.ts`: 已知 Mac 满窗候选实际到达编辑器/重拍更新的红绿合同；边框、docked DevTools、未知平台/引擎、缩放、视口/候选变动退让与人工授权等待，不冒充实机证据。
 
 - `window-capture-client-stream.test.ts`: 整窗元数据、帧序/PNG envelope/CRC/浏览器解码接缝及取消释放；不是实机像素证据。
 

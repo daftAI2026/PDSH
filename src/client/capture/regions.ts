@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖编辑状态、画布 padding 换算和 DOM 交互。
- * [OUTPUT]: 提供候选/已确认遮挡区域的覆盖层、点击动作与统一参数的提示文案。
+ * [OUTPUT]: 提供检测模式候选/已确认区域覆盖层；手绘隐藏未选候选，保留已打码区域并交还指针。
  * [POS]: capture 的区域交互层；仅在工作台中编辑，不反写宿主页面。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -31,9 +31,11 @@ export function mountCaptureRegionLayer(
       .filter((region) => region.source === "automatic")
       .map((region) => region.id),
   );
-  for (const candidate of automaticCandidates) {
-    if (selectedAutomaticIds.has(candidate.id)) continue;
-    layer.append(candidateElement(candidate, canvas, state, copy, dispatch));
+  if (state.redactionSource === "auto") {
+    for (const candidate of automaticCandidates) {
+      if (selectedAutomaticIds.has(candidate.id)) continue;
+      layer.append(candidateElement(candidate, canvas, state, copy, dispatch));
+    }
   }
   for (const region of state.regions) {
     layer.append(

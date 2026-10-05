@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖冻结 PNG/原生整窗比例、编辑器与原生 Tabs 挂载端口、分离的标题与 Host 身份遮挡偏好、导出偏好及宿主通知。
+ * [INPUT]: 依赖冻结 PNG/原生整窗比例、候选原点/稳定几何验证、编辑器与原生 Tabs 挂载端口、分离的标题与 Host 身份遮挡偏好、导出偏好及宿主通知。
  * [OUTPUT]: 提供相机点击→隐藏自有 UI→截图→工作台、重拍、分层失败反馈及异常/停用释放的单一控制器。
  * [POS]: capture Client 编排边界；截图像素不进入设置或会话持久化，编辑器只持有本地像素。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -9,6 +9,7 @@ import type { CaptureBackgroundTabsMount } from "./background-tabs.tsx";
 import { mountCaptureWindowEditor } from './editor.ts';
 import { loadCapturePreferences } from './preferences.ts';
 import { markDSHPrivacyPlaceholders, collectDSHCandidates, mapCandidatesToPng } from './privacy.ts';
+import { readCandidateWindowViewport, mapWindowCandidatesToPng } from './candidate-mapping.ts';
 import { configureCapturePresetAssets } from './presets.ts';
 
 import { CaptureViewportError } from './viewport.ts';
@@ -33,11 +34,18 @@ export function mountCaptureController(doc: Document, { locale = () => doc.docum
     const request = abort;
     const materialAppearance = doc.querySelector('[data-ds-dark-theme]') ? 'dark' as const : 'light' as const;
     const pageScale = doc.defaultView.devicePixelRatio, fileMetadata = { title: doc.title, capturedAt: new Date() };
+    let candidateViewport: ReturnType<typeof readCandidateWindowViewport> = null;
     try {
       trace('pixels-start', requestId);
       const result = await capturePreparedWindow({
         capture: () => capture(doc, { signal: request.signal, requestId }),
-        collectCandidates: () => captureScope === 'owned-window' ? [] : collectDSHCandidates(doc),
+        collectCandidates: () => {
+          if (captureScope === 'owned-window') {
+            candidateViewport = readCandidateWindowViewport(doc);
+            if (!candidateViewport) return [];
+          }
+          return collectDSHCandidates(doc);
+        },
         timeoutMs: captureScope === 'owned-window' ? null : undefined,
         // Lifecycle 的同一灰条类覆盖任一开启的遮挡层，标题与身份配置仍各自独立。
         privacyEnabled: hasPrivacyMasks, root: doc.documentElement,
@@ -47,7 +55,15 @@ export function mountCaptureController(doc: Document, { locale = () => doc.docum
       if (!Number.isFinite(sourceScaleFactor) || sourceScaleFactor <= 0) throw new CaptureViewportError('capture-failed');
       if ((captureScope !== 'owned-window' && pageScale !== doc.defaultView.devicePixelRatio) || materialAppearance !== (doc.querySelector('[data-ds-dark-theme]') ? 'dark' : 'light')) throw new CaptureViewportError('capture-failed');
       trace('pixels-ready', requestId);
-      return { source: result.source, fileMetadata, materialAppearance, sourceScaleFactor, automaticRegions: captureScope === 'owned-window' ? [] : mapCandidatesToPng(result.candidates, result.source, { width: doc.defaultView.innerWidth, height: doc.defaultView.innerHeight }) };
+      let automaticRegions = [];
+      try {
+        automaticRegions = captureScope === 'owned-window'
+          ? mapWindowCandidatesToPng(result.candidates, candidateViewport ? collectDSHCandidates(doc) : [], result.source, sourceScaleFactor, candidateViewport, readCandidateWindowViewport(doc))
+          : mapCandidatesToPng(result.candidates, result.source, { width: doc.defaultView.innerWidth, height: doc.defaultView.innerHeight });
+      } catch {
+        // +--- 建议层不是取像前置条件；失去 DOM 几何时保留有效照片与手动编辑。 ---+
+      }
+      return { source: result.source, fileMetadata, materialAppearance, sourceScaleFactor, automaticRegions };
     } finally {
       abort = null; restore();
     }

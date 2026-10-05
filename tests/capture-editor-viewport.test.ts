@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实编辑器、jsdom 与可控 requestAnimationFrame；不读取用户截图或启动 Desktop。
- * [OUTPUT]: 验证缩放控制共用精确状态、视口变换与像素合成隔离、帧合并及指针取消/卸载清理。
+ * [OUTPUT]: 验证缩放与工具状态唯一、检测/手绘意图分离、手绘隐藏候选但保留遮罩、模式切换不合成像素、切模式取消旧手势、候选点击忙碌围栏、选中按钮焦点，以及帧合并和卸载清理。
  * [POS]: capture 编辑器视口交互合同；Canvas 绘制桩只证明控制流，不证明桌面视觉表现。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -292,4 +292,202 @@ test('拖动中的画布帧不启用会落后于指针的 CSS transform transiti
   const css = readFileSync(new URL('../src/client/capture/capture-window.css', import.meta.url), 'utf8');
   const frameRule = css.match(/\.pdsh-capture-canvas-frame\s*\{([^}]*)\}/s)?.[1] ?? '';
   assert.doesNotMatch(frameRule, /transition\s*:\s*transform/i);
+});
+
+// +--- 工具状态与真实指针动作必须同义 ---+
+function prepareRegionPointer(h: ReturnType<typeof fixture>) {
+  const captured = new Set<number>();
+  h.stage.setPointerCapture = id => { captured.add(id); };
+  h.stage.hasPointerCapture = id => captured.has(id);
+  h.stage.releasePointerCapture = id => { captured.delete(id); };
+  h.dom.window.HTMLCanvasElement.prototype.getBoundingClientRect = function () {
+    return { x: 0, y: 0, left: 0, top: 0, right: this.width, bottom: this.height,
+      width: this.width, height: this.height, toJSON() {} };
+  };
+  const choose = (action: string) => h.root.querySelector<HTMLElement>(`[data-action='${action}']`)!.click();
+  const draw = (id: number) => {
+    h.pointer('pointerdown', id, 20, 20);
+    h.pointer('pointermove', id, 60, 50);
+    h.pointer('pointerup', id, 60, 50);
+  };
+  return { captured, choose, draw };
+}
+
+test('检测模式拖空白不画框，手绘模式才创建区域；中键仍能平移', () => {
+  const h = fixture();
+  try {
+    const p = prepareRegionPointer(h);
+    p.choose('tool-redact');
+    assert.equal(h.editor.getState().redactionSource, 'auto');
+    h.pointer('pointerdown', 20, 20, 20);
+    assert.equal(h.root.querySelector('.pdsh-capture-draft-region'), null, '自动模式不能启动手绘');
+    h.pointer('pointerup', 20, 60, 50);
+    assert.equal(h.editor.getState().regions.length, 0);
+    h.pointer('pointerdown', 21, 20, 20, 1);
+    assert.equal(h.stage.hasAttribute('data-panning'), true);
+    h.pointer('pointerup', 21, 60, 50, 1);
+    p.choose('source-draw');
+    p.draw(22);
+    assert.equal(h.editor.getState().regions.length, 1, '手绘正例必须真的提交矩形');
+  } finally { h.close(); }
+});
+
+test('切工具或区域来源立即取消旧手绘，迟到 pointerup 不提交到新模式', () => {
+  for (const action of ['tool-move', 'source-auto']) {
+    const h = fixture();
+    try {
+      const p = prepareRegionPointer(h);
+      p.choose('tool-redact'); p.choose('source-draw');
+      h.pointer('pointerdown', 30, 20, 20);
+      assert.ok(h.root.querySelector('.pdsh-capture-draft-region'));
+      p.choose(action);
+      assert.equal(h.root.querySelector('.pdsh-capture-draft-region'), null, action);
+      assert.equal(p.captured.size, 0, '取消须归还所属 pointer capture');
+      h.pointer('pointerup', 30, 60, 50);
+      assert.equal(h.editor.getState().regions.length, 0);
+      p.choose('tool-redact'); p.choose('source-draw'); p.draw(31);
+      assert.equal(h.editor.getState().regions.length, 1);
+    } finally { h.close(); }
+  }
+});
+
+test('工具栏替换保留所选按钮焦点，各互斥组始终只有一个选中值', () => {
+  const h = fixture();
+  try {
+    const select = (action: string) => {
+      const button = h.root.querySelector<HTMLElement>(`[data-action='${action}']`)!;
+      button.focus(); button.click();
+      assert.equal((h.dom.window.document.activeElement as HTMLElement).dataset.action, action);
+      assert.equal(h.root.querySelector(`[data-action='${action}']`)?.getAttribute('aria-pressed'), 'true');
+    };
+    select('tool-redact'); select('source-draw'); select('style-solid');
+    for (const group of [['tool-move', 'tool-redact'], ['source-auto', 'source-draw'], ['style-mosaic', 'style-blur', 'style-solid']]) {
+      assert.equal(group.filter(action => h.root.querySelector(`[data-action='${action}']`)?.getAttribute('aria-pressed') === 'true').length, 1);
+    }
+    select('tool-move'); select('tool-redact');
+    assert.equal(h.editor.getState().redactionSource, 'draw');
+    assert.equal(h.editor.getState().redactionStyle, 'solid');
+  } finally { h.close(); }
+});
+
+test('检测来源按点击候选添加打码，再点击已选区域移除，不要求拖动', () => {
+  const candidate = { id: 'detected-fixture', x: 10, y: 10, width: 40, height: 20 };
+  const h = fixture({ automaticRegions: [candidate] });
+  try {
+    const p = prepareRegionPointer(h);
+    p.choose('tool-redact'); p.choose('style-blur');
+    assert.equal(h.editor.getState().redactionSource, 'auto');
+    const suggested = h.root.querySelector<HTMLElement>('.pdsh-capture-region-candidate')!;
+    assert.equal(suggested.dataset.interactive, 'true');
+    suggested.click();
+    assert.equal(h.editor.getState().regions.length, 1);
+    const [selected] = h.editor.getState().regions;
+    assert.equal(selected.id, candidate.id);
+    assert.equal(selected.source, 'automatic');
+    assert.equal(selected.style, 'blur');
+    assert.deepEqual(selected.rect, { x: 10, y: 10, width: 40, height: 20 });
+    assert.equal(h.root.querySelectorAll('.pdsh-capture-region-candidate').length, 0);
+    h.root.querySelector<HTMLElement>('.pdsh-capture-region-confirmed')!.click();
+    assert.equal(h.editor.getState().regions.length, 0);
+    assert.equal(h.root.querySelectorAll('.pdsh-capture-region-candidate').length, 1);
+    const staleCandidate = h.root.querySelector<HTMLElement>('.pdsh-capture-region-candidate')!;
+    p.choose('source-draw');
+    assert.equal(h.root.querySelector('.pdsh-capture-region-candidate'), null);
+    staleCandidate.click();
+    assert.equal(h.editor.getState().regions.length, 0, '手绘模式不接受旧候选点击');
+    p.choose('source-auto');
+    h.root.querySelector<HTMLElement>('.pdsh-capture-region-candidate')!.click();
+    p.choose('undo');
+    assert.equal(h.editor.getState().regions.length, 0);
+    p.choose('redo');
+    assert.equal(h.editor.getState().regions.length, 1);
+    assert.equal(h.editor.getState().redactionSource, 'auto');
+  } finally { h.close(); }
+});
+
+test('手绘隐藏未选候选，切回检测立即恢复，已选遮罩与样式不清空', () => {
+  const h = fixture({ automaticRegions: [
+    { id: 'chosen', x: 10, y: 10, width: 40, height: 20 },
+    { id: 'guide', x: 60, y: 10, width: 40, height: 20 },
+  ] });
+  try {
+    const p = prepareRegionPointer(h);
+    p.choose('tool-redact'); p.choose('style-blur');
+    h.root.querySelector<HTMLElement>('.pdsh-capture-region-candidate')!.click();
+    const selected = h.editor.getState().regions;
+    const staleConfirmed = h.root.querySelector<HTMLElement>('.pdsh-capture-region-confirmed')!;
+    p.choose('source-draw');
+    staleConfirmed.click();
+    assert.equal(h.root.querySelectorAll('.pdsh-capture-region-candidate').length, 0, '手绘仅隐藏未选候选');
+    assert.equal(h.root.querySelectorAll('.pdsh-capture-region-confirmed').length, 1);
+    for (const region of h.root.querySelectorAll<HTMLElement>('.pdsh-capture-region')) {
+      assert.equal(region.dataset.interactive, 'false', '候选和已选区域均交还指针');
+      region.click();
+    }
+    assert.equal(h.editor.getState().regions, selected, '来源变化或参考框点击不改已选像素遮罩');
+    assert.equal(selected[0].style, 'blur');
+    p.draw(44);
+    assert.equal(h.editor.getState().regions.length, 2, '能画过已有检测区域，不触发删除');
+    p.choose('source-auto');
+    assert.equal(h.root.querySelectorAll('.pdsh-capture-region-candidate').length, 1, '同一候选恢复，无需重拍或重新检测');
+    for (const region of h.root.querySelectorAll<HTMLElement>('.pdsh-capture-region')) assert.equal(region.dataset.interactive, 'true');
+    assert.equal(h.editor.getState().regions.length, 2);
+    p.choose('tool-move');
+    assert.equal(h.root.querySelectorAll('.pdsh-capture-region').length, 0, '移动模式收起交互框，不删除遮罩');
+    assert.equal(h.editor.getState().regions.length, 2);
+  } finally { h.close(); }
+});
+
+test('真实重拍等待期间拒绝候选添加/已选移除，恢复 editing 后接受点击', async () => {
+  for (const selected of [false, true]) {
+    let failRetake!: (error: Error) => void;
+    const pending = new Promise<never>((_, reject) => { failRetake = reject; });
+    const h = fixture({
+      automaticRegions: [{ id: 'busy-candidate', x: 10, y: 10, width: 40, height: 20 }],
+      onRetake: () => pending,
+    });
+    try {
+      const p = prepareRegionPointer(h);
+      p.choose('tool-redact');
+      if (selected) h.root.querySelector<HTMLElement>('.pdsh-capture-region-candidate')!.click();
+      const selector = selected ? '.pdsh-capture-region-confirmed' : '.pdsh-capture-region-candidate';
+      const before = h.editor.getState();
+      p.choose('retake');
+      assert.equal(h.root.dataset.state, 'recapturing');
+      h.root.querySelector<HTMLElement>(selector)!.click();
+      assert.equal(h.editor.getState(), before, '忙碌阶段不得改变区域或历史');
+      assert.equal(h.root.querySelector<HTMLButtonElement>("[data-action='undo']")!.disabled, true);
+      failRetake(new Error('fixture retake cancelled'));
+      await h.flushAsync();
+      assert.equal(h.root.dataset.state, 'editing');
+      h.root.querySelector<HTMLElement>(selector)!.click();
+      assert.equal(h.editor.getState().regions.length, selected ? 0 : 1);
+    } finally {
+      failRetake(new Error('fixture cleanup'));
+      h.close();
+    }
+  }
+});
+
+
+test('工具、来源和后续打码样式切换不重新合成像素，新增区域仍合成', () => {
+  const h = fixture({ automaticRegions: [{ id: 'pixel-stable', x: 10, y: 10, width: 40, height: 20 }] });
+  try {
+    const p = prepareRegionPointer(h);
+    const allocations = h.canvasAllocations();
+    const canvas = h.root.querySelector('.pdsh-capture-canvas');
+    for (const action of ['tool-redact', 'source-draw', 'style-blur', 'style-solid', 'source-auto', 'tool-move', 'tool-redact']) {
+      p.choose(action);
+      assert.equal(h.canvasAllocations(), allocations, `${action} 不分配合成画布`);
+      assert.equal(h.root.querySelector('.pdsh-capture-canvas'), canvas);
+    }
+    h.root.querySelector<HTMLElement>('.pdsh-capture-region-candidate')!.click();
+    assert.ok(h.canvasAllocations() > allocations, '实际新增遮罩必须更新像素');
+    const maskedAllocations = h.canvasAllocations();
+    const selected = h.editor.getState().regions;
+    p.choose('style-mosaic'); p.choose('source-draw'); p.choose('source-auto');
+    assert.equal(h.canvasAllocations(), maskedAllocations);
+    assert.equal(h.editor.getState().regions, selected);
+    assert.equal(selected[0].style, 'solid', '样式只作用于后续区域');
+  } finally { h.close(); }
 });

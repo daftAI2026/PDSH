@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖模型、受控原生 Tabs 挂载端口、视口控制器、输出预算、取消、背景/外观资源、DOM 模板与已接受的保存配置
- * [OUTPUT]: 提供工作台挂载、编辑命令协调、像素合成/导出与资源生命周期控制
+ * [OUTPUT]: 提供工作台挂载、编辑命令协调、区域点击来源/忙碌围栏、模式切换只更新覆盖层并取消旧手势、保留工具栏焦点、像素合成/导出与资源生命周期控制。
  * [POS]: capture-window 总协调器；高频视口手势由 editor-viewport.ts 拥有，系统壁纸加载由 system-wallpapers.ts 拥有，本地选图用背景意图世代拒绝迟到覆盖
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -194,6 +194,10 @@ export function mountCaptureWindowEditor(
   }
   fitRestoredPadding();
   function applyEditorCommand(command: CaptureWindowCommand): boolean {
+    if ((command.kind === "set-tool" && command.tool !== state.tool) ||
+        (command.kind === "set-redaction-source" && command.source !== state.redactionSource)) {
+      editorViewport.cancelGesture();
+    }
     if (command.kind === "set-padding") {
       if (!outputFits(applyCaptureCommand(state, command))) {
         const input = root.querySelector<HTMLInputElement>("[data-input='padding']");
@@ -230,6 +234,11 @@ export function mountCaptureWindowEditor(
     refreshEditor(command);
   }
   function dispatchRegion(command: CaptureWindowCommand): void {
+    if (destroyed || root.dataset.state !== "editing") return;
+    if (
+      (command.kind === "select-automatic-region" || command.kind === "remove-region") &&
+      (state.tool !== "redact" || state.redactionSource !== "auto")
+    ) return;
     state = applyCaptureCommand(state, command);
     renderCanvas();
     updateHistoryControls(root, state);
@@ -266,6 +275,7 @@ export function mountCaptureWindowEditor(
     dispatch({ color, kind: "set-solid-color" });
   }
   function setPhase(phase: "composing" | "saving" | "editing" | "recapturing"): void {
+    if (phase !== "editing") editorViewport.cancelGesture();
     root.setAttribute("data-state", phase);
     root.toggleAttribute("aria-busy", phase !== "editing");
     backgroundTabs?.update(captureBackgroundMode(state.background), phase !== "editing");
@@ -286,27 +296,31 @@ export function mountCaptureWindowEditor(
     root.setAttribute("data-tool", state.tool);
     const stage = root.querySelector<HTMLElement>(".pdsh-capture-stage");
     if (stage) stage.dataset.tool = state.tool;
-    if (
-      command.kind === "set-tool" ||
+    const overlayOnly = command.kind === "set-tool" ||
       command.kind === "set-redaction-source" ||
-      command.kind === "set-redaction-style"
-    ) {
-      refreshToolbar();
-    }
+      command.kind === "set-redaction-style";
+    if (overlayOnly) refreshToolbar();
     syncEditorControls(root, state, copy, lastBackgroundColor, lastWallpaperDataUrl);
     backgroundTabs?.update(captureBackgroundMode(state.background), root.dataset.state !== "editing");
-    renderCanvas();
+    const canvas = root.querySelector<HTMLCanvasElement>(".pdsh-capture-canvas");
+    if (overlayOnly && canvas) {
+      mountCaptureRegionLayer(root.querySelector(".pdsh-capture-canvas-frame"), canvas, currentRenderState(), automaticCandidates, copy, dispatchRegion);
+    } else {
+      renderCanvas();
+    }
     updateHistoryControls(root, state);
   }
   function refreshToolbar(): void {
     const toolbar = root.querySelector<HTMLElement>(".pdsh-capture-toolbar");
     if (!toolbar) return;
+    const memory = rememberCaptureWindowRender(root);
     const template = document.createElement("template");
     template.innerHTML = captureToolbarTemplate(state, copy).trim();
     const replacement = template.content.firstElementChild;
     if (!(replacement instanceof HTMLElement)) return;
     toolbar.replaceWith(replacement);
     wireToolbarActions(root, dispatch, dispatchRegion, editorViewport);
+    restoreCaptureWindowRender(root, memory);
   }
   function selectBackgroundMode(mode: CaptureBackgroundMode): void {
     if (destroyed || root.dataset.state !== "editing" || mode === captureBackgroundMode(state.background)) return;
