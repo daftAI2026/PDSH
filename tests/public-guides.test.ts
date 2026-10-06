@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖根指南、发布 skill、README 和许可。依赖 Node 文件与摘要接口。
- * [OUTPUT]: 验证指南边界、skill 导航、历史原文和头像致谢。
+ * [OUTPUT]: 验证指南边界、tag 渠道、skill 导航、历史原文和头像致谢。
  * [POS]: tests 的公开文档合同。不运行宿主或联网。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -73,6 +73,20 @@ test('项目发布 skill 可发现，按需引用和局部地图指向真实文�
   for (const relative of references) {
     assert.ok((await read(directory + 'references/CLAUDE.md')).includes(relative.slice('references/'.length)));
   }
+});
+
+test('公开规则与项目 skill 都默认只打 tag，不推断 Release 授权', async () => {
+  const publishing = await read('PUBLISHING.md');
+  const stable = await read('.agents/skills/pdsh-release-lifecycle/references/stable.md');
+  for (const text of [guide, publishing, stable]) {
+    assert.ok(text.includes('GitHub Release 默认关闭。'));
+    assert.ok(text.includes('“发版”只授权 main 与稳定 tag。'));
+    assert.ok(text.includes('只有另行明确授权才创建 GitHub Release。'));
+  }
+  const currentContract = publishing.split('<!-- pdsh:legacy-release-contracts:start -->')[0];
+  assert.ok(!currentContract.includes('GitHub Release 页面可选'));
+  assert.ok(publishing.includes('[update-source.ts](src/client/update-source.ts)'));
+  assert.ok(publishing.includes('[updater.ts](src/client/updater.ts)'));
 });
 
 // -------------------- 开源致谢 --------------------

@@ -6,7 +6,22 @@
 -->
 # PDSH 分发与验收
 
-PDSH 通过 GitHub 仓库作为一个 Harness Bundle 安装。普通用户在官方插件页填写项目链接，安装默认分支；不需要 Git 命令、npm 账号或另装截图助手。稳定 tag 是固定版本与插件内更新提示的锚点，GitHub Release 页面可选。`package.json.version` 是唯一手写版本，运行产物预构建后提交，不在用户安装时编译。
+PDSH 通过 GitHub 仓库作为一个 Harness Bundle 安装。
+普通用户在官方插件页填写项目链接。
+管理器从默认分支安装。
+用户不需 Git 命令、npm 账号或另装截图助手。
+稳定 tag 是插件内升级的版本锚点。
+GitHub Release 默认关闭。
+“发版”只授权 main 与稳定 tag。
+只有另行明确授权才创建 GitHub Release。
+
+更新来源见 [update-source.ts](src/client/update-source.ts)。
+它只读 GitHub tags API，不读 releases API。
+更新决策见 [updater.ts](src/client/updater.ts)。
+它比较稳定 SemVer，并安装 tag 对应的固定 SHA。
+Release 页面与附件不是升级依赖。
+`package.json.version` 是唯一手写版本。
+运行产物预构建后提交，不在用户安装时编译。
 
 DSH 宿主升级引发接口或布局变化时，使用项目内 [pdsh-host-compatibility skill](.agents/skills/pdsh-host-compatibility/SKILL.md) 先评估再适配。`pnpm compat:assess` 提供只读源码触点盘点，不操作 DSH、不认证兼容；skill 和工具都不是 PDSH 自身更新安装器，也不替代下列发布与实机验收门。
 

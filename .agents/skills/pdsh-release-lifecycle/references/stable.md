@@ -1,5 +1,5 @@
 <!--
-[INPUT]: 依赖稳定 manifest、最终归档、分层回执与本次发布授权。
+[INPUT]: 依赖稳定 manifest、tag 到 SHA 的更新链路及本次发布授权。依赖最终归档与分层回执。
 [OUTPUT]: 完成清洁 main、稳定 tag 和远端回读。不升级已安装插件。
 [POS]: release-lifecycle 的稳定分支。复用 release:check，不另建发布系统。
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -13,7 +13,13 @@
 新发现的代码 blocker 先修复，不归入旧例外。
 同意私人文档发布不等于同意公开代码发布。
 公开发布不等于 live Desktop 安装或重启授权。
-npm 保持关闭；GitHub Release 页面按任务决定。
+GitHub Release 默认关闭。
+“发版”只授权 main 与稳定 tag。
+只有另行明确授权才创建 GitHub Release。
+npm 保持关闭。
+默认不创建 Release 页面或上传附件。
+更新入口只读 tags API，再安装固定 SHA。
+main 提交或 Release 页面不能替代稳定 tag。
 
 RC 通过不意味着正式归档通过。
 在稳定源码中提交同源功能，不反向复制 RC staging。
@@ -64,18 +70,19 @@ Mac universal 与 Windows x64/asInvoker 分别核对。
 不要使用 `--force`、`--no-verify` 或移动旧 tag。
 推送结果未知时先读回 refs，不盲目重发。
 
-## Release 与最终核对
-
-本次需要 Release 页面时，使用已经推送的 tag。
-说明新增能力、升级加载边界与未验项。
-附件只上传已验最终 tgz，不重新打包另一个字节版本。
-创建结果未知时先读回页面与附件，避免重复创建。
+## 远端闭环
 
 远端回读 main、tag 及实际提交 SHA。
-核对 Release 正文、附件名，并下载附件比较摘要。
-不以 HTTP 成功、上传成功或 tag 名字代替字节回读。
+从生产使用的 tags API 核对版本与 commit.sha。
+核对 updater 会选中该稳定版本及固定 SHA。
+这个只读结果不证明实际 Desktop 升级完成。
 检查本次 SHA 的 CI；未触发就是未触发，不写成功。
 最后回读本地 status 与远端 refs，再报告已发布。
+
+仅当用户另行点名创建 GitHub Release，才建立页面。
+附件只上传已验归档，并下载回读摘要。
+结果未知时先读回，不盲目重复创建或上传。
+误建页面时只撤销自有页面与附件，不删除稳定 tag。
 
 原话、命令结果和例外回执发布到私人证据仓。
 私人发布须获取 owner lock，只提交本任务文件。

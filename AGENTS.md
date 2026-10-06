@@ -437,6 +437,10 @@ L2/L3 必须带固定 PROTOCOL 行。
 - `package.json.version` 是唯一手写版本。
 - 根 runtime、公开声明和包元信息必须同源生成。
 - stable tag 使用 `v<version>`，旧 tag 不改、不删。
+- 插件详情从稳定 tag 解析固定 SHA。
+- GitHub Release 默认关闭。
+- “发版”只授权 main 与稳定 tag。
+- 只有另行明确授权才创建 GitHub Release。
 - 公共简介与 Topics 由 `PUBLIC_METADATA` 声明。
 - 比对脚本不能证明产品描述真实。
 - 功能或验收边界变化时人工检查 README 和元信息。

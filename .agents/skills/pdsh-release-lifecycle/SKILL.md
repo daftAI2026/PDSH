@@ -3,7 +3,7 @@ name: pdsh-release-lifecycle
 description: 准备、验收或发布 PDSH RC 与正式版，核对候选身份、实际运行版本、独立验收门及 RC 恢复。用于发版、RC 共存测试和接手续做发布；宿主 API 迁移使用 pdsh-host-compatibility。
 ---
 <!--
-[INPUT]: 依赖根指南、PUBLISHING、现有打包和 Host 验收入口。依赖本次授权与安装件证据。
+[INPUT]: 依赖根指南、PUBLISHING、tag 更新链路及现有验收入口。依赖本次授权与安装件证据。
 [OUTPUT]: 给出绑定安装件的验收、恢复与发布决定。不建立第二安装器或验证器。
 [POS]: 项目级 RC 与正式版生命周期入口。只编排现有工具，不随插件分发。
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -19,6 +19,9 @@ description: 准备、验收或发布 PDSH RC 与正式版，核对候选身份�
 再读 `package.json`，以脚本定义为准。
 本 skill 不保存版本表、候选进度或发布授权。
 历史原话与结果只在私人文档查阅。
+本项目默认只推 main 与稳定 tag，不创建 Release。
+更新入口读 tags API，再按固定 SHA 安装。
+“发版”不等于创建 GitHub Release 的单独授权。
 
 - 只检查进度：只读，不构建、安装或发布。
 - 制作或验证 RC：按需读 [RC 流程](references/rc.md)。
