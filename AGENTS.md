@@ -1,201 +1,469 @@
 # PDSH Agent Guide
 
-This is the project constitution for PDSH; root `CLAUDE.md` links here. Module `CLAUDE.md` files map the TypeScript source and tests. Private research evidence belongs in the private `daftAI-project-docs/pdsh/` repository.
+本文件是所有 Agent 与 AI 的项目指南。
+根 `CLAUDE.md` 是本文件的相对符号链接。
+模块 `CLAUDE.md` 只描述局部结构。
+
+禁止加入会话进度、验收流水和版本逐次记录。
+其他 Agent 与 AI 必须遵守此边界。
+任务原话、实验、故障和发布例外归入私人文档。
+私人文档目录为 `daftAI-project-docs/pdsh/`。
+只有长期架构、安全边界或协作流程变化才修改本指南。
+单次实验结论不自动成为长期规则。
 
 ## Project
 
-Public code repository: `https://github.com/daftAI2026/PDSH` (uppercase repository name). The stable npm package identifier remains lowercase `@daftai/pdsh`; it is not published to npm. A user-requested temporary local RC artifact uses `@daftai/pdsh-rc` / `pdsh-rc`, never renames the stable package, and is enabled only after disabling stable. RC has independent settings/editor preferences and no stable updater; uninstall only RC after testing, then re-enable stable. This is a test-channel identity exception, not a second production capability bundle.
-
-PDSH means Private DeepSeek Harness; public display names are `DSH 私密模式` / `DSH Private Mode`. The brand does not imply that isolation is implemented.
-
-PDSH adapts InCodex's presentation features to DeepSeek Harness Desktop. Harness is the host; PDSH remains one out-of-tree Cordis Bundle with one `pdsh` root Config. Version 0.4.0 includes detected-region interaction, tool/source state and symmetric editor insets. After the incomplete Desktop acceptance was disclosed, the user explicitly requested v0.4.0 so the own update badge can discover it. This version-specific release exception does not authorize updating the live Desktop. Native PNG candidate-origin/export alignment and the exact final Desktop artifact remain outstanding. Version 0.3.5 retains the official manager and fixed Git source, retrying once only after a confirmed pre-install Git timeout and distinguishing confirmed network failure from unknown installation outcomes. Version 0.3.4 adds a capture implementation instance/version integrity guard without changing the stable shell or Remote ABI. Version 0.3.3 adds a stable Remote shell and complete versioned capture/save implementation, allowing compatible payload updates to activate without changing settings or restarting after the one-time bridge bootstrap. Version 0.3.2 revalidates accepted capture settings at each Remote operation, fixing a mounted service latched off while its Config owner is still loading; disposal remains terminal. Version 0.3.1 strengthens capture-configuration readiness and installation feedback without changing the native Host implementation. Version 0.3.0 replaces DOM page rasterization with native capture of the unique ordinary DSH window, including its frame, over the official Remote. Its distribution includes macOS 14+ arm64/Intel and Windows 10 1903+ x64 helpers. Final Desktop UI and Windows real-machine acceptance remain separate from source, archive and isolated Host checks. The user approved Windows distribution before real-machine acceptance. The version-specific exceptions below do not carry to future releases. PDSH does not isolate sessions, open another DeepSeek instance, transfer credentials, erase history, or provide a privacy guarantee.
-
-The InCodex repository at `../incodex` is the reference for product behavior and safety invariants, not a template to copy wholesale. Its `AGENTS.md` was used as the starting convention for this guide; Codex-specific commands and assumptions do not apply here.
-
-## Product direction
-
-- Keep the official DeepSeek Harness app and normal launch path. Prefer its documented plugin interfaces; do not patch or re-sign the app for the standard PDSH installation.
-- Stay in the existing window. A screenshot workbench is now in scope; no CLI product, second app instance or session/burn module is needed.
-- UI language follows Harness Settings → General → Language through `ctx.locale`; metadata comes from exported `locale/*.json`. Never translate the user's configured nickname or add a second language store.
-- Use the official Plugins page for settings and the Host settings document for persistence. Switches and avatar source actions persist immediately; nickname owns a local draft committed by check/Enter; avatar/source always persist atomically; do not persist credentials or real account data.
-- Trace every visual rule to the upstream file, selector and variable in `style-sources.json`. Use semantic `--dsw-*` colors/radii, native React primitives, and runtime-computed native stroke geometry. No numeric color/geometry fallback or copied CSS Modules hash.
-- The avatar-source control has a visible label. React settings and update controls use Host `Tooltip` with the Desktop icon parameters; the DOM-only sidebar/workbench controls use one disposable adapter with the same delay, placement, gap and theme tokens. Do not fall back to browser `title` bubbles.
-- Identity replacement is only a visual overlay (or preserve the native account avatar when explicitly selected) on a uniquely recognized rc.2 sidebar launcher. Keep its native button, account nodes, menus and sign-in/out semantics. Do not mask signed-out More, full settings, account data, model payloads or logs. Unknown/multiple identities skip replacement; this is not a fail-closed privacy system.
-- The hat entry toggles accepted Host `maskTitles` directly, without a menu or settings navigation. The exact search-icon-adjacent location has no supported child slot; do not claim it does. Settings stay in the official Plugins page. Retire legacy `frames`; do not reinterpret old values as title masking.
-- Version 0.3.0 uses bundled macOS and Windows x64 owned-window helpers and the official Typert Remote stream. It includes native window borders as expressly accepted; do not call it current-page capture. Mount/enable never request recording permission or pixels. The first explicit capture checks/request permission and the user decides; human authorization has no page timer. Startup/capture phases remain bounded and cancellation/disposal join actual settlement. No DOM redraw, Main injection, Inspector, CDP, ASAR patch, re-signing or HTTP pixel/save route is mounted. Ordinary Cordis plugins remain mutually trusted; a UI click is not a Host ACL. Screenshot pixels never become settings or logs. The 0.4.0 candidate maps DOM suggestions only for Mac Electron 44.0.0 rc.2 full-window geometry, equal renderer/native scales and stable before/after bounds; unknown layouts return no suggestions. This condition is a researched zero-origin assumption, not an accepted native PNG alignment proof. Manual redaction and best-effort pre-capture visual masking remain available. The user-approved 0.4.0 tag retains the native alignment acceptance gap; it does not certify privacy or waive later release gates.
-
-- The 0.3.0 workbench uses the Host rc.2 `SegmentedControl` for mutually exclusive None/Color/Gradient/Image modes. The accepted background owns mode selection; switching immediately applies each category's last in-workbench material. Keep four stable ARIA-linked panels, hide/inert inactive ones and exclude them from modal focus traversal. Empty None panels do not add a focus stop. Do not repeat category headings; show every gradient without expansion controls. Keep the custom-color pipette visible even when selected; thin only the selection ring, not the keyboard focus outline. Built-in wallpapers and local uploads remain; machine-wallpaper integration is deferred and must not appear without a real adapter. No Base UI/Tailwind runtime dependency is added.
-- The workbench UI inherits DSH semantic `--dsw-*` theme, typography, radius, shadow and motion tokens. Editor-produced gradients, wallpaper pixels, color spectrum and transparency checkerboard are content, not theme chrome. No inherited Codex theme classes or numeric fallback theme colors; trace DSH tokens to `style-sources.json`.
-- Prove an isolated DSH home **and** Electron user-data root before claiming a private window. The app has a single-instance lock; a second independent instance is a hypothesis until tested against the exact build.
-- Never modify or delete the user's primary `~/.dsh` profile, sessions, credentials, or Chromium data while prototyping isolation.
-- Do not claim forensic privacy. Define which histories, requests, tool outputs, logs, and files the privacy contract covers, then test those paths separately.
-
-## Reuse boundary
-
-Preserve the behavior and tested invariants from InCodex: private session directories, exclusive creation, symlink and path-escape rejection, owner/PID identity checks, uncertain-state retention, close-time cleanup, icon assets, localized copy, and the relevant regression tests. Reuse one Host-language implementation after the Harness lifecycle is known; do not port both Rust and Electron copies by default.
-
-Do **not** import InCodex's `CODEX_HOME`, Codex `auth.json`/`config.toml`, ChatGPT bundle paths, ASAR patching/signing, Codex DOM selectors, IPC channels, or profile-masking assumptions. DeepSeek account state and configuration require their own explicit, reviewed adapter.
-
-## Repository map
-
-- `.agents/skills/pdsh-host-compatibility/`: Project-local, self-contained DSH host compatibility skill; use for host-upgrade impact assessment and authorized source migration, not ordinary PDSH update installation. It reuses project contracts and tests, never enters the runtime bundle or installs upstream skills.
-- `.githooks/`: Versioned pre-push stable-tag gate; enabled through local core.hooksPath after checking existing hooks. It refuses immutable stable-tag replacement/deletion and runs release:check for new stable tags; ordinary branch/RC pushes are unaffected. This is a local safeguard, not a server rule.
-- `docs/`: User-authorized README demonstration artwork; not an acceptance receipt or runtime dependency.
-- `.github/workflows/`: Pinned Windows SDK build job for the x64 helper; artifact output is not Desktop acceptance and never auto-publishes.
-
-- `tools/`: Official Typert generator workspace adapter and pinned build-only protocol reference; never a runtime dependency or archive member.
-- `lib/`: Generated Host/Remote faces and public DTO declarations, committed for ordinary Git/local installs.
-- `native/`: Package-local macOS universal helper and Windows x64 backend; explicit invocation only, includes accepted native window chrome. Windows source checkpoints may precede the CI-built executable, but archive/release gates must refuse a missing executable.
-- `src/host/`: Cordis configuration and stable Remote shell; `build.ts` emits root `index.js` plus the versioned `lib/capture-runtime/` capture/save implementation. Compatible implementation updates load on the next operation without toggling the Bundle or editing settings. The bridge itself must first be loaded normally; cached pre-bridge releases cannot acquire this capability retroactively. Config schema and Remote ABI remain a separate restart boundary.
-- `src/shared/`: validated display preferences and Host-language dictionaries shared by both runtimes.
-- `src/client/`: TypeScript React settings, detail-badge updater, lifecycle assembly, sidebar adapters, capture workbench, CSS and artwork. `build.ts` emits root `client.js` and map in lazy-CJS format.
-- `tests/`: TypeScript contracts for configuration, DOM recognition, lifecycle, settings, localization, style provenance and generated entries.
-- `locale/`: exported zh/en package metadata, available even when disabled.
-- `README.md`: public product contract and installation; `PUBLISHING.md`: channel/release gates; `style-sources.json`: upstream visual rule provenance.
-- `check-release.ts`: rejects stable tag/version/generated-artifact drift, local public-copy drift, GitHub About/homepage/Topics mismatch, and dirty release trees; `package.json.version` is the sole authored version. Network/auth failures fail the release gate rather than skipping it.
-- `tools/release-metadata.ts`: PUBLIC_METADATA owns the public short copy/topics; explicit local/GitHub sync preserves version/settings, checks are read-only. Package description, exported locale metadata and the single README description block must match it. Prose outside that block still requires human feature/compatibility review.
-- `tools/assess-host-compatibility.ts`: Read-only PDSH host touchpoint inventory via compat:assess; scans explicit source/build inputs, reports declared dependencies/imports and heuristic locations without exposing source snippets. It never installs, runs the host, or certifies target compatibility; skipped/truncated input remains visible.
-- `package.json`/`pnpm-lock.yaml`: bundle manifest and reproducible dependencies; `cordis.patch.yml`: the sole Cordis insertion layer.
-- `bundle-artifacts.ts`: verifies the single Bundle entries, packaged helper and generated Typert faces, macOS universal/minimum-14 and Windows x64/asInvoker headers, archive allowlist, real tgz members/types/bytes and sole root version; no network or installation side effects.
-- `tools/pack-rc.ts`: Explicit public-source staging and same-source RC build/validation; never installs into a live profile.
-- `build.ts`/`tsconfig.json`/`tsconfig.remote-types.json`: TypeScript-to-Host build and source typecheck; runtime JavaScript and public declarations are generated, not separately authored.
-- `plugin-icon.svg`: generated manifest artwork; `THIRD_PARTY_NOTICES.md` and `LICENSE`: distribution notices.
-- `main.cjs`: retired generated Main experiment, excluded from the manifest and installed runtime; current build never regenerates or imports it.
-- `AGENTS.md`/root `CLAUDE.md`: one project constitution; module `CLAUDE.md` files are navigational maps, not competing policy sources.
-- `verify-host.ts`: isolated exact-Host PluginManager/Typert Loader installation, Settings, Client graph and service/descriptor lifetime acceptance (not capture transport or Desktop UI); only owns temporary profiles, not a product installer.
-- `output/` and `node_modules/` are generated/ignored. Root index.js, client.js/map and generated Typert faces/native helper are committed for Git/local installs; hand-authored behavior stays in TypeScript. No component dependency packages, installation hooks or tracked node_modules remain.
-
-## Component composition
-
-- Keep one installable `@daftai/pdsh` Bundle, one `pdsh` Cordis Host and one root Client. The latest user clarification rejects three feature dependency packages: identity, title masking and capture are internal functional modules, not separately installed packages. The official component count is the number of Cordis runtime entries, not React sections; never fabricate three runtime rows or ACTIVE states.
-- Preserve the successful root package/id/namespace and existing nickname/avatar/maskIdentity/maskTitles configuration addresses. `captureEnabled` independently controls camera/editor/stream lifetime. All settings use one accepted `pdsh` form and official revision fence. Functional sections retain localized names; no package paths appear as UI labels.
-- `src/client/client-entry.tsx` assembles one settings/style/locale/update lifetime. `component-runtime.tsx` separately owns identity, title and capture controllers. Disabling identity restores only its overlays and retains alias preferences; disabling titles restores only permanent gray markers; disabling capture cancels work and releases editor/streams/notices while the other features continue. Ordinary switches require no restart. Bundle disable disposes all owned resources.
-- Capture reuses identity/title recognizers and the same gray-bar rule without enabling their permanent effects or writing their preferences. A temporary mask restores only attributes it still owns. The official capture namespace is internal infrastructure, not a fourth UI feature or an identity/title requirement.
-- The official Plugins detail presents identity/avatar/nickname first, title masking second, and capture settings third. Reordering does not move configuration ownership or change persistence.
-- Official Plugins capture settings own `captureMaskIdentity` in the accepted root Config (default `true`); every first capture and retake reads it afresh. It is independent of resident `maskIdentity` and workbench-local `privacyEnabled` title pre-masking. When enabled, only the uniquely recognized sidebar launcher’s visible avatar, native name, and PDSH `[data-pdsh-name]` overlay are temporarily obscured; account/nickname settings remain untouched.
-- The workbench's 29 local SVG glyphs and sidebar camera track canonical Lucide 1.51.0 paths pinned in `style-sources.json`; no runtime icon library is added and Host-native controls are not replaced. Size, stroke and opacity remain owned by the live DSH icon probe. Spectrum pointers are content geometry (28px white-ring reference), not Host buttons.
-- `capture/editor-viewport.ts` owns fit/pan and frame-coalesced transforms; zoom remains in the editor model. Wheel, toolbar and percentage share that state, never DOM text. View-only gestures must not recompose source pixels or apply an easing transition; dispose cancels pending frames and pointer state.
-- `src/host/index.ts` declares the sole Config and Settings owner. Capture contributes one internal `pdshWindowCapture` service with namespace `pdshNativeWindowCapture`; its two stream methods acquire the owned window or receive editor bytes for local saving; a read-only unary implementationVersion verifies the current versioned runtime. Volatile captureEnabled revocation cancels capture/save without restarting identity/title. Save reads accepted root preferences, validates bounded input and commits exclusively; Client never supplies an arbitrary path or basename. Host/Client Typert faces must be generated through the official generator, not handwritten descriptors.
-
-- `update-badge.tsx` uses the supported plugins.detail.badge slot only for this Bundle. updater/update-source own explicit reviewed-SHA installation; no second installer, background poll or preference-backed update state. The search-adjacent hat/camera use version-specific disposable DOM adapters, not a supported child slot. Preserve native search behavior, live geometry, expansion/fold handling and ambiguous-structure refusal.
-- Required independent gates: source/unit contracts, built archive, exact Host Manager first install/hot enable, root-config compatibility, real Desktop rendering/toggles and actual native capture. A pass in one is not a pass in another. No resolver takeover, app patch, profile edit or exotic-subdependency-policy relaxation is allowed.
-
-## Workflow and safety
-
-1. For plugin mechanics, read the [official first-plugin guide](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/) and [bundle/install guide](https://deepseek-harness.github.io/deepseek-harness/en/develop/basic/publish) for the target version. `dsh plugin add` installs a bundle; it is not a project generator.
-2. Develop against a disposable profile first. Do not install this scaffold into the user's live `desktop` profile merely to smoke-test packaging.
-3. Git pushes do not update installed packages. Use the official manager with a new reviewed Git SHA, preserve configuration, honor the Host-reported loading/restart boundary after replacing an existing package; ordinary feature toggles remain restart-free. Never bypass Electron-exclusive Desktop management through the external CLI.
-4. Start behavior changes with a failing contract test; then implement and verify the exact Desktop build. A successful package archive does not prove a working UI contribution or isolation.
-5. Keep `apply` lifecycle-managed. When adding subscriptions, windows, timers, or IPC, register disposal and test unload/restore. Fail closed on ambiguous ownership before cleanup.
-6. Treat each external plugin as trusted executable code; inspect the bundle and explicit dependencies before installing. Never silently copy credentials into a temporary profile.
-7. Ordinary private research and decisions belong in the private docs repo, published with its `private-docs-publish` skill and repository write lock. Do not place private user data here.
-
-## Desktop debugging
-
-Prefer an already enabled loopback CDP connection. Do not activate or steal the user's foreground window; do not silently restart Desktop just to enable CDP. A Host HTTP listener is not a CDP endpoint. If CUA is unavailable and CDP is not enabled, background inspection may establish the remaining gap, but cannot substitute for real Desktop verification.
-
-Use the installed build-macos-apps `swiftui-patterns` skill as a desktop-interaction reference for editing, cancellation, focus and discoverability, not as a framework dependency. Harness owns the settings surface, controls, persistence and commands; do not add a SwiftUI window, AppStorage, a second settings store or global shortcuts merely to mimic native macOS.
-
-## Public metadata and stable-tag gate
-
-Before a stable release, review actual feature/platform/acceptance changes against PUBLIC_METADATA and README. A script compares copies; it cannot prove a sentence is true. Update the canonical metadata, run metadata:sync, then explicitly metadata:sync-github and metadata:check-github. These commands do not commit, tag, publish or install. Commit intended changes; release:check requires clean main, matching generated artifacts/version/docs and read-back of GitHub About/homepage/Topics. Keep existing tags immutable; metadata changes after a published tag belong to the next version, not a retag.
-
-The versioned pre-push hook must be enabled in a development clone only after checking that core.hooksPath has no user-owned configuration and the default hooks directory has no active user hooks (or the path already equals .githooks). Do not overwrite or shadow other hooks. The local hook guards new stable-tag pushes with release:check and refuses stable-tag replacement/deletion; --no-verify or another clone can bypass it, so do not describe it as GitHub server enforcement. No installation hook, automatic metadata write or live DSH update is added.
-
-## 0.4.0 release contract
-
-The feature work is merged and obsolete merged branches/worktrees are removed after preserving ignored evidence. The user explicitly requested the stable v0.4.0 tag, after native alignment and final Desktop gaps were disclosed, because the own detail badge discovers stable tags rather than main commits. Publish this version with those gaps visible; do not locally install, click update or restart DSH. This is a 0.4.0-only exception, not evidence of passed Desktop or Windows acceptance and not a waiver for future releases.
-
-Preserve 0.3.5 fixed-SHA updater/limited retry, accepted-Settings readiness and versioned Host fences. RC identity transforms only temporary staging; stable Config/Remote addresses remain compatible. Source/type tests, generated entries, the current archive and exact Host isolated installation/versioned runtime checks remain required. Existing RC9 UI and browser production-compositor PNG checks are separate evidence; native candidate-to-final-PNG alignment, exact final Desktop artifact, current dark theme and Windows real-machine acceptance remain outstanding. Keep README/PUBLISHING and L3 honest about the zero-origin assumption. On clean main run release:check, then push the reviewed commit and v0.4.0 together; never move old tags or delete user profile data.
-
-## 0.3.0 active product boundaries
-
-Native helper 分发使用保留执行位的 `npm pack --ignore-scripts`，由 `pnpm run bundle` 统一调用；归档必须验证 helper 为 0755，而非只比源文件权限和字节摘要。不用 bin、安装脚本或运行时 chmod 修补包装错误。
-
-截取失败需沿用官方 logger 与固定结果码白名单，通用取像提示附同码，方便区分 Host 撤权、Remote 失败和像素拒绝；不得记录像素、路径或原始异常。诊断候选不是已修复或实机验收通过的声明。
-
-Version 0.3.0 replaces retired DOM/Inspector/Main routes with native owned-window capture over the official Remote. Native `pointPixelScale` controls editor geometry; page DPR and `innerHeight` do not prove whole-window size. Targets are macOS 14+ arm64/x64 and Windows 10 1903+ x64; other platforms expose no capture provider. The Windows helper must be a real MSVC-built executable in the package. A successful helper build or archive check does not prove installed Windows behavior. The helper runs out of process; it does not patch or re-sign Harness.
-
-Installation and enablement do not start capture or request permission. The first explicit capture lets the operating system handle any required authorization. Permission rejection/revocation, macOS signing continuity and abrupt process exit during save remain unverified edge cases. The user approved leaving those cases outside the 0.3.0 release gate; this is not evidence that they passed. A normal user cancellation must not report success or overwrite an existing file. If the connection ends after commit may have started but before receipt, report the result as unknown and ask the user to inspect the directory, not to retry automatically.
-
-Save retains `saveBehavior` ask/direct, accepted full `saveDirectory`, PNG/JPEG/WebP and basename template. Ask uses the official directory picker then revision-fenced Settings acceptance; it is a folder chooser, not a native filename Save dialog. Direct uses the accepted directory without a new prompt. Both send bounded ordered bytes via the same namespace uplink with per-chunk ACK, finish/hash and half-close; Host derives the basename and uses fsync/close/exclusive commit with automatic numbering and no overwrite. Only a verified commit receipt followed by natural stream end reports saved. PNG clipboard stays independent. Do not add another installer, settings store, local server or bridge to export bytes.
-
-## 0.3.5 release contract
-
-First-attempt update failures were diagnosed against the exact rc.2 Manager and live Git logs: its GitHub Git preflight times out after 5000 ms before PNPM; the old updater discarded the structured failure and displayed an unknown result. The user chose one automatic retry. Keep the fixed Git SHA source and repeat only when the official Remote confirms changed=false, application=failed, failedAt=spec-host and packageResult.kind=timeout; recheck own installed version before retry and stop on disposal. Maximum two attempts including the original. PNPM/network failures, unknown transport outcomes, changed state and cancellation must not be automatically reinstalled. Only confirmed failed unchanged results may display the typed failure whitelist; other results retain conservative messaging. The explored fixed-SHA GitHub archive alternative passed an exact official download experiment but is not combined with this selected product path.
-
-## 0.3.4 release contract
-
-The user explicitly authorized a new remote stable version to test the own update badge. This candidate changes the actual versioned capture implementation, retaining 0.3.3 Config, Remote descriptors, stable-shell source and runtime dependencies. Regression must fail on 0.3.3 and pass on this payload. Publish only after full source/build/archive and exact-Host gates; then measure 0.3.3 to 0.3.4 through the own badge with unchanged Main/Host process starts, no Bundle/camera toggles and direct capture. The earlier 0.3.2 to 0.3.3 remote upgrade needed one normal bootstrap load and is not a hot-upgrade pass. Live remote 0.3.3 to 0.3.4 passed direct native-window capture and actual JPEG commit with unchanged Main/Host process starts and settings; the current Client required the actual 0.3.4 implementationVersion before either operation. This is compatible payload replacement, not Config/Remote/stable-shell/dependency hot replacement or Windows/general Desktop acceptance.
-
-## 0.3.3 release contract
-
-The user explicitly requires remote-tag installation through the plugin's update badge for this experiment; local archive installation is supporting evidence only. This bootstrap adds a stable Remote shell, a versioned complete capture/save payload, actual implementationVersion verification, and automatic read-only activation on Client assembly/update completion. It never toggles user preferences, silently installs, captures on mount, patches Harness or changes private module caches. Compatible payload updates settle the old runtime before swapping; Config schema, Remote ABI and stable-shell changes remain normal-restart boundaries.
-
-0.3.2 and earlier require one normal bootstrap restart to first load this shell. Do not count that preparation as a no-restart upgrade pass. Full source, current archive and exact-Host gates precede this explicitly authorized remote-update test release. The initial remote-update/capture gate was subsequently closed by the recorded 0.3.3 to 0.3.4 live run; first bootstrap is not a no-restart pass. Windows real-machine and general Desktop acceptance are not implied.
-
-## 0.3.2 release contract
-
-The user explicitly authorized this small official-update experiment and live installation of 0.3.2 to validate the capture repair. Settings Forms only exposes ACTIVE owner fibers; a child service can mount while its owner is still LOADING. Revalidate accepted captureEnabled before capture/save reads the generation signal, keep owner-scoped volatile cancellation for in-flight work, and never revive a disposing/disposed instance. No polling, second settings store, module-cache manipulation or new loader is added; helper bytes and runtime dependencies remain unchanged.
-
-Require regression red/green on the actual generated Host, full tests/build/archive and exact-Host isolated official-manager installation before main/tag publication. Then separately record live official upgrade, normal restart to load changed Host code, and Bundle disable/re-enable plus capture with unchanged Main/Host PIDs. This is scoped update-path testing, not a claim of arbitrary Host HMR, full Desktop/Windows acceptance or a future release waiver.
-
-## 0.3.1 release contract
-
-The user explicitly authorized a small main/tag release to test the official update path. This Client-only patch gates capture activation and writes on complete accepted settings and retains received install/restart/failure feedback across installed-manifest version changes within the same controller. Native Host source, helper bytes and runtime dependencies stay unchanged. Keep the single Bundle, entry name and existing Config address; do not introduce versioned entry names or a parallel installer to evade Host caching.
-
-Run frozen dependency installation, tests, build, archive checks and exact-Host isolated official-manager installation before publishing. This authorization is for update-path testing, not a claim of full final Desktop or Windows acceptance, arbitrary Host HMR, or a future release waiver. An old installed Client cannot retroactively display new reminder code before that Client has loaded; page/Fiber replacement can also lose a local install result. No one-click restart API is fabricated.
-
-### Upgrade runtime boundary
-
-The exact Desktop rc.2 manager requires restart when replacing an existing package, regardless of PDSH version numbers. Its `setBundleEnabled` / “Enable now” only reconciles configuration layers, not loaded module code. No public Desktop restart API is exposed; do not fabricate an action or use private Main/IPC to simulate one. Keep a returned `restart-required` outcome visible in the same running Client even when the installed manifest has already moved to the target version; show the official `Modal`, and dismissing it must retain the inline reminder. Controller disposal or page reload can lose its local installation result: this is not a cross-Fiber handoff and must not be claimed as one; `waitForInstall` alone cannot recover settled results. If an accepted form still lacks the capture fields, keep identity/title behavior independent, stop capture writes/activation, and explain the missing runtime configuration instead of guessing directory or OS permission failure.
-
-## 0.3.0 release contract
-
-0.3.0 is one Bundle, one `pdsh` Host root and one Client entry. It retains existing identity/title Config addresses and adds independent capture settings. The user scoped this delivery to merge and release; checking the 0.2.1 update indicator and subsequent Desktop upgrade is handed back to the user, not claimed complete or used to block this release. RC21 has macOS normal-capture/workbench interaction evidence, but that is not acceptance of the exact final installation package.
-
-The user explicitly approved distributing the Windows 10 1903+ x64 helper before a Windows DSH real-machine test. The archive must still contain the actual helper and pass binary/archive checks; the deferred Windows machine test is not an approval to omit it or call Windows behavior verified. For this version only, authorization rejection/revocation and abnormal exit during save are disclosed unknowns, not release blockers. Normal cancellation semantics remain required: no success result before a confirmed commit, and no overwrite.
-
-This approval applies only to 0.3.0. For later versions, source/type/unit contracts, generated Remote faces, archive contents, exact-Host installation/configuration compatibility and installed UI/native acceptance remain separate gates unless the user explicitly grants a new version-specific exception. Passing one gate does not imply the others.
-
-## 0.2.1 release contract
-
-0.2.1 corrects the source-label placement, nickname-row centering and capture/workbench error attribution alongside the available-update arrow presentation: `--dsw-alias-state-success-primary` owns its green color and the SVG root shares the existing entry artwork's 1.5 stroke. Keep native Button hover/focus behavior, Tooltip parameters and explicit installation confirmation unchanged. The OS pixel-acquisition route and native probe are retired. `viewport.ts` uses modern-screenshot to rasterize `documentElement` at current viewport size and DPR, preserving nested scroll positions; webfonts and local assets are embedded through a credential-free resource boundary. It rejects incomplete resources, visible unsupported embedded content, cancellation and viewport changes. Browser fixtures and injected-engine tests do not prove the installed DSH workbench.
-
-The released 0.2.1 camera remains gated to macOS Desktop while that target is being verified. This paragraph records the old stable implementation, not the current RC acquisition route. It snapshots the whole visible DSH webpage *before* showing the workbench, then supports local background composition, manual/recognized-region redaction, retake and PNG copy/save. Capture does not request OS recording permission or special CDP startup. Recognized-region suggestions are narrow; other pixels can contain sensitive data. The pre-capture placeholder is best-effort visual masking, not a forensic privacy promise. No system-wallpaper action appears without an adapter.
-
-The 0.2.0 version tag is published with an explicit installed-Desktop acceptance gap. Reused 0.2.0-rc.1 evidence covers source contracts, the authenticated route in an independent Web profile and execution of the packed native helper; it does not cover the installed workbench's theme, interaction, copy/save or permission-denied behavior. Keep this limitation visible in README and do not silently replace or restart the user's live Desktop to close it.
-
-Run `pnpm test`, `pnpm build`, `pnpm run bundle` and inspect archive membership and bundled dependency notices for each version. 0.2.1 is explicitly approved for tagging with the installed-Desktop acceptance gap disclosed: source contracts, bundle checks and browser rasterization evidence are not full Desktop acceptance. This is a version-specific release exception, not a waiver for later releases; full Desktop acceptance remains their normal gate. DOM rasterization fixtures, injected-engine contracts and installed Desktop tests are separate evidence; none alone proves the installed UI.
-
-## 0.1.1 stable release contract
-
-0.1.1 remains display-only: it masks recognized workspace titles, persisted session titles, the two-cell provisional New Session title, search result title/workspace leaves, and only owner-correlated HoverCard titles. The two-cell exception requires a nonempty `session:` row key, an empty leading slot and a text-only second span; malformed/ambiguous rows still skip. Original DOM text, native events, account state and profile data remain untouched.
-
-The hat immediately toggles Host `maskTitles`. The settings card has one heading and Switch per capability; avatar source actions persist atomically, nickname owns a local draft with check/Enter and Escape, and all writes respect Host acceptance and revision fences. Do not reintroduce a global Save, separate language store or session-isolation claim.
-
-The official version-adjacent badge slot probes updates when this Bundle's detail opens. A newer stable tag alone reveals the circular up-arrow; opening it exposes the source change and a separate install confirmation. No continuous polling or silent install occurs. `package.json.version` is the sole version source, `v<version>` is the GitHub distribution anchor, and npm remains private. A GitHub Release page is optional, not a bundle requirement.
-
-Run `pnpm test`, `pnpm build`, and `pnpm run bundle`; run TypeScript typecheck as part of tests. Fixture coverage is not Electron evidence. Validate the exact installed artifact through the official manager on a disposable profile before claiming Desktop compatibility; preserve account/profile data and any unsaved draft. The public README is a product/user guide, not an mvp-by-mvp chronological lab notebook.
-
-## Historical routes and current ownership
-
-RC10's split Git dependencies failed official PNPM exotic-subdependency policy; RC11 restored the single root bundle. Preserve root name/id and settings addresses. A connection.rpc handle is not a Cordis service, and current identity/title must not depend on capture namespace availability. Real Cordis tests cover namespace mount/withdrawal, feature combinations and resource restoration.
-
-Old Main/Inspector/socket capture/save files and their tests document a retired experiment. They are not runtime fallback or a shipped Main entry. Their successful unit tests do not prove the new native helper, and their first-entry/default-9229 limitation must not be reintroduced. Historical private research retains failures and original requirements; public user guidance describes the current product/candidate boundaries, not the chronological lab log.
-
-Host export validation retains the exact verified Canvas default sRGB ICC profile in JPEG/WebP so legitimate encoding preserves color. Unknown profiles, user EXIF/XMP/comments, duplicate/multipart profiles and animation remain rejected; a generic ICC parser or profile stripping is not a substitute for this boundary.
-
-Capture/export diagnostics use only allowlisted phase and request UUID; no pixel, path, title, account data or raw carrier errors. Output uses shared 32MP/128MB limits; capture has its own helper budget. Filename templates sanitize user title as content; only non-sensitive editor preferences persist locally. Directory/file I/O is Host-owned after accepted settings, not a privacy boundary against mutually trusted plugins.
-
-## Historical 0.3.0-rc.11 distribution acceptance
-
-RC10 regressed by replacing the working root entry with three Git subdependencies; the target DSH PNPM 11.7.0 rejects those sources with ERR_PNPM_EXOTIC_SUBDEP. The stable main branch's ordinary project URL installed through the same exact official Manager without a tag. RC11 therefore restored single-package distribution; no npm account, tag or user Git command is required. During that RC only rc/native-capture was pushed and stable main/tags stayed unchanged; current promotion follows the 0.3.0 release contract above.
-
-verify-host.ts installs into a fresh temporary profile through actual target PluginManager, Loader, Settings, ConfigEditor, PluginPackages and ClientModuleRegistry. Its HMR adapter only serializes operations, never fakes resolution or successful Fibers. Bind the installed version/runtime bytes and resolved Git SHA (or explicit tarball hash) to the candidate, then verify one root row/Client/brand, all eight functional-setting combinations, revision-preserving writes/restores and Bundle unload/restore. This is not real Electron UI or native pixel proof. The former Main first-entry route is retired; installation tests still do not prove the new native helper or editor/export.
-
-For ordinary installation, use the official Plugins page only; no manual config migration. Keeping root name/id preserves stable root-qualified overrides. Historical split/file-URL overrides may remain after uninstall and must not be assumed cleaned; investigate official behavior rather than editing primary profile files. Normal stable releases require exact installed UI and capture acceptance; the 0.3.0 exception is recorded above. A prior debug-injection success is not a product capability claim.
-
-## Remote transport trust boundary
-
-Official rc.2 Typert codecs project TS strings as unbounded `z.string()`. Host business validation bounds title/date/hash/chunks before writing, and the own Client sends one chunk per ACK; these do not bound pre-parse memory. The Host Gateway transport budget belongs upstream (100 MiB WebSocket message default, 256 KiB logical-stream inbox applied after parse). Do not claim plugin ACL or hostile-Client DoS protection, rewrite generated codecs, or introduce a second bridge to emulate that boundary.
+- PDSH 指 Private DeepSeek Harness。
+- 公开名称为“DSH 私密模式”及“DSH Private Mode”。
+- 代码仓库为 `https://github.com/daftAI2026/PDSH`。
+- 稳定包名为 `@daftai/pdsh`。npm 发布保持关闭。
+- 技术栈：TypeScript + React + Cordis + Typert。
+- 原生助手使用 Objective-C++ 和 Windows C++。
+- 目标宿主为 DeepSeek Harness Desktop `0.2.0-rc.2`。
+- PDSH 是一个外置 Cordis Bundle，不是独立应用。
+- 保留一个 `pdsh` 根 Config 和一个根 Client。
+- 身份、标题、截图是内部模块，不是三个依赖包。
+- 品牌不代表会话隔离或隐私保证。
+- `../incodex` 提供行为与安全参考，不是移植模板。
+
+## Product Direction
+
+### 产品范围
+
+- 在官方 Harness 窗口内提供视觉身份、标题遮挡和截图编辑。
+- 保留官方应用、正常启动路径和官方插件接口。
+- 设置留在官方 Plugins 页面。
+- Host Settings 是插件配置的唯一持久化来源。
+- UI 语言跟随 `ctx.locale`。
+- `locale/*.json` 提供停用时仍可读取的包元信息。
+- 不翻译用户昵称，不增加独立语言设置。
+- 开关和头像来源立即提交。
+- 昵称保留本地草稿，用勾选或 Enter 提交。
+- Escape 取消昵称草稿。不增加全局 Save 按钮。
+- 头像值与来源必须原子提交。
+- 头像来源控件保留可见标签。
+- 默认头像由 `blobatar` 在本地生成。
+- 保留 README 上游致谢及完整第三方许可。
+
+### 不做什么
+
+- 不实现第二应用实例、CLI 产品或会话销毁模块。
+- 不迁移凭据，不删除历史，不承诺取证级隐私。
+- 不改账号、模型请求、日志或原始 DOM 文字。
+- 不修改或重签 Harness 应用。
+- 不添加第二安装器、配置仓或像素传输桥。
+- 不为未知宿主或系统平台伪造 provider。
+- 不把候选 RC 能力写成已发布稳定能力。
+
+### 功能取舍
+
+新增功能前确认四点：
+
+1. 功能属于现有内部模块。
+2. 官方接口能表达它，且不扩大权限。
+3. 生命周期、取消和卸载能独立验证。
+4. 用户能识别操作结果及未验边界。
+
+先复用已有模型、错误码、logger、工具和状态范式。
+不复制实现，不为假想需求新增抽象或设置。
+InCodex 的所有权与路径安全约束应按目标场景保留。
+不复制 Codex 目录、凭据、IPC、DOM 选择器或补丁路径。
+
+## Repository Map
+
+| 路径 | 职责与边界 |
+| --- | --- |
+| `AGENTS.md` / `CLAUDE.md` | 单一项目指南；保留根符号链接。 |
+| `src/host/` | 唯一 Config、Remote 壳及版本化业务实现。详见局部地图。 |
+| `src/shared/` | 两端共用的偏好、文案、DTO 和预算。 |
+| `src/client/` | React 设置、更新入口和独立功能生命周期。 |
+| `src/client/capture/` | 工作台状态、背景图库、合成和导出。 |
+| `native/` | 包内 macOS universal 与 Windows x64 助手。 |
+| `lib/` | 官方生成的 Typert 面、声明和版本化运行产物。 |
+| `tests/` | Node/jsdom 合同；不冒充 Desktop 或原生像素证据。 |
+| `locale/` | 中英文导出包元信息。 |
+| `tools/` | 构建、协议生成、RC staging 和只读宿主评估。 |
+| `.agents/skills/pdsh-host-compatibility/` | 宿主升级评估与授权迁移；不安装普通插件更新。 |
+| `.agents/skills/pdsh-release-lifecycle/` | RC 与正式版的验收、恢复和发布；不增加安装器。 |
+| `.github/workflows/` | 固定 Windows SDK 构建；不自动发布。 |
+| `.githooks/` | 本地稳定 tag 门；不覆盖用户 hooks。 |
+| `docs/` | 用户授权的 README 展示图；不是验收回执。 |
+| `README.md` | 产品、安装、兼容边界与开源致谢。 |
+| `PUBLISHING.md` | 渠道、发布门、版本决定与历史合同原文。 |
+| `style-sources.json` | 上游文件、选择器、变量和图标来源。 |
+| `THIRD_PARTY_NOTICES.md` / `LICENSE` | 完整分发许可。 |
+| `package.json` / `pnpm-lock.yaml` | 单 Bundle manifest、唯一版本及锁定依赖。 |
+| `cordis.patch.yml` | 唯一 Cordis 插入层。 |
+| `build.ts` / `tsconfig*.json` | 构建与源码类型边界。 |
+| `bundle-artifacts.ts` | 入口、原生二进制、tgz 字节与权限验真。 |
+| `verify-host.ts` | 临时 profile 的官方安装、业务载入与生命周期门。 |
+| `check-release.ts` | 长期发布章节、版本、产物、元信息与清洁树门。 |
+| `tools/release-metadata.ts` | 公开简介和 Topics 的唯一声明。 |
+| `tools/pack-rc.ts` | 同源临时 RC 构建；不安装到用户 profile。 |
+| `tools/assess-host-compatibility.ts` | 只读触点评估；不启动 Host 或认证兼容。 |
+| `tests/public-guides.test.ts` | 验证指南边界、skill 导航和头像许可。 |
+| `output/` / `node_modules/` | 忽略的证据、临时产物与依赖。 |
+
+手写行为留在 TypeScript 或原生源码。
+`index.js`、`client.js/map`、Typert 面和助手是生成产物。
+Git 安装依赖这些已提交产物。不要分别手写它们。
+`main.cjs` 和旧 Main/Inspector/socket 文件已退役。
+旧文件与测试不是运行时回退，也不是安装件能力证据。
+
+## Commands
+
+先读取 `package.json`。脚本定义是命令事实来源。
+
+| 命令 | 用途与副作用 |
+| --- | --- |
+| `pnpm install --frozen-lockfile` | 安装锁定依赖；不改锁文件。 |
+| `pnpm typecheck` | 生成 Typert 面和声明，再检查类型。 |
+| `pnpm test` | 类型、构建、产物检查和全部 Node 合同。 |
+| `pnpm build` | 重建 Host、Client 和版本化实现。 |
+| `pnpm run bundle` | 构建、验产物、打包并验真实 tgz。 |
+| `pnpm bundle:rc <候选号>` | 仅授权时构建正整数编号的同源 RC。 |
+| `pnpm metadata:check` | 只读核对本地公开简介。 |
+| `pnpm metadata:check-github` | 只读核对 GitHub About、homepage 和 Topics。 |
+| `pnpm compat:assess` | 只读列出宿主触点；输出不等于兼容验收。 |
+| `pnpm release:check` | 清洁 main 上执行稳定发布门；不发布或安装。 |
+| `node --experimental-strip-types --test tests/public-guides.test.ts` | 验证公共指南和头像致谢；不启动 Host。 |
+
+安装、重建、同步远端和发布具有不同副作用。
+命令清单不授予 tag、push 或实机安装权限。
+`verify-host.ts` 的参数和边界见文件头及局部地图。
+临时 profile 检查不准写入用户的 live Desktop profile。
+
+## Critical Safety Rules
+
+### 用户数据与操作权限
+
+- 不修改或删除用户的 `~/.dsh`、会话、凭据或 Chromium 数据。
+- 不把凭据复制到临时 profile。
+- 不打印、提交或上传用户像素、路径、标题和账号数据。
+- 普通插件互相信任。UI 点击不是 Host ACL。
+- 原生媒体前后 stat 只检测路径漂移。
+- 视频解码不提供同 UID 进程隔离。
+- 所有权不明时停止清理，保留现场。
+- 仅清理本任务已过期且明确自有的临时产物。
+- 删除前核对路径、owner、符号链接与活动进程。
+- 进程检查结果未知时保留文件。
+- 未提交源码快照、候选和红证据不按时间批量删除。
+- 不杀未知进程，不修改全局 TLS、代理或信任根。
+- 不接管 resolver，不放宽 exotic-subdependency 策略。
+
+### Desktop 检查
+
+- 不抢前台，不显式激活用户窗口。
+- 原生点击仍会改变焦点。不要声称它完全无干扰。
+- 仅使用已启用且确认身份的 loopback CDP。
+- Host HTTP listener 不是 CDP endpoint。
+- 不为启用 CDP 重启应用或开启 Inspector。
+- 无真实 UI 能力时明确保留验收缺口。
+- 不用后台检查冒充实际 Desktop 验证。
+- 外部 CLI 不得绕过 Desktop 独占的插件操作。
+- 实机安装、退出和重启须有本次授权。
+- 替换包后遵守 Host 的加载或重启结果。
+- 保留用户未保存工作，不伪造重启 API 或私有 IPC。
+
+### 原生取像与保存
+
+- 只拍摄唯一归属的普通 DSH 窗口，包含原生边框。
+- mount 和 enable 不请求录屏权限或像素。
+- 首次显式截图才检查或请求系统授权。
+- 人工授权不设页面计时器。
+- 启动与取像阶段必须有界。
+- 取消、撤权和卸载须等待实际操作结算。
+- 禁止 DOM 栅格化、Main 注入、CDP 取像和 HTTP 像素回退。
+- 原生 `pointPixelScale` 决定编辑几何。
+- 页面 DPR 与 `innerHeight` 不能证明整窗尺寸。
+- 助手目标为 macOS 14+ arm64/x64 和 Windows 10 1903+ x64。
+- Windows 分发必须含真实 MSVC x64 EXE 和 `asInvoker`。
+- 截图像素不得写入 Settings 或日志。
+- 诊断只记录白名单阶段、失败码和请求 UUID。
+- 未知异常不反射路径、标题或 carrier 原文。
+- 保存路径与 basename 由 Host 已接受的配置决定。
+- Client 不提交任意路径或 basename。
+- ask 用官方目录 picker，并通过 revision fence 接受目录。
+- ask 不是原生文件名 Save dialog。direct 复用已接受目录。
+- PNG、JPEG、WebP 使用有界有序 uplink。
+- 保留逐块 ACK、finish/hash 和 half-close。
+- Host 执行 fsync、close、独占提交和重名编号。
+- 仅有效 commit receipt 后的自然流结束表示保存成功。
+- 正常取消不得报成功，也不得覆盖已有文件。
+- 提交结果未知时要求检查目录，不自动重试。
+- PNG 剪贴板与文件保存保持独立。
+- 导出沿用共享 32MP/128MB 预算。
+- JPEG/WebP 只保留已验 Canvas 默认 sRGB ICC 原字节。
+- 拒绝未知或重复 ICC、EXIF/XMP、comments 和动画。
+- 不以通用 ICC 解析或去色彩配置替代此边界。
+
+### Remote 与升级
+
+- 使用官方 `pdshWindowCapture` 服务。
+- namespace 保留 `pdshNativeWindowCapture`。
+- Host/Client 面必须经官方 Typert generator 生成。
+- 每次操作先确认完整 accepted 配置和实现版本。
+- owner 仍在 LOADING 时，不把子服务永久锁为关闭。
+- disposing/disposed 不得重新激活。
+- 兼容业务实现须等旧操作结算后再换载。
+- Config、Remote ABI、固定壳或依赖变化须正常加载。
+- 首次桥 bootstrap 不是免重启升级证据。
+- `setBundleEnabled` 只协调配置，不证明代码已重载。
+- 保留 Host `restart-required`、官方 Modal 和行内提醒。
+- 提醒只保证当前 controller；不承诺跨 Fiber 保留。
+- 旧 Client 不能展示尚未载入的新逻辑。
+- updater 仅用自身 detail badge 和用户确认的固定 Git SHA。
+- 不后台轮询，不持久化更新状态，不静默安装。
+- 自动重试只限以下官方结果同时成立：
+  - `changed=false`；
+  - `application=failed`；
+  - `failedAt=spec-host`；
+  - `packageResult.kind=timeout`。
+- 重试前复核自身安装版本，并响应 disposal。
+- 原尝试加重试最多两次。
+- PNPM 失败、取消、状态前移和未知结果均不重装。
+- Host 写入前校验 title、date、hash 和 chunks 的业务上限。
+- Client 每次只发送一个待 ACK 的 chunk。
+- Typert 的无界字符串发生在业务校验之前。
+- 上游 WS 默认 100MiB，stream inbox 256KiB 在解析后限制。
+- 插件预算不等于 hostile-Client DoS 防护或 ACL。
+- 不手写 codecs，也不另建桥模拟上游传输边界。
+
+## Working Rules
+
+### 修改顺序
+
+1. 进入目录前读取该目录的 `CLAUDE.md`。
+2. 修改文件前读取 L3 契约及现有范式。
+3. 行为修复先写能在旧实现失败的合同。
+4. 实现后检查 L3、L2 和根指南。
+5. 分别记录源码、产物、Host 和 Desktop 结果。
+
+测试与候选结果只入本次授权的私人证据。
+不把单次结果追加到本指南或 README。
+产品能力与兼容边界仍须同步 README。
+
+缺失 L3 时先补契约。新模块必须有 L2。
+L2 列出全部成员，保留有效父级链接。
+契约陈述职责、依赖方向和数据流。
+不得只罗列变量名或导出签名。
+L2/L3 必须带固定 PROTOCOL 行。
+文档与代码不同构时，任务未完成。
+
+### 代码与写作
+
+- 一个函数做一件事。高层依赖稳定边界。
+- 复用已有错误类型、logger、请求封装和状态模式。
+- 不添加重复日志路径、裸请求或第二状态仓。
+- 单文件不超过 800 行。超限先拆职责。
+- 中文注释使用 ASCII 分块。
+- 交互使用中文，并以“哥”开头。
+- GEB 文档采用 STE 启发的清晰规则，严格度 80%。
+- 一句一事，用主动语态，中文句子不超过 40 字。
+- 同一概念只用一个词。
+- 不用模糊词。写明对象、条件和动作。
+- 写断言，条件前置，步骤用祈使句。
+- 简化文字不得删掉协议、边界或重要架构细节。
+- 用户原话逐字保留，不能按写作规则改写。
+
+### 协作与私人文档
+
+- 只有主代理指派子代理。
+- 子代理只使用 GPT-6 Luna，推理强度 Max。
+- 子代理承担调研、编码、测试或审查。
+- 主代理拆分、协调、验收并作最终决定。
+- 并行编辑不得争用同一文件。
+- 私人研究按 `private-docs-publish` skill 发布。
+- 写入前获取 repository owner lock。
+- 只提交本任务文件，不挪用他人 WIP。
+- 不 stash、reset、clean 或强推共享私人仓库。
+- 私人发布不授予公开 main、tag 或安装权限。
+- 公开指南不收录私人用户数据或本机日志。
+
+## Hotspot Ownership
+
+### 功能装配与视觉身份
+
+- `client-entry.tsx` 装配设置、样式、语言和更新生命周期。
+- `component-runtime.tsx` 独立拥有身份、标题和截图 controller。
+- 单个开关关闭只归还对应资源。Bundle 关闭归还全部资源。
+- 保留 nickname、avatar、maskIdentity、maskTitles 地址。
+- 官方 Plugins 依次展示身份、标题和截图设置。
+- 功能标题本地化，不展示包路径。
+- `captureEnabled` 独立控制相机、工作台和 stream。
+- 根表单完整 accepted 且 revision 一致时才提交。
+- 身份覆盖只作用于唯一识别的 rc.2 sidebar launcher。
+- 保留 native button、账号节点、菜单及登录语义。
+- 未知或多身份时跳过覆盖。
+- 不遮挡 signed-out More、完整设置或账号数据。
+- 账号头像选项不得把真实账户 URL 写入配置。
+- 帽子直接切换 accepted `maskTitles`，不打开菜单。
+- 搜索旁没有受支持的 child slot，不声称存在。
+- 旧 `frames` 不改解释为标题遮挡。
+- 临时截图遮挡复用现有 recognizer 和灰条规则。
+- 临时遮挡仅归还仍由自身拥有的属性。
+- 初拍与重拍均重读 `captureMaskIdentity`。
+- 它独立于常驻 `maskIdentity` 和工作台标题遮挡。
+- 只暂遮唯一 launcher 的头像、native name 和自有名牌。
+- 不写常驻偏好，不改变昵称或账号设置。
+- 标题 recognizer 保留 workspace、session 与 search 围栏。
+- provisional 两格行须有非空 `session:` key。
+- 其首格须为空，第二格须为纯文本 span。
+- 畸形或歧义行不遮挡。
+- HoverCard 标题必须与已识别 owner 关联。
+
+### 主题、控件与编辑几何
+
+- `style-sources.json` 记录真实上游文件、selector 与变量。
+- 使用 DSH `--dsw-*` 语义色、字体、圆角和动效。
+- 不复制 CSS Modules hash 或 Codex theme class。
+- 不添加数值主题回退、Base UI 或 Tailwind runtime。
+- 内容像素、渐变、色谱和透明棋盘不是主题 chrome。
+- React 设置和更新入口使用 Host Tooltip。
+- DOM 控件共用一个可卸载 Tooltip adapter。
+- 保留 Host delay、placement、gap 和图标参数。
+- 不回退到浏览器 title 气泡。
+- 本地图标遵循固定 Lucide 1.51.0 路径。
+- size、stroke 和 opacity 仍由实时 Host probe 决定。
+- 不添加运行时图标库，不替换 Host 原生控件。
+- `background-modes.ts` 对接受控 Host SegmentedControl。
+- None/Color/Gradient/Image 保留四个稳定 ARIA 面板。
+- inactive 面板 hidden/inert，且不进入焦点遍历。
+- None 空面板不增加焦点停靠点。
+- 切换类别立即应用该类别最近选择的材料。
+- 显示全部渐变，不添加展开或重复标题。
+- 自定义色 pipette 保持可见。
+- 只减细选中环，不削弱键盘 focus outline。
+- `editor-viewport.ts` 拥有 fit/pan 与合帧 transform。
+- zoom 留在编辑模型，滚轮、工具栏和百分比共用它。
+- 纯视图操作不重合成像素，不增加 easing transition。
+- dispose 取消 RAF 和 pointer 状态。
+- 自动候选只映射已研究的 Mac Electron 44 rc.2 满窗。
+- renderer/native scale 必须相等，前后 bounds 必须稳定。
+- 零原点是研究假设，不是原生 PNG 对位验收。
+- 未知布局返回无候选；保留手绘和尽力的拍前遮挡。
+
+### 系统壁纸与本地图库
+
+- 系统壁纸适配器只提供 macOS 官方目录能力。
+- Windows 不提供系统壁纸获取。
+- `system-wallpaper-catalog.ts` 独占活动 roster 来源。
+- 目标为最近两代 macOS 的各两项代表材料。
+- Apple metadata 没有逐材料 OS release 字段。
+- 当前规则选两个 Landscape subgroup 的 unique preferredOrder。
+- 用 representativeAssetID 关联 dynamic subgroup 或 root-owned 扩展。
+- 陈列关联不是通用系统版本 API。
+- 未知或歧义 schema 拒绝新增，保留已有缓存。
+- UUID/源摘要是材料身份。历史 ID 只供缓存兼容。
+- 不复用“当前/上一代”角色槽作为材料 ID。
+- 只有当前 Host roster 授权来源；Renderer 不传 URL 或路径。
+- 源 MOV 不跨 Remote；只传有界静帧。
+- 每次显式获取都重读真实目录。
+- 获取失败不得由旧缓存吞掉；离线浏览仍可用缓存。
+- 仅唯一“获取系统壁纸”动作触发补缺下载。
+- mount、Tab 重入和普通选择不发 Host 媒体请求。
+- 图片面板复用就绪或在途本地库存。
+- 首次读取或失败重试只读本地元数据。
+- 导入、删除和显式获取后刷新库存。
+- 不渲染读取提示、下载占位或额外进度行。
+- 保留非视觉 busy、错误 alert 与空库存反馈。
+- 获取按钮始终可见，获取不自动选择背景。
+- 结算后一次发布新缩略图，保留已存材料。
+- 系统缩略图保留精确无障碍名称，不加冗长媒体 tooltip。
+- 原五张预设、系统图片和我的图片分组独立。
+- 个人分组标题行仅一个加号；file input 归个人图库。
+- 本地有效缓存或 root-owned 系统 HEIC 优先。
+- 只有匹配的 local-unavailable 才下载该材料。
+- 失败只携共享闭集码，不推断 TLS、代理或素材根因。
+- 已知结构化证书拒绝可用 `download-certificate-failed`。
+- 不按异常 prose 分类，不要求用户安装证书。
+- Apple 视频只允许三段严格 206 Range。
+- 头部为 64B，尾 moov 至多 2MiB，首 sync sample 至多 16MiB。
+- 必须使用同一 strong ETag 和 If-Match。
+- 拒绝压缩和跳转；源逻辑长度至多 1GiB。
+- 实际媒体传输至多 18MiB + 64B。
+- 先重建完整单 sample MOV，再交 native decode。
+- 不使用可解码的截断电影或整段下载回退。
+- transport 固定为 `/usr/bin/curl`，使用 `--disable` 和 `shell:false`。
+- 使用系统默认 TLS，限制 headers、body 和 stderr。
+- 不使用或修改 DSH 应用内 fetch/proxy dispatcher。
+- 不添加 CA 环境、信任修改、提权或额外服务。
+- 取消必须等待 child close 后再清理自有临时文件。
+- `wallpaper-gallery-store.ts` 独占背景媒体仓。
+- 使用标准 `dsh-app://app` origin 的 IndexedDB。
+- 稳定与 RC 分域。偏好只存有效材料 ID。
+- 保留已选系统静帧、上传图片与 PNG 透明度。
+- 不存截图、源 MOV、原文件名、路径或凭据。
+- 缓存命中不得重复取 helper 媒体。
+- 容量遵循共享合同；满时拒绝，不静默淘汰用户图片。
+- 仅显式移除自有条目。
+- 关闭只释放连接、stream 和 URL，不清除已存材料。
+- browser 持久化与正常 Desktop 重启必须分别验证。
+- `wallpaper` 扩展采用内部 v2 ABI。
+- 它是正常加载边界，不是稳定旧壳的兼容 payload 更新。
+
+## Testing and Review
+
+- 修复合同须先在真实旧实现失败，再在新实现通过。
+- 假 codec、Canvas、picker 和 transport 不证明真实链路。
+- 测试断言必须能失败，且绑定实际生产路径。
+- 不以旧 RC 或旧版本结果填入新候选。
+
+分别核对以下门：
+
+1. 源码、类型、unit 合同与失败码。
+2. 当前生成入口、声明和原生助手。
+3. 当前真实 tgz 的成员、类型、字节、权限和唯一版本。
+4. 精确 Host 的官方 Manager、Loader、Settings 和 Client 图。
+5. 首装、hot enable、八种功能组合及 revision 写入恢复。
+6. 实际 Desktop 的主题、入口、切换、焦点和工作台。
+7. 原生取像、预览/导出对位、复制、保存及取消。
+8. Windows 实机、权限撤回和异常退出边界。
+9. 升级、持久化、卸载 RC 和重新启用稳定包。
+
+每份结果绑定候选版本、SHA 或 archive digest。
+精确 Host 检查只拥有全新临时 profile。
+禁止伪造 ACTIVE、解析成功或 Host 安装结果。
+源码、归档与隔离 Host 通过不等于实机通过。
+未运行、失败、取消和结果未知必须分别记录。
+公开 README 描述产品，不记录逐次实验。
+审查指南变更时运行 `tests/public-guides.test.ts`。
+该测试守护文档结构，不能阻止任意工具绕过规则。
+
+## Release
+
+- RC 测试与正式发布先读项目内流程。
+- 流程入口是 [.agents/skills/pdsh-release-lifecycle/SKILL.md](.agents/skills/pdsh-release-lifecycle/SKILL.md)。
+- `package.json.version` 是唯一手写版本。
+- 根 runtime、公开声明和包元信息必须同源生成。
+- stable tag 使用 `v<version>`，旧 tag 不改、不删。
+- 公共简介与 Topics 由 `PUBLIC_METADATA` 声明。
+- 比对脚本不能证明产品描述真实。
+- 功能或验收边界变化时人工检查 README 和元信息。
+- 先改声明，再显式执行本地与 GitHub 同步。
+- 使用 `metadata:check` 和 `metadata:check-github` 回读。
+- 网络或认证失败使发布门失败，不跳过。
+- 稳定发布要求清洁 main 和 `release:check`。
+- 发布门核对固定的 `Release` 章节。
+- 当前版本留在 manifest 与 README，不绑定指南标题。
+- 逐版本合同见 [PUBLISHING.md](PUBLISHING.md)。
+- 历史合同不授予后续版本的发布或安装权限。
+- 本地 pre-push hook 不能描述为服务器强制策略。
+- 启用 `.githooks` 前核对用户 hooks 和 `core.hooksPath`。
+- 不覆盖或遮蔽用户已有 hooks。
+- 归档仅含 manifest allowlist。
+- 不归档 profile、node_modules、凭据、日志或私人研究。
+- `npm pack --ignore-scripts` 必须保留助手 0755。
+- 不用 bin、install hook 或运行时 chmod 修补归档。
+- 发布、安装或未验门的例外须有本次明确授权。
+- 单个版本的历史例外不授予后续权限。
+- Git push 不会更新已安装包。
+- 用户授权的临时 RC 仅在 staging 使用 `@daftai/pdsh-rc` / `pdsh-rc`。
+- 不改稳定身份或既有 Config 地址。
+- RC 保留独立设置和媒体仓，关闭稳定 updater。
+- 测试前停用稳定包，不卸载它。
+- 测试结束只卸载 RC，再重新启用稳定包。
+- 未获本次稳定发布授权的 RC 保持本地。
+- 未验门的发布例外只写入 PUBLISHING 与私人文档。
+
+[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

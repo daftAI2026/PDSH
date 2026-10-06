@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 仅依赖显式 Host 请求的 helper→Host→Main 进程链（rc.2 中 Host/Main 为同一 canonical Electron executable）、CoreGraphics 授权门、ScreenCaptureKit 与 ImageIO。
- * [OUTPUT]: `--check-api` 返回无 GUI 能力状态；显式 capture 按 Host 协议授权，全部符合身份/图层/可见/正几何边界的窗口共同参与唯一性判断，再输出有界 PNG。
- * [POS]: native/ 的 Host 所属单窗后端；以启动代际和可执行路径拒绝 PID 重用，不提供显示器捕获、持续流、文件落盘或自动授权。
+ * [INPUT]: capture 依赖 Host→Main 进程身份链与 CoreGraphics/ScreenCaptureKit；壁纸命令委托同目录 ImageIO/AVFoundation adapter。
+ * [OUTPUT]: `--check-api` 返回无 GUI 状态；显式 capture 经权限门输出 PNG；壁纸命令列固定目录或输出有界静态 JPEG。
+ * [POS]: native/ 的单 helper 主入口；capture 以启动代际拒绝 PID 重用，壁纸保持无授权、无联网并只读系统/Host素材。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 #import <AppKit/AppKit.h>
@@ -24,6 +24,7 @@
 #import <string.h>
 #import <time.h>
 #import <unistd.h>
+#import "system-wallpaper.h"
 
 static constexpr uint64_t kMaxPixels = 16ULL * 1024ULL * 1024ULL;
 static constexpr uint64_t kMaxRawBytes = 128ULL * 1024ULL * 1024ULL;
@@ -653,6 +654,8 @@ static int RunCapture(pid_t hostPID, pid_t mainPID) {
 int main(int argc, char **argv) {
   @autoreleasepool {
     signal(SIGPIPE, SIG_IGN);
+    int wallpaperResult = RunSystemWallpaperCommand(argc, argv);
+    if (wallpaperResult >= 0) return wallpaperResult;
     if (argc == 2 && strcmp(argv[1], "--check-api") == 0) {
       Status status = RuntimeAPIStatus();
       EmitStatus(status);

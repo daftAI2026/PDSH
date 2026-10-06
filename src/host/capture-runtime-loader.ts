@@ -1,20 +1,22 @@
 /**
- * [INPUT]: 依赖当前稳定/RC 构建身份对应的安装包定位器、标准 ESM import 与同协议 capture 实现的真实 dispose。
- * [OUTPUT]: 提供按当前安装版本换载的单实例协调器，拒绝不兼容协议与卸载后复活。
- * [POS]: 稳定 Remote 外壳和可更新业务实现之间的边界；不改 Node cache、不启停 Bundle、不修改设置。
+ * [INPUT]: 依赖当前稳定/RC构建身份对应的安装包定位器、标准ESM import与v2 capture/save/wallpaper实现的真实dispose。
+ * [OUTPUT]: 提供按当前安装版本换载的单实例协调器，拒绝旧v1 Remote ABI/不兼容协议与卸载后复活。
+ * [POS]: v2 Remote 外壳与业务实现的边界。新增 Remote 方法必须正常加载，不承诺旧外壳热兼容。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { BUNDLE_NAME } from '../shared/components.ts'
 import { lstat, readFile, realpath } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import type { WallpaperFrame, WallpaperRequest } from '../shared/system-wallpaper-protocol.ts'
 
-export const CAPTURE_RUNTIME_CONTRACT = 'pdsh-capture-runtime-v1'
+export const CAPTURE_RUNTIME_CONTRACT = 'pdsh-capture-runtime-v2'
 const VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[\w.-]+)?$/
 
 export interface CaptureRuntimeInstance {
   readonly version: string
   refreshCaptureEnabled(): void
+  wallpaper(request: WallpaperRequest, signal: AbortSignal): AsyncIterable<WallpaperFrame>
   dispose(): Promise<void>
 }
 
@@ -76,7 +78,8 @@ export function createCaptureRuntimeLoader(options: {
       }
     }
     const next = module.create(options.context)
-    if (!next || next.version !== target.version || ['capture', 'save', 'refreshCaptureEnabled', 'dispose'].some(method => typeof next[method] !== 'function')) {
+    if (!next || next.version !== target.version
+      || ['capture', 'save', 'wallpaper', 'refreshCaptureEnabled', 'dispose'].some(method => typeof next[method] !== 'function')) {
       if (typeof next?.dispose === 'function') await next.dispose()
       throw new Error('incompatible capture runtime instance')
     }

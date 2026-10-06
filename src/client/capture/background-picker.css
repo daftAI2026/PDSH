@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 capture-window.css 定义的 DSH 语义令牌、实时原生边框/禁用态与检查器底纹
- * [OUTPUT]: 为原生四模式 Tabs 提供窄栏布局，三类素材共用五列圆角方框、收细双层选中环与持续可辨认的拾色图标
+ * [OUTPUT]: 为原生四模式 Tabs 提供窄栏布局与独立系统/个人图库；标题行归属获取/加图动作，素材共用五列方框与收细双层选中环
  * [POS]: capture-window 的背景选择器样式边界，与编辑器壳层及颜色弹层样式按职责分离
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -21,11 +21,22 @@
   color: var(--pdsh-capture-text-secondary);
   font: inherit;
   font-size: var(--pdsh-capture-font-xs);
+  min-height: var(--pdsh-capture-control-height);
   padding: 0;
 }
 
 .pdsh-capture-background-expand:hover {
   color: var(--pdsh-capture-text);
+}
+
+.pdsh-capture-background-expand:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--pdsh-capture-focus);
+  outline-offset: var(--dsw-focus-ring-width);
+}
+
+.pdsh-capture-background-expand:disabled {
+  cursor: progress;
+  opacity: var(--pdsh-action-disabled-opacity);
 }
 
 .pdsh-capture-background-grid {
@@ -147,6 +158,59 @@
 
 .pdsh-capture-change-wallpaper:hover {
   color: var(--pdsh-capture-text);
+}
+
+.pdsh-capture-gallery {
+  margin-top: calc(var(--pdsh-capture-space) * 3);
+}
+
+.pdsh-capture-gallery-heading {
+  align-items: center;
+  display: flex;
+  gap: calc(var(--pdsh-capture-space) * 2);
+  justify-content: space-between;
+  min-height: var(--pdsh-capture-control-height);
+}
+
+.pdsh-capture-gallery-heading [data-wallpaper-placeholder] {
+  display: inline-flex;
+}
+
+[data-gallery-import-focus]:focus {
+  outline: var(--dsw-focus-ring-width) solid var(--pdsh-capture-focus);
+  outline-offset: var(--dsw-focus-ring-width);
+}
+
+.pdsh-capture-gallery-grid {
+  display: grid;
+  gap: calc(var(--pdsh-capture-space) * 2);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: max(var(--pdsh-capture-space), var(--pdsh-capture-control-gutter));
+}
+
+.pdsh-capture-gallery-item {
+  min-width: 0;
+}
+
+.pdsh-capture-gallery-remove {
+  background: transparent;
+  border: 0;
+  color: var(--pdsh-capture-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--pdsh-capture-font-xs);
+  margin-top: var(--pdsh-capture-space);
+  padding: 0;
+  width: 100%;
+}
+
+.pdsh-capture-gallery-remove:hover {
+  color: var(--pdsh-capture-text);
+}
+
+.pdsh-capture-gallery-remove:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--pdsh-capture-focus);
+  outline-offset: var(--dsw-focus-ring-width);
 }
 
 /* 等待原图时保留唯一已应用选中态，目标项只显示处理中。 */

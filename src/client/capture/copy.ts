@@ -1,9 +1,11 @@
 /**
- * [INPUT]: 依赖调用方传入的 locale，并遵循截图编辑器已经确认的产品术语
- * [OUTPUT]: 对外提供 CaptureWindowCopy 双语文案、captureWindowCopy 与固定失败码提示选择器
- * [POS]: capture-window 的唯一文案边界，让背景层级、标题遮罩与编辑动作同义，身份遮挡引导至官方设置
+ * [INPUT]: 依赖调用方传入的 locale、shared 封闭壁纸 ID，并遵循截图编辑器已经确认的产品术语
+ * [OUTPUT]: 对外提供 CaptureWindowCopy 双语文案/版本壁纸名称、系统图片与我的图片来源标题、图库动作和固定失败码提示选择器
+ * [POS]: 唯一文案边界；本机优先/缺失自动下载，后台与图库读取不插提示行，失败保留；系统缩略图不重复媒体说明，语言归 Host
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import type { SystemWallpaperId, LegacySystemWallpaperId } from '../../shared/system-wallpaper-protocol.ts';
+
 export type CaptureWindowCopy = {
   backgroundTabs: { none: string; color: string; gradient: string; image: string };
   background: string;
@@ -12,18 +14,30 @@ export type CaptureWindowCopy = {
   backgroundPlainColor: string;
   backgroundWallpapers: string;
   blur: string;
-  changeImage: string;
   close: string;
   captureFailed: string;
   clipboardUnavailable: string;
   copied: string;
   copy: string;
   custom: string;
-  currentWallpaperError: string;
-  currentWallpaperLoading: string;
-  currentWallpaperUnavailable: string;
-  getCurrentWallpaper: string;
-  currentDesktop: string;
+  systemWallpapersError: string;
+  systemWallpapersLoading: string;
+  systemWallpapersProgress: string;
+  systemWallpapersPartial: string;
+  systemWallpapersUnavailable: string;
+  systemWallpaperLoadError: string;
+  systemWallpaperNames: Record<LegacySystemWallpaperId, string> & Partial<Record<SystemWallpaperId, string>>;
+  addImage: string;
+  systemImages: string;
+  myImages: string;
+  myImage: string;
+  removeImage: string;
+  galleryEmpty: string;
+  galleryError: string;
+  galleryFull: string;
+  galleryUnavailable: string;
+  loadWallpapers: string;
+  retryWallpapers: string;
   retryWallpaper: string;
   wallpaperDownloadHint: string;
   maskColor: string;
@@ -74,20 +88,37 @@ const ENGLISH: CaptureWindowCopy = {
   backgroundPlainColor: "Plain color",
   backgroundWallpapers: "Wallpapers",
   blur: "Blur",
-  changeImage: "Change image",
   close: "Close capture window",
   captureFailed: "Unable to capture the window.",
   clipboardUnavailable: "Clipboard access is unavailable in this desktop window.",
   copied: "Copied to clipboard",
   copy: "Copy",
   custom: "Color",
-  currentWallpaperError: "Unable to load the system wallpaper",
-  currentWallpaperLoading: "Loading system wallpapers",
-  currentWallpaperUnavailable: "System wallpapers are unavailable on this macOS version",
-  getCurrentWallpaper: "Use current wallpaper",
-  currentDesktop: "Current desktop",
+  systemWallpapersError: "Unable to get system wallpapers",
+  systemWallpapersLoading: "Reading saved wallpapers",
+  systemWallpapersProgress: "Getting system wallpapers ({completed}/{total})",
+  systemWallpapersPartial: "Some system wallpapers could not be acquired. Saved images are kept.",
+  systemWallpapersUnavailable: "No supported system wallpapers are available",
+  systemWallpaperLoadError: "Unable to load this system wallpaper",
+  systemWallpaperNames: {
+    'system-wallpaper-golden-gate': 'macOS 27 · Golden Gate',
+    'system-wallpaper-golden-gate-sunset': 'macOS 27 · Golden Gate Sunset',
+    'system-wallpaper-tahoe': 'macOS 26 · Tahoe',
+    'system-wallpaper-tahoe-day': 'macOS 26 · Tahoe Day',
+  },
+  addImage: "Add image",
+  systemImages: "System images",
+  myImages: "My images",
+  myImage: "Image",
+  removeImage: "Remove",
+  galleryEmpty: "No saved images yet.",
+  galleryError: "Unable to read the saved image library",
+  galleryFull: "The image library is full. Remove an image before adding another.",
+  galleryUnavailable: "The image library is unavailable. This image was not applied or saved.",
+  loadWallpapers: "Get system wallpapers",
+  retryWallpapers: "Retry missing wallpapers",
   retryWallpaper: "Click to retry",
-  wallpaperDownloadHint: "Missing wallpapers download from Apple; video sources may be large",
+  wallpaperDownloadHint: "Uses local wallpapers first; downloads missing ones.",
   maskColor: "Mask color",
   mosaic: "Mosaic",
   move: "Move",
@@ -136,20 +167,37 @@ const CHINESE: CaptureWindowCopy = {
   backgroundPlainColor: "纯色",
   backgroundWallpapers: "壁纸",
   blur: "模糊",
-  changeImage: "更换图片",
   close: "关闭截取窗口",
   captureFailed: "无法截取窗口。",
   clipboardUnavailable: "当前桌面窗口无法写入剪贴板。",
   copied: "已复制到剪贴板",
   copy: "复制",
   custom: "颜色",
-  currentWallpaperError: "无法获取系统壁纸",
-  currentWallpaperLoading: "正在获取系统壁纸",
-  currentWallpaperUnavailable: "当前 macOS 的系统壁纸暂不可用",
-  getCurrentWallpaper: "获取系统壁纸",
-  currentDesktop: "当前桌面",
+  systemWallpapersError: "无法获取系统壁纸",
+  systemWallpapersLoading: "正在读取已存壁纸",
+  systemWallpapersProgress: "正在获取系统壁纸（{completed}/{total}）",
+  systemWallpapersPartial: "部分系统壁纸获取失败，已存图片不受影响。",
+  systemWallpapersUnavailable: "本机没有可识别的系统壁纸",
+  systemWallpaperLoadError: "无法获取这张系统壁纸",
+  systemWallpaperNames: {
+    'system-wallpaper-golden-gate': 'macOS 27 · Golden Gate（金门）',
+    'system-wallpaper-golden-gate-sunset': 'macOS 27 · Golden Gate Sunset（金门日落）',
+    'system-wallpaper-tahoe': 'macOS 26 · Tahoe（太浩湖）',
+    'system-wallpaper-tahoe-day': 'macOS 26 · Tahoe Day（太浩湖日间）',
+  },
+  addImage: "添加图片",
+  systemImages: "系统图片",
+  myImages: "我的图片",
+  myImage: "图片",
+  removeImage: "移除",
+  galleryEmpty: "还没有保存的图片。",
+  galleryError: "无法读取本地图片图库",
+  galleryFull: "图片图库已满。请先移除一张图片，再添加新图片。",
+  galleryUnavailable: "本地图片图库不可用；这张图片未应用或保存。",
+  loadWallpapers: "获取系统壁纸",
+  retryWallpapers: "补取缺失壁纸",
   retryWallpaper: "点击重试",
-  wallpaperDownloadHint: "缺失壁纸将从 Apple 下载，视频源文件可能较大",
+  wallpaperDownloadHint: "优先使用本机素材，缺失时自动下载。",
   maskColor: "遮罩颜色",
   mosaic: "马赛克",
   move: "移动",

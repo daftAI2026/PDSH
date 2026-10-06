@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖当前稳定/RC 包身份的唯一 ConfigForm、locale/slot/PluginManager 服务、实际后台版本围栏和可选官方 macOS/Windows 平台 Remote 服务。
- * [OUTPUT]: 按身份、标题打码、截图顺序呈现设置，仅用完整有效的 Host accepted 截图配置装配相机；拍照每次初拍/重拍读取 Host accepted 身份遮挡值。
+ * [INPUT]: 依赖当前稳定/RC 包身份的唯一 ConfigForm、locale/slot/PluginManager 服务、实际后台版本围栏和可选 capture/壁纸 Remote 服务。
+ * [OUTPUT]: 按身份、标题打码、截图顺序呈现设置，仅用完整有效的 Host accepted 截图配置装配相机；Mac 壁纸 adapter 限定在同一 provider，拍照初拍/重拍读取 accepted 身份遮挡。
  * [POS]: 单 Bundle Client 组合根；临时 RC 隔离配置且不注册正式更新入口，常驻身份、标题预遮挡与截图身份遮挡独立，共享唯一 ConfigForm；截图配置尚未就绪时只撤回相机，不影响身份/标题，后续快照可恢复。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -23,6 +23,7 @@ import { mountCaptureNotices } from './capture-notice.tsx';
 import { readCaptureDirectoryPicker } from './capture/directory.ts';
 import { isCaptureRuntimeCurrent, requireCaptureRuntimeCurrent } from './capture/runtime-readiness.ts';
 import { captureOwnedWindow, capturedWindowScale } from './capture/window-capture.ts';
+import { createSystemWallpaperRemoteAdapter } from './capture/system-wallpaper-remote.ts';
 import { saveWindowImage, prepareWindowSaveDirectory } from './capture/window-save.ts';
 import { SettingsCard } from './settings-card.tsx';
 import { CaptureSettingsCard } from './capture-settings.tsx';
@@ -159,6 +160,12 @@ export function mountComponent(ctx, doc: Document = document) {
         const trace = createCaptureTrace(ctx.logger, 'renderer');
         try {
           const remote = captureRemote;
+          const systemWallpapers = navigatorPlatform.startsWith('Mac') && typeof remote.wallpaper === 'function'
+            ? createSystemWallpaperRemoteAdapter(remote, {
+              beforeRequest: signal => requireCaptureRuntimeCurrent(remote, __PDSH_VERSION__, signal),
+              locale: () => ctx.locale.getSnapshot?.().active ?? doc.documentElement.lang ?? doc.defaultView.navigator.language,
+            })
+            : undefined;
           captureNotices = mountCaptureNotices(doc);
           captureController = mountCaptureController(doc, {
             capture: async (document, options) => {
@@ -186,6 +193,7 @@ export function mountComponent(ctx, doc: Document = document) {
             notify: captureNotices.show,
             presetAssets,
             mountBackgroundTabs: mountCaptureBackgroundTabs,
+            systemWallpapers,
           });
           syncEntry();
       } catch (error) {

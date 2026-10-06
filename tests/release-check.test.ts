@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实发布守门脚本与隔离 Git 单包产物。
- * [OUTPUT]: 验证清洁稳定候选、公开简介/远端主题漂移、产物漂移、脏树与 tag 冲突拒绝，不自动创建 tag。
+ * [OUTPUT]: 验证长期指南与当前版本分离。拒绝指南缺章、产物或元信息漂移、脏树及 tag 冲突。
  * [POS]: 发布流程回归；实验包安装不依赖本门或 tag。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -20,7 +20,7 @@ function fixture() {
     mkdirSync(join(root, file, '..'), {recursive:true});
     copyFileSync(new URL(`../${file}`, import.meta.url), join(root, file));
   }
-  write('README.md','**0.3.0 版本** v0.3.0\n<!-- pdsh:description:start -->\n旧简介\n<!-- pdsh:description:end -->'); write('AGENTS.md','## 0.3.0 release contract');
+  write('README.md','**0.3.0 版本** v0.3.0\n<!-- pdsh:description:start -->\n旧简介\n<!-- pdsh:description:end -->'); write('AGENTS.md','# PDSH Agent Guide\n\n## Release\n\n稳定发布使用清洁 main。\n');
   write('locale/zh.json', JSON.stringify({meta:{}}));write('locale/en.json', JSON.stringify({meta:{}}));
   syncPublicMetadata(root);
   const currentManifest=JSON.parse(readFileSync(join(root,'package.json'),'utf8'));
@@ -31,9 +31,28 @@ function fixture() {
   return {root,write,git,commit,check(tag?:string){try{return {ok:true,text:execFileSync(process.execPath,['--experimental-strip-types','check-release.ts',...(tag?[tag]:[])],{cwd:root,encoding:'utf8',stdio:'pipe',env:{...process.env,PATH:`${join(root,'.bin')}:${process.env.PATH}`}})};}catch(error){return {ok:false,text:String(error.stderr)};}},dispose(){rmSync(root,{recursive:true,force:true});}};
 }
 test('清洁单包稳定候选通过，但不创建 tag',()=>{const h=fixture();try{const result=h.check();assert.equal(result.ok,true,result.text);assert.match(result.text,/tag not created/);assert.equal(h.git('tag','--list').toString(),'');}finally{h.dispose();}});
+test('发布门接受实际长期指南，不要求逐版本发布标题',()=>{
+  const h=fixture();try{
+    h.write('AGENTS.md',readFileSync(new URL('../AGENTS.md',import.meta.url),'utf8'));h.commit();
+    const result=h.check();assert.equal(result.ok,true,result.text);
+    assert.match(result.text,/tag not created/);assert.equal(h.git('tag','--list').toString(),'');
+  }finally{h.dispose();}
+});
+test('发布门拒绝缺失、逐版本或非精确的 Release 章节',()=>{
+  for(const guide of ['# PDSH Agent Guide\n## Project\n','## 0.3.0 release contract\n',
+    '### Release\n','## Release notes\n','prefix ## Release\n']){
+    const h=fixture();try{
+      h.write('AGENTS.md',guide);h.commit();
+      const result=h.check();assert.equal(result.ok,false,guide);
+      assert.match(result.text,/AGENTS must include a version-independent Release section/);
+      assert.equal(h.git('tag','--list').toString(),'');
+    }finally{h.dispose();}
+  }
+});
 test('漂移、脏树、错误 tag 与已存在异位 tag 均拒绝',()=>{
-  for(const defect of ['artifact','dirty','tag','existing','branch']) {const h=fixture();try{
+  for(const defect of ['artifact','readme','dirty','tag','existing','branch']) {const h=fixture();try{
     if(defect==='artifact')h.write('index.js','stale');
+    if(defect==='readme'){h.write('README.md',readFileSync(join(h.root,'README.md'),'utf8').replaceAll('0.3.0','0.2.1'));h.commit();}
     if(defect==='branch')h.git('switch','-c','rc/fixture');
     if(defect==='dirty')h.write('untracked','x');
     if(defect==='existing'){h.git('tag','v0.3.0');h.write('change','x');h.commit();}

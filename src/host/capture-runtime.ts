@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖稳定 service 的调用上下文、调用时重新核对的当前构建身份 accepted Settings、universal macOS/Windows x64 helper、Host logger 与同 namespace 保存后端。
- * [OUTPUT]: 提供版本化 create/CaptureRuntime 与 capture/save 业务实现与不含内容/路径的固定状态诊断；按 Host 平台解析包内 helper，构造不授权、不取像、不写文件。
- * [POS]: 可更新 Host 业务闭包；不注册 Cordis/Remote service，统一拥有 captureEnabled generation，修复父 Fiber 尚未 ACTIVE 时的空 Settings 投影，不复活已卸载实例，调用前拒绝异版本实例。
+ * [INPUT]: 依赖稳定service上下文、accepted Settings、同包 helper、Apple 元数据选择器/有界系统下载器与同 namespace 保存。
+ * [OUTPUT]: 提供 v2 capture/save/wallpaper 业务；目录来自 Apple 顺序/代表关联，每个 load 重核对活动 ID，本机优先/缺失才下载。
+ * [POS]: 可更新Host业务闭包；复用唯一captureEnabled generation，在途壁纸下载/子进程真实settle后才释放；不注册service或改Config身份。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { ROOT_ENTRY_ID } from '../shared/components.ts'
@@ -12,10 +12,16 @@ import type { NativeCaptureFailureCode } from './native-window-capture.ts'
 import { createWindowSaveBackend } from './window-save-backend.ts'
 import type { WindowSavePreferences } from './window-save-backend.ts'
 import type { WindowSaveFrame, WindowSaveInputFrame, WindowSaveRequest } from '../shared/window-save-protocol.ts'
+import type { SystemWallpaperId, WallpaperFrame, WallpaperRequest } from '../shared/system-wallpaper-protocol.ts'
 import { CAPTURE_FAILURE_CODES } from '../shared/window-capture-protocol.ts'
 import type { CaptureFrame } from '../shared/window-capture-protocol.ts'
 import { createCaptureFrameStream, createCaptureServiceLifetime } from './window-capture-stream.ts'
 import type { CaptureServiceLifetime } from './window-capture-stream.ts'
+import { createSystemWallpaperStream } from './system-wallpaper-stream.ts'
+import { resolveSystemWallpaperHelperPath, runNativeWallpaperImage, NativeWallpaperFailure } from './system-wallpaper-native.ts'
+import type { NativeWallpaperImage } from './system-wallpaper-native.ts'
+import { downloadAppleWallpaperVideo } from './system-wallpaper-download.ts'
+import { discoverSystemWallpaperSources } from './system-wallpaper-catalog.ts'
 
 type HostServiceContext = Context & {
   readonly settings: {
@@ -79,10 +85,10 @@ async function* observeCaptureFrames(
   }
 }
 
-/** 单 Cordis service 拥有 camera 与 save；二者只通过官方 Remote stream 传递像素。 */
+/** 单 Cordis service 拥有capture/save/wallpaper；壁纸只经同一官方Remote stream返回静态JPEG。 */
 declare const __PDSH_VERSION__: string
 export const version = __PDSH_VERSION__
-export const contract = 'pdsh-capture-runtime-v1'
+export const contract = 'pdsh-capture-runtime-v2'
 export function create(ctx: Context): CaptureRuntime { return new CaptureRuntime(ctx) }
 
 export class CaptureRuntime {
@@ -142,6 +148,69 @@ export class CaptureRuntime {
     }) as RemoteStream<WindowSaveFrame, WindowSaveInputFrame>
   }
 
+  /** 列表只读系统目录；素材只在明确load后按固定ID取回并像素化。 */
+  wallpaper(request: WallpaperRequest, signal: AbortSignal): AsyncIterable<WallpaperFrame> {
+    if (this.version !== version) throw new Error('capture-runtime-version-mismatch')
+    this.refreshCaptureEnabled()
+    const helperPath = resolveSystemWallpaperHelperPath(
+      process.platform,
+      process.arch,
+      new URL('../../index.js', import.meta.url).href,
+    )
+    return createSystemWallpaperStream({
+      request,
+      signal,
+      lifetimeSignal: this.lifetime.signal,
+      platform: process.platform,
+      enabled: () => acceptedWindowSavePreferences(this.ctx as HostServiceContext).captureEnabled === true,
+      disposed: () => Boolean(this.disposal),
+      reserve: () => this.lifetime.reserve(),
+      list: async operationSignal => {
+        if (!helperPath) throw new NativeWallpaperFailure('unavailable')
+        const sources = await discoverSystemWallpaperSources(operationSignal)
+        return sources.map(({ id, name, available, downloadable }) => ({ id, name, available, downloadable }))
+      },
+      load: (id, operationSignal, onPhase) => this.loadWallpaperImage(id, operationSignal, onPhase, helperPath),
+    })
+  }
+
+  private async loadWallpaperImage(
+    id: SystemWallpaperId,
+    signal: AbortSignal,
+    onPhase: (phase: 'downloading' | 'decoding') => void,
+    helperPath: string | undefined,
+  ): Promise<NativeWallpaperImage> {
+    if (!helperPath) throw new NativeWallpaperFailure('unavailable')
+    const sources = await discoverSystemWallpaperSources(signal)
+    const source = sources.find(entry => entry.id === id)
+    if (!source) throw new NativeWallpaperFailure('invalid-request')
+    try {
+      return await runNativeWallpaperImage(id, {
+        signal, helperPath, platform: process.platform, arch: process.arch,
+        ...(source.imagePath ? { systemImagePath: source.imagePath } : {}),
+      })
+    } catch (error) {
+      if (!(error instanceof NativeWallpaperFailure) || error.code !== 'download-required') throw error
+    }
+
+    if (!source.downloadable || !source.url) throw new NativeWallpaperFailure('unavailable')
+    onPhase('downloading')
+    const video = await downloadAppleWallpaperVideo(id, signal, source.url)
+    try {
+      if (signal.aborted) throw new NativeWallpaperFailure('cancelled')
+      onPhase('decoding')
+      return await runNativeWallpaperImage(id, {
+        signal,
+        helperPath,
+        platform: process.platform,
+        arch: process.arch,
+        videoPath: video.path,
+      })
+    } finally {
+      await video.cleanup()
+    }
+  }
+
   /** 显式调用先核对 accepted 设置；owner-scoped listener 继续负责在途同步撤权。 */
   refreshCaptureEnabled(): void {
     if (this.disposal) return
@@ -153,7 +222,7 @@ export class CaptureRuntime {
 
   dispose(): Promise<void> {
     if (!this.disposal) {
-      // +--- 两路在同一个 synchronous turn 收到 abort；关闭等待真实 helper/write settle ---+
+      // +--- capture/save/wallpaper在同一个 synchronous turn撤权；关闭等待真实helper/write settle ---+
       this.disposal = Promise.all([this.lifetime.dispose(), this.saveBackend.dispose()]).then(() => undefined)
     }
     return this.disposal

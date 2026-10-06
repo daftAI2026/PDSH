@@ -1,7 +1,7 @@
 /**
  * [INPUT]: src/host/index.ts 与官方 Typert service，由 build.ts 生成。
- * [OUTPUT]: 唯一 pdsh Config/name/apply 与 owned-window capture/save。
- * [POS]: 单包运行产物；PDSH build "0.4.0"，不手工修改。
+ * [OUTPUT]: 唯一 pdsh Config/name/apply 与 owned-window capture/save/wallpaper。
+ * [POS]: 单包运行产物；PDSH build "0.5.0"，不手工修改。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 var __create = Object.create;
@@ -178,7 +178,7 @@ import { fileURLToPath as fileURLToPath2 } from "node:url";
 import { lstat, readFile, realpath } from "node:fs/promises";
 import { join as join2, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
-var CAPTURE_RUNTIME_CONTRACT = "pdsh-capture-runtime-v1";
+var CAPTURE_RUNTIME_CONTRACT = "pdsh-capture-runtime-v2";
 var VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[\w.-]+)?$/;
 async function locateCaptureRuntime(packageLink) {
   const root = await realpath(packageLink);
@@ -224,7 +224,7 @@ function createCaptureRuntimeLoader(options) {
       }
     }
     const next = module.create(options.context);
-    if (!next || next.version !== target.version || ["capture", "save", "refreshCaptureEnabled", "dispose"].some((method) => typeof next[method] !== "function")) {
+    if (!next || next.version !== target.version || ["capture", "save", "wallpaper", "refreshCaptureEnabled", "dispose"].some((method) => typeof next[method] !== "function")) {
       if (typeof next?.dispose === "function") await next.dispose();
       throw new Error("incompatible capture runtime instance");
     }
@@ -269,8 +269,8 @@ function isCaptureId(value) {
 }
 
 // src/host/window-capture-service.ts
-var _save_dec, _capture_dec, _implementationVersion_dec, _a, _init;
-var WindowCaptureService = class extends (_a = TypertRemoteService, _implementationVersion_dec = [Remote], _capture_dec = [Remote({ mode: "stream" })], _save_dec = [Remote({ mode: "stream" })], _a) {
+var _wallpaper_dec, _save_dec, _capture_dec, _implementationVersion_dec, _a, _init;
+var WindowCaptureService = class extends (_a = TypertRemoteService, _implementationVersion_dec = [Remote], _capture_dec = [Remote({ mode: "stream" })], _save_dec = [Remote({ mode: "stream" })], _wallpaper_dec = [Remote({ mode: "stream" })], _a) {
   constructor(ctx) {
     super(ctx, "pdshWindowCapture", { namespace: "pdshNativeWindowCapture" });
     __runInitializers(_init, 5, this);
@@ -328,6 +328,27 @@ var WindowCaptureService = class extends (_a = TypertRemoteService, _implementat
       yield* runtime.save(request, signal, uplink);
     })();
   }
+  wallpaper(request, signal) {
+    const owner = this;
+    return { async *[Symbol.asyncIterator]() {
+      if (owner.disposed) {
+        yield { type: "terminal", status: "disposed" };
+        return;
+      }
+      let runtime;
+      try {
+        runtime = await owner.runtime.current();
+      } catch {
+        yield { type: "terminal", status: owner.disposed ? "disposed" : "helper-failed" };
+        return;
+      }
+      if (owner.disposed) {
+        yield { type: "terminal", status: "disposed" };
+        return;
+      }
+      yield* runtime.wallpaper(request, signal);
+    } };
+  }
   refreshCaptureEnabled() {
     this.runtime.refreshCaptureEnabled();
   }
@@ -336,6 +357,7 @@ _init = __decoratorStart(_a);
 __decorateElement(_init, 1, "implementationVersion", _implementationVersion_dec, WindowCaptureService);
 __decorateElement(_init, 1, "capture", _capture_dec, WindowCaptureService);
 __decorateElement(_init, 1, "save", _save_dec, WindowCaptureService);
+__decorateElement(_init, 1, "wallpaper", _wallpaper_dec, WindowCaptureService);
 __decoratorMetadata(_init, WindowCaptureService);
 __publicField(WindowCaptureService, "inject", ["typert", "settings"]);
 

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖版本实现协调器与内存模块、可控卸载 Promise。
- * [OUTPUT]: 验证同一桥自动换实现、并发合并、协议拒绝、失败不伪装旧版本及终态卸载。
+ * [OUTPUT]: 验证同合同桥换实现、并发合并、v1/缺壁纸方法拒绝、失败不伪装旧版本及终态卸载。
  * [POS]: Host 热更新回归门；不启动 helper、不取像、不操作用户配置。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -19,7 +19,7 @@ function fixture() {
       imports++
       const ownVersion = version
       return { version: ownVersion, contract, create: () => ({
-        version: ownVersion, capture() {}, save() {}, refreshCaptureEnabled() {},
+        version: ownVersion, capture() {}, save() {}, wallpaper() {}, refreshCaptureEnabled() {},
         dispose: async () => { disposed.push(ownVersion) },
       }) }
     },
@@ -27,6 +27,25 @@ function fixture() {
   return { loader, disposed, get imports() { return imports },
     version(value: string) { version = value }, contract(value: string) { contract = value } }
 }
+
+test('新增 wallpaper ABI 后 v1 不能热换，声称 v2 的实例也须真正有该方法', async () => {
+  let creates = 0;
+  let contract = 'pdsh-capture-runtime-v1';
+  const loader = createCaptureRuntimeLoader({
+    locate: async () => ({ version: '0.4.0-rc.1', url: 'file:///fixture/wallpaper.js' }),
+    importModule: async () => ({ version: '0.4.0-rc.1', contract, create: () => {
+      creates++;
+      return { version: '0.4.0-rc.1', capture() {}, save() {}, refreshCaptureEnabled() {}, async dispose() {} } as any;
+    } }),
+  });
+  try {
+    await assert.rejects(loader.current(), /incompatible/);
+    assert.equal(creates, 0, '旧模块不能获得 v2 运行资格');
+    contract = CAPTURE_RUNTIME_CONTRACT;
+    await assert.rejects(loader.current(), /invalid|incompatible/);
+    assert.equal(creates, 1, '仅版本号与协议标记相同不代表方法完整');
+  } finally { await loader.dispose(); }
+});
 
 test('同一稳定桥在安装新版本后换成新后台，而非只重新创建旧实现', async () => {
   const h = fixture()
@@ -83,7 +102,7 @@ test('新实现必须等旧后台真实结算后才开始构造', async () => {
     importModule: async () => ({ version, contract: CAPTURE_RUNTIME_CONTRACT, create: () => {
       const own = version
       events.push(`create:${own}`)
-      return { version: own, capture() {}, save() {}, refreshCaptureEnabled() {}, dispose: () => {
+      return { version: own, capture() {}, save() {}, wallpaper() {}, refreshCaptureEnabled() {}, dispose: () => {
         events.push(`dispose:${own}`)
         return new Promise<void>(resolve => { finish = resolve })
       } }

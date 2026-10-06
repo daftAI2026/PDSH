@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖真实编辑器、jsdom、Canvas 编码/绘制窄桩与可控保存回执。
- * [OUTPUT]: 验证模板冻结元数据和实际合成尺寸、目录/格式传递、取消/失败留在编辑、迟到编码不导出或通知；已知旧后台保留编辑并说明加载，不误报目录。
- * [POS]: 编辑器导出状态机合同；绘制桩不证明图像视觉或 Electron 保存面板实机行为。
+ * [INPUT]: 依赖真实编辑器、jsdom、Canvas 编码/绘制窄桩、可控保存回执与延迟 Node File.arrayBuffer。
+ * [OUTPUT]: 验证导出回执/取消/迟到编码围栏、Tabs 只在关闭时精确释放当前实例，以及切 Tab/卸载时选图读取中止于 PNG header/decode/storage 前且不迟到通知。
+ * [POS]: 编辑器导出、背景 Tabs 与本地导入取消合同；像素与原生保存均为窄桩，不证明图像视觉或 Electron 面板实机行为。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
@@ -95,39 +95,62 @@ test('原生Tabs端口按背景选中、切类立即应用并记住素材，卸�
     assert.equal(latest.disabled, true);
     props.onChange('none');
     assert.equal(h.editor.getState().background.id, 'sea');
+    const destroyedBeforeClose = destroyed;
     h.editor.destroy();
-    assert.equal(destroyed, 1);
+    assert.equal(destroyed, destroyedBeforeClose + 1, 'close 只额外销毁仍挂载的 Tabs 实例一次');
+    const stateAfterClose = h.editor.getState();
+    const destroyedAfterClose = destroyed;
     props.onChange('none');
-    assert.equal(h.editor.getState().background.id, 'sea');
+    assert.deepEqual(h.editor.getState(), stateAfterClose, '卸载后的回调不得修改编辑状态');
+    assert.equal(destroyed, destroyedAfterClose, '卸载后的回调不得再销毁 Tabs 实例');
     h.encoded[0]?.(); await h.flush();
   } finally { h.close(); }
 });
 
 test('选图读取迟到不能覆盖后选的Tab或在卸载后改变状态/通知', async () => {
   for (const action of ['switch', 'close']) {
-    let props, reader;
-    const oldReader = Object.getOwnPropertyDescriptor(globalThis, 'FileReader');
-    const h = fixture({ mountBackgroundTabs: (_container, input) => { props = input; return {update(){},destroy(){}}; } });
-    Object.defineProperty(globalThis, 'FileReader', { configurable: true, value: class {
-      handlers = {}; result = 'data:image/png;base64,fixture';
-      constructor() { reader = this; }
-      addEventListener(name, fn) { this.handlers[name] = fn; }
-      readAsDataURL() {}
+    let props;
+    let releaseArrayBuffer;
+    let readCalls = 0;
+    let putCalls = 0;
+    const decodeAttempts = [];
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/WQAAAABJRU5ErkJggg==', 'base64');
+    const file = new File([png], 'fixture.png', { type: 'image/png' });
+    Object.defineProperty(file, 'arrayBuffer', { configurable: true, value: () => {
+      readCalls++;
+      return new Promise(resolve => { releaseArrayBuffer = () => resolve(Uint8Array.from(png).buffer); });
     } });
+    const oldCreateObjectURL = Object.getOwnPropertyDescriptor(URL, 'createObjectURL');
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: () => {
+      decodeAttempts.push('decode');
+      throw new Error('test must abort before image decode');
+    } });
+    const h = fixture({ mountBackgroundTabs: (_container, input) => { props = input; return {update(){},destroy(){}}; },
+      galleryStore: {
+        async list() { return []; }, async get() { return undefined; },
+        async put() { putCalls++; }, async remove() {}, close() {},
+      },
+    });
     try {
       props.onChange('wallpapers');
       const input = h.dom.window.document.querySelector('[data-input=wallpaper]');
-      Object.defineProperty(input, 'files', { value: [new h.dom.window.File(['fixture'], 'fixture.png', {type:'image/png'})] });
+      Object.defineProperty(input, 'files', { value: [file] });
       input.dispatchEvent(new h.dom.window.Event('change', {bubbles:true}));
-      assert.ok(reader);
+      await h.flush();
+      assert.equal(readCalls, 1, 'the selected File read is deliberately held before header preflight');
+      assert.equal(typeof releaseArrayBuffer, 'function');
       if (action === 'switch') props.onChange('none'); else h.editor.destroy();
       const before = h.editor.getState();
-      reader.handlers.load(); await h.flush();
+      const noticesBeforeRelease = h.notices.length;
+      releaseArrayBuffer(); await h.flush(); await h.flush();
       assert.equal(h.editor.getState(), before);
-      assert.equal(h.notices.length, 0);
+      assert.equal(h.notices.length, noticesBeforeRelease, 'canceled import must not surface a late decode/storage notice');
+      assert.deepEqual(decodeAttempts, [], 'abort after arrayBuffer read but before header/decode must not create an image URL');
+      assert.equal(putCalls, 0, 'canceled import must not persist any media');
     } finally {
       h.close();
-      if(oldReader) Object.defineProperty(globalThis,'FileReader',oldReader); else delete globalThis.FileReader;
+      if (oldCreateObjectURL) Object.defineProperty(URL, 'createObjectURL', oldCreateObjectURL);
+      else delete (URL as unknown as Record<string, unknown>).createObjectURL;
     }
   }
 });

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖构建阶段 official WorkspaceTypertGenerator 发射的 Host/Remote 面与 DTO declaration。
- * [OUTPUT]: 防止 service、namespace、双向 uplink codec 或共享类型出口偏离当前 Host/Client 调用合同。
+ * [OUTPUT]: 防止唯一 service、壁纸/取像 stream、双向保存 codec 或共享类型出口偏离调用合同。
  * [POS]: Host/build integration regression；仅读取静态产物，不执行 descriptor、helper 或 capture。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -32,4 +32,20 @@ test('official Host and Remote faces expose one capture namespace with typed sav
   assert.match(publicTypes, /window-capture-protocol\.ts/)
   assert.match(publicTypes, /window-save-protocol\.ts/)
   assert.doesNotMatch(remoteTypes, /\b(?:path|directory|fileNamePattern|saveDirectory)\s*:/)
+})
+
+test('official generator emits wallpaper on the same namespace with public DTO declarations', async () => {
+  const host = await readFile(new URL('lib/typert.host.js', root), 'utf8')
+  const remote = await readFile(new URL('lib/typert.remote-client.js', root), 'utf8')
+  const declaration = await readFile(new URL('lib/typert.remote-client.d.ts', root), 'utf8')
+  const publicTypes = await readFile(new URL('lib/types/shared/remote-types.d.ts', root), 'utf8')
+  for (const descriptor of [host, remote]) {
+    assert.match(descriptor, /method: 'wallpaper'/)
+    assert.deepEqual([...new Set([...descriptor.matchAll(/namespace: '([^']+)'/g)].map(match => match[1]))], ['pdshNativeWindowCapture'])
+  }
+  assert.match(declaration, /wallpaper: \(request: WallpaperRequest, signal\?: AbortSignal\) => RemoteStreamHandle<WallpaperFrame, never>/)
+  assert.match(publicTypes, /system-wallpaper-protocol\.ts/)
+  const dto = await readFile(new URL('lib/types/shared/system-wallpaper-protocol.d.ts', root), 'utf8')
+  assert.match(dto, /system-wallpaper-tahoe-day/)
+  assert.doesNotMatch(dto, /\b(?:path|url|directory)\??\s*:/i)
 })

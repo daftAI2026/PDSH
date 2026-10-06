@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖官方 Typert 固定 Remote ABI、当前构建身份对应的 Manager 包位置与版本实现协调器。
- * [OUTPUT]: 提供唯一 capture/save service 与只读 implementationVersion；每次调用选择实际已安装后台版本。
- * [POS]: 稳定 Cordis/Remote 外壳；业务实现可热换，Config、service key 和 wire 合同不随业务版本更名。
+ * [INPUT]: 依赖官方Typert v2 Remote ABI、当前构建身份Manager包位置与版本实现协调器。
+ * [OUTPUT]: 提供唯一capture/save/wallpaper streams与只读implementationVersion；运行时版本变化不替代Remote ABI重载。
+ * [POS]: 唯一 Cordis Remote 外壳。wallpaper 改变 ABI，旧 v1 外壳不兼容，升级必须正常加载 Host 层。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { BUNDLE_NAME } from '../shared/components.ts'
@@ -14,6 +14,7 @@ import { createCaptureRuntimeLoader, locateCaptureRuntime } from './capture-runt
 import type { CaptureRuntime } from './capture-runtime.ts'
 import type { CaptureFrame } from '../shared/window-capture-protocol.ts'
 import type { WindowSaveFrame, WindowSaveInputFrame, WindowSaveRequest } from '../shared/window-save-protocol.ts'
+import type { WallpaperFrame, WallpaperRequest } from '../shared/system-wallpaper-protocol.ts'
 import { isCaptureId } from '../shared/capture-bridge.ts'
 
 export class WindowCaptureService extends TypertRemoteService {
@@ -71,6 +72,19 @@ export class WindowCaptureService extends TypertRemoteService {
       }
       yield* runtime.save(request, signal, uplink)
     })() as RemoteStream<WindowSaveFrame, WindowSaveInputFrame>
+  }
+
+  @Remote({ mode: 'stream' })
+  wallpaper(request: WallpaperRequest, signal: AbortSignal): AsyncIterable<WallpaperFrame> {
+    const owner = this
+    return { async *[Symbol.asyncIterator]() {
+      if (owner.disposed) { yield { type: 'terminal', status: 'disposed' }; return }
+      let runtime: CaptureRuntime
+      try { runtime = await owner.runtime.current() as CaptureRuntime }
+      catch { yield { type: 'terminal', status: owner.disposed ? 'disposed' : 'helper-failed' }; return }
+      if (owner.disposed) { yield { type: 'terminal', status: 'disposed' }; return }
+      yield* runtime.wallpaper(request, signal)
+    } }
   }
 
   refreshCaptureEnabled(): void { this.runtime.refreshCaptureEnabled() }

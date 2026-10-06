@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 staging manifest 包身份、PDSH Host/shared TypeScript、固定 upstream protocol reference 与官方 WorkspaceTypertGenerator。
- * [OUTPUT]: 把官方模型生成的 Host descriptor、Remote client 类型/API 与 schemas 写入 package/lib；不手写 wire descriptor。
+ * [OUTPUT]: 把官方模型生成的取像/保存/壁纸 descriptor、Remote client 类型/API 与 schemas 写入 package/lib；不手写 wire descriptor。
  * [POS]: 单 Bundle 的 build-only generator bridge；真实源在临时 packages/ workspace 内按路径复制，规避 Generator 的 realpath package boundary。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -159,11 +159,12 @@ function assertRemoteContract(dts: string, js: string): void {
   const requiredTypeTokens = [
     'capture: (signal?: AbortSignal) => RemoteStreamHandle<CaptureFrame, never>',
     'save: (request: WindowSaveRequest, signal?: AbortSignal) => RemoteStreamHandle<WindowSaveFrame, WindowSaveInputFrame>',
+    'wallpaper: (request: WallpaperRequest, signal?: AbortSignal) => RemoteStreamHandle<WallpaperFrame, never>',
   ]
   for (const token of requiredTypeTokens) {
     if (!dts.includes(token)) throw new Error(`official Typert Remote declaration missing contract: ${token}`)
   }
-  if (!js.includes("method: 'save'") || !js.includes('uplink:')) {
+  if (!js.includes("method: 'save'") || !js.includes("method: 'wallpaper'") || !js.includes('uplink:')) {
     throw new Error('official Typert Remote descriptor must include a generated save uplink codec')
   }
 }

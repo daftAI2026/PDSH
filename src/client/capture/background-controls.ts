@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 model.ts 的背景命令与状态、color-popover.ts 的颜色同步、presets.ts 的分组语义
- * [OUTPUT]: 对外提供背景控件的事件绑定、当前模式面板及稳定 DOM 状态同步
- * [POS]: capture-window 的背景交互边界，让 editor.ts 只负责编排编辑器生命周期
+ * [INPUT]: 依赖 model.ts 的背景命令与状态、color-popover.ts 颜色同步、presets.ts 分组语义及本地图库/可选系统壁纸动作
+ * [OUTPUT]: 提供背景动作及模式/选中态投影；个人与系统图库缩略图共用唯一背景模型的增量选中环同步
+ * [POS]: capture-window 背景交互边界；异步恢复只更新现有控件，不靠重新读取库存、焦点事件或整树重建补选中状态
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { syncCaptureColorPopover } from "./color-popover.ts";
@@ -13,15 +13,14 @@ import type {
 import { captureBackgroundMode, syncCaptureBackgroundPanels } from "./background-modes.ts";
 import { isCapturePlainColor } from "./presets.ts";
 import {
-  syncSystemWallpaperControls,
   wireSystemWallpaperActions,
   type SystemWallpaperEditorActions,
 } from "./system-wallpapers.ts";
 
 export type CaptureBackgroundActions = {
   dispatch: (command: CaptureWindowCommand) => void;
+  gallery?: { remove: (id: string) => void; select: (id: string) => void };
   pickWallpaper: () => void;
-  readWallpaperDataUrl: () => string | null;
   systemWallpapers?: SystemWallpaperEditorActions;
   setBackgroundColor: (color: string) => void;
 };
@@ -46,19 +45,20 @@ export function wireCaptureBackgroundActions(
     });
   }
   const wallpaper = root.querySelector<HTMLButtonElement>("[data-background-wallpaper]");
-  wallpaper?.addEventListener("click", () => {
-    const dataUrl = actions.readWallpaperDataUrl();
-    if (!dataUrl) {
-      actions.pickWallpaper();
-      return;
-    }
-    actions.dispatch({ background: { dataUrl, kind: "wallpaper" }, kind: "set-background" });
-  });
-  wallpaper?.addEventListener("dblclick", actions.pickWallpaper);
-  root.querySelector<HTMLButtonElement>("[data-action='change-wallpaper']")?.addEventListener(
-    "click",
-    actions.pickWallpaper,
-  );
+  wallpaper?.addEventListener("click", actions.pickWallpaper);
+  for (const tile of root.querySelectorAll<HTMLElement>("[data-gallery-user-image], [data-gallery-wallpaper]")) {
+    tile.addEventListener("click", () => {
+      const id = tile.dataset.galleryUserImage ?? tile.dataset.galleryWallpaper;
+      if (id) actions.gallery?.select(id);
+    });
+  }
+  for (const button of root.querySelectorAll<HTMLButtonElement>("[data-gallery-remove]")) {
+    button.addEventListener("click", event => {
+      event.stopPropagation();
+      const id = button.dataset.galleryRemove;
+      if (id) actions.gallery?.remove(id);
+    });
+  }
   if (actions.systemWallpapers) wireSystemWallpaperActions(root, actions.systemWallpapers);
 }
 
@@ -66,7 +66,6 @@ export function syncCaptureBackgroundControls(
   root: HTMLElement,
   state: CaptureWindowState,
   lastBackgroundColor: string,
-  wallpaperDataUrl: string | null,
 ): void {
   for (const option of root.querySelectorAll<HTMLElement>("[data-background]")) {
     const selected = state.background.kind === "preset" &&
@@ -87,28 +86,15 @@ export function syncCaptureBackgroundControls(
   }
   syncCaptureBackgroundPanels(root, captureBackgroundMode(state.background));
   syncCaptureColorPopover(root, "background", lastBackgroundColor);
-  syncWallpaperControls(root, state, wallpaperDataUrl);
-  syncSystemWallpaperControls(root, state);
-}
-
-function syncWallpaperControls(
-  root: HTMLElement,
-  state: CaptureWindowState,
-  wallpaperDataUrl: string | null,
-): void {
   const wallpaper = root.querySelector<HTMLElement>("[data-background-wallpaper]");
   if (wallpaper) {
-    wallpaper.dataset.selected = String(
-      state.background.kind === "wallpaper" && !state.background.systemId,
-    );
+    wallpaper.dataset.selected = String(state.background.kind === "wallpaper" && !state.background.systemId);
   }
-  const preview = root.querySelector<HTMLImageElement>("[data-wallpaper-preview]");
-  const placeholder = root.querySelector<HTMLElement>("[data-wallpaper-placeholder]");
-  const change = root.querySelector<HTMLButtonElement>("[data-action='change-wallpaper']");
-  if (preview) {
-    preview.src = wallpaperDataUrl ?? "";
-    preview.hidden = !wallpaperDataUrl;
+  // +--- 所有图库来源共享一个选中态投影，覆盖晚于库存完成的媒体恢复。 ---+
+  for (const tile of root.querySelectorAll<HTMLElement>("[data-gallery-user-image], [data-gallery-wallpaper]")) {
+    const id = tile.dataset.galleryUserImage ?? tile.dataset.galleryWallpaper;
+    const selected = state.background.kind === "wallpaper" && state.background.systemId === id;
+    tile.dataset.selected = String(selected);
+    tile.setAttribute("aria-pressed", String(selected));
   }
-  if (placeholder) placeholder.hidden = Boolean(wallpaperDataUrl);
-  if (change) change.hidden = !(wallpaperDataUrl && state.background.kind === "wallpaper");
 }

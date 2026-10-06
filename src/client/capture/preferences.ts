@@ -1,10 +1,11 @@
 /**
  * [INPUT]: 依赖 shared 包配置身份、编辑器状态机、presets.ts 唯一预设目录与既有浏览器偏好存储。
- * [OUTPUT]: 保存非敏感编辑偏好及当前桌面的来源 ID，不保存图片或本地路径；旧像素记录在取得源尺寸后迁移为百分比。
- * [POS]: capture-window 的偏好边界；来源可用性由主机恢复，背景选择由此处语义恢复，新增预设不另维护会漂移的 ID 白名单。
+ * [OUTPUT]: 保存非敏感编辑偏好及闭集系统/用户图库 opaque ID，不保存像素、Blob 或路径；旧像素记录在取得源尺寸后迁移为百分比。
+ * [POS]: capture-window 的偏好边界；ID 选择由此处恢复、媒体由独立 IndexedDB gallery 恢复，stable/RC 数据库与设置各自按 root 身份分域。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { ROOT_ENTRY_ID } from "../../shared/components.ts";
+import { isGalleryWallpaperId } from "../../shared/wallpaper-gallery.ts";
 import {
   applyCaptureCommand,
   CAPTURE_DEFAULT_PADDING,
@@ -29,7 +30,7 @@ export type CapturePreferenceStorage = {
 
 export type CapturePreferenceBackground =
   | Exclude<CaptureBackground, { kind: "wallpaper" }>
-  | { kind: "wallpaper"; systemId?: "system-wallpaper-current" };
+  | { kind: "wallpaper"; systemId?: string };
 
 export type CaptureWindowPreferences = {
   background: CapturePreferenceBackground;
@@ -64,7 +65,7 @@ export function saveCapturePreferences(
   state: CaptureWindowState,
 ): void {
   const background = state.background.kind === "wallpaper"
-    ? { kind: "wallpaper" as const, ...(state.background.systemId === "system-wallpaper-current" ? { systemId: "system-wallpaper-current" as const } : {}) }
+    ? { kind: "wallpaper" as const, ...(isSavedWallpaperId(state.background.systemId) ? { systemId: state.background.systemId } : {}) }
     : state.background;
   const preferences: CaptureWindowPreferences = {
     background,
@@ -86,8 +87,9 @@ export function applyCapturePreferences(
 ): CaptureWindowState {
   let background: CaptureBackground;
   if (preferences.background.kind === "wallpaper") {
+    const systemId = isSavedWallpaperId(preferences.background.systemId) ? preferences.background.systemId : undefined;
     background = wallpaperDataUrl
-      ? { dataUrl: wallpaperDataUrl, kind: "wallpaper" }
+      ? { dataUrl: wallpaperDataUrl, kind: "wallpaper", ...(systemId ? { systemId } : {}) }
       : { id: "sea", kind: "preset" };
   } else {
     background = preferences.background;
@@ -137,8 +139,8 @@ function normalizeCapturePreferences(input: unknown): CaptureWindowPreferences {
 function normalizeBackground(value: unknown): CapturePreferenceBackground | null {
   if (!value || typeof value !== "object") return null;
   const background = value as Record<string, unknown>;
-  if (background.kind === "wallpaper" && background.systemId === "system-wallpaper-current") {
-    return { kind: "wallpaper", systemId: "system-wallpaper-current" };
+  if (background.kind === "wallpaper" && isSavedWallpaperId(background.systemId)) {
+    return { kind: "wallpaper", systemId: background.systemId };
   }
   if (background.kind === "transparent" || background.kind === "wallpaper") {
     return { kind: background.kind };
@@ -154,6 +156,10 @@ function normalizeBackground(value: unknown): CapturePreferenceBackground | null
     return { color: background.color, kind: "color" };
   }
   return null;
+}
+
+function isSavedWallpaperId(value: unknown): value is string {
+  return value === "system-wallpaper-current" || isGalleryWallpaperId(value);
 }
 
 function defaultCapturePreferences(): CaptureWindowPreferences {

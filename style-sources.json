@@ -962,6 +962,7 @@
     "referenceFile": "src/runtime/capture-window/background-picker.css",
     "referenceCommit": "96f9ce30f06a255db572f4cc6092c2f15429fc76",
     "decision": "参考用4px空间保护4px双层环；DSH space并不保证同样预算，使用Host焦点环宽度两倍保护检查器和网格。拾色图标取Host尺寸与色块减安全边距的较小值，纯色改为与图片/渐变相同的五列圆角方框，局部选择器胜过全局探针尺寸；不去除裁切或缩小整个界面。",
+    "imageSourceGroupingDecision": "按图片来源分组：五预设原网格、系统图片独立组、个人标题行右侧plus。标题使用现有--dsw-font-xxs-12/--dsw-alias-label-tertiary；行高与plus命中区沿用原生Button .md测量的--pdsh-action-size，行间距沿用space=--pdsh-field-gap/2，标题与动作最小gap为2*space即--pdsh-field-gap；文字操作复用已映射前景/禁用态/Host focus-ring，图标复用captureIcons.icons.plus；只改归属，不复制Host选择器或添加数值主题回退。",
     "selectionRingMultiplier": 0.5,
     "selectionRingDecision": "用户2026-10-04要求内外选中环更细，两层各取Host焦点宽度的一半；键盘焦点环及安全边距保留原宽。自选颜色入口始终显示pipette，表面/前景采用Host token，不让任意自选色吞掉图标。"
   },
@@ -988,7 +989,7 @@
     "decision": "不引入BaseUI/Tailwind依赖。四类即刻应用并记住本次最近素材，实际background是唯一模式真源。沿用Host自动激活/四向箭头/循环/Home-End/禁用跳过，与BaseUI默认手动激活和可聚焦禁用项有意不同，不宣称完整行为复刻。",
     "panelContract": "四面板始终保留稳定id/aria-labelledby，非当前面板hidden/inert/tabindex=-1；工作台Tab围栏跳过负tabindex与不可见项。 空的无背景面板不添加不可见焦点停靠。",
     "layout": "240px检查器内四等宽轨道，局部移除Host tab左右16px内边距，不复制CSS Modules hash、主题色或指标几何。键盘走位关闭本控件过渡，指针和减少运动沿用Host。 不重复类别标题；20个渐变全部显示，不设展开/收起控制。",
-    "wallpaperBoundary": "内置与用户上传留在图片面板，本机壁纸入口按用户要求延期，缺真实adapter不伪造入口。"
+    "wallpaperBoundary": "macOS adapter从官方目录关联规则选择最多四项活动系统静图/静帧，不提供Windows系统壁纸获取。图片面板保留五内置预设，系统图片独立组拥有单获取/补缺动作与缓存项，我的图片标题行右侧plus归个人导入；缺provider不展示伪获取操作，已存素材仍可用。"
   },
   "captureToolbar": {
     "stateOwner": "src/client/capture/model.ts",

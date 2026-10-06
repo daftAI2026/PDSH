@@ -12,6 +12,8 @@
 
 - `window-capture-protocol.ts`: owned-window Remote stream 的唯一 capture 帧、失败码运行时白名单与硬预算；scope/尺寸/点像素比例明示原生整窗语义，不传窗口标题、目录或源坐标。
 - `window-save-protocol.ts`: 同一 Remote service 的有界 PNG/JPEG/WebP uplink、ACK、终态与 receipt 纯 DTO；不接收目标路径。
-- `remote-types.ts`: 只把 capture/save DTO 与格式 union 汇总为官方 Typert 所需公开 `./types` 边界，不增加运行时包。
+- `system-wallpaper-protocol.ts`: legacy缓存桥/未来UUID或摘要身份语法、最多四活动项、统一名称控制字符/96字门与固定状态/媒体预算；语法不是Host source授权，DTO不接路径URL。
+- `wallpaper-gallery.ts`: 动态/legacy系统与SHA256用户素材、Blob/缩略图/尺寸及36总项容量合同；稳定/RC分域，旧选择/用户图不静默淘汰，语法不充当Host来源ACL。
+- `remote-types.ts`: 只把 capture/save/壁纸 DTO 与格式 union 汇总为官方 Typert 所需公开 `./types` 边界，不增加运行时包。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

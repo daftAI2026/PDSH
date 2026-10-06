@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 model.ts 的编辑状态、copy.ts 的本地化文案、presets.ts 的背景分层与 icons.ts 的图标
- * [OUTPUT]: 对外提供稳定四模式面板 DOM 模板，隐藏面板保留 ARIA 关联但退出焦点，以及重建时保留检查器滚动和焦点的视图记忆工具；类别不重复标题、渐变始终完整展开，padding 刻度仅作装饰
- * [POS]: DSH 工作台的声明式视图边界；无系统壁纸 adapter 时不展示失效控制，避免伪能力
+ * [INPUT]: 依赖 model.ts 的编辑状态、copy.ts 的本地化文案、presets.ts 的背景分层、持久 Gallery 目录、有限系统目录/失败码校验与 icons.ts 图标
+ * [OUTPUT]: 提供四模式/三种图片来源、个人 plus 焦点恢复和四项活动素材；后台获取/图库读取仅标 busy，不插加载/进度行；失败可见，缩略图无长提示
+ * [POS]: DSH 工作台声明式视图边界；按来源分账但不改变图库或按钮接线，获取与选择分离；无 provider 不展示获取操作，保留焦点记忆
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { captureBackgroundPanelAttributes, captureBackgroundMode } from "./background-modes.ts";
@@ -16,10 +16,10 @@ import {
   CAPTURE_MIN_ZOOM,
   type CaptureWindowState,
 } from "./model.ts";
-import {
-  SYSTEM_WALLPAPER_CURRENT_ID,
-  type SystemWallpaperState,
-} from "./system-wallpapers.ts";
+import type { SystemWallpaperState } from "./system-wallpapers.ts";
+import { isSystemWallpaperClientErrorCode } from './system-wallpaper-remote.ts';
+import { isSystemWallpaperId, WALLPAPER_LIMITS } from '../../shared/system-wallpaper-protocol.ts';
+import { isUserWallpaperId, type WallpaperGalleryAsset } from '../../shared/wallpaper-gallery.ts';
 import {
   type CapturePresetSection,
   captureBackgroundSection,
@@ -33,11 +33,14 @@ export type CaptureWindowViewOptions = {
   backgroundTabsId?: string;
   lastBackgroundColor?: string;
   systemWallpapers?: SystemWallpaperState;
-  wallpaperDataUrl?: string | null;
+  galleryAssets?: readonly WallpaperGalleryAsset[];
+  galleryStatus?: 'error' | 'idle' | 'loading' | 'ready';
+  galleryBusyId?: string | null;
 };
 
 export type CaptureWindowRenderMemory = {
   action?: string;
+  importingImage?: boolean;
   inspectorScrollTop: number;
   wallpaper?: string;
 };
@@ -49,6 +52,7 @@ export function rememberCaptureWindowRender(root: HTMLElement): CaptureWindowRen
     : null;
   return {
     action: active?.dataset.action,
+    importingImage: active?.hasAttribute('data-background-wallpaper') || active?.hasAttribute('data-gallery-import-focus'),
     inspectorScrollTop: inspector?.scrollTop ?? 0,
     wallpaper: active?.dataset.systemWallpaper,
   };
@@ -60,7 +64,13 @@ export function restoreCaptureWindowRender(
 ): void {
   const inspector = root.querySelector<HTMLElement>(".pdsh-capture-inspector-scroll");
   if (inspector) inspector.scrollTop = memory.inspectorScrollTop;
-  if (memory.wallpaper) {
+  if (memory.importingImage) {
+    const addImage = root.querySelector<HTMLButtonElement>('[data-background-wallpaper]');
+    const target = addImage?.disabled
+      ? root.querySelector<HTMLElement>('[data-gallery-import-focus]')
+      : addImage;
+    if (target && !target.closest('[hidden], [inert]')) target.focus();
+  } else if (memory.wallpaper) {
     [...root.querySelectorAll<HTMLElement>("[data-system-wallpaper]")]
       .find((option) => option.dataset.systemWallpaper === memory.wallpaper)
       ?.focus();
@@ -75,11 +85,6 @@ export function captureWindowTemplate(
   options: CaptureWindowViewOptions = {},
 ): string {
   const lastBackgroundColor = options.lastBackgroundColor ?? "#2B3440";
-  const wallpaperDataUrl = options.wallpaperDataUrl ?? (
-    state.background.kind === "wallpaper" && !state.background.systemId
-      ? state.background.dataUrl
-      : null
-  );
   const systemWallpapers = options.systemWallpapers ?? { entries: [], status: "unavailable" as const };
   return `
     <div class="pdsh-capture-backdrop" aria-hidden="true"></div>
@@ -100,7 +105,7 @@ export function captureWindowTemplate(
             </div>
           </div>
         </section>
-        ${inspectorTemplate(state, copy, lastBackgroundColor, wallpaperDataUrl, systemWallpapers, options.backgroundTabsId ?? "pdsh-capture-background")}
+        ${inspectorTemplate(state, copy, lastBackgroundColor, systemWallpapers, options.backgroundTabsId ?? "pdsh-capture-background", options)}
       </div>
       ${footerTemplate(copy)}
     </section>
@@ -158,9 +163,9 @@ function inspectorTemplate(
   state: CaptureWindowState,
   copy: CaptureWindowCopy,
   lastBackgroundColor: string,
-  wallpaperDataUrl: string | null,
   systemWallpapers: SystemWallpaperState,
   backgroundTabsId: string,
+  options: CaptureWindowViewOptions,
 ): string {
   return `
     <aside class="pdsh-capture-inspector">
@@ -168,7 +173,7 @@ function inspectorTemplate(
       <div class="pdsh-capture-inspector-scroll" tabindex="0" role="region" aria-labelledby="pdsh-capture-background-title">
       <div class="pdsh-capture-inspector-content">
       <section class="pdsh-capture-section">
-        ${backgroundGridTemplate(state, copy, lastBackgroundColor, wallpaperDataUrl, systemWallpapers, backgroundTabsId)}
+        ${backgroundGridTemplate(state, copy, lastBackgroundColor, systemWallpapers, backgroundTabsId, options)}
       </section>
       <section class="pdsh-capture-section">
         <div class="pdsh-capture-row pdsh-capture-padding-heading">
@@ -211,26 +216,40 @@ function backgroundGridTemplate(
   state: CaptureWindowState,
   copy: CaptureWindowCopy,
   lastBackgroundColor: string,
-  wallpaperDataUrl: string | null,
   systemWallpapers: SystemWallpaperState,
   backgroundTabsId: string,
+  options: CaptureWindowViewOptions,
 ): string {
   const custom = state.background.kind === "color" && !isCapturePlainColor(state.background.color);
   const wallpaper = state.background.kind === "wallpaper" && !state.background.systemId;
   const customIcon = `<span data-background-custom-icon>${captureIcon("pipette")}</span>`;
-  const wallpaperImage = wallpaperDataUrl ?? "";
-  const changeImageHidden = wallpaper && wallpaperDataUrl ? "" : " hidden";
   const gradients = capturePresetSection("gradients");
   const wallpapers = capturePresetSection("wallpapers");
   const activeSection = captureBackgroundMode(state.background);
   const wallpapersActive = activeSection === "wallpapers";
-  const visibleWallpapers = systemWallpapers.entries.filter((entry) => entry.id === SYSTEM_WALLPAPER_CURRENT_ID || entry.loadStatus !== undefined);
-  const currentWallpaper = visibleWallpapers.length > 0 && visibleWallpapers.every((entry) =>
-    entry.loadStatus === undefined || entry.loadStatus === "ready" || entry.loadStatus === "loading");
-  const currentWallpaperLoading = systemWallpapers.status === "loading";
-  const currentWallpaperDisabled = currentWallpaperLoading || systemWallpapers.status === "unavailable";
-  const currentWallpaperSelected = state.background.kind === "wallpaper" &&
-    state.background.systemId === SYSTEM_WALLPAPER_CURRENT_ID;
+  const galleryAssets = options.galleryAssets ?? [];
+  const cachedAssets = new Map(galleryAssets.filter(asset => isSystemWallpaperId(asset.id)).map(asset => [asset.id, asset]));
+  const wallpaperEntries = new Map(systemWallpapers.entries
+    .filter(entry => isSystemWallpaperId(entry.id) && entry.thumbnail && entry.loadStatus === 'ready')
+    .map(entry => [entry.id, entry]));
+  for (const [id, asset] of cachedAssets) {
+    if (systemWallpapers.acquisition?.status === 'ready' && !systemWallpapers.entries.some(entry => entry.id === id)) continue;
+    const existing = wallpaperEntries.get(id);
+    wallpaperEntries.set(id, {
+      id,
+      name: existing?.name ?? copy.systemWallpaperNames[id as keyof typeof copy.systemWallpaperNames] ?? copy.systemImages,
+      available: true,
+      downloadable: false,
+      sourceType: asset.sourceType,
+      thumbnail: asset.thumbnail,
+      loadStatus: existing?.loadStatus === 'loading' ? 'loading' : 'ready',
+    });
+  }
+  const visibleWallpapers = [...wallpaperEntries.values()].slice(0, WALLPAPER_LIMITS.maxCatalogEntries);
+  const userAssets = galleryAssets.filter(asset => isUserWallpaperId(asset.id));
+  const acquiring = systemWallpapers.acquisition?.status === 'loading';
+  const canAcquire = systemWallpapers.status !== 'unavailable';
+  const acquireLabel = systemWallpapers.acquisition?.status === 'error' ? copy.retryWallpapers : copy.loadWallpapers;
   return `
     <div data-background-tabs></div>
     <div class="pdsh-capture-background-sections">
@@ -238,21 +257,36 @@ function backgroundGridTemplate(
       </section>
       ${presetSectionTemplate(gradients, state, activeSection, backgroundTabsId)}
       <section class="pdsh-capture-background-section" data-background-section="wallpapers" data-active="${wallpapersActive}" ${captureBackgroundPanelAttributes(backgroundTabsId, "wallpapers", wallpapersActive)}>
-        ${systemWallpapers.status === "unavailable" || currentWallpaper ? "" : `<button class="pdsh-capture-background-expand" data-action="load-current-wallpaper" data-pdsh-tooltip="${escapeAttribute(copy.wallpaperDownloadHint)}" data-selected="${currentWallpaperSelected}" type="button" aria-busy="${currentWallpaperLoading}" aria-pressed="${currentWallpaperSelected}"${currentWallpaperDisabled ? " disabled" : ""}>${copy.getCurrentWallpaper}</button>`}
         <div class="pdsh-capture-background-grid">
           ${presetButtonsTemplate(wallpapers, state)}
-          ${visibleWallpapers.map((entry) => {
-            const loading = entry.loadStatus === "loading";
-            const label = entry.id === SYSTEM_WALLPAPER_CURRENT_ID ? copy.currentDesktop : entry.name;
-            const hint = entry.loadStatus === "error" ? `${label} · ${copy.retryWallpaper}` : label;
-            const selected = state.background.kind === "wallpaper" && state.background.systemId === entry.id;
-            return `<button class="pdsh-capture-background-option pdsh-capture-wallpaper-label" data-system-wallpaper="${escapeAttribute(entry.id)}" data-load-status="${entry.loadStatus ?? "ready"}" type="button" data-selected="${selected}" aria-pressed="${selected}" aria-busy="${loading}" aria-label="${escapeAttribute(hint)}" data-pdsh-tooltip="${escapeAttribute(hint)}"${loading ? " disabled" : ""}>${loading ? '<span class="pdsh-capture-skeleton" aria-hidden="true"></span>' : entry.loadStatus === "error" ? captureIcon("retake") : entry.thumbnail ? `<img src="${escapeAttribute(entry.thumbnail)}" alt="">` : captureIcon("download")}</button>`;
-          }).join("")}
-          <button class="pdsh-capture-background-option pdsh-capture-wallpaper-label" data-background-wallpaper type="button" data-selected="${wallpaper}" aria-label="${copy.wallpaper}" data-pdsh-tooltip="${copy.wallpaper}"><img data-wallpaper-preview src="${wallpaperImage}" alt="" ${wallpaperDataUrl ? "" : "hidden"}><span data-wallpaper-placeholder ${wallpaperDataUrl ? "hidden" : ""}>${captureIcon("plus")}</span></button>
         </div>
-        <input class="pdsh-capture-wallpaper-input" data-input="wallpaper" type="file" accept="image/png,image/jpeg,image/webp">
-        <button class="pdsh-capture-change-wallpaper" data-action="change-wallpaper" type="button"${changeImageHidden}>${copy.changeImage}</button>
-        ${currentWallpaperStatusTemplate(systemWallpapers.status, copy)}
+        ${canAcquire || visibleWallpapers.length ? `<section class="pdsh-capture-gallery" data-system-wallpaper-group aria-label="${copy.systemImages}">
+          <div class="pdsh-capture-gallery-heading">
+            <h3 class="pdsh-capture-section-description">${copy.systemImages}</h3>
+            ${canAcquire ? `<button class="pdsh-capture-background-expand" data-action="acquire-system-wallpapers" type="button" aria-label="${escapeAttribute(acquireLabel)}" aria-busy="${acquiring}" data-pdsh-tooltip="${escapeAttribute(copy.wallpaperDownloadHint)}"${acquiring ? ' disabled' : ''}>${acquireLabel}</button>` : ''}
+          </div>
+          ${systemWallpaperStatusTemplate(systemWallpapers, copy)}
+          ${visibleWallpapers.length ? `<div class="pdsh-capture-gallery-grid">${visibleWallpapers.map((entry) => {
+            const label = entry.name;
+            const selected = state.background.kind === "wallpaper" && state.background.systemId === entry.id;
+            const busy = options.galleryBusyId === entry.id;
+            return `<button class="pdsh-capture-background-option pdsh-capture-wallpaper-label" data-system-wallpaper="${escapeAttribute(entry.id)}" data-gallery-wallpaper="${escapeAttribute(entry.id)}" data-load-status="ready" type="button" data-selected="${selected}" aria-pressed="${selected}" aria-busy="${busy}" aria-label="${escapeAttribute(label)}"${busy ? " disabled" : ""}>${busy ? '<span class="pdsh-capture-skeleton" aria-hidden="true"></span>' : `<img src="${escapeAttribute(entry.thumbnail ?? '')}" alt="">`}</button>`;
+          }).join("")}</div>` : ''}
+        </section>` : ''}
+        <section class="pdsh-capture-gallery" aria-label="${copy.myImages}" aria-busy="${options.galleryStatus === 'loading'}">
+          <div class="pdsh-capture-gallery-heading">
+            <h3 class="pdsh-capture-section-description" data-gallery-import-focus tabindex="-1">${copy.myImages}</h3>
+            <button class="pdsh-capture-icon-button" data-background-wallpaper type="button" data-selected="${wallpaper}" aria-busy="${options.galleryBusyId === 'importing'}" aria-label="${copy.addImage}" data-pdsh-tooltip="${copy.addImage}"${options.galleryBusyId === 'importing' ? ' disabled' : ''}><span data-wallpaper-placeholder>${captureIcon("plus")}</span></button>
+          </div>
+          <input class="pdsh-capture-wallpaper-input" data-input="wallpaper" type="file" accept="image/png,image/jpeg,image/webp">
+          ${galleryStatusTemplate(options.galleryStatus ?? 'idle', userAssets.length, copy)}
+          ${userAssets.length ? `<div class="pdsh-capture-gallery-grid">${userAssets.map((asset, index) => {
+            const name = `${copy.myImage} ${index + 1}`;
+            const selected = state.background.kind === 'wallpaper' && state.background.systemId === asset.id;
+            const busy = options.galleryBusyId === asset.id;
+            return `<div class="pdsh-capture-gallery-item"><button class="pdsh-capture-background-option pdsh-capture-wallpaper-label" data-gallery-user-image="${escapeAttribute(asset.id)}" data-selected="${selected}" aria-pressed="${selected}" aria-busy="${busy}" type="button" aria-label="${escapeAttribute(name)}" data-pdsh-tooltip="${escapeAttribute(name)}"${busy ? ' disabled' : ''}><img src="${escapeAttribute(asset.thumbnail)}" alt=""></button><button class="pdsh-capture-gallery-remove" data-gallery-remove="${escapeAttribute(asset.id)}" type="button" aria-label="${escapeAttribute(`${copy.removeImage} ${name}`)}"${options.galleryBusyId === asset.id ? ' disabled' : ''}>${copy.removeImage}</button></div>`;
+          }).join('')}</div>` : ''}
+        </section>
       </section>
       <section class="pdsh-capture-background-section" data-background-section="plain-color" data-active="${activeSection === "plain-color"}" ${captureBackgroundPanelAttributes(backgroundTabsId, "plain-color", activeSection === "plain-color")}>
         <div class="pdsh-capture-background-grid pdsh-capture-background-grid-plain">
@@ -264,17 +298,33 @@ function backgroundGridTemplate(
   `;
 }
 
-function currentWallpaperStatusTemplate(
-  status: SystemWallpaperState["status"],
+function galleryStatusTemplate(status: NonNullable<CaptureWindowViewOptions['galleryStatus']>, count: number, copy: CaptureWindowCopy): string {
+  if (status === 'error') return `<p class="pdsh-capture-section-description" data-gallery-status role="alert">${copy.galleryError}</p>`;
+  if (status === 'ready' && count === 0) return `<p class="pdsh-capture-section-description" data-gallery-status>${copy.galleryEmpty}</p>`;
+  return '';
+}
+
+function systemWallpaperStatusTemplate(
+  state: SystemWallpaperState,
   copy: CaptureWindowCopy,
 ): string {
-  if (status === "loading") {
-    return `<p class="pdsh-capture-section-description" data-current-wallpaper-status aria-live="polite">${copy.currentWallpaperLoading}</p>`;
+  if (state.acquisition?.status === 'loading') {
+    return '';
   }
-  if (status === "error") {
-    return `<p class="pdsh-capture-section-description" data-current-wallpaper-status role="alert">${copy.currentWallpaperError}</p>`;
+  if (state.acquisition?.status === 'error') {
+    const code = state.acquisition.failureCode;
+    const diagnostic = isSystemWallpaperClientErrorCode(code) ? ` (${code})` : '';
+    return `<p class="pdsh-capture-section-description" data-system-wallpapers-status role="alert">${copy.systemWallpapersPartial}${diagnostic}</p>`;
   }
-  if (status === "unavailable") return "";
+  if (state.status === "loading") {
+    return '';
+  }
+  if (state.status === "error") {
+    return `<p class="pdsh-capture-section-description" data-system-wallpapers-status role="alert">${copy.systemWallpapersError}</p>`;
+  }
+  if (state.status === "ready" && state.entries.length === 0) {
+    return `<p class="pdsh-capture-section-description" data-system-wallpapers-status>${copy.systemWallpapersUnavailable}</p>`;
+  }
   return "";
 }
 

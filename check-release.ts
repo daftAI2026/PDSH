@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖根唯一版本、Git 工作树、单包产物与公开元信息校验器及只读 GitHub 仓库状态。
- * [OUTPUT]: 校验稳定 tag、文档版本、生成产物与 HEAD，并拒绝本地简介或 GitHub About/Topics 漂移、脏树与非 main 稳定发布。
+ * [INPUT]: 依赖唯一版本、README、长期指南、Git 和产物门。依赖只读 GitHub 元信息。
+ * [OUTPUT]: 核对版本、Release 章节、产物和 HEAD。拒绝元信息漂移、脏树和非 main 发布。
  * [POS]: 发布前防漂移门；不推送、打 tag、发布 npm 或修改版本。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -22,7 +22,7 @@ validatePublicMetadata(root);
 const readme = readFileSync(new URL('./README.md', import.meta.url), 'utf8');
 const guide = readFileSync(new URL('./AGENTS.md', import.meta.url), 'utf8');
 if (!readme.includes(tag) || !readme.includes(`**${manifest.version} `)) throw new Error('README active release does not match package.json');
-if (!guide.includes(`## ${manifest.version} release contract`)) throw new Error('AGENTS release contract does not match package.json');
+if (!/^## Release\r?$/mu.test(guide)) throw new Error('AGENTS must include a version-independent Release section');
 const git = (...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
 if (git('branch', '--show-current') !== 'main') throw new Error('stable release must be checked on main, never the RC branch');
 const existing = git('tag', '--list', tag);

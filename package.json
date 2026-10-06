@@ -1,7 +1,7 @@
 {
   "name": "@daftai/pdsh",
   "description": "DeepSeek Harness plugin for sidebar masking, display aliases, and local screenshot editing. No session isolation.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "main": "./index.js",
@@ -18,6 +18,7 @@
     "lib/types/shared/remote-types.d.ts",
     "lib/types/shared/window-capture-protocol.d.ts",
     "lib/types/shared/window-save-protocol.d.ts",
+    "lib/types/shared/system-wallpaper-protocol.d.ts",
     "native/window-capture",
     "native/windows/window-capture-x64.exe",
     "cordis.patch.yml",

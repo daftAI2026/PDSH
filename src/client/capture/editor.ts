@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖模型、受控原生 Tabs 挂载端口、视口控制器、输出预算、取消、背景/外观资源、DOM 模板与已接受的保存配置
- * [OUTPUT]: 提供工作台挂载、编辑命令协调、工具/来源切换取消旧手势并保留焦点、像素合成/导出与资源生命周期控制，旧后台和保存结果未知各自提示
- * [POS]: capture-window 总协调器；高频视口手势由 editor-viewport.ts 拥有，系统壁纸加载由 system-wallpapers.ts 拥有，本地选图用背景意图世代拒绝迟到覆盖
+ * [INPUT]: 依赖模型、受控原生 Tabs、视口/预算/取消、背景与 Client IndexedDB 图库包装、DOM 模板及已接受保存配置
+ * [OUTPUT]: 提供工作台编辑/合成/导出生命周期；图片首次访问/失败重试读本地库存，Tab复用就绪/在途库存，显式批获取不改变背景，关闭等待自有I/O结算后关仓
+ * [POS]: capture-window 总协调器；图库选择 revision 与系统批获取分开拥有生命周期，选择/导出 signal 贯穿解码，媒体入库与偏好 ID 分离
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { captureBackgroundMode, createCaptureBackgroundMemory, type CaptureBackgroundMode } from "./background-modes.ts";
@@ -39,6 +39,15 @@ import {
   saveCapturePreferences,
   shouldRestoreCurrentWallpaper,
 } from "./preferences.ts";
+import { ROOT_ENTRY_ID } from '../../shared/components.ts';
+import {
+  isGalleryWallpaperId,
+  wallpaperGalleryDatabaseName,
+  WallpaperGalleryError,
+} from '../../shared/wallpaper-gallery.ts';
+import { createWallpaperGalleryStore } from './wallpaper-gallery-store.ts';
+import { createWallpaperGallery, type WallpaperGalleryStore } from './wallpaper-gallery.ts';
+import { createSystemWallpaperSelectionAction, createWallpaperGalleryActions } from './wallpaper-gallery-actions.ts';
 import { resolveSelectedCaptureRegions } from "./redactions.ts";
 import { mountCaptureRegionLayer } from "./regions.ts";
 import {
@@ -52,11 +61,6 @@ import {
   rememberCaptureWindowRender,
   restoreCaptureWindowRender,
 } from "./view.ts";
-import {
-  isCaptureWallpaperFile,
-  loadCaptureImage,
-  readCaptureWallpaperFile,
-} from "./wallpaper.ts";
 import { wireKeyboard } from "./editor-keyboard.ts";
 import { encodeCapture, handCaptureToDownload } from './export.ts';
 import { isCaptureExportSizeAllowed, captureExportFileName, resolveCaptureExportPreferences, type CaptureExportPreferences } from '../../shared/capture-export.ts';
@@ -78,6 +82,7 @@ export type CaptureWindowEditorOptions = {
   ) => CaptureWindowRetake | Promise<CaptureWindowRetake>;
   onSave?: (image: Blob, suggestedName: string, directory: string, behavior: CaptureExportPreferences['saveBehavior'], signal: AbortSignal, metadata: { format: CaptureExportPreferences['saveFormat']; width: number; height: number; title: string; capturedAt: string }) => Promise<"cancelled" | "saved">;
   preferenceStorage?: CapturePreferenceStorage | null;
+  galleryStore?: WallpaperGalleryStore;
   source: HTMLCanvasElement;
   systemWallpapers?: SystemWallpaperAdapter;
 };
@@ -110,26 +115,33 @@ export function mountCaptureWindowEditor(
     scaleFactor: options.sourceScaleFactor ?? window.devicePixelRatio,
     width: source.width,
   });
-  let state = options.initialState ?? (
-    preferenceStorage
-      ? applyCapturePreferences(defaultState, loadCapturePreferences(preferenceStorage))
-      : defaultState
-  );
+  const initialPreferences = preferenceStorage ? loadCapturePreferences(preferenceStorage) : null;
+  let pendingGalleryPreferenceId = !options.initialState && initialPreferences?.background.kind === 'wallpaper'
+    && isGalleryWallpaperId(initialPreferences.background.systemId)
+    ? initialPreferences.background.systemId
+    : undefined;
+  let state = options.initialState ?? (initialPreferences
+    ? applyCapturePreferences(defaultState, initialPreferences)
+    : defaultState);
   const backgroundImages = createCaptureBackgroundImageStore();
   const backgroundMemory = createCaptureBackgroundMemory(state.lastOpaqueBackground);
   backgroundMemory.remember(state.background);
   const backgroundTabsId = `pdsh-capture-background-${++backgroundTabsSequence}`;
   let backgroundTabs: CaptureBackgroundTabsController | undefined;
   let backgroundRevision = 0;
-  let lastWallpaperDataUrl = state.background.kind === "wallpaper" && !state.background.systemId
-    ? state.background.dataUrl
-    : null;
   let lastBackgroundColor = state.background.kind === "color" ? state.background.color : "#2B3440";
   let manualRegionSequence = 0;
   let destroyed = false;
   const isMacOS = navigator.platform.startsWith("Mac");
   const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   const copy = captureWindowCopy(options.locale ?? document.documentElement.lang ?? navigator.language);
+  const galleryStore = options.galleryStore ?? createWallpaperGalleryStore({ name: wallpaperGalleryDatabaseName(ROOT_ENTRY_ID) });
+  const wallpaperGallery = createWallpaperGallery({
+    document: host.ownerDocument,
+    locale: () => options.locale ?? document.documentElement.lang ?? navigator.language,
+    store: galleryStore,
+    systemAdapter: options.systemWallpapers,
+  });
   let automaticCandidates = options.automaticRegions ?? [];
   const root = document.createElement("div");
   root.className = "pdsh-capture-root";
@@ -138,23 +150,66 @@ export function mountCaptureWindowEditor(
   root.setAttribute("data-state", "editing");
   host.append(root);
   const inspectorScroll = createInspectorScroll(root);
-  const systemWallpaperController = createSystemWallpaperController(options.systemWallpapers, () => {
+  const systemWallpaperController = createSystemWallpaperController(wallpaperGallery.systemAdapter, () => {
     if (!destroyed && root.dataset.state === "editing") render();
   });
   const systemWallpaperActions = createSystemWallpaperEditorActions(systemWallpaperController, {
-    apply: ({ dataUrl, id }) => dispatch({
-      background: { dataUrl, kind: "wallpaper", systemId: id },
-      kind: "set-background",
-    }),
+    apply: ({ dataUrl, id }) => {
+      dispatch({ background: { dataUrl, kind: "wallpaper", systemId: id }, kind: "set-background" });
+    },
     isAlive: () => !destroyed,
-    onError: () => notify(copy.currentWallpaperError),
-    onUnavailable: () => notify(copy.currentWallpaperUnavailable),
-    resolve: ({ dataUrl, id }) => backgroundImages.resolve({
+    onError: () => notify(copy.systemWallpapersError),
+    onLoadError: error => notifyGalleryError(error, copy.systemWallpaperLoadError),
+    onUnavailable: () => notify(copy.systemWallpapersUnavailable),
+    resolve: ({ dataUrl, id }, signal) => backgroundImages.resolve({
       dataUrl,
       kind: "wallpaper",
       systemId: id,
-    }),
+    }, signal),
   });
+  const galleryActions = createWallpaperGalleryActions({
+    advanceBackgroundRevision: () => ++backgroundRevision,
+    createAbortController: () => new window.AbortController(),
+    gallery: wallpaperGallery,
+    invalidateSystemSelection: () => systemWallpaperController.invalidateSelection(),
+    isAlive: () => !destroyed,
+    isEditing: () => root.dataset.state === "editing",
+    notifyError: (error, action) => notifyGalleryError(error,
+      action === 'import' ? copy.wallpaperUnreadable
+        : action === 'select' ? copy.systemWallpaperLoadError
+          : copy.galleryUnavailable),
+    onChanged: () => {
+      if (!destroyed && root.dataset.state === "editing") render();
+    },
+    onRemoved: id => {
+      backgroundMemory.forgetWallpaper(id);
+      const selected = state.background.kind === 'wallpaper' && state.background.systemId === id;
+      const wasPendingPreference = pendingGalleryPreferenceId === id;
+      if (!selected && !wasPendingPreference) return;
+      pendingGalleryPreferenceId = undefined;
+      dispatch({ kind: 'set-background', background: { id: 'sea', kind: 'preset' } });
+    },
+    onRestore: (id, selection, image) => {
+      backgroundImages.remember(selection.dataUrl, image);
+      pendingGalleryPreferenceId = undefined;
+      const background = { dataUrl: selection.dataUrl, kind: 'wallpaper' as const, systemId: id };
+      state = applyCaptureCommand(state, { kind: 'set-background', background });
+      backgroundMemory.remember(background);
+      refreshEditor({ kind: 'set-background', background });
+    },
+    onSelected: (id, selection, image) => {
+      backgroundImages.remember(selection.dataUrl, image);
+      pendingGalleryPreferenceId = undefined;
+      dispatch({ kind: 'set-background', background: { dataUrl: selection.dataUrl, kind: 'wallpaper', systemId: id } });
+    },
+    readBackgroundRevision: () => backgroundRevision,
+    resolve: (id, selection, signal) => backgroundImages.resolve({ dataUrl: selection.dataUrl, kind: 'wallpaper', systemId: id }, signal),
+  });
+  const selectSystemWallpaper = createSystemWallpaperSelectionAction(
+    galleryActions,
+    () => ++backgroundRevision,
+    id => systemWallpaperActions.select(id),
+  );
   const editorViewport = createCaptureEditorViewport({
     createManualRegionId: () => `manual-${++manualRegionSequence}`,
     dispatchRegion,
@@ -218,11 +273,16 @@ export function mountCaptureWindowEditor(
     if (command.kind === "set-background" || command.kind === "set-transparent-background") {
       backgroundRevision++;
       systemWallpaperController.invalidateSelection();
+      galleryActions.cancelSelection();
+      if (command.kind === 'set-background') pendingGalleryPreferenceId = undefined;
     }
     if (!applyEditorCommand(command)) return;
     backgroundMemory.remember(state.background);
     if (preferenceStorage && isCapturePreferenceCommand(command)) {
-      saveCapturePreferences(preferenceStorage, state);
+      const preferenceState = pendingGalleryPreferenceId
+        ? { ...state, background: { dataUrl: '', kind: 'wallpaper' as const, systemId: pendingGalleryPreferenceId } }
+        : state;
+      saveCapturePreferences(preferenceStorage, preferenceState);
     }
     refreshEditor(command);
     if (command.kind === "set-background" || command.kind === "set-transparent-background") {
@@ -255,7 +315,10 @@ export function mountCaptureWindowEditor(
     backgroundRevision++;
     backgroundTabs?.destroy();
     editorViewport.destroy();
-    systemWallpaperController.destroy();
+    const systemWallpaperSettlement = systemWallpaperController.destroy();
+    const gallerySettlement = galleryActions.destroy();
+    backgroundImages.dispose();
+    void Promise.all([systemWallpaperSettlement, gallerySettlement]).then(() => wallpaperGallery.close(), () => wallpaperGallery.close());
     resizeObserver.disconnect();
     inspectorScroll.destroy();
     unwireColorPopovers();
@@ -265,6 +328,15 @@ export function mountCaptureWindowEditor(
   }
   function notify(message: string, tone?: 'success'): void {
     options.onNotify?.(message, tone);
+  }
+  function notifyGalleryError(error: unknown, fallback = copy.galleryUnavailable): void {
+    if (error instanceof WallpaperGalleryError) {
+      if (error.code === 'gallery-full') notify(copy.galleryFull);
+      else if (error.code === 'invalid-asset') notify(copy.wallpaperUnreadable);
+      else if (error.code !== 'disposed') notify(copy.galleryUnavailable);
+      return;
+    }
+    if (!(error instanceof DOMException && error.name === 'AbortError')) notify(fallback);
   }
   function changeColor(target: CaptureColorTarget, color: string): void {
     if (target === "background") {
@@ -300,7 +372,7 @@ export function mountCaptureWindowEditor(
       command.kind === "set-redaction-source" ||
       command.kind === "set-redaction-style";
     if (overlayOnly) refreshToolbar();
-    syncEditorControls(root, state, copy, lastBackgroundColor, lastWallpaperDataUrl);
+    syncEditorControls(root, state, copy, lastBackgroundColor);
     backgroundTabs?.update(captureBackgroundMode(state.background), root.dataset.state !== "editing");
     const canvas = root.querySelector<HTMLCanvasElement>(".pdsh-capture-canvas");
     if (overlayOnly && canvas) {
@@ -326,9 +398,15 @@ export function mountCaptureWindowEditor(
     if (destroyed || root.dataset.state !== "editing" || mode === captureBackgroundMode(state.background)) return;
     unwireColorPopovers.close();
     dispatch({ kind: "set-background", background: backgroundMemory.read(mode) });
+    if (mode === "wallpapers") {
+      // +--- 切换不是库存失效；首次访问或读取失败才需要重读。 ---+
+      const { status } = galleryActions.getState();
+      if (status === 'idle' || status === 'error') void galleryActions.loadInventory();
+    }
   }
   function render(): void {
     if (destroyed) return;
+    const galleryState = galleryActions.getState();
     const renderMemory = rememberCaptureWindowRender(root);
     backgroundTabs?.destroy();
     backgroundTabs = undefined;
@@ -337,7 +415,9 @@ export function mountCaptureWindowEditor(
       backgroundTabsId,
       lastBackgroundColor,
       systemWallpapers: systemWallpaperController.getState(),
-      wallpaperDataUrl: lastWallpaperDataUrl,
+      galleryAssets: galleryState.assets,
+      galleryStatus: galleryState.status,
+      galleryBusyId: galleryState.busyId,
     });
     const tabsContainer = root.querySelector<HTMLElement>("[data-background-tabs]");
     if (tabsContainer && options.mountBackgroundTabs) backgroundTabs = options.mountBackgroundTabs(tabsContainer, {
@@ -354,14 +434,25 @@ export function mountCaptureWindowEditor(
     wireCaptureBackgroundActions(root, {
       dispatch,
       pickWallpaper: () => root.querySelector<HTMLInputElement>("[data-input='wallpaper']")?.click(),
-      readWallpaperDataUrl: () => lastWallpaperDataUrl,
+      gallery: {
+        select: id => { void galleryActions.select(id); },
+        remove: id => { void galleryActions.remove(id); },
+      },
       setBackgroundColor: (color) => {
         lastBackgroundColor = color;
         dispatch({ background: { color, kind: "color" }, kind: "set-background" });
       },
-      systemWallpapers: systemWallpaperActions,
+      systemWallpapers: {
+        ...systemWallpaperActions,
+        acquireAll: async () => {
+          if (destroyed || root.dataset.state !== 'editing') return;
+          await systemWallpaperActions.acquireAll();
+          if (!destroyed) await galleryActions.loadInventory();
+        },
+        select: id => selectSystemWallpaper(id),
+      },
     });
-    wireInputs(root, dispatch, preview, loadWallpaper, setPrivacy);
+    wireInputs(root, dispatch, preview, file => galleryActions.import(file), setPrivacy);
     wireKeyboard(root, state, dispatchRegion, close, exportCopy);
     root.querySelector<HTMLElement>("[data-action='retake']")?.addEventListener("click", () => {
       void retake();
@@ -429,29 +520,11 @@ export function mountCaptureWindowEditor(
   async function setPrivacy(enabled: boolean): Promise<void> {
     if (enabled !== state.privacyEnabled) await retake(enabled);
   }
-  async function loadWallpaper(file: File): Promise<void> {
-    const revision = ++backgroundRevision;
-    if (!isCaptureWallpaperFile(file)) {
-      notify(copy.wallpaperTooLarge);
-      return;
-    }
-    try {
-      const dataUrl = await readCaptureWallpaperFile(file);
-      if (destroyed || revision !== backgroundRevision || root.dataset.state !== "editing") return;
-      const wallpaperImage = await loadCaptureImage(dataUrl);
-      if (destroyed || revision !== backgroundRevision || root.dataset.state !== "editing") return;
-      backgroundImages.remember(dataUrl, wallpaperImage);
-      lastWallpaperDataUrl = dataUrl;
-      dispatch({ kind: "set-background", background: { dataUrl, kind: "wallpaper" } });
-    } catch {
-      if (!destroyed && revision === backgroundRevision && root.dataset.state === "editing") notify(copy.wallpaperUnreadable);
-    }
-  }
   async function exportCopy(): Promise<void> {
     if (destroyed || root.getAttribute("data-state") !== "editing") return;
     setPhase("composing");
     try {
-      const canvas = renderCurrentCapture(await backgroundImages.resolve(state.background));
+      const canvas = renderCurrentCapture(await backgroundImages.resolve(state.background, exportAbort.signal));
       const blob = await encodeCapture(canvas);
       if (destroyed) return;
       if (options.onCopy) await options.onCopy(blob);
@@ -469,7 +542,7 @@ export function mountCaptureWindowEditor(
     if (destroyed || root.getAttribute("data-state") !== "editing") return;
     setPhase("composing");
     try {
-      const canvas = renderCurrentCapture(await backgroundImages.resolve(state.background));
+      const canvas = renderCurrentCapture(await backgroundImages.resolve(state.background, exportAbort.signal));
       const preferences = resolveCaptureExportPreferences(options.exportPreferences);
       const blob = await encodeCapture(canvas, preferences.saveFormat);
       if (destroyed) return;
@@ -516,7 +589,9 @@ export function mountCaptureWindowEditor(
     return renderCaptureToCanvas(source, currentRenderState(), { backgroundImage, isMacOS, materialAppearance });
   }
   render();
+  if (captureBackgroundMode(state.background) === 'wallpapers') void galleryActions.loadInventory();
   void systemWallpaperActions.restoreCurrent(shouldRestoreCurrentWallpaper(preferenceStorage));
+  if (pendingGalleryPreferenceId) void galleryActions.restore(pendingGalleryPreferenceId);
   hydrateBackground(state.background);
   return {
     destroy: close,
@@ -586,7 +661,9 @@ function wireInputs(
     value => dispatch({ kind: "set-padding", padding: value }),
   );
   root.querySelector<HTMLInputElement>("[data-input='wallpaper']")?.addEventListener("change", (event) => {
-    const file = (event.currentTarget as HTMLInputElement).files?.[0];
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
     if (file) void loadWallpaper(file);
   });
 }
@@ -595,10 +672,9 @@ function syncEditorControls(
   state: CaptureWindowState,
   copy: CaptureWindowCopy,
   lastBackgroundColor: string,
-  wallpaperDataUrl: string | null,
 ): void {
   syncZoomControls(root, state);
-  syncCaptureBackgroundControls(root, state, lastBackgroundColor, wallpaperDataUrl);
+  syncCaptureBackgroundControls(root, state, lastBackgroundColor);
 
   const padding = root.querySelector<HTMLInputElement>("[data-input='padding']");
   const paddingValue = root.querySelector<HTMLElement>("[data-value='padding']");

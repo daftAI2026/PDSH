@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖当前单包 manifest 与自有临时目录。
- * [OUTPUT]: 提供仅用于静态分发守门的 artifactFixture、合成双架构Mach-O头部与归档成员清单。
+ * [OUTPUT]: 提供含壁纸 DTO/descriptor/v2 标记的静态 artifactFixture、合成双架构 Mach-O 与归档成员清单。
  * [POS]: bundle/release 测试共用合成产物；假 helper 从不执行，不冒充实机产物。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -18,10 +18,10 @@ export function artifactFixture() {
   save();
   write('cordis.patch.yml', '- insert:\n    - id: pdsh\n      name: "@daftai/pdsh"\n');
   write('index.js', '/* PDSH build "0.3.0" */ @deepseek-ai/dsh-typert-protocol ./native/window-capture');
-  write('lib/capture-runtime/0.3.0.js', '/* PDSH build \"0.3.0\" */ pdsh-capture-runtime-v1');
+  write('lib/capture-runtime/0.3.0.js', '/* PDSH build \"0.3.0\" */ pdsh-capture-runtime-v2');
   write('client.js', '/* PDSH build "0.3.0" */\nwindow.__ModuleLoader__.load({id:"@daftai/pdsh",factory:()=>({})});');
-  write('lib/typert.host.js', "service: 'pdshWindowCapture' namespace: 'pdshNativeWindowCapture' method: 'capture' method: 'save' method: 'implementationVersion' uplink:");
-  write('lib/typert.remote-client.js', "method: 'capture' method: 'save' method: 'implementationVersion'");
+  write('lib/typert.host.js', "service: 'pdshWindowCapture' namespace: 'pdshNativeWindowCapture' method: 'capture' method: 'save' method: 'wallpaper' method: 'implementationVersion' uplink:");
+  write('lib/typert.remote-client.js', "method: 'capture' method: 'save' method: 'wallpaper' method: 'implementationVersion'");
   write('lib/typert.remote-client.d.ts', 'RemoteStreamHandle<WindowSaveFrame, WindowSaveInputFrame>');
   // +--- 只有可解析的头部，没有机器指令；从不作为可运行 helper 使用 ---+
   const helper = Buffer.alloc(160);

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 verify-host.ts CLI、Node 子进程和独占创建的临时/生成目录。
- * [OUTPUT]: 验证官方安装验收器在导入 Host 前拒绝非临时目录、符号链接、凭据及错误包管理器。
+ * [OUTPUT]: 验证官方验收器在导入 Host 前拒绝非临时目录、符号链接、凭据、未知候选身份及错误包管理器。
  * [POS]: 集成工具的安全前置回归；不启动 DSH、不读取用户 profile、不把拒绝用例冒充功能验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -27,8 +27,9 @@ function fixture() {
   writeFileSync(fakePnpm, `#!/usr/bin/env node\nrequire('node:fs').writeFileSync(${JSON.stringify(argsPath)}, JSON.stringify(process.argv.slice(2)));\nprocess.stdout.write('10.0.0\\n');\n`, { mode: 0o700 });
   return {
     dir, argsPath,
-    run(profile: string, command = { command: fakePnpm, args: [] as unknown[] }) {
-      const result = spawnSync(process.execPath, ['--experimental-strip-types', verifier, host, profile, tgz, JSON.stringify(command)], {
+    run(profile: string, command = { command: fakePnpm, args: [] as unknown[] }, candidateRoot?: string) {
+      const result = spawnSync(process.execPath, ['--experimental-strip-types', verifier, host, profile, tgz, JSON.stringify(command),
+        ...(candidateRoot ? ['green', candidateRoot] : [])], {
         encoding: 'utf8', timeout: 15_000,
       });
       assert.equal(result.error, undefined);
@@ -52,6 +53,20 @@ test('验收器拒绝非临时 profile，不能先写入再报错', () => {
     assert.match(result.output, /非 OS 临时目录/);
     assert.equal(readFileSync(sentinel, 'utf8'), bytes);
   } finally { h.dispose(); rmSync(ownOutput, { recursive: true, force: true }); }
+});
+
+test('隔离验收只接受 stable/RC 当前候选身份，不忽略额外候选目录', () => {
+  const h = fixture();
+  try {
+    const candidateRoot = join(h.dir, 'foreign-candidate');
+    mkdirSync(candidateRoot);
+    const manifest = JSON.stringify({ name: '@example/foreign', version: '0.4.0', private: true });
+    writeFileSync(join(candidateRoot, 'package.json'), manifest);
+    const result = h.run(join(h.dir, 'consumer'), undefined, candidateRoot);
+    assert.notEqual(result.status, 0);
+    assert.match(result.output, /unsupported acceptance candidate identity/);
+    assert.equal(readFileSync(join(candidateRoot, 'package.json'), 'utf8'), manifest);
+  } finally { h.dispose(); }
 });
 
 test('验收器拒绝从临时目录链接到项目的 profile', () => {

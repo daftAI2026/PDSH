@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖单包 manifest、唯一 Cordis patch 与 build.ts 生成的 Host/Client/official Typert/helper 产物。
+ * [INPUT]: 依赖单包 manifest、唯一 Cordis patch 与 build.ts 生成的 Host/Client、壁纸/取像/保存 Typert DTO 及 helper。
  * [OUTPUT]: 提供 validateBundleArtifacts/validatePackedBundle；拒绝运行条目、平台架构/最低系统、权限或归档漂移。
  * [POS]: 构建与发布共用的静态分发门；支持独立临时 RC 身份且维持同一产物门；只读本包与明确版本 tgz，不执行 bundle/helper，不访问用户 profile。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -15,6 +15,7 @@ const ARCHIVE_FILES = [
   'lib/typert.host.js', 'lib/typert.host.d.ts', 'lib/typert.remote-client.js', 'lib/typert.remote-client.d.ts',
   'lib/types/shared/capture-export.d.ts', 'lib/types/shared/remote-types.d.ts',
   'lib/types/shared/window-capture-protocol.d.ts', 'lib/types/shared/window-save-protocol.d.ts',
+  'lib/types/shared/system-wallpaper-protocol.d.ts',
   'native/window-capture', 'native/windows/window-capture-x64.exe', 'cordis.patch.yml', 'plugin-icon.svg', 'style-sources.json',
   'THIRD_PARTY_NOTICES.md', 'LICENSE', 'locale/*.json',
 ];
@@ -70,7 +71,7 @@ export function validateBundleArtifacts(root: string): void {
     if (!read(file).includes(`PDSH build ${JSON.stringify(manifest.version)}`)) throw new Error(`bundle artifact ${file} version drift; rebuild`);
   }
   const runtime = read(`lib/capture-runtime/${manifest.version}.js`);
-  if (!runtime.includes(`PDSH build ${JSON.stringify(manifest.version)}`) || !runtime.includes('pdsh-capture-runtime-v1')) throw new Error('bundle capture runtime version/contract drift');
+  if (!runtime.includes(`PDSH build ${JSON.stringify(manifest.version)}`) || !runtime.includes('pdsh-capture-runtime-v2')) throw new Error('bundle capture runtime version/contract drift');
   const helper = lstatSync(join(root, 'native/window-capture'));
   if (!helper.isFile() || (helper.mode & 0o777) !== 0o755) throw new Error('native helper must be a packaged executable regular file with mode 0755');
   validateMacHelper(readFileSync(join(root, 'native/window-capture')));
@@ -87,7 +88,7 @@ export function validateBundleArtifacts(root: string): void {
   const hostTypert = read('lib/typert.host.js');
   const remote = read('lib/typert.remote-client.js');
   const remoteTypes = read('lib/typert.remote-client.d.ts');
-  for (const method of ['capture', 'save', 'implementationVersion']) {
+  for (const method of ['capture', 'save', 'wallpaper', 'implementationVersion']) {
     if (!hostTypert.includes(`method: '${method}'`) || !remote.includes(`method: '${method}'`)) throw new Error(`generated Typert artifacts missing ${method}`);
   }
   if (!hostTypert.includes("service: 'pdshWindowCapture'") || !hostTypert.includes("namespace: 'pdshNativeWindowCapture'")) throw new Error('generated Host descriptor lost its owned-window service identity');

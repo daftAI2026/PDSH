@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 通过 fixtureRoot/package.json 解析精确 DSH Host 依赖；在隔离 consumerProfile 中接收归档/GitHub 来源与 PNPM 命令 JSON。
- * [OUTPUT]: 经官方 PluginManager 与 Typert Loader 验证安装及当前版本业务闭包字节、helper 执行位、设置和 service/descriptor 生命周期；不消费取像流或冒充 Remote/Desktop 验收。
+ * [INPUT]: 通过 fixtureRoot/package.json 解析精确 DSH Host；从当前或显式 candidateRoot 读取 stable/RC 归档身份，在隔离 profile 接收官方 PNPM 命令。
+ * [OUTPUT]: 经官方 Manager 与 Loader 验证安装字节、业务版本载入、权限、设置与生命周期。不消费取像流，不替代 Desktop 验收。
  * [POS]: 仓库根目录的集成验收入口；只操作调用方指定且 owner/权限验证的临时 profile，不改写 DSH 用户 profile 或替代官方解析器。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -15,8 +15,8 @@ import { createHash } from 'node:crypto'
 import { validatePackedBundle } from './bundle-artifacts.ts'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 
-const ROOT_BUNDLE = '@daftai/pdsh'
 const FEATURE_FIELDS = ['maskIdentity', 'maskTitles', 'captureEnabled'] as const
+type AcceptanceIdentity = { name: '@daftai/pdsh' | '@daftai/pdsh-rc'; entryId: 'pdsh' | 'pdsh-rc' }
 type PackageManagerCommand = {
   command: string
   args?: string[]
@@ -24,7 +24,7 @@ type PackageManagerCommand = {
 }
 
 function usage(): never {
-  throw new Error('用法: node --experimental-strip-types verify-host.ts <fixtureRoot> <consumerProfile> <rootTgz|PDSH-GitHub-source> <pmCommandJSON> [green|historical-pnpm-red|historical-host-red]')
+  throw new Error('用法: node --experimental-strip-types verify-host.ts <fixtureRoot> <consumerProfile> <rootTgz|PDSH-GitHub-source> <pmCommandJSON> [green|historical-pnpm-red|historical-host-red] [candidateRoot]')
 }
 
 // +--- 临时目录不等于私有目录；验证 owner 与写权限，不擅自 chmod 调用方内容 ---+
@@ -163,26 +163,26 @@ async function importHostModule(requireFromHost: NodeRequire, name: string): Pro
   return await import(pathToFileURL(entry).href) as Record<string, any>
 }
 
-function activePdshRows(ctx: any): any[] {
-  return [...ctx.loader.entries()].filter((entry: any) => entry.options.id === 'pdsh')
+function activePdshRows(ctx: any, entryId: string): any[] {
+  return [...ctx.loader.entries()].filter((entry: any) => entry.options.id === entryId)
 }
 
-function assertSingleBundle(ctx: any): void {
-  const entries = activePdshRows(ctx)
+function assertSingleBundle(ctx: any, identity: AcceptanceIdentity): void {
+  const entries = activePdshRows(ctx, identity.entryId)
   assert.equal(entries.length, 1, 'Host 必须有且仅有一个 pdsh entry')
-  assert.equal(entries[0].options.name, ROOT_BUNDLE, '必须保持 root 包名和配置地址')
+  assert.equal(entries[0].options.name, identity.name, '必须保持 root 包名和配置地址')
   assert.equal(entries[0].fiber?.state, 2, 'root Host 未活动')
   const clientIds = ctx.clientModules.graph().entries.map((row: any) => row.id).filter((id: unknown) => typeof id === 'string' && id.startsWith('@daftai/pdsh'))
-  assert.deepEqual(clientIds, [ROOT_BUNDLE], 'Client graph 必须只有 root Client')
-  assert.ok(ctx.clientModules.clientPath(ROOT_BUNDLE), 'root Client 缺失')
+  assert.deepEqual(clientIds, [identity.name], 'Client graph 必须只有 root Client')
+  assert.ok(ctx.clientModules.clientPath(identity.name), 'root Client 缺失')
 }
 
-/** 只等官方注册/撤回；不调用任何 product capture/save method。 */
-async function waitWindowCapability(ctx: any, present: boolean): Promise<void> {
+/** 只等官方注册/撤回；不调用任何 product capture/save/wallpaper method。 */
+async function waitWindowCapability(ctx: any, present: boolean, identity: AcceptanceIdentity): Promise<void> {
   const deadline = Date.now() + 5000
   while (Date.now() < deadline) {
-    const states = [Boolean(ctx.get('pdshWindowCapture')), Boolean(ctx.typert.getPackage(ROOT_BUNDLE, 'host')),
-      Boolean(ctx.typert.local.get('pdshNativeWindowCapture/capture')), Boolean(ctx.typert.local.get('pdshNativeWindowCapture/save'))]
+    const states = [Boolean(ctx.get('pdshWindowCapture')), Boolean(ctx.typert.getPackage(identity.name, 'host')),
+      ...['capture', 'save', 'wallpaper'].map(method => Boolean(ctx.typert.local.get(`pdshNativeWindowCapture/${method}`)))]
     if (states.every(value => value === present)) return
     await new Promise(resolve => setTimeout(resolve, 10))
   }
@@ -204,7 +204,7 @@ function assertPnpm11(manager: PackageManagerCommand, profile: string): void {
 }
 
 async function main(): Promise<void> {
-  const [fixtureArg, profileArg, tgzArg, pmArg, expectedResult = 'green'] = process.argv.slice(2)
+  const [fixtureArg, profileArg, tgzArg, pmArg, expectedResult = 'green', candidateArg] = process.argv.slice(2)
   if (!fixtureArg || !profileArg || !tgzArg || !pmArg) usage()
   assert.ok(['green', 'historical-pnpm-red', 'historical-host-red'].includes(expectedResult), 'expectation 必須是 green、historical-pnpm-red 或 historical-host-red')
 
@@ -216,12 +216,16 @@ async function main(): Promise<void> {
   const installAnchor = join(fixtureRoot, 'package.json')
   assert.ok(existsSync(installAnchor), `fixtureRoot 缺少 package.json: ${fixtureRoot}`)
   assert.ok(isGithub || existsSync(installSource), `root tarball 不存在: ${installSource}`)
+  const candidateRoot = candidateArg ? resolve(candidateArg) : fileURLToPath(new URL('.', import.meta.url))
+  const candidate = JSON.parse(readFileSync(join(candidateRoot, 'package.json'), 'utf8'))
+  assert.ok(candidate.private === true && ['@daftai/pdsh', '@daftai/pdsh-rc'].includes(candidate.name), 'unsupported acceptance candidate identity')
+  const identity: AcceptanceIdentity = { name: candidate.name, entryId: candidate.name === '@daftai/pdsh-rc' ? 'pdsh-rc' : 'pdsh' }
+  const ROOT_BUNDLE = identity.name
+  const rootEntry = identity.entryId
   assertEmptyConsumer(consumerProfile)
   const registry = managerRegistry(consumerProfile)
   const packageManager = readPackageManagerCommand(pmArg, consumerProfile)
   assertPnpm11(packageManager, consumerProfile)
-  const candidateRoot = fileURLToPath(new URL('.', import.meta.url))
-  const candidate = JSON.parse(readFileSync(join(candidateRoot, 'package.json'), 'utf8'))
   const packedProof = expectedResult === 'green' && !isGithub ? validatePackedBundle(candidateRoot, installSource) : undefined
   if (packedProof) console.log(`Artifact proof: ${JSON.stringify(packedProof)}`)
   const requireFromHost = createRequire(installAnchor)
@@ -291,7 +295,7 @@ async function main(): Promise<void> {
     await ctx.plugin(ClientModuleRegistry).await()
     await boot.mountRootInclude(ctx, join(consumerProfile, 'cordis.yml'), [], baseUrl)
     await ctx.loader.await()
-    assert.equal(activePdshRows(ctx).length, 0, '安装前必须没有 PDSH Host 行')
+    assert.equal(activePdshRows(ctx, rootEntry).length, 0, '安装前必须没有 PDSH Host 行')
 
     await ctx.plugin(PluginManager, {
       registry,
@@ -307,7 +311,7 @@ async function main(): Promise<void> {
       assert.equal(installed.application, 'failed', '预期 PNPM 拒绝，但官方 Manager 报告未失败')
       assert.ok(installed.packageResult && installed.packageResult.exitCode !== 0, `预期在 PNPM 安装阶段失败: ${JSON.stringify(installed)}`)
       assert.match(installed.error?.diagnostic ?? '', /ERR_PNPM_EXOTIC_SUBDEP/, 'PNPM-red 必须由 blockExoticSubdeps 拒绝 Git 子依赖，不接受网络等其他失败')
-      assert.equal(activePdshRows(ctx).length, 0, 'PNPM 拒绝后不应有 PDSH Host 行')
+      assert.equal(activePdshRows(ctx, rootEntry).length, 0, 'PNPM 拒绝后不应有 PDSH Host 行')
       console.log(`EXPECTED RED [PNPM install]: exit=${installed.packageResult.exitCode}; ${JSON.stringify(installed.error)}`)
       return
     }
@@ -318,7 +322,7 @@ async function main(): Promise<void> {
       const diagnostic = installed.error?.diagnostic ?? ''
       assert.match(diagnostic, /3 entries did not activate/, 'Host-red 必须恰是三条 PDSH entry 未激活')
       for (const id of ['pdsh', 'pdsh-titles', 'pdsh-capture']) assert.ok(diagnostic.includes(`${id} (@daftai/pdsh-${id === 'pdsh' ? 'identity' : id.slice(5)}): failed to import`), `Host-red 缺少 ${id} failed-to-import`)
-      assert.equal(activePdshRows(ctx).filter((entry) => entry.fiber?.state === 2).length, 0, 'Host 激活失败的负例不得留下活动 PDSH entry')
+      assert.equal(activePdshRows(ctx, rootEntry).filter((entry) => entry.fiber?.state === 2).length, 0, 'Host 激活失败的负例不得留下活动 PDSH entry')
       console.log(`EXPECTED RED [Host activation after PNPM success]: pnpm=${installed.packageResult.exitCode}; ${JSON.stringify(installed.error)}`)
       return
     }
@@ -327,12 +331,17 @@ async function main(): Promise<void> {
     assert.equal(installed.bundle, ROOT_BUNDLE, '官方 Manager 安装的不是目标 root Bundle')
     assert.equal(installed.packageResult?.exitCode, 0, '官方 Manager 内部 PNPM 未成功')
     await ctx.loader.await()
-    assertSingleBundle(ctx)
-    await waitWindowCapability(ctx, true)
+    assertSingleBundle(ctx, identity)
+    await waitWindowCapability(ctx, true, identity)
     const installedRoot = join(consumerProfile, 'node_modules', ROOT_BUNDLE)
     assert.equal(lstatSync(join(installedRoot, 'native/window-capture')).mode & 0o777, 0o755, '官方安装必须保留 helper 执行位；摘要一致不能替代权限验证')
     const installedManifest = JSON.parse(readFileSync(join(installedRoot, 'package.json'), 'utf8'))
     assert.equal(installedManifest.version, candidate.version, '被测包版本不是当前候选')
+    // +--- 注册和字节相等不证明业务可载入；只调用无像素副作用的版本方法。 ---+
+    const service = ctx.get('pdshWindowCapture')[cordis.symbols.original]
+    const implementationVersion = await service.implementationVersion()
+    assert.equal(implementationVersion, installedManifest.version, '实际载入的业务版本不是当前安装版本')
+    console.log(`PASS runtime-load: implementationVersion=${implementationVersion}; installed ESM/v2 contract accepted (no pixels requested)`)
     const runtimeHashes: Record<string, string> = {}
     // +--- manifest glob 是分发规则，不是磁盘文件；只展开已校验的两个固定成员模式。 ---+
     for (const file of candidate.files.flatMap((file: string) => {
@@ -353,7 +362,7 @@ async function main(): Promise<void> {
       const requested = /#([a-f0-9]{40})$/.exec(installSource)?.[1]
       if (requested) assert.equal(resolvedSha, requested, '实际安装提交与请求 SHA 不同')
     }
-    const proof = { source: installSource, version: installedManifest.version, resolvedSha, packedProof, runtimeHashes }
+    const proof = { source: installSource, version: installedManifest.version, implementationVersion, resolvedSha, packedProof, runtimeHashes }
     writeFileSync(join(consumerProfile, '.plugin-manager', 'pdsh-acceptance-proof.json'), JSON.stringify(proof, null, 2) + '\n')
     console.log(`PASS source binding: ${JSON.stringify(proof)}`)
     const manifest = JSON.parse(readFileSync(join(consumerProfile, 'package.json'), 'utf8'))
@@ -365,73 +374,76 @@ async function main(): Promise<void> {
     assert.equal(rootBundles[0].enabled, true)
     assert.deepEqual(rootBundles[0].rows.map((row: any) => row.moduleName), [ROOT_BUNDLE])
     const meta = ctx.pluginPackages.metaOf(ROOT_BUNDLE, baseUrl)
-    assert.equal(meta?.title?.zh, 'DSH 私密模式')
+    const expectedTitle = JSON.parse(readFileSync(join(candidateRoot, 'locale/zh.json'), 'utf8')).meta.title
+    assert.equal(meta?.title?.zh, expectedTitle)
     assert.ok(meta?.description?.zh?.trim())
-    assert.equal(rootBundles[0].rows[0]?.meta?.title?.zh, 'DSH 私密模式')
+    assert.equal(rootBundles[0].rows[0]?.meta?.title?.zh, expectedTitle)
     console.log('PASS official-install: single root Bundle/Host/Client/metadata')
 
-    const service = ctx.get('pdshWindowCapture')[cordis.symbols.original]
     let refreshCount = 0
     const refresh = service.refreshCaptureEnabled.bind(service)
     service.refreshCaptureEnabled = () => { refreshCount++; refresh() }
-    const defaults = ctx.settings.describe().find((row: any) => row.ns === 'pdsh')
+    const defaults = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
     assert.ok(defaults, 'root settings missing')
     const originalFields = FEATURE_FIELDS.map(key => ({key, own:Object.hasOwn(defaults.user ?? {}, key), value:defaults.user?.[key]}))
     for (let mask = 0; mask < 8; mask++) {
       const enabled = FEATURE_FIELDS.map((_field, index) => Boolean(mask & (1 << index)))
-      const section = ctx.settings.describe().find((row: any) => row.ns === 'pdsh')
+      const section = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
       const priorEnabled = section.value.captureEnabled
       const priorRefresh = refreshCount
-      await ctx.settings.mutate('pdsh', FEATURE_FIELDS.map((key, index) => ({op:'set', path:[key], value:enabled[index]})), section.revision)
+      await ctx.settings.mutate(rootEntry, FEATURE_FIELDS.map((key, index) => ({op:'set', path:[key], value:enabled[index]})), section.revision)
       await ctx.loader.await()
-      assertSingleBundle(ctx)
-      const accepted = ctx.settings.describe().find((row: any) => row.ns === 'pdsh')
+      assertSingleBundle(ctx, identity)
+      const accepted = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
       assert.deepEqual(FEATURE_FIELDS.map(key => accepted.value[key]), enabled)
-      await waitWindowCapability(ctx, true)
+      await waitWindowCapability(ctx, true, identity)
       assert.equal(ctx.get('pdshWindowCapture')[cordis.symbols.original], service, 'volatile settings must retain the same service')
       if (priorEnabled !== enabled[2]) assert.ok(refreshCount > priorRefresh, 'Config owner did not refresh capture lifetime')
       console.log(`PASS functional-toggle ${mask.toString(2).padStart(3, '0')}: service/descriptors retained; owner refresh=${refreshCount}`)
     }
-    const last = ctx.settings.describe().find((row: any) => row.ns === 'pdsh')
-    await ctx.settings.mutate('pdsh', originalFields.map(({key,own,value}) => own ? {op:'set',path:[key],value} : {op:'unset',path:[key]}), last.revision)
+    const last = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
+    await ctx.settings.mutate(rootEntry, originalFields.map(({key,own,value}) => own ? {op:'set',path:[key],value} : {op:'unset',path:[key]}), last.revision)
     await ctx.loader.await()
-    assertSingleBundle(ctx)
+    assertSingleBundle(ctx, identity)
 
     // 真实 SettingsForms → ConfigEditor 写入；按 revision fence 更改昵称，再还原用户层原值。
-    const identity = ctx.settings.describe().find((row: any) => row.ns === 'pdsh')
-    assert.ok(identity, 'Settings 未展示 identity 配置')
-    const priorHadNickname = Object.hasOwn(identity.user ?? {}, 'nickname')
-    const priorUserNickname = identity.user?.nickname
-    const priorValueNickname = identity.value?.nickname
+    const nicknameSnapshot = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
+    assert.ok(nicknameSnapshot, 'Settings 未展示 identity 配置')
+    const priorHadNickname = Object.hasOwn(nicknameSnapshot.user ?? {}, 'nickname')
+    const priorUserNickname = nicknameSnapshot.user?.nickname
+    const priorValueNickname = nicknameSnapshot.value?.nickname
     const changedNickname = 'PDSH Host acceptance'
-    await ctx.settings.mutate('pdsh', [{ op: 'set', path: ['nickname'], value: changedNickname }], identity.revision)
-    const changed = ctx.settings.describe().find((row: any) => row.ns === 'pdsh')
-    assert.ok(changed && changed.revision > identity.revision, '昵称写入没有推进 Settings revision')
+    await ctx.settings.mutate(rootEntry, [{ op: 'set', path: ['nickname'], value: changedNickname }], nicknameSnapshot.revision)
+    const changed = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
+    assert.ok(changed && changed.revision > nicknameSnapshot.revision, '昵称写入没有推进 Settings revision')
     assert.equal(changed.value?.nickname, changedNickname, 'Settings/ConfigEditor 没有写入测试昵称')
     if (priorHadNickname) {
-      await ctx.settings.mutate('pdsh', [{ op: 'set', path: ['nickname'], value: priorUserNickname }], changed.revision)
+      await ctx.settings.mutate(rootEntry, [{ op: 'set', path: ['nickname'], value: priorUserNickname }], changed.revision)
     } else {
-      await ctx.settings.mutate('pdsh', [{ op: 'unset', path: ['nickname'] }], changed.revision)
+      await ctx.settings.mutate(rootEntry, [{ op: 'unset', path: ['nickname'] }], changed.revision)
     }
-    const restored = ctx.settings.describe().find((row: any) => row.ns === 'pdsh')
+    const restored = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
     assert.ok(restored && restored.revision > changed.revision, '恢复昵称没有推进 Settings revision')
     assert.equal(restored.value?.nickname, priorValueNickname, '昵称恢复后与修改前不一致')
     assert.equal(Object.hasOwn(restored.user ?? {}, 'nickname'), priorHadNickname, '昵称恢复改变了原有 profile override 层')
-    console.log(`PASS settings: ConfigEditor nickname write/revision/restore (${identity.revision} → ${changed.revision} → ${restored.revision})`)
+    console.log(`PASS settings: ConfigEditor nickname write/revision/restore (${nicknameSnapshot.revision} → ${changed.revision} → ${restored.revision})`)
 
     const disabledBundle = await manager.setBundleEnabled(ROOT_BUNDLE, false)
     assert.equal(disabledBundle.application, 'applied', '官方 Manager 未应用 Bundle disable')
     assert.equal(disabledBundle.error, undefined)
     await ctx.loader.await()
-    assert.equal(activePdshRows(ctx).length, 0, 'Bundle disable 后仍有 PDSH Host entry')
-    await waitWindowCapability(ctx, false)
+    assert.equal(activePdshRows(ctx, rootEntry).length, 0, 'Bundle disable 后仍有 PDSH Host entry')
+    await waitWindowCapability(ctx, false, identity)
     assert.equal(ctx.clientModules.graph().entries.filter((row: any) => row.id.startsWith('@daftai/pdsh')).length, 0, 'Bundle disable 后 PDSH Client registry 未清理')
     const reenabledBundle = await manager.setBundleEnabled(ROOT_BUNDLE, true)
     assert.equal(reenabledBundle.application, 'applied', '官方 Manager 未应用 Bundle re-enable')
     assert.equal(reenabledBundle.error, undefined)
     await ctx.loader.await()
-    assertSingleBundle(ctx)
-    await waitWindowCapability(ctx, true)
+    assertSingleBundle(ctx, identity)
+    await waitWindowCapability(ctx, true, identity)
+    const reenabledVersion = await ctx.get('pdshWindowCapture')[cordis.symbols.original].implementationVersion()
+    assert.equal(reenabledVersion, installedManifest.version, '重新启用后业务版本未正确载入')
+    console.log(`PASS runtime-reenable: implementationVersion=${reenabledVersion}; fresh service accepted current runtime`)
     console.log('PASS bundle lifecycle: official disable removed Host/Client/service/descriptors; re-enable restored single root capability (no pixels requested)')
     console.log(`PASS fixture: ${fixtureRoot}`)
     console.log(`PASS isolated profile: ${consumerProfile}`)

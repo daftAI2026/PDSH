@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实编辑器、jsdom 与可控 requestAnimationFrame；不读取用户截图或启动 Desktop。
- * [OUTPUT]: 验证缩放与工具状态唯一、检测/手绘意图分离、手绘隐藏候选但保留遮罩、模式切换不合成像素、切模式取消旧手势、候选点击忙碌围栏、选中按钮焦点，以及帧合并和卸载清理。
+ * [OUTPUT]: 验证视口/工具/区域状态与帧合并、模式及忙碌围栏、卸载清理；系统获取入口挂载只读本地目录，不调用 Host catalog或媒体。
  * [POS]: capture 编辑器视口交互合同；Canvas 绘制桩只证明控制流，不证明桌面视觉表现。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -489,5 +489,69 @@ test('工具、来源和后续打码样式切换不重新合成像素，新增�
     assert.equal(h.canvasAllocations(), maskedAllocations);
     assert.equal(h.editor.getState().regions, selected);
     assert.equal(selected[0].style, 'solid', '样式只作用于后续区域');
+  } finally { h.close(); }
+});
+
+test('默认图片面板挂载时读取持久图库目录元数据，但不读取或加载任何图片', async () => {
+  const userId = `user-wallpaper-${'d'.repeat(64)}`;
+  const asset = {
+    id: userId,
+    blob: new Blob(['fixture image bytes'], { type: 'image/png' }),
+    width: 1,
+    height: 1,
+    sourceType: 'image' as const,
+    thumbnail: 'data:image/jpeg;base64,YQ==',
+    createdAt: 1,
+  };
+  let listCalls = 0;
+  let getCalls = 0;
+  const h = fixture({
+    initialState: createCaptureWindowState({ width: 120, height: 80 }),
+    preferenceStorage: null,
+    galleryStore: {
+      async list() { listCalls++; return [asset]; },
+      async get() { getCalls++; return undefined; },
+      async put() { throw new Error('mount must not write media'); },
+      async remove() { throw new Error('mount must not remove media'); },
+      close() {},
+    },
+  });
+  try {
+    await h.flushAsync();
+    await h.flushAsync();
+    assert.equal(h.editor.getState().background.kind, 'preset');
+    assert.equal(listCalls, 1, '初始 sea 属于图片面板，应立即读取本地图库元数据');
+    assert.equal(getCalls, 0, '目录读取不解码或读取任何媒体');
+    assert.ok(h.root.querySelector(`[data-gallery-user-image="${userId}"]`), '持久用户项在首次打开时可发现');
+  } finally { h.close(); }
+});
+
+test('有系统 provider 的首次图片面板仅读本地库存，单一获取入口不会自行触发 Host', async () => {
+  let catalogCalls = 0;
+  let mediaCalls = 0;
+  let localLists = 0;
+  const h = fixture({
+    initialState: createCaptureWindowState({ width: 120, height: 80 }),
+    preferenceStorage: null,
+    galleryStore: {
+      async list() { localLists++; return []; },
+      async get() { assert.fail('挂载不读原图'); },
+      async put() { assert.fail('挂载不写图库'); },
+      async remove() { assert.fail('挂载不删图库'); },
+      close() {},
+    },
+    systemWallpapers: {
+      async list() { catalogCalls++; return []; },
+      async load() { mediaCalls++; throw new Error('explicit acquisition required'); },
+    },
+  });
+  try {
+    await h.flushAsync();
+    await h.flushAsync();
+    assert.ok(localLists >= 1);
+    assert.equal(catalogCalls, 0, '打开工作台不读取系统目录');
+    assert.equal(mediaCalls, 0, '打开工作台不读取或下载系统图片');
+    assert.equal(h.root.querySelectorAll('[data-system-wallpaper]').length, 0);
+    assert.equal(h.root.querySelectorAll('[data-action="acquire-system-wallpapers"]').length, 1);
   } finally { h.close(); }
 });

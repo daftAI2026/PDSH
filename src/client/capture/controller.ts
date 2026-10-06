@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖冻结 PNG/原生整窗比例、候选原点/稳定几何验证、编辑器与原生 Tabs 挂载端口、分离的标题与 Host 身份遮挡偏好、导出偏好及宿主通知。
- * [OUTPUT]: 提供相机点击→隐藏自有 UI→截图→工作台、重拍、固定码对应可执行提示、分层失败反馈及异常/停用释放的单一控制器。
- * [POS]: capture Client 编排边界；截图像素不进入设置或会话持久化，编辑器只持有本地像素。
+ * [INPUT]: 依赖冻结 PNG/原生整窗比例、候选验证、编辑器/Tabs 端口、遮挡与导出偏好、可选壁纸 adapter 及通知。
+ * [OUTPUT]: 提供相机→截图→工作台与重拍；固定错误/卸载围栏，并将 Host 壁纸资源所有权交给可释放编辑器。
+ * [POS]: capture Client 编排边界；截图和壁纸像素不进入设置或会话持久化，编辑器只持有本地编辑资源。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { capturePreparedWindow, waitForCaptureFrame } from './capture-lifecycle.ts';
@@ -11,6 +11,7 @@ import { loadCapturePreferences } from './preferences.ts';
 import { markDSHPrivacyPlaceholders, collectDSHCandidates, mapCandidatesToPng } from './privacy.ts';
 import { readCandidateWindowViewport, mapWindowCandidatesToPng } from './candidate-mapping.ts';
 import { configureCapturePresetAssets } from './presets.ts';
+import type { SystemWallpaperAdapter } from './system-wallpapers.ts';
 
 import { CaptureViewportError } from './viewport.ts';
 import { captureFailureMessage } from './copy.ts';
@@ -19,7 +20,7 @@ import { DEFAULT_CAPTURE_EXPORT } from '../../shared/capture-export.ts';
 import type { CaptureTrace } from '../../shared/capture-trace.ts';
 import { captureTraceFailureCode } from '../../shared/capture-trace.ts';
 
-export function mountCaptureController(doc: Document, { locale = () => doc.documentElement.lang || doc.defaultView.navigator.language, onState = () => {}, notify = (_message: string, _tone?: 'success') => {}, capture = async (_doc, _options): Promise<HTMLCanvasElement> => { throw new CaptureViewportError('host-unavailable'); }, openEditor = mountCaptureWindowEditor, waitFrame = waitForCaptureFrame, presetAssets = {}, onSave = undefined, exportPreferences = () => DEFAULT_CAPTURE_EXPORT, captureMaskIdentity = (): boolean => true, trace = (() => {}) as CaptureTrace, captureScope = 'current-page', sourceScale = (_source) => doc.defaultView.devicePixelRatio, mountBackgroundTabs = undefined as CaptureBackgroundTabsMount | undefined } = {}) {
+export function mountCaptureController(doc: Document, { locale = () => doc.documentElement.lang || doc.defaultView.navigator.language, onState = () => {}, notify = (_message: string, _tone?: 'success') => {}, capture = async (_doc, _options): Promise<HTMLCanvasElement> => { throw new CaptureViewportError('host-unavailable'); }, openEditor = mountCaptureWindowEditor, waitFrame = waitForCaptureFrame, presetAssets = {}, onSave = undefined, exportPreferences = () => DEFAULT_CAPTURE_EXPORT, captureMaskIdentity = (): boolean => true, trace = (() => {}) as CaptureTrace, captureScope = 'current-page', sourceScale = (_source) => doc.defaultView.devicePixelRatio, mountBackgroundTabs = undefined as CaptureBackgroundTabsMount | undefined, systemWallpapers = undefined as SystemWallpaperAdapter | undefined } = {}) {
   configureCapturePresetAssets(presetAssets);
   let busy = false, disposed = false, editor = null, host: HTMLElement | null = null, abort: AbortController | null = null;
   const state = () => ({ busy, disabled: busy || disposed || !!editor });
@@ -82,7 +83,7 @@ export function mountCaptureController(doc: Document, { locale = () => doc.docum
       if (disposed) return;
       host = doc.createElement('div'); host.setAttribute('data-pdsh-capture-host', ''); doc.body.append(host);
       editor = openEditor(host, {
-        mountBackgroundTabs, source: first.source, fileMetadata: first.fileMetadata, onSave, sourceScaleFactor: first.sourceScaleFactor, materialAppearance: first.materialAppearance, automaticRegions: first.automaticRegions, locale: locale(), exportPreferences: exportPreferences(),
+        mountBackgroundTabs, systemWallpapers, source: first.source, fileMetadata: first.fileMetadata, onSave, sourceScaleFactor: first.sourceScaleFactor, materialAppearance: first.materialAppearance, automaticRegions: first.automaticRegions, locale: locale(), exportPreferences: exportPreferences(),
         onRetake: (_revision, enabled) => snapshot(enabled),
         onClose: () => { editor = null; host?.remove(); host = null; publish(); },
         onNotify: (message, tone) => report(message, tone),

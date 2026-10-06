@@ -4,18 +4,20 @@ import type {
   RemoteStreamHandle,
   TypertRemoteContribution,
 } from '@deepseek-ai/dsh-typert-protocol'
-import type { CaptureFrame, WindowSaveFrame, WindowSaveInputFrame, WindowSaveRequest } from '@daftai/pdsh/types'
+import type { CaptureFrame, WallpaperFrame, WallpaperRequest, WindowSaveFrame, WindowSaveInputFrame, WindowSaveRequest } from '@daftai/pdsh/types'
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface TypertRemoteNamespace$706473684e617469766557696e646f7743617074757265 {
     capture: (signal?: AbortSignal) => RemoteStreamHandle<CaptureFrame, never>
     implementationVersion: () => Promise<RemoteResult<string>>
     save: (request: WindowSaveRequest, signal?: AbortSignal) => RemoteStreamHandle<WindowSaveFrame, WindowSaveInputFrame>
+    wallpaper: (request: WallpaperRequest, signal?: AbortSignal) => RemoteStreamHandle<WallpaperFrame, never>
   }
   interface TypertRemoteMap {
     'pdshNativeWindowCapture/capture': (signal?: AbortSignal) => RemoteStreamHandle<CaptureFrame, never>
     'pdshNativeWindowCapture/implementationVersion': () => Promise<RemoteResult<string>>
     'pdshNativeWindowCapture/save': (request: WindowSaveRequest, signal?: AbortSignal) => RemoteStreamHandle<WindowSaveFrame, WindowSaveInputFrame>
+    'pdshNativeWindowCapture/wallpaper': (request: WallpaperRequest, signal?: AbortSignal) => RemoteStreamHandle<WallpaperFrame, never>
   }
   interface TypertRemoteNamespaceMap {
     'pdshNativeWindowCapture': TypertRemoteNamespace$706473684e617469766557696e646f7743617074757265

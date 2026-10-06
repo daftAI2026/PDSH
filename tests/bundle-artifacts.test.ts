@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖单包产物校验器与隔离临时发布目录。
- * [OUTPUT]: 验证有效单包，拒绝拓扑/版本漂移、helper架构/最低系统漂移及归档执行位丢失。
+ * [OUTPUT]: 验证有效单包，拒绝拓扑/版本、壁纸 ABI/声明闭包、helper架构/最低系统及归档执行位漂移。
  * [POS]: 分发拓扑回归门；不读取用户配置、联网或运行安装脚本。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -16,6 +16,17 @@ import { artifactFixture } from './bundle-fixture.ts';
 
 test('单包完整产物不需要 tag、Git 子依赖或安装脚本', () => {
   const h = artifactFixture(); try { assert.doesNotThrow(() => validateBundleArtifacts(h.root)); } finally { h.dispose(); }
+});
+test('壁纸候选须带完整 DTO、官方 Remote 方法和 v2 实现，不复用旧壳', () => {
+  for (const defect of ['declaration', 'descriptor', 'runtime']) {
+    const h = artifactFixture();
+    try {
+      if (defect === 'declaration') unlinkSync(join(h.root, 'lib/types/shared/system-wallpaper-protocol.d.ts'));
+      if (defect === 'descriptor') h.write('lib/typert.remote-client.js', "method: 'capture' method: 'save' method: 'implementationVersion'");
+      if (defect === 'runtime') h.write('lib/capture-runtime/0.3.0.js', '/* PDSH build "0.3.0" */ pdsh-capture-runtime-v1');
+      assert.throws(() => validateBundleArtifacts(h.root), /bundle|Typert/, defect);
+    } finally { h.dispose(); }
+  }
 });
 test('分发门拒绝非双架构helper、架构重复、截断与最低系统漂移', () => {
   for (const defect of ['text', 'single', 'duplicate', 'truncated', 'minimum']) {

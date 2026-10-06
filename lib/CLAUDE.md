@@ -1,7 +1,7 @@
 # lib/
 > L2 | 父级: ../CLAUDE.md
 
-- `typert.host.js`: 官方 generator 的 Host descriptor/schema，供 Host Typert Loader 注册唯一 capture/save namespace；禁止手写修补。
+- `typert.host.js`: 官方 generator 的 Host descriptor/schema，供 Loader 注册唯一 capture/save/wallpaper namespace；wallpaper 是新增 ABI，必须正常加载而非旧外壳热替换；禁止手写修补。
 - `typert.host.d.ts`: 同次生成的 Host face 类型出口，不引入产品运行时。
 - `typert.remote-client.js`: 官方 generator 的 Client contribution/codec，内联进唯一 lazy Client factory。
 - `typert.remote-client.d.ts`: 官方生成的 Remote declaration merge，经公开 `./types` 引用同源 DTO。
