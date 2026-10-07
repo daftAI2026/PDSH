@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 capture/controller.ts 的截图时序、Host 身份遮挡 getter 与可注入取像/工作台边界。
- * [OUTPUT]: 验证初拍/重拍的标题-身份偏好独立、失败归因、临时遮挡归还、挂载回收和停用取消。
+ * [INPUT]: 依赖 capture/controller.ts 的截图时序、身份与壁纸能力读取端口，以及可注入取像/工作台边界。
+ * [OUTPUT]: 验证遮挡偏好、失败归因与停用取消；壁纸能力按工作台重读，不替换已打开工作台。
  * [POS]: Client 截图合同测试；真实像素另由 Desktop 实测验证。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -168,4 +168,40 @@ test('调试入口关闭无法确认给出明确处置，不用泛化重试消�
 
 test('控制连接释放未知不误称调试接口仍开，不自动重连',async()=>{
   const {dom,opened,notices,controller}=setup(async()=>{throw new CaptureViewportError('control-cleanup-unconfirmed');});await controller.activate();assert.equal(opened.length,0);assert.match(notices.at(-1),/取像连接.*释放/);assert.doesNotMatch(notices.at(-1),/调试接口/);controller.dispose();dom.window.close();
+});
+
+test('可选壁纸能力每次打开工作台重读，不阻塞截图或替换当前工作台', async () => {
+  const dom = new JSDOM('<html><body/></html>', { url: 'https://dsh.test/' });
+  const opened = [];
+  const adapter = { catalog: async () => [], load: async () => assert.fail('打开工作台不能下载壁纸') };
+  let available, reads = 0, captures = 0, destroyed = 0;
+  const controller = mountCaptureController(dom.window.document, {
+    capture: async () => { captures++; return { width: 100, height: 100 }; },
+    waitFrame: async () => {},
+    readSystemWallpapers: () => { reads++; return available; },
+    openEditor: (_host, options) => {
+      opened.push(options);
+      return { destroy() { destroyed++; options.onClose(); } };
+    },
+  });
+  try {
+    assert.equal(reads, 0, 'mount 不读取媒体能力');
+    await controller.activate();
+    assert.equal(opened[0].systemWallpapers, undefined);
+    assert.equal(captures, 1, '扩展未知不妨碍基础截图');
+    available = adapter;
+    await controller.activate();
+    assert.equal(reads, 1, '迟到能力不重建当前工作台');
+    assert.equal(opened.length, 1);
+    assert.equal(destroyed, 0);
+    opened[0].onClose();
+    await controller.activate();
+    assert.equal(opened[1].systemWallpapers, adapter);
+    available = undefined;
+    opened[1].onClose();
+    await controller.activate();
+    assert.equal(opened[2].systemWallpapers, undefined, '能力撤回不沿用旧 adapter');
+    assert.equal(captures, 3);
+    assert.equal(reads, 3);
+  } finally { controller.dispose(); dom.window.close(); }
 });

@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖生成的唯一 Bundle Client、Cordis 4 服务注册、ReactDOM 与 rc.2 DOM fixture。
- * [OUTPUT]: 验证单根生命周期、实际后台版本确认下的八种设置组合、独立恢复、取像取消、CSS 正负例与回滚。
- * [POS]: Client 集成合同；本测试证明源码/生成 Client 的服务图，不冒充 Host primitives、CSP 或实窗验收。
+ * [INPUT]: 依赖生成 Client、Cordis、ReactDOM、rc.2 fixture 与内存编译的 component-runtime。
+ * [OUTPUT]: 验证八种设置组合、页脚、取消/回滚及壁纸握手世代隔离。
+ * [POS]: Client 与组合根合同；spy 不冒充 Host、原生像素或 Desktop 验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import { TextEncoder } from 'node:util';
 import { runInNewContext } from 'node:vm';
 import { Context } from '@deepseek-ai/cordis';
+import { build as esbuild } from 'esbuild';
 import React, { act } from 'react';
 import * as jsxRuntime from 'react/jsx-runtime';
 import { createRoot as reactCreateRoot } from 'react-dom/client';
@@ -17,6 +18,7 @@ import { JSDOM } from 'jsdom';
 import { DEFAULTS } from '../src/shared/model.ts';
 import { DEFAULT_CAPTURE_EXPORT } from '../src/shared/capture-export.ts';
 import { dictionaries, NS } from '../src/shared/locales.ts';
+import { isWallpaperRemoteRegistered } from '../src/client/capture/runtime-readiness.ts';
 
 const CLIENT = new URL('../client.js', import.meta.url);
 const LABEL = dictionaries.zh.captureEnabled;
@@ -59,6 +61,7 @@ function primitives() {
     IconEditOutlineRegular: () => React.createElement('svg', { viewBox: '0 0 16 16' }),
     IconUserOutlineMedium: () => React.createElement('svg', { viewBox: '0 0 16 16' }),
     IconWarningOutlineRegular: () => React.createElement('svg', { viewBox: '0 0 16 16' }),
+    LinkIconRegular: ({ kind, href }) => React.createElement('svg', { 'data-native-link-kind': kind, 'data-native-link-href': href, viewBox: '0 0 24 24' }),
     Toast: ({ text }) => React.createElement('span', { role: 'status' }, text),
   };
 }
@@ -87,7 +90,8 @@ function environment({ value = {}, status = 'ready', bridge = false, failRoot = 
   Object.defineProperty(globalThis, 'document', { configurable: true, writable: true, value: doc });
   Object.defineProperty(globalThis, 'IS_REACT_ACT_ENVIRONMENT', { configurable: true, writable: true, value: true });
 
-  const roots = new Set(), registrations = new Map(), dictionariesByNamespace = new Map(), localeListeners = new Set();
+  const roots = new Set(), registrations = new Map(), dictionariesByNamespace = new Map(), localeListeners = new Set(), settingsViews = new Set();
+  let activeLocale = 'zh';
   let renderFailure = failRender;
   const createRoot = node => {
     if (failRoot) throw new Error('root creation failure');
@@ -126,7 +130,7 @@ function environment({ value = {}, status = 'ready', bridge = false, failRoot = 
   const locale = {
     register(ns, values) { assert.equal(ns, NS); assert.ok(!dictionariesByNamespace.has(ns)); dictionariesByNamespace.set(ns, values); return () => dictionariesByNamespace.delete(ns); },
     bind(ns) { return key => dictionariesByNamespace.get(ns)[locale.getSnapshot().active][key]; },
-    getSnapshot() { return { active: 'zh' }; },
+    getSnapshot() { return { active: activeLocale }; },
     subscribe(fn) { localeListeners.add(fn); return () => localeListeners.delete(fn); },
   };
   const pluginManager = {
@@ -180,6 +184,19 @@ function environment({ value = {}, status = 'ready', bridge = false, failRoot = 
     dom, doc, before, roots, registrations, dictionariesByNamespace, form, formListeners, localeListeners, writes, pageCapture, diagnostics,
     finalBody: null,
     async start() { await ready; },
+    renderSettings(view = 'detail', slot = 'plugins.bundle.config') {
+      const item = registrations.get(`${slot}:${slot === 'plugins.row.config' ? '@daftai/pdsh#pdsh' : '@daftai/pdsh'}`);
+      assert.ok(item, '必须通过生产 slot 呈现设置，不能另建页脚演示');
+      const node = doc.createElement('div'); doc.body.append(node);
+      const root = createRoot(node);
+      const render = nextView => root.render(React.createElement(item.component, { view: nextView }));
+      const close = () => { root.unmount(); node.remove(); settingsViews.delete(close); };
+      settingsViews.add(close); render(view);
+      return { node, render, close };
+    },
+    changeLocale(next) {
+      act(() => { activeLocale = next; for (const listener of [...localeListeners]) listener(); });
+    },
     async update(fields, nextStatus = snapshot.status) {
       snapshot.status = nextStatus; snapshot.revision++;
       snapshot.value = { ...snapshot.value, ...fields };
@@ -189,6 +206,7 @@ function environment({ value = {}, status = 'ready', bridge = false, failRoot = 
     failNextRender() { renderFailure = true; },
     async close() {
       try { await ready; } catch { /* 启动失败时仍须检查已回滚资源。 */ }
+      for (const close of [...settingsViews]) close();
       try { await bundle?.dispose(); } finally {
         await provider.dispose();
         this.finalBody = doc.body.outerHTML;
@@ -203,6 +221,313 @@ function environment({ value = {}, status = 'ready', bridge = false, failRoot = 
 }
 
 async function tick(dom) { await new Promise(resolve => dom.window.setTimeout(resolve, 15)); }
+
+async function loadComponentRuntime(assemblies, mutateSource = source => source) {
+  const source = new URL('../src/client/component-runtime.tsx', import.meta.url).pathname;
+  const built = await esbuild({
+    entryPoints: [source], bundle: true, write: false, format: 'cjs', platform: 'node', logLevel: 'silent',
+    plugins: [
+      { name: 'in-memory-component-source', setup(build) {
+        build.onLoad({ filter: /component-runtime\.tsx$/ }, () => ({
+          contents: mutateSource(readFileSync(source, 'utf8')), loader: 'tsx',
+        }));
+      } },
+      { name: 'externalize-runtime-dependencies', setup(build) {
+        build.onResolve({ filter: /.*/ }, args => args.kind === 'entry-point' ? undefined : { path: args.path, external: true });
+      } },
+    ],
+  });
+  const component = () => null;
+  const lifecycle = () => ({ update() {}, dispose() {} });
+  const external = new Map([
+    ['react', React], ['react/jsx-runtime', jsxRuntime],
+    ['react-dom/client', { createRoot: () => ({ render() {}, unmount() {} }) }],
+    ['/shared/components.ts', { BUNDLE_NAME: '@daftai/pdsh', ROOT_ENTRY_ID: 'pdsh', IS_RC_BUNDLE: false }],
+    ['/shared/locales.ts', { NS, dictionaries }],
+    ['/shared/model.ts', { DEFAULTS, resolvePreferences: value => value }],
+    ['/shared/capture-export.ts', { isCaptureConfigurationReady: () => true, resolveCaptureExportPreferences: () => DEFAULT_CAPTURE_EXPORT }],
+    ['/capture-trace.ts', { createCaptureTrace: () => () => {} }],
+    ['/native-style-view.tsx', { NativeStyleProbe: component }],
+    ['/presentation.ts', { mountPresentation: () => lifecycle() }],
+    ['/sidebar-redaction.ts', { mountSidebarRedaction: () => ({ ...lifecycle(), update() {} }) }],
+    ['/title-toggle.ts', { mountTitleToggle: () => ({ state: () => ({ pressed: false, failed: false }), activate: async () => {}, dispose() {} }) }],
+    ['/search-entry.ts', { mountSearchEntry: (_doc, options) => {
+      const entry = { options, refresh() {}, dispose() { this.disposed = true; } };
+      assemblies.entries.push(entry); return entry;
+    } }],
+    ['/dom-tooltip.ts', { mountDomTooltips: () => () => {} }],
+    ['/capture/background-tabs.tsx', { mountCaptureBackgroundTabs: () => lifecycle() }],
+    ['/capture/controller.ts', { mountCaptureController: (_doc, options) => {
+      const controller = { options, state: () => ({ busy: false, disabled: false }), activate() {}, dispose() { this.disposed = true; } };
+      assemblies.controllers.push(controller); return controller;
+    } }],
+    ['/capture-notice.tsx', { mountCaptureNotices: () => ({ show() {}, dispose() {} }) }],
+    ['/capture/directory.ts', { readCaptureDirectoryPicker: () => () => null }],
+    ['/capture/runtime-readiness.ts', {
+      isCaptureRuntimeCurrent: async () => true,
+      isWallpaperRemoteRegistered,
+      requireCaptureRuntimeCurrent: async () => {},
+    }],
+    ['/capture/window-capture.ts', { captureOwnedWindow: async () => null, capturedWindowScale: 1 }],
+    ['/capture/system-wallpaper-remote.ts', { createSystemWallpaperRemoteAdapter: remote => {
+      const adapter = { remote, index: assemblies.adapters.length };
+      assemblies.adapters.push(adapter); return adapter;
+    } }],
+    ['/capture/window-save.ts', { saveWindowImage: async () => {}, prepareWindowSaveDirectory: async () => null }],
+    ['/settings-card.tsx', { SettingsCard: component }], ['/capture-settings.tsx', { CaptureSettingsCard: component }],
+    ['/title-settings.tsx', { TitleSettingsCard: component }], ['/project-footer.tsx', { ProjectFooter: component }],
+    ['/updater.ts', { createUpdateController: () => ({ dispose() {} }) }],
+    ['/update-source.ts', { loadReleaseTags: async () => [] }], ['/update-badge.tsx', { UpdateBadge: component }],
+    ['/capture/assets.ts', { presetAssets: [] }],
+    ['.svg', ''], ['.css', ''],
+  ]);
+  const module = { exports: {} };
+  runInNewContext(built.outputFiles[0].text, {
+    module, exports: module.exports, __PDSH_VERSION__: '0.5.1',
+    require(id) {
+      const found = [...external].find(([suffix]) => id === suffix || id.endsWith(suffix));
+      assert.ok(found, `unexpected component-runtime import: ${id}`);
+      return found[1];
+    },
+  });
+  return module.exports.mountComponent;
+}
+
+function deferred() {
+  let resolve;
+  const promise = new Promise(done => { resolve = done; });
+  return { promise, resolve };
+}
+
+async function flushMicrotasks() {
+  await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+}
+
+function replaceExactlyOnce(source, before, after) {
+  assert.equal(source.split(before).length - 1, 1, `expected exactly one mutation target: ${before}`);
+  return source.replace(before, after);
+}
+
+async function assertWallpaperHandshakeLifecycle(mutateSource) {
+  const dom = new JSDOM(pageMarkup(), { url: 'dsh-app://desktop/index.html', pretendToBeVisual: true });
+  Object.defineProperty(dom.window.navigator, 'platform', { configurable: true, value: 'MacIntel' });
+  const assemblies = { controllers: [], entries: [], adapters: [] };
+  const mountComponent = await loadComponentRuntime(assemblies, mutateSource);
+  const value = { ...DEFAULTS, ...DEFAULT_CAPTURE_EXPORT, captureEnabled: true, captureMaskIdentity: true };
+  const snapshot = { status: 'ready', revision: 0, value };
+  const formListeners = new Set(), lifetime = [], providers = [];
+  let injectProvider;
+  const form = {
+    getSnapshot: () => snapshot,
+    subscribe(listener) { formListeners.add(listener); return () => formListeners.delete(listener); },
+  };
+  const ctx = {
+    configForms: {
+      get(id) { assert.equal(id, 'pdsh'); return form; },
+      whileServed(ids, callback) { assert.equal(ids.length, 1); assert.equal(ids[0], 'pdsh'); return callback(); },
+    },
+    locale: {
+      register() { return () => {}; }, bind() { return key => key; },
+      getSnapshot() { return { active: 'zh' }; }, subscribe() { return () => {}; },
+    },
+    slots: { inject(_name, callback) { return callback(); }, register() { return () => {}; } },
+    remote: { pluginManager: {} },
+    logger: { info() {}, warn() {}, error() {} },
+    effect(factory) { const cleanup = factory(); if (typeof cleanup === 'function') lifetime.push(cleanup); return cleanup; },
+    inject(names, callback) {
+      assert.equal(names.length, 1); assert.equal(names[0], 'remote.pdshNativeWindowCapture'); injectProvider = callback;
+      return { dispose() { for (const provider of providers) provider.dispose(); } };
+    },
+  };
+  const disposeBundle = () => { for (const cleanup of lifetime.reverse()) cleanup(); };
+  mountComponent(ctx, dom.window.document);
+  const gates = [deferred(), deferred(), deferred()];
+  let handshake = 0;
+  const remote = {
+    wallpaperRegistered() { assert.ok(gates[handshake]); return gates[handshake++].promise; },
+    wallpaper() {}, capture() {}, save() {},
+  };
+  const inject = () => {
+    let cleanup, active = true;
+    const provider = {
+      remote: { pdshNativeWindowCapture: remote },
+      effect(factory) { cleanup = factory(); return cleanup; },
+    };
+    injectProvider(provider);
+    const record = { dispose() { if (!active) return; active = false; cleanup?.(); } };
+    providers.push(record); return record;
+  };
+
+  try {
+    const firstProvider = inject();
+    const firstController = assemblies.controllers.at(-1);
+    const firstEntry = assemblies.entries.at(-1);
+    assert.ok(firstController, 'pending 壁纸握手不能阻断基础相机 controller');
+    assert.ok(firstEntry?.options.capture, '基础相机入口在可选握手期间仍装配');
+    assert.equal(typeof remote.wallpaper, 'function');
+    assert.equal(firstController.options.readSystemWallpapers(), undefined,
+      '仅看到 wallpaper 方法不能授权尚未完成的扩展');
+
+    gates[0].resolve({ ok: true, value: false });
+    await flushMicrotasks();
+    assert.equal(assemblies.controllers.length, 1, 'false 只关闭扩展，不撤回基础 controller');
+    assert.equal(assemblies.entries.at(-1), firstEntry, 'false 不重建基础相机入口');
+    assert.equal(firstController.options.readSystemWallpapers(), undefined);
+
+    firstProvider.dispose();
+    assert.equal(firstController.disposed, true, '撤回 provider 归还旧 controller');
+    const secondProvider = inject();
+    const secondController = assemblies.controllers.at(-1);
+    const secondEntry = assemblies.entries.at(-1);
+    assert.notEqual(secondController, firstController);
+    assert.ok(secondEntry?.options.capture, '同 proxy 新世代重新装配基础相机');
+    assert.equal(secondController.options.readSystemWallpapers(), undefined);
+
+    secondProvider.dispose();
+    const thirdProvider = inject();
+    const thirdController = assemblies.controllers.at(-1);
+    const thirdEntry = assemblies.entries.at(-1);
+    assert.notEqual(thirdController, secondController);
+    assert.equal(thirdController.options.readSystemWallpapers(), undefined);
+
+    gates[1].resolve({ ok: true, value: true });
+    await flushMicrotasks();
+    assert.equal(assemblies.controllers.at(-1), thirdController,
+      '旧世代迟到 true 不替换新世代 controller');
+    assert.equal(assemblies.entries.at(-1), thirdEntry,
+      '旧世代迟到 true 不替换相机入口');
+    assert.equal(thirdController.options.readSystemWallpapers(), undefined,
+      '同 proxy 身份不能让旧 Promise 授权当前世代');
+
+    gates[2].resolve({ ok: true, value: true });
+    await flushMicrotasks();
+    assert.equal(assemblies.controllers.at(-1), thirdController, '正确握手不重建 controller');
+    assert.equal(assemblies.entries.at(-1), thirdEntry, '正确握手不重建相机入口');
+    assert.equal(thirdController.options.readSystemWallpapers(), assemblies.adapters.at(-1),
+      '仅当前注入世代的 true 握手授权壁纸扩展');
+    thirdProvider.dispose();
+  } finally {
+    disposeBundle();
+    dom.window.close();
+  }
+  assert.equal(formListeners.size, 0, '卸载解除配置订阅');
+  assert.equal(assemblies.controllers.at(-1).disposed, true, '卸载归还当前 controller');
+}
+
+test('真实 component-runtime 隔离同一 Remote proxy 的壁纸握手世代', async () => {
+  await assertWallpaperHandshakeLifecycle();
+  const removeIncarnationFence = source => replaceExactlyOnce(source,
+    'if (currentActive && !disposed && captureRemote === current) wallpaperRemoteRegistered = registered;',
+    'if (!disposed && captureRemote === current) wallpaperRemoteRegistered = registered;');
+  await assert.rejects(assertWallpaperHandshakeLifecycle(removeIncarnationFence),
+    /同 proxy 身份不能让旧 Promise 授权当前世代/);
+  const methodOnlyAuthorization = source => replaceExactlyOnce(source,
+    'readSystemWallpapers: () => captureRemote === remote && wallpaperRemoteRegistered ? systemWallpapers : undefined,',
+    "readSystemWallpapers: () => typeof remote.wallpaper === 'function' ? systemWallpapers : undefined,");
+  await assert.rejects(assertWallpaperHandshakeLifecycle(methodOnlyAuthorization),
+    /仅看到 wallpaper 方法不能授权尚未完成的扩展/);
+});
+
+test('项目页脚只在两种实际设置详情底部呈现；摘要不添加链接或设置写入', async () => {
+  const h = environment({ bridge: false });
+  try {
+    await h.start();
+    for (const slot of ['plugins.bundle.config', 'plugins.row.config']) {
+      const settings = h.renderSettings('detail', slot);
+      const footer = settings.node.querySelector('footer.pdsh-project-footer');
+      assert.ok(footer, '设置详情缺少底部项目链接');
+      assert.equal(settings.node.lastElementChild, footer, '页脚必须在全部功能设置之后');
+      const project = footer.querySelector('a[href="https://github.com/daftAI2026/PDSH"]');
+      assert.ok(project, 'GitHub 图标必须链接当前项目，而非 Star API');
+      assert.equal(project.target, '_blank');
+      assert.deepEqual(project.rel.split(' ').sort(), ['noopener', 'noreferrer']);
+      assert.ok(project.getAttribute('aria-label')?.includes('GitHub'));
+      assert.ok(project.querySelector('svg')?.closest('[aria-hidden="true"]'));
+      assert.equal(project.querySelector('svg')?.getAttribute('data-native-link-kind'), 'url');
+      assert.equal(project.querySelector('svg')?.getAttribute('data-native-link-href'), project.href);
+      assert.equal(project.querySelector('svg')?.hasAttribute('tabindex'), false);
+      assert.equal(project.getAttribute('title'), null, '使用官方 Tooltip，不添加浏览器气泡');
+      assert.ok(footer.querySelector('[role="tooltip"]'), '无文字 GitHub 链接保留原生 Tooltip');
+      assert.equal(project.tabIndex, 0, '项目链接保留键盘焦点');
+      assert.equal(project.textContent, '', '项目入口只显示 GitHub 图标');
+      const author = footer.querySelector('a[href="https://x.com/singkid9527"]');
+      assert.ok(author, '作者链接必须指向用户确认的 X 地址');
+      assert.equal(author.textContent, '@daftAI', '显示名不能从 URL 用户名推导');
+      assert.equal(author.target, '_blank');
+      assert.deepEqual(author.rel.split(' ').sort(), ['noopener', 'noreferrer']);
+      assert.equal(author.tabIndex, 0);
+      assert.equal(author.querySelector('svg'), null, '作者入口只显示 @daftAI');
+      settings.render('summary');
+      assert.equal(settings.node.querySelector('footer'), null);
+      assert.equal(settings.node.querySelector('a'), null);
+      assert.equal(settings.node.textContent, dictionaries.zh.description);
+      settings.close();
+    }
+    assert.deepEqual(h.writes, [], '项目链接与文案不写 Host Settings');
+    assert.equal(h.pageCapture.pending.size, 0, '展示项目链接不取像');
+  } finally { await h.close(); }
+  assert.equal(h.roots.size, 0); assert.equal(h.localeListeners.size, 0);
+});
+
+test('页脚整排把 Star 与 GitHub 成组，作者保留独立末端入口', async () => {
+  const h = environment({ bridge: false });
+  try {
+    await h.start(); const settings = h.renderSettings();
+    const footer = settings.node.querySelector('footer.pdsh-project-footer');
+    const support = footer?.querySelector('.pdsh-project-support');
+    assert.ok(support, 'Star 提示与 GitHub 必须属于同一可换行组');
+    assert.equal(footer.firstElementChild, support);
+    assert.equal(support.firstElementChild.tagName, 'P');
+    assert.equal(support.querySelector('p').textContent, dictionaries.zh['project.star']);
+    assert.ok(support.querySelector('a.pdsh-project-github'));
+    const author = footer.querySelector('a.pdsh-project-author');
+    assert.ok(author, '作者入口须有独立排版边界');
+    assert.equal(author.closest('.pdsh-project-support'), null);
+    assert.equal(footer.querySelectorAll('a').length, 2);
+    h.changeLocale('en');
+    assert.equal(support.querySelector('p').textContent, dictionaries.en['project.star']);
+    assert.equal(footer.querySelector('.pdsh-project-support'), support);
+    assert.deepEqual(h.writes, []);
+  } finally { await h.close(); }
+});
+
+test('Host 语言变化即时更新 Star 文案与项目可访问名称，无独立语言状态', async () => {
+  const h = environment({ bridge: false });
+  try {
+    await h.start(); const settings = h.renderSettings();
+    const footer = () => settings.node.querySelector('footer.pdsh-project-footer');
+    assert.ok(footer());
+    assert.equal(footer().querySelector('p')?.textContent, '如果 PDSH 对你有帮助，欢迎在 GitHub 点个 Star 支持我们 👉');
+    const project = footer().querySelector('a');
+    const author = footer().querySelector('a[href="https://x.com/singkid9527"]');
+    assert.ok(author);
+    const chineseLabel = project.getAttribute('aria-label');
+    h.changeLocale('en');
+    assert.equal(footer().querySelector('p')?.textContent, 'If PDSH helps you, please support us with a Star on GitHub 👉');
+    assert.equal(footer().querySelector('a'), project, '语言切换不重建项目链接');
+    assert.notEqual(project.getAttribute('aria-label'), chineseLabel);
+    assert.equal(author.textContent, '@daftAI', '英文界面不翻译固定作者名');
+    assert.equal(footer().querySelector('a[href="https://x.com/singkid9527"]'), author);
+    assert.equal(author.getAttribute('aria-label'), 'Follow @daftAI on X / Twitter');
+    h.changeLocale('zh');
+    assert.equal(footer().querySelector('p')?.textContent, '如果 PDSH 对你有帮助，欢迎在 GitHub 点个 Star 支持我们 👉');
+    assert.equal(project.getAttribute('aria-label'), chineseLabel);
+    assert.equal(author.textContent, '@daftAI');
+    assert.equal(author.getAttribute('aria-label'), '在 X / Twitter 关注 @daftAI');
+    assert.deepEqual(h.writes, []);
+  } finally { await h.close(); }
+});
+
+test('Host 配置 loading 不阻断静态项目链接，也不增加可提交字段', async () => {
+  const h = environment({ status: 'loading', bridge: false });
+  try {
+    await h.start(); const settings = h.renderSettings();
+    const footer = settings.node.querySelector('footer.pdsh-project-footer');
+    assert.ok(footer?.querySelector('a[href="https://github.com/daftAI2026/PDSH"]'));
+    assert.equal(footer.querySelector('input, button, [role="switch"]'), null);
+    assert.deepEqual(h.writes, []);
+  } finally { await h.close(); }
+});
 
 for (let mask = 0; mask < 8; mask++) test(`单 Bundle 的身份/标题/拍照设置组合 ${mask.toString(2).padStart(3, '0')}`, async () => {
   const h = environment({ value: {

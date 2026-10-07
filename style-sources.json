@@ -2,1014 +2,356 @@
   "hostVersion": "0.1.7-rc.2",
   "publicSourceTag": "dsh-v0.1.7-rc.2",
   "installedBuildCommit": "c1275515b6b97551ec358c926c479ab750c687c0",
-  "note": "安装包的 build commit 在公开仓无法拉取；以确切包内 client.js 为运行证据，公共 tag 为可链接源码。无数值颜色 fallback。 当前源码的原生测量由一个可卸载探针控制器拥有；主题 token 直接引用，控件常数只从真实计算样式读取。布局比例和编辑内容参数不伪称宿主控件参数。",
+  "note": "顶层版本与提交记录历史样式基线，不声明当前兼容版本。逐项 providerVersion 与 sourceCommit 指明新增来源。基线 build commit 在公开仓无法拉取；以确切包内 client.js 为运行证据，公共 tag 为可链接源码。无数值颜色 fallback。当前原生测量由一个可卸载探针控制器拥有；主题 token 直接引用，控件常数只从真实计算样式读取。布局比例和编辑内容参数不伪称宿主控件参数。",
+  "artwork": {"file": "packages/client/ui-theme/src/styles/design-platform.css", "foreground": {"variable": "--dsw-static-neutral-bluish-1000", "value": "rgb(15, 17, 21)"}, "acquisition": "官方 package.json.icon 由独立 img 呈现，不能继承宿主 CSS 变量；仅固定 rc.2 原生前景色快照，底保持透明。build.ts 复用单个复合描边路径；侧栏仍使用 currentColor 与实时原生几何/透明度。"},
+  "captureMaterial": {"role": "截图内容的模拟磨砂底层，不是 Host 控件主题或真实桌面截图", "implementation": "src/client/capture/material.ts", "nativeReference": {"system": "macOS 27.0.1 (26A434)", "view": "NSVisualEffectView", "material": "sidebar", "state": "active", "blendingMode": "behindWindow", "source": "https://developer.apple.com/documentation/appkit/nsvisualeffectview"}, "acquisition": "自有离屏 NSVisualEffectView 的 CALayer 只读取证，未激活窗口、未请求录屏；研究参数固化为编辑 recipe，该材质绘制自身不调用取像 helper 或私有 API；RC 的整窗取像另由显式调用的原生 helper 完成。", "light": {"blurRadius": 30, "saturation": 2.2, "fillSrgb": 0.9647, "fillAlpha": 0.84, "toneSrgb": 0.915, "toneBlend": "darken"}, "dark": {"blurRadius": 30, "saturation": 2.4, "fillSrgb": 0.1569, "fillAlpha": 0.8, "toneSrgb": 0.14, "toneBlend": "lighten"}, "limits": "只模糊用户选择的编辑背景，原始 PNG 无滤镜并保留。缺少真实桌面背景、Chameleon 桌面着色及 SDR 归一化，Canvas blur 不是 Core Animation 的逐像素复刻；后续系统版本不保证参数一致。透明选项仅使窗口外围透明，窗口内部保留材质底层。"},
+  "capturePicker": {"role": "编辑内容色谱坐标指示器，不是Host按钮", "pointerRole": "编辑内容色谱坐标指示器，不是Host按钮", "implementation": "src/client/capture/color-popover.css", "referenceFile": "src/runtime/capture-window/color-popover.css", "referenceBranch": "feature/capture-generated-gradients", "referenceCommit": "96f9ce30f06a255db572f4cc6092c2f15429fc76", "pointerSize": 28, "pointerBorder": {"width": 2, "color": "#fff"}, "acquisition": "参考Shot原始几何保持在色谱内容内，白色对比环不跟主题反转；自有浮层限定所有react-colorful规则，外壳/Input仍消费DSH语义token。", "pointerShadow": "0 2px 4px rgb(0 0 0 / 20%)", "curveIsolation": "pointer和pointer-fill分别显式corner-shape:round；corner-shape本身不继承，Host universal selector直接为每个元素应用曲率，见ui-theme/src/styles/corner-shape.css与docs/ui-radius.md", "popoverElevation": "border:0配合--dsw-elevation-panel；其阴影已含0.5px发丝描边，来源ui-theme/src/styles/gradient-shadow-text.css及docs/ui-radius.md"},
+  "captureIcons": {"release": "1.51.0", "commit": "45b0e148db4ee4d748340d0f99982aa1c2159d52", "implementation": "src/client/capture/icons.ts", "geometry": "只同步24单位SVG路径；实际尺寸、描边与透明度由Host实时探针提供", "icons": {"camera": {"name": "camera", "bodySha256": "2e315804a007219b67a24638c682250e41765026bdc0f9e855b11f156427834e", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/camera.svg"}, "check": {"name": "check", "bodySha256": "b1fae48e85719ffb4fc7c4bad64bdd2417de1911186b00482e8bb2df73983c2d", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/check.svg"}, "chevron-down": {"name": "chevron-down", "bodySha256": "ff92e9c43a316c6e5364cff78e2636078b26ae26af90fb9b10a0eac642c1fa44", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/chevron-down.svg"}, "copy": {"name": "copy", "bodySha256": "cc35b6ca38550b0e04022da3ed0e69be489a0fd4ef1fc0366bf21228185a3862", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/copy.svg"}, "download": {"name": "download", "bodySha256": "91ac1cf0026ea1da294019a115d33b1545f08e8a149e4a4fad889ad8a048d68e", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/download.svg"}, "droplet": {"name": "droplet", "bodySha256": "803503321a2a39442be14f3d5856508c24f3d37b6fb90ae204baaba72caa17a6", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/droplet.svg"}, "grid-3x3": {"name": "grid-3x3", "bodySha256": "30b3fa95571a2a13a1b57e50c214b3a8f7c3f3f14870e9edb0cf25ac3105615d", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/grid-3x3.svg"}, "hand": {"name": "hand", "bodySha256": "a3b0e0c30b094710dd9f8901a69a1bec542e5f78e89cea49c7d9d2b7aa8c8425", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/hand.svg"}, "image": {"name": "image", "bodySha256": "76ec95a15e6daf74b7d898ecc26be828dc094de7177f1701f92309e3437f5281", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/image.svg"}, "maximize": {"name": "maximize", "bodySha256": "178c7e81c3dbaf433f5ee6e4ec973f4dfdde40feeb53feaf1eddd830347e1d28", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/maximize.svg"}, "move": {"name": "move", "bodySha256": "4bb6eec74d87dd98ded4a8f043d22fb4779cf6b6bad8ebc2f75d91e618f29fbf", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/move.svg"}, "palette": {"name": "palette", "bodySha256": "6b3f48bf7bcde087c14f66e03bf896c5fc5ed963176e07c9632261707dc53254", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/palette.svg"}, "pen-line": {"name": "pencil-line", "bodySha256": "51e5b170315951c7e43d6174a7c8efd8ff716b952894fbae2c827e5d102f0ac0", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/pencil-line.svg"}, "pipette": {"name": "pipette", "bodySha256": "68561c4096e5ccb90738153a9d85bea1d726c67019b8607a3b3164dd00df5082", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/pipette.svg"}, "plus": {"name": "plus", "bodySha256": "0b18b67a3f40c67f5c84e90480e7178178e8b9f4fbccde09bfec13df007a1742", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/plus.svg"}, "redo": {"name": "redo-2", "bodySha256": "b80e0e2bfd66980e08607f4879e7ccfa0f1350a1c987e6e224d03df5693c4b0d", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/redo-2.svg"}, "retake": {"name": "rotate-ccw", "bodySha256": "0b7a71ab728579816152a7abc0fce1ca806f38413efcffb7b75c5fdc71659b87", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/rotate-ccw.svg"}, "scan": {"name": "scan-line", "bodySha256": "cb3a3532bfcbf837ed70a9d42edae0c6a31be8eaf72f6afe59ba72dec1cee3e0", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/scan-line.svg"}, "scan-search": {"name": "scan-search", "bodySha256": "5042d43813ce7772736f76a8769a8bea453b03be8823157c952046d8803d43cd", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/scan-search.svg"}, "save": {"name": "save", "bodySha256": "0a5fac16182892f25207e88ca8f33d3465013679f5c08cfcb6a43a4d22b64af5", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/save.svg"}, "shield": {"name": "shield-check", "bodySha256": "bc7d946304aec795f2ccda00af7a96c8f431adfd254e8bfc3bbbef3697e09579", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/shield-check.svg"}, "square": {"name": "square", "bodySha256": "c5097ee868b45f784688a8521911d7cd7cbf23fbbc0375094eb0a7fa81889ef5", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/square.svg"}, "square-dashed": {"name": "square-dashed", "bodySha256": "e0299a53db7db49fb00b2a624188db4b3925beeffed6c36aa840479d85ac0d7e", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/square-dashed.svg"}, "trash": {"name": "trash", "bodySha256": "b7a7cdd78f2f5188cb14a92b3df0ac1d3feee2114c0f3b057a6be18920b40efb", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/trash.svg"}, "undo": {"name": "undo-2", "bodySha256": "3a5192fd77ee3f3a45e6837180190789ddfa295d54248861997377cebd47fc4f", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/undo-2.svg"}, "wallpaper": {"name": "wallpaper", "bodySha256": "1e345898e1771885d7f8378a34e8e9f5d1d6519c6f5a0cc70d9ecaa2dcc94be8", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/wallpaper.svg"}, "x": {"name": "x", "bodySha256": "da77ddd5cb8dcaec3320ce7322a4478c4efa66033dff4bb7cdbabce3a7ae28da", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/x.svg"}, "zoom-in": {"name": "zoom-in", "bodySha256": "8e68b3a145ff69c9849ad65af393a274bb5ce028c6ea82fd49fa9c2e07f2d20c", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/zoom-in.svg"}, "zoom-out": {"name": "zoom-out", "bodySha256": "327a396d06b0a083440286a39a16af3c4811bbdd7bb0620437941b9e4fa5d1ed", "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/zoom-out.svg"}}},
+  "captureInspector": {"implementation": ["src/client/capture/capture-window.css", "src/client/capture/background-picker.css"], "gutterToken": "--dsw-focus-ring-width", "gutterMultiplier": 2, "widthPx": 240, "widthReferenceFile": "src/runtime/capture-window/capture-window.css", "widthDecision": "用户2026-10-03最终选择参考默认右侧240px、左侧剩余宽度；不固定4:1，也不把DSH field-gap/2改成4px。240px是产品布局约束而非缺失Host token的回退。", "referenceFile": "src/runtime/capture-window/background-picker.css", "referenceCommit": "96f9ce30f06a255db572f4cc6092c2f15429fc76", "decision": "参考用4px空间保护4px双层环；DSH space并不保证同样预算，使用Host焦点环宽度两倍保护检查器和网格。拾色图标取Host尺寸与色块减安全边距的较小值，纯色改为与图片/渐变相同的五列圆角方框，局部选择器胜过全局探针尺寸；不去除裁切或缩小整个界面。", "imageSourceGroupingDecision": "按图片来源分组：五预设原网格、系统图片独立组、个人标题行右侧plus。标题使用现有--dsw-font-xxs-12/--dsw-alias-label-tertiary；行高与plus命中区沿用原生Button .md测量的--pdsh-action-size，行间距沿用space=--pdsh-field-gap/2，标题与动作最小gap为2*space即--pdsh-field-gap；文字操作复用已映射前景/禁用态/Host focus-ring，图标复用captureIcons.icons.plus；只改归属，不复制Host选择器或添加数值主题回退。", "selectionRingMultiplier": 0.5, "selectionRingDecision": "用户2026-10-04要求内外选中环更细，两层各取Host焦点宽度的一半；键盘焦点环及安全边距保留原宽。自选颜色入口始终显示pipette，表面/前景采用Host token，不让任意自选色吞掉图标。"},
+  "captureBackgroundTabs": {"implementation": ["src/client/capture/background-tabs.tsx", "src/client/capture/background-modes.ts", "src/client/capture/view.ts", "src/client/capture/background-picker.css"], "component": "@deepseek-ai/dsh-client-ui-primitives SegmentedControl", "hostVersion": "0.2.0-rc.2", "hostFiles": ["packages/client/ui-primitives/src/SegmentedControl.tsx", "packages/client/ui-primitives/src/SegmentedControl.module.css"], "installedExport": "app.asar/dsh/node_modules/@deepseek-ai/dsh-client-ui-primitives/lib/index.js", "research": {"shadcn": "https://ui.shadcn.com/docs/components/base/tabs", "shadcnCommit": "295a1f114a138f23b5dfee0e0c6812394dfeb90c", "baseUi": "https://base-ui.com/react/components/tabs", "baseUiCommit": "19511bb171f3b360b006c94cf6d07e53cb446505"}, "decision": "不引入BaseUI/Tailwind依赖。四类即刻应用并记住本次最近素材，实际background是唯一模式真源。沿用Host自动激活/四向箭头/循环/Home-End/禁用跳过，与BaseUI默认手动激活和可聚焦禁用项有意不同，不宣称完整行为复刻。", "panelContract": "四面板始终保留稳定id/aria-labelledby，非当前面板hidden/inert/tabindex=-1；工作台Tab围栏跳过负tabindex与不可见项。 空的无背景面板不添加不可见焦点停靠。", "layout": "240px检查器内四等宽轨道，局部移除Host tab左右16px内边距，不复制CSS Modules hash、主题色或指标几何。键盘走位关闭本控件过渡，指针和减少运动沿用Host。 不重复类别标题；20个渐变全部显示，不设展开/收起控制。", "wallpaperBoundary": "macOS adapter从官方目录关联规则选择最多四项活动系统静图/静帧，不提供Windows系统壁纸获取。图片面板保留五内置预设，系统图片独立组拥有单获取/补缺动作与缓存项，我的图片标题行右侧plus归个人导入；缺provider不展示伪获取操作，已存素材仍可用。"},
+  "captureToolbar": {"stateOwner": "src/client/capture/model.ts", "referenceBehavior": "Alma 0.4.160 toolbar: mode、redactSource、style 为三个正交选中状态；只参考交互，不复用主题类。", "consumer": "src/client/capture/view.ts / capture-window.css", "selectedBackground": "--dsw-alias-bg-module-platform", "selectedForeground": "--dsw-alias-label-primary", "hoverBackground": "--dsw-alias-interactive-bg-hover", "pressedBackground": "--dsw-alias-interactive-bg-active", "sourceFile": "packages/client/ui-theme/src/styles/design-platform.css", "decision": "aria-pressed 是唯一选中标记；复用 DSH AppearanceRow 的持久选择底色。rc.2 浅色 layer-2/3 同为 neutral-bluish-00，不可用表面层级充当可见选中。普通 ghost hover/active 仅作用于未选按钮；焦点仍消费 DSH focus ring。不复制 Alma bg-muted/text-foreground 或数值主题色。", "selectedSourceFile": "packages/client/ui-theme/src/AppearanceRow.module.css", "selectedSelector": ".selected"},
+  "captureShell": {"implementation": "src/client/capture/capture-window.css", "spacingSource": "--pdsh-field-gap", "spacingSourceFile": "packages/client/ui-primitives/src/settings-form/fields.module.css", "spaceDivisor": 2, "insetMultiplier": 5, "decision": "用户2026-10-04要求外壳上下留白按现有左右对齐；header顶部、workspace左右、footer底部复用同一inset。段落间隔与视口边距不属于外壳inset，保留原值；chrome高度预算补上新增的上下两格。"},
   "styles": [
-    {
-      "role": "plugin upgrade restart prompt",
-      "file": "packages/client/ui-primitives/src/Modal.tsx",
-      "selector": "Modal / Button outline",
+    { "role": "settings project footer layout",
+      "file": "packages/client/ui-primitives/src/settings-form/fields.module.css / Input.module.css / Button.module.css", "selector": ".field / .wrap / .md",
+      "providerVersion": "0.2.0-rc.2", "publicSourceTag": "dsh-v0.2.0-rc.2", "sourceCommit": "639ed015397290b3745d163aafe02ffee4aa3f84",
+      "acquisition": "整排是 PDSH 的布局决策，不冒充 Host 现成页脚。右端内边界等于已有卡片 inset 加描边。Star、GitHub 与作者紧凑靠右，不伸展支持组。复用设置正文字体、字段 gap 与按钮高度。SVG 包装使用 flex，图稿使用 block，不留内联基线空白。窄窗自然换行，不加断点或尺寸常量。",
+      "pdshConsumer": "src/client/project-footer.tsx / styles.css" },
+    { "role": "settings project footer GitHub glyph",
+      "file": "packages/client/ui-primitives/src/LinkIcon.tsx / SiteGlyph.tsx", "selector": "LinkIconRegular kind=url / github.com -> siGithub",
+      "providerVersion": "0.2.0-rc.2", "publicSourceTag": "dsh-v0.2.0-rc.2", "sourceCommit": "639ed015397290b3745d163aafe02ffee4aa3f84",
+      "acquisition": "直接渲染 Host URL 图标。固定 GitHub 项目 URL 选择官方现有站点图稿；不复制路径、不新增图标依赖。字号、色彩、焦点和几何沿用现有 Host token 与原生探针。",
+      "pdshConsumer": "src/client/project-footer.tsx / styles.css" },
+    { "role": "settings project footer external navigation",
+      "file": "apps/desktop/src/main.ts / packages/client/ui-tool/src/client/tool/components/ToolRow.tsx", "selector": "anchor target=_blank rel=noopener noreferrer / setWindowOpenHandler",
+      "providerVersion": "0.2.0-rc.2", "publicSourceTag": "dsh-v0.2.0-rc.2", "sourceCommit": "639ed015397290b3745d163aafe02ffee4aa3f84",
+      "acquisition": "沿用 Host 安全锚点范式。用户点击才交给系统浏览器；插件不新增 Electron 权限、window.open 封装、网络请求或 Star 写入。",
+      "pdshConsumer": "src/client/project-footer.tsx" },
+    { "role": "plugin upgrade restart prompt",
+      "file": "packages/client/ui-primitives/src/Modal.tsx", "selector": "Modal / Button outline",
       "providerVersion": "0.2.0-rc.2",
-      "acquisition": "直接渲染精确 Host 官方 Modal 和 Button；宿主拥有 portal、焦点/退出交互、遮罩、排版与主题，不复制 Modal.module.css 或数值几何。稍后只关闭提示，不模拟不可用的重启接口。"
-    },
-    {
-      "role": "capture and workbench transient feedback",
-      "file": "packages/client/ui-primitives/src/Toast.tsx",
-      "selector": "Toast / IconWarningOutlineRegular / tone success",
-      "acquisition": "直接渲染官方 Toast，省略 holdMs；宿主拥有 portal、默认停留/淡出和 onDone。每次显示使用独立 key，不复制 Toast.module.css、定时常量或底角常驻通知。"
-    },
-    {
-      "role": "nickname editor stable action height",
-      "variable": "--pdsh-action-size",
-      "file": "packages/client/ui-primitives/src/Button.module.css",
-      "selector": ".md",
-      "property": "height",
-      "acquisition": "渲染官方默认 Button 并读取 computed height；编辑行最小高度与阅读态编辑按钮相同，不硬编码36px；不假称已实窗量测。"
-    },
-    {
-      "role": "outline stroke",
-      "variable": "--pdsh-outline-width",
-      "file": "packages/client/ui-primitives/src/Input.module.css",
-      "selector": ".wrap",
-      "property": "border-top-width",
-      "acquisition": "渲染官方 Input；读取其真实 wrapper 的 computedStyle，不硬编码 0.5px"
-    },
-    {
-      "role": "avatar preview size",
-      "variable": "--pdsh-control-size",
-      "file": "packages/client/ui-primitives/src/Input.module.css",
-      "selector": ".wrap",
-      "property": "height",
-      "acquisition": "原生 Input wrapper 的 computed height 是基础几何；设置资料摘要头像为两个控件高度之和，明确区别于原生侧栏紧凑头像，不硬编码像素。"
-    },
-    {
-      "role": "settings label",
-      "variable": "--dsw-alias-label-primary",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css"
-    },
-    {
-      "role": "settings hint",
-      "variable": "--dsw-alias-label-secondary",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css"
-    },
-    {
-      "role": "avatar geometry",
-      "file": "packages/client/ui-settings-account/src/client/AccountMenu.module.css",
-      "selector": ".avatar",
-      "acquisition": "复用原生 span 容器的尺寸与圆角，不复制常量"
-    },
-    {
-      "role": "nickname truncation",
-      "file": "packages/client/ui-settings-account/src/client/AccountMenu.module.css",
-      "selector": ".label",
-      "acquisition": "从已确认原生 label 获取当前 CSS Modules className，不固定哈希"
-    },
-    {
-      "role": "settings controls",
+      "acquisition": "直接渲染精确 Host 官方 Modal 和 Button；宿主拥有 portal、焦点/退出交互、遮罩、排版与主题，不复制 Modal.module.css 或数值几何。稍后只关闭提示，不模拟不可用的重启接口。" },
+    { "role": "capture and workbench transient feedback",
+      "file": "packages/client/ui-primitives/src/Toast.tsx", "selector": "Toast / IconWarningOutlineRegular / tone success",
+      "acquisition": "直接渲染官方 Toast，省略 holdMs；宿主拥有 portal、默认停留/淡出和 onDone。每次显示使用独立 key，不复制 Toast.module.css、定时常量或底角常驻通知。" },
+    { "role": "nickname editor stable action height", "variable": "--pdsh-action-size",
+      "file": "packages/client/ui-primitives/src/Button.module.css", "selector": ".md", "property": "height",
+      "acquisition": "渲染官方默认 Button 并读取 computed height；编辑行最小高度与阅读态编辑按钮相同，不硬编码36px；不假称已实窗量测。" },
+    { "role": "outline stroke", "variable": "--pdsh-outline-width",
+      "file": "packages/client/ui-primitives/src/Input.module.css", "selector": ".wrap", "property": "border-top-width",
+      "acquisition": "渲染官方 Input；读取其真实 wrapper 的 computedStyle，不硬编码 0.5px" },
+    { "role": "avatar preview size", "variable": "--pdsh-control-size",
+      "file": "packages/client/ui-primitives/src/Input.module.css", "selector": ".wrap", "property": "height",
+      "acquisition": "原生 Input wrapper 的 computed height 是基础几何；设置资料摘要头像为两个控件高度之和，明确区别于原生侧栏紧凑头像，不硬编码像素。" },
+    { "role": "settings label", "variable": "--dsw-alias-label-primary",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css" },
+    { "role": "settings hint", "variable": "--dsw-alias-label-secondary",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css" },
+    { "role": "avatar geometry",
+      "file": "packages/client/ui-settings-account/src/client/AccountMenu.module.css", "selector": ".avatar",
+      "acquisition": "复用原生 span 容器的尺寸与圆角，不复制常量" },
+    { "role": "nickname truncation",
+      "file": "packages/client/ui-settings-account/src/client/AccountMenu.module.css", "selector": ".label",
+      "acquisition": "从已确认原生 label 获取当前 CSS Modules className，不固定哈希" },
+    { "role": "settings controls",
       "file": "packages/client/ui-primitives/src/{Input,Switch,Button}.module.css",
-      "acquisition": "直接使用官方 React primitives，由宿主 module table 提供样式"
-    },
-    {
-      "role": "search entry button",
-      "file": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.module.css",
-      "selector": ".searchButton / .rail .searchButton",
-      "acquisition": "获取唯一原生搜索按钮的实时 className；不复制数值或 CSS Modules 哈希"
-    },
-    {
-      "role": "search entry rail shell",
-      "file": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.module.css",
-      "selector": ".rail .search",
-      "acquisition": "获取原生 rail 搜索容器的实时 className；复用间距、尺寸和圆角，不复制 DOM 或搜索状态"
-    },
-    {
-      "role": "search entry icon size",
-      "file": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx",
-      "selector": "IconSearchOutlineRegular",
-      "acquisition": "从原生搜索 svg 的 computed width/height 获取；帽子图形的 viewBox/路径为 InCodex 资产，不充当布局 token"
-    },
-    {
-      "role": "settings base typography",
-      "variable": "--dsw-font-xs-13",
+      "acquisition": "直接使用官方 React primitives，由宿主 module table 提供样式" },
+    { "role": "search entry button",
+      "file": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.module.css", "selector": ".searchButton / .rail .searchButton",
+      "acquisition": "获取唯一原生搜索按钮的实时 className；不复制数值或 CSS Modules 哈希" },
+    { "role": "search entry rail shell",
+      "file": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.module.css", "selector": ".rail .search",
+      "acquisition": "获取原生 rail 搜索容器的实时 className；复用间距、尺寸和圆角，不复制 DOM 或搜索状态" },
+    { "role": "search entry icon size",
+      "file": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx", "selector": "IconSearchOutlineRegular",
+      "acquisition": "从原生搜索 svg 的 computed width/height 获取；帽子图形的 viewBox/路径为 InCodex 资产，不充当布局 token" },
+    { "role": "settings base typography", "variable": "--dsw-font-xs-13",
       "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
-      "acquisition": "复用宿主完整 font shorthand；不照抄字号/行高/字重数字"
-    },
-    {
-      "role": "settings field label",
-      "variable": "--dsw-font-xs-strong-13",
+      "acquisition": "复用宿主完整 font shorthand；不照抄字号/行高/字重数字" },
+    { "role": "settings field label", "variable": "--dsw-font-xs-strong-13",
       "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
-      "acquisition": "复用宿主完整 font shorthand；不照抄字号/行高/字重数字"
-    },
-    {
-      "role": "settings secondary typography",
-      "variable": "--dsw-font-xxs-12",
+      "acquisition": "复用宿主完整 font shorthand；不照抄字号/行高/字重数字" },
+    { "role": "settings secondary typography", "variable": "--dsw-font-xxs-12",
       "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
-      "acquisition": "复用宿主完整 font shorthand；不照抄字号/行高/字重数字"
-    },
-    {
-      "role": "settings section and preview identity",
-      "variable": "--dsw-font-s-strong-14",
+      "acquisition": "复用宿主完整 font shorthand；不照抄字号/行高/字重数字" },
+    { "role": "settings section and preview identity", "variable": "--dsw-font-s-strong-14",
       "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
-      "acquisition": "复用宿主完整 font shorthand；不照抄字号/行高/字重数字"
-    },
-    {
-      "role": "settings card border",
-      "variable": "--dsw-alias-settings-card-stroke",
-      "file": "packages/client/ui-theme/src/styles/base.css"
-    },
-    {
-      "role": "settings card surface",
-      "variable": "--dsw-alias-settings-card-fill",
-      "file": "packages/client/ui-theme/src/styles/base.css"
-    },
-    {
-      "role": "settings validation error",
-      "variable": "--dsw-alias-state-error-primary",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css"
-    },
-    {
-      "role": "settings card corner",
-      "variable": "--dsw-radius-xl",
-      "file": "packages/client/ui-theme/src/styles/base.css"
-    },
-    {
-      "role": "settings group inset",
-      "variable": "--pdsh-section-inset",
-      "file": "packages/client/ui-primitives/src/settings-form/fields.module.css",
-      "selector": ".field",
-      "property": "padding-top",
+      "acquisition": "复用宿主完整 font shorthand；不照抄字号/行高/字重数字" },
+    { "role": "settings card border", "variable": "--dsw-alias-settings-card-stroke",
+      "file": "packages/client/ui-theme/src/styles/base.css" },
+    { "role": "settings card surface", "variable": "--dsw-alias-settings-card-fill",
+      "file": "packages/client/ui-theme/src/styles/base.css" },
+    { "role": "settings validation error", "variable": "--dsw-alias-state-error-primary",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css" },
+    { "role": "settings card corner", "variable": "--dsw-radius-xl",
+      "file": "packages/client/ui-theme/src/styles/base.css" },
+    { "role": "settings group inset", "variable": "--pdsh-section-inset",
+      "file": "packages/client/ui-primitives/src/settings-form/fields.module.css", "selector": ".field", "property": "padding-top",
       "acquisition": "渲染官方 SettingsValueField；读取 root/head 的 computed style，无布局数字 fallback；身份卡片不叠加底内边距，昵称行对称承担上下留白，整体高度不变。",
-      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔；身份开关动作槽以--pdsh-action-size等高，统一上下内边距，不加独立数字间距"
-    },
-    {
-      "role": "settings label/control gap",
-      "variable": "--pdsh-field-gap",
-      "file": "packages/client/ui-primitives/src/settings-form/fields.module.css",
-      "selector": ".field",
-      "property": "gap",
+      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔；身份开关动作槽以--pdsh-action-size等高，统一上下内边距，不加独立数字间距" },
+    { "role": "settings label/control gap", "variable": "--pdsh-field-gap",
+      "file": "packages/client/ui-primitives/src/settings-form/fields.module.css", "selector": ".field", "property": "gap",
       "acquisition": "渲染官方 SettingsValueField；读取 root/head 的 computed style，无布局数字 fallback",
-      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔；身份开关动作槽以--pdsh-action-size等高，统一上下内边距，不加独立数字间距"
-    },
-    {
-      "role": "settings inline actions gap",
-      "variable": "--pdsh-action-gap",
-      "file": "packages/client/ui-primitives/src/settings-form/fields.module.css",
-      "selector": ".head",
-      "property": "gap",
+      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔；身份开关动作槽以--pdsh-action-size等高，统一上下内边距，不加独立数字间距" },
+    { "role": "settings inline actions gap", "variable": "--pdsh-action-gap",
+      "file": "packages/client/ui-primitives/src/settings-form/fields.module.css", "selector": ".head", "property": "gap",
       "acquisition": "渲染官方 SettingsValueField；读取 root/head 的 computed style，无布局数字 fallback",
-      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔；身份开关动作槽以--pdsh-action-size等高，统一上下内边距，不加独立数字间距"
-    },
-    {
-      "role": "search left adjacency",
-      "file": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.module.css",
-      "selector": ".sectionHeader / .searchSlot",
-      "property": "margin-left",
-      "acquisition": "自有按钮使用 auto 承担右对齐留白，仅在可见且直接邻接时将原生 slot margin-left 覆盖为 0；不改节点或 inline style。隐藏/样式卸载自动还原，间距仍来自原生 header gap。"
-    },
-    {
-      "role": "horizontal display identity editor",
-      "file": "packages/client/ui-settings-account/src/client/AccountSection.module.css",
-      "selector": ".identity / .identityCopy / .avatar",
-      "acquisition": "参照原生横向摘要与独立昵称行；头像右侧三个来源按钮始终可见，以Host接受字段推导选中态。窄窗按原生字段gap换行，不复制账户邮箱。 昵称用intrinsic flex basis参与行宽测量；最大宽度由摘要宽减去两个Input高度和原生gap，确保长昵称仍与头像同排，操作组先换行。"
-    },
-    {
-      "role": "account avatar fallback",
+      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔；身份开关动作槽以--pdsh-action-size等高，统一上下内边距，不加独立数字间距" },
+    { "role": "search left adjacency",
+      "file": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.module.css", "selector": ".sectionHeader / .searchSlot", "property": "margin-left",
+      "acquisition": "自有按钮使用 auto 承担右对齐留白，仅在可见且直接邻接时将原生 slot margin-left 覆盖为 0；不改节点或 inline style。隐藏/样式卸载自动还原，间距仍来自原生 header gap。" },
+    { "role": "horizontal display identity editor",
+      "file": "packages/client/ui-settings-account/src/client/AccountSection.module.css", "selector": ".identity / .identityCopy / .avatar",
+      "acquisition": "参照原生横向摘要与独立昵称行；头像右侧三个来源按钮始终可见，以Host接受字段推导选中态。窄窗按原生字段gap换行，不复制账户邮箱。 昵称用intrinsic flex basis参与行宽测量；最大宽度由摘要宽减去两个Input高度和原生gap，确保长昵称仍与头像同排，操作组先换行。" },
+    { "role": "account avatar fallback",
       "file": "packages/client/ui-settings-account/src/client/AccountAvatar.tsx",
-      "acquisition": "与宿主缺失头像时同用 primitives.IconUserOutlineMedium；仅原生已显示图片作为预览来源，不调用账户服务或持久化账户 URL。"
-    },
-    {
-      "role": "profile avatar circular crop",
-      "file": "packages/client/ui-settings-account/src/client/AccountAvatar.module.css",
-      "selector": ".image",
-      "property": "border-radius / corner-shape / object-fit",
-      "acquisition": "使用原生圆形头像的 50% / round / cover；不改变侧栏头像节点。"
-    },
-    {
-      "role": "profile field separator",
-      "variable": "--dsw-alias-border-l2",
+      "acquisition": "与宿主缺失头像时同用 primitives.IconUserOutlineMedium；仅原生已显示图片作为预览来源，不调用账户服务或持久化账户 URL。" },
+    { "role": "profile avatar circular crop",
+      "file": "packages/client/ui-settings-account/src/client/AccountAvatar.module.css", "selector": ".image", "property": "border-radius / corner-shape / object-fit",
+      "acquisition": "使用原生圆形头像的 50% / round / cover；不改变侧栏头像节点。" },
+    { "role": "profile field separator", "variable": "--dsw-alias-border-l2",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "consumer": "packages/client/ui-primitives/src/settings-form/fields.module.css .field + .field",
-      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔；身份开关动作槽以--pdsh-action-size等高，统一上下内边距，不加独立数字间距"
-    },
-    {
-      "role": "nickname edit affordance",
-      "file": "packages/client/ui-primitives/src/icons/index.tsx",
-      "selector": "IconEditOutlineRegular",
+      "pdshConsumer": "src/client/styles.css 的 pdsh-detail-row / pdsh-value-action / pdsh-fields-group；src/client/capture-settings.tsx 保存方式、完整目录、格式与名称模板共用身份昵称行几何；首字段不画贴标题分隔线，其余字段保留原生分隔；身份开关动作槽以--pdsh-action-size等高，统一上下内边距，不加独立数字间距",
+      "consumer": "packages/client/ui-primitives/src/settings-form/fields.module.css .field + .field" },
+    { "role": "nickname edit affordance",
+      "file": "packages/client/ui-primitives/src/icons/index.tsx", "selector": "IconEditOutlineRegular",
       "acquisition": "使用宿主默认图标尺寸与原生 Button，不绘制新铅笔图形或复制尺寸。",
-      "pdshConsumer": "src/client/settings-card.tsx 与 src/client/capture-settings.tsx 的 pdsh-nickname-action；使用 Host IconEditOutlineRegular/IconCheckOutlineRegular/Button/Tooltip"
-    },
-    {
-      "role": "sidebar greybar fill",
-      "variable": "--dsw-alias-bg-skeleton",
+      "pdshConsumer": "src/client/settings-card.tsx 与 src/client/capture-settings.tsx 的 pdsh-nickname-action；使用 Host IconEditOutlineRegular/IconCheckOutlineRegular/Button/Tooltip" },
+    { "role": "sidebar greybar fill", "variable": "--dsw-alias-bg-skeleton",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "consumer": "packages/client/ui-settings-account/src/client/AccountSection.module.css .avatar",
       "acquisition": "沿用宿主灰色占位角色；常驻灰条与拍照临时灰条共用绘制，不复制第二套样式；实窗变量在 body/title 作用域，不取 documentElement 空值，不冻结色值。",
-      "pdshConsumer": "src/client/styles.css: [data-pdsh-redacted-title] 与 html.pdsh-capture-redact [data-pdsh-capture-redact=\"text\"] 共用选择器组"
-    },
-    {
-      "role": "sidebar greybar corner",
-      "variable": "--dsw-radius-xs",
+      "pdshConsumer": "src/client/styles.css: [data-pdsh-redacted-title] 与 html.pdsh-capture-redact [data-pdsh-capture-redact=\"text\"] 共用选择器组",
+      "consumer": "packages/client/ui-settings-account/src/client/AccountSection.module.css .avatar" },
+    { "role": "sidebar greybar corner", "variable": "--dsw-radius-xs",
       "file": "packages/client/ui-theme/src/styles/base.css",
       "acquisition": "条形占位采用最小圆角，灰条高度取原生文字框一半，非像素 token；文字框仍由 Rows.module.css 提供；常驻与临时拍照不另设尺寸。",
-      "pdshConsumer": "src/client/styles.css: 两种标题标记共用 ::after"
-    },
-    {
-      "role": "entry live search color",
-      "variable": "--pdsh-search-color",
-      "file": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.module.css",
-      "selector": ".search / .searchButton / .rail .search",
-      "acquisition": "从实际搜索节点及祖先命中的同源CSSOM声明寻找var表达式；保留原生变量引用，不存computed RGB。按钮class和SVG几何仍从原生节点获取。"
-    },
-    {
-      "role": "entry whole-icon opacity",
-      "variable": "--pdsh-icon-opacity",
-      "file": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx",
-      "selector": "IconSearchOutlineRegular",
-      "property": "opacity",
-      "acquisition": "读取原生搜索 SVG 的 computed opacity，仅赋给自有 SVG 根；路径自身始终不透明，笔画重叠处不会因逐笔半透明而加深。"
-    },
-    {
-      "role": "profile row spacing and compact editor",
-      "variable": "--pdsh-field-gap",
-      "file": "packages/client/ui-primitives/src/settings-form/fields.module.css",
-      "selector": ".field",
-      "property": "gap",
-      "acquisition": "共用原生字段间隔作为轻量row纵向inset，与AccountSection.module.css .row的紧凑纵向留白方向一致；取消组gap避免两层padding再叠加。编辑器靠右用原生Input自然固有宽度，不造固定宽度。"
-    },
-    {
-      "role": "nickname confirmation affordance",
-      "file": "packages/client/ui-primitives/src/icons/index.tsx",
-      "selector": "IconCheckOutlineRegular",
+      "pdshConsumer": "src/client/styles.css: 两种标题标记共用 ::after" },
+    { "role": "entry live search color", "variable": "--pdsh-search-color",
+      "file": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.module.css", "selector": ".search / .searchButton / .rail .search",
+      "acquisition": "从实际搜索节点及祖先命中的同源CSSOM声明寻找var表达式；保留原生变量引用，不存computed RGB。按钮class和SVG几何仍从原生节点获取。" },
+    { "role": "entry whole-icon opacity", "variable": "--pdsh-icon-opacity",
+      "file": "packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx", "selector": "IconSearchOutlineRegular", "property": "opacity",
+      "acquisition": "读取原生搜索 SVG 的 computed opacity，仅赋给自有 SVG 根；路径自身始终不透明，笔画重叠处不会因逐笔半透明而加深。" },
+    { "role": "profile row spacing and compact editor", "variable": "--pdsh-field-gap",
+      "file": "packages/client/ui-primitives/src/settings-form/fields.module.css", "selector": ".field", "property": "gap",
+      "acquisition": "共用原生字段间隔作为轻量row纵向inset，与AccountSection.module.css .row的紧凑纵向留白方向一致；取消组gap避免两层padding再叠加。编辑器靠右用原生Input自然固有宽度，不造固定宽度。" },
+    { "role": "nickname confirmation affordance",
+      "file": "packages/client/ui-primitives/src/icons/index.tsx", "selector": "IconCheckOutlineRegular",
       "acquisition": "复用官方check图标与默认尺寸ghost Button，以本地化aria-label/title命名；不造svg或固定图标尺寸。",
-      "pdshConsumer": "src/client/settings-card.tsx 与 src/client/capture-settings.tsx 的 pdsh-nickname-action；使用 Host IconEditOutlineRegular/IconCheckOutlineRegular/Button/Tooltip"
-    },
-    {
-      "role": "nickname standalone pencil and confirmation hit target",
-      "variable": "--pdsh-action-size",
-      "file": "packages/client/ui-primitives/src/Button.module.css",
-      "selector": ".md",
-      "property": "height",
+      "pdshConsumer": "src/client/settings-card.tsx 与 src/client/capture-settings.tsx 的 pdsh-nickname-action；使用 Host IconEditOutlineRegular/IconCheckOutlineRegular/Button/Tooltip" },
+    { "role": "nickname standalone pencil and confirmation hit target", "variable": "--pdsh-action-size",
+      "file": "packages/client/ui-primitives/src/Button.module.css", "selector": ".md", "property": "height",
       "acquisition": "独立图标按钮的宽度等于原生Button高度，形成同一方形命中区；昵称为相邻静态span，铅笔/勾都不包进输入wrapper，不照抄平台网页的虚线。",
-      "pdshConsumer": "src/client/settings-card.tsx 与 src/client/capture-settings.tsx 的 pdsh-nickname-action；使用 Host IconEditOutlineRegular/IconCheckOutlineRegular/Button/Tooltip"
-    },
-    {
-      "role": "avatar source action group",
-      "variable": "--pdsh-field-gap",
-      "file": "packages/client/ui-primitives/src/settings-form/fields.module.css",
-      "selector": ".field",
-      "property": "gap",
-      "acquisition": "头像摘要右侧常驻三个原生Button，来源字段和全局footer移除。间隔取原生探针，按钮字号/命中区由Button负责，窄窗自然换行而不裁切。"
-    },
-    {
-      "role": "single capability heading and switch",
+      "pdshConsumer": "src/client/settings-card.tsx 与 src/client/capture-settings.tsx 的 pdsh-nickname-action；使用 Host IconEditOutlineRegular/IconCheckOutlineRegular/Button/Tooltip" },
+    { "role": "avatar source action group", "variable": "--pdsh-field-gap",
+      "file": "packages/client/ui-primitives/src/settings-form/fields.module.css", "selector": ".field", "property": "gap",
+      "acquisition": "头像摘要右侧常驻三个原生Button，来源字段和全局footer移除。间隔取原生探针，按钮字号/命中区由Button负责，窄窗自然换行而不裁切。" },
+    { "role": "single capability heading and switch",
       "file": "packages/client/ui-primitives/src/Switch.tsx",
-      "acquisition": "原生Switch的label只提供无障碍名字；h4为该组唯一可见功能标题，两者沿已有row对齐。标题范围使用官方Tooltip悬停提示；不留下空hint节点或标题margin，摘要padding负责下一层间隔。"
-    },
-    {
-      "role": "version-adjacent update affordance",
-      "variable": "--pdsh-field-gap",
-      "file": "packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx / PluginManagerPage.module.css",
-      "selector": "plugins.detail.badge / .titleRow",
-      "property": "flex-wrap / gap",
-      "acquisition": "使用官方 detail.badge slot 排在原生版本Tag之后，不碰启用Switch；自动探测有新稳定版才贡献 Button 图标，展开后的来源提示与确认操作沿用 titleRow 换行和原生字段gap。"
-    },
-    {
-      "role": "available update positive affordance",
-      "variable": "--dsw-alias-state-success-primary",
+      "acquisition": "原生Switch的label只提供无障碍名字；h4为该组唯一可见功能标题，两者沿已有row对齐。标题范围使用官方Tooltip悬停提示；不留下空hint节点或标题margin，摘要padding负责下一层间隔。" },
+    { "role": "version-adjacent update affordance", "variable": "--pdsh-field-gap",
+      "file": "packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx / PluginManagerPage.module.css", "selector": "plugins.detail.badge / .titleRow", "property": "flex-wrap / gap",
+      "acquisition": "使用官方 detail.badge slot 排在原生版本Tag之后，不碰启用Switch；自动探测有新稳定版才贡献 Button 图标，展开后的来源提示与确认操作沿用 titleRow 换行和原生字段gap。" },
+    { "role": "available update positive affordance", "variable": "--dsw-alias-state-success-primary",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "acquisition": "确切安装包的运行状态标记也使用该成功色；仅为自有升级SVG指定此语义色，不冻结绿色RGB，不覆盖原生Button悬停与焦点状态。"
-    },
-    {
-      "role": "update arrow stroke geometry",
-      "file": "packages/client/ui-primitives/src/icons/index.tsx / src/client/native-icon.ts",
-      "property": "computed stroke-width / viewBox width",
-      "acquisition": "原生 regular SVG 的实时笔触密度乘以自有24单位坐标宽度；当前Host值换算为1.5仅是结果，不是运行常量，主题/尺寸变化重采，SVG根合成透明度。"
-    },
-    {
-      "role": "capture failure notice",
-      "variable": "--dsw-alias-bg-layer-2",
+      "acquisition": "确切安装包的运行状态标记也使用该成功色；仅为自有升级SVG指定此语义色，不冻结绿色RGB，不覆盖原生Button悬停与焦点状态。" },
+    { "role": "update arrow stroke geometry",
+      "file": "packages/client/ui-primitives/src/icons/index.tsx / src/client/native-icon.ts", "property": "computed stroke-width / viewBox width",
+      "acquisition": "原生 regular SVG 的实时笔触密度乘以自有24单位坐标宽度；当前Host值换算为1.5仅是结果，不是运行常量，主题/尺寸变化重采，SVG根合成透明度。" },
+    { "role": "capture failure notice", "variable": "--dsw-alias-bg-layer-2",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "acquisition": "截图失败提示与工作台外壳使用宿主语义色；不冻结主题 RGB。"
-    },
-    {
-      "role": "capture workbench theme",
-      "variable": "--dsw-alias-bg-base",
+      "acquisition": "截图失败提示与工作台外壳使用宿主语义色；不冻结主题 RGB。" },
+    { "role": "capture workbench theme", "variable": "--dsw-alias-bg-base",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
-    },
-    {
-      "role": "capture workbench theme",
-      "variable": "--dsw-alias-bg-layer-1",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。" },
+    { "role": "capture workbench theme", "variable": "--dsw-alias-bg-layer-1",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
-    },
-    {
-      "role": "capture workbench theme",
-      "variable": "--dsw-alias-bg-layer-3",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。" },
+    { "role": "capture workbench theme", "variable": "--dsw-alias-bg-layer-3",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
-    },
-    {
-      "role": "capture workbench theme",
-      "variable": "--dsw-alias-bg-mask-drop",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。" },
+    { "role": "capture workbench theme", "variable": "--dsw-alias-bg-mask-drop",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
-    },
-    {
-      "role": "capture workbench theme",
-      "variable": "--dsw-alias-border-l3",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。" },
+    { "role": "capture workbench theme", "variable": "--dsw-alias-border-l3",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
-    },
-    {
-      "role": "capture workbench theme",
-      "variable": "--dsw-alias-brand-primary",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。" },
+    { "role": "capture workbench theme", "variable": "--dsw-alias-brand-primary",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
-    },
-    {
-      "role": "capture workbench theme",
-      "variable": "--dsw-alias-button-primary-fill",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。" },
+    { "role": "capture workbench theme", "variable": "--dsw-alias-button-primary-fill",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
-    },
-    {
-      "role": "capture workbench theme",
-      "variable": "--dsw-alias-interactive-bg-hover",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。" },
+    { "role": "capture workbench theme", "variable": "--dsw-alias-interactive-bg-hover",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
-    },
-    {
-      "role": "capture workbench theme",
-      "variable": "--dsw-alias-label-dimmed",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。" },
+    { "role": "capture workbench theme", "variable": "--dsw-alias-label-dimmed",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
-    },
-    {
-      "role": "capture workbench theme",
-      "variable": "--dsw-alias-label-primary-inverted",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。" },
+    { "role": "capture workbench theme", "variable": "--dsw-alias-label-primary-inverted",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
-    },
-    {
-      "role": "capture workbench theme",
-      "variable": "--dsw-alias-label-tertiary",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。" },
+    { "role": "capture workbench theme", "variable": "--dsw-alias-label-tertiary",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
-    },
-    {
-      "role": "capture workbench theme",
-      "variable": "--dsw-radius-lg",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。" },
+    { "role": "capture workbench theme", "variable": "--dsw-radius-lg",
       "file": "packages/client/ui-theme/src/styles/base.css",
-      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
-    },
-    {
-      "role": "capture workbench theme",
-      "variable": "--dsw-radius-md",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。" },
+    { "role": "capture workbench theme", "variable": "--dsw-radius-md",
       "file": "packages/client/ui-theme/src/styles/base.css",
-      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
-    },
-    {
-      "role": "capture workbench theme",
-      "variable": "--dsw-radius-panel",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。" },
+    { "role": "capture workbench theme", "variable": "--dsw-radius-panel",
       "file": "packages/client/ui-theme/src/styles/base.css",
-      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
-    },
-    {
-      "role": "capture workbench theme",
-      "variable": "--dsw-radius-sm",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。" },
+    { "role": "capture workbench theme", "variable": "--dsw-radius-sm",
       "file": "packages/client/ui-theme/src/styles/base.css",
-      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。"
-    },
-    {
-      "role": "capture workbench native theme",
-      "variable": "--ds-ease-in-out",
+      "acquisition": "InCodex Shot 可移植编辑器外壳映射到 Harness rc.2 语义令牌；位图颜色、色谱端点和编辑器自身像素几何不冒充宿主 token。" },
+    { "role": "capture workbench native theme", "variable": "--ds-ease-in-out",
       "file": "packages/client/ui-theme/src/styles/base.css",
-      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
-    },
-    {
-      "role": "capture workbench native theme",
-      "variable": "--ds-font-family-code",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。" },
+    { "role": "capture workbench native theme", "variable": "--ds-font-family-code",
       "file": "packages/client/ui-theme/src/styles/base.css",
-      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
-    },
-    {
-      "role": "capture workbench native theme",
-      "variable": "--ds-transition-duration-fast",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。" },
+    { "role": "capture workbench native theme", "variable": "--ds-transition-duration-fast",
       "file": "packages/client/ui-theme/src/styles/base.css",
-      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
-    },
-    {
-      "role": "capture workbench native theme",
-      "variable": "--dsw-alias-border-inverted",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。" },
+    { "role": "capture workbench native theme", "variable": "--dsw-alias-border-inverted",
       "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
-    },
-    {
-      "role": "capture workbench native theme",
-      "variable": "--dsw-elevation-panel",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。" },
+    { "role": "capture workbench native theme", "variable": "--dsw-elevation-panel",
       "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
-      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
-    },
-    {
-      "role": "capture workbench native theme",
-      "variable": "--dsw-elevation-prominent",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。" },
+    { "role": "capture workbench native theme", "variable": "--dsw-elevation-prominent",
       "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
-      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
-    },
-    {
-      "role": "capture workbench native theme",
-      "variable": "--dsw-font-family",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。" },
+    { "role": "capture workbench native theme", "variable": "--dsw-font-family",
       "file": "packages/client/ui-theme/src/styles/base.css",
-      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
-    },
-    {
-      "role": "capture workbench native theme",
-      "variable": "--dsw-font-s-14-font-size",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。" },
+    { "role": "capture workbench native theme", "variable": "--dsw-font-s-14-font-size",
       "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
-      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
-    },
-    {
-      "role": "capture workbench native theme",
-      "variable": "--dsw-font-s-strong-14-font-weight",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。" },
+    { "role": "capture workbench native theme", "variable": "--dsw-font-s-strong-14-font-weight",
       "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
-      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
-    },
-    {
-      "role": "capture workbench native theme",
-      "variable": "--dsw-font-xs-13-font-size",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。" },
+    { "role": "capture workbench native theme", "variable": "--dsw-font-xs-13-font-size",
       "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
-      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
-    },
-    {
-      "role": "capture workbench native theme",
-      "variable": "--dsw-font-xs-strong-13-font-weight",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。" },
+    { "role": "capture workbench native theme", "variable": "--dsw-font-xs-strong-13-font-weight",
       "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
-      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
-    },
-    {
-      "role": "capture workbench native theme",
-      "variable": "--dsw-font-xxs-12-font-size",
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。" },
+    { "role": "capture workbench native theme", "variable": "--dsw-font-xxs-12-font-size",
       "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
-      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。"
-    },
-    {
-      "role": "native capture control or tooltip",
-      "variable": "--pdsh-switch-width",
-      "file": "packages/client/ui-primitives/src/Switch.module.css",
-      "selector": ".switch",
-      "acquisition": "读取不可绘制但可布局的原生 Switch 的实时 computed width；工作台 checkbox 与原生轨道同宽。",
-      "property": "width"
-    },
-    {
-      "role": "native capture control or tooltip",
-      "variable": "--pdsh-switch-height",
-      "file": "packages/client/ui-primitives/src/Switch.module.css",
-      "selector": ".switch",
-      "acquisition": "读取不可绘制但可布局的原生 Switch 的实时 computed height；工作台 checkbox 与原生轨道同高。",
-      "property": "height"
-    },
-    {
-      "role": "native capture control or tooltip",
-      "variable": "--pdsh-switch-thumb-size",
-      "file": "packages/client/ui-primitives/src/Switch.module.css",
-      "selector": ".thumb",
-      "acquisition": "读取不可绘制但可布局的原生 Switch 拇指的实时 computed width；不以字段间距猜尺寸。",
-      "property": "width"
-    },
-    {
-      "role": "native capture control or tooltip",
-      "variable": "--dsw-alias-state-business-primary",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "selector": "body theme scope",
-      "acquisition": "原生 Switch 的键盘焦点颜色；与编辑区域选中态分离。"
-    },
-    {
-      "role": "native capture control or tooltip",
-      "variable": "--dsw-font-xxs-strong-12",
-      "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
-      "selector": "body theme scope",
-      "acquisition": "检查器标题采用宿主完整 12px 强调字体、行高和字重。"
-    },
-    {
-      "role": "native capture control or tooltip",
-      "variable": "--dsw-alias-tooltip-bg",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "selector": "body theme scope",
-      "acquisition": "非 React DOM 控件提示复用宿主 Tooltip 背景。"
-    },
-    {
-      "role": "native capture control or tooltip",
-      "variable": "--dsw-static-neutral-bluish-00",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "selector": "body theme scope",
-      "acquisition": "非 React DOM 控件提示复用宿主 Tooltip 前景。"
-    },
-    {
-      "role": "DOM tooltip exact behavior",
-      "file": "packages/client/ui-primitives/src/Tooltip.tsx / Tooltip.module.css",
-      "selector": "Tooltip side=bottom delayMs=500 focusDelayMs=0 portal / .bubble[data-portal]",
-      "acquisition": "React 设置和更新入口直接用官方 Tooltip；原生 DOM 工作台/侧栏入口用相同延时、方位、间距、主题色、圆角和 portal 层级，不使用浏览器 title。"
-    },
-    {
-      "role": "avatar source text gap",
-      "variable": "--pdsh-button-inset",
-      "file": "packages/client/ui-primitives/src/Button.module.css",
-      "selector": ".md",
-      "property": "padding-inline-start",
-      "acquisition": "由原生 Button computed style 取单侧文字内边距；来源标签与三个按钮一起右对齐。标签到首个按钮轮廓的可见间距等于原生 field gap 加两个按钮内边距，匹配两个 ghost 来源按钮的文字间距，不改按钮内部布局。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-action-radius",
-      "file": "packages/client/ui-primitives/src/Button.module.css",
-      "selector": ".button:disabled",
-      "property": "border-radius",
-      "acquisition": "真实 Host Button 探针保留布局但不绘制；DOM/主题/尺寸变化重读计算样式，数值未变不写回，卸载恢复原值；不复制 Provider 常数。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-action-corner-shape",
-      "file": "packages/client/ui-primitives/src/Button.module.css",
-      "selector": ".button:disabled",
-      "property": "corner-shape",
-      "acquisition": "真实 Host Button 探针保留布局但不绘制；DOM/主题/尺寸变化重读计算样式，数值未变不写回，卸载恢复原值；不复制 Provider 常数。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-action-disabled-opacity",
-      "file": "packages/client/ui-primitives/src/Button.module.css",
-      "selector": ".button:disabled",
-      "property": "opacity",
-      "acquisition": "真实 Host Button 探针保留布局但不绘制；DOM/主题/尺寸变化重读计算样式，数值未变不写回，卸载恢复原值；不复制 Provider 常数。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-action-transition",
-      "file": "packages/client/ui-primitives/src/Button.module.css",
-      "selector": ".button:disabled",
-      "property": "transition",
-      "acquisition": "真实 Host Button 探针保留布局但不绘制；DOM/主题/尺寸变化重读计算样式，数值未变不写回，卸载恢复原值；不复制 Provider 常数。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-button-gap",
-      "file": "packages/client/ui-primitives/src/Button.module.css",
-      "selector": ".button:disabled",
-      "property": "gap",
-      "acquisition": "真实 Host Button 探针保留布局但不绘制；DOM/主题/尺寸变化重读计算样式，数值未变不写回，卸载恢复原值；不复制 Provider 常数。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-native-icon-size",
-      "file": "packages/client/ui-primitives/src/icons/index.tsx",
-      "selector": "IconCheckOutlineRegular / svg",
-      "property": "width",
-      "acquisition": "Host Button 内的真实原生 SVG 提供显示尺寸、根透明度和笔触密度；自有图稿只保留24单位坐标，不固定1.5线宽。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-native-icon-opacity",
-      "file": "packages/client/ui-primitives/src/icons/index.tsx",
-      "selector": "IconCheckOutlineRegular / svg",
-      "property": "opacity",
-      "acquisition": "Host Button 内的真实原生 SVG 提供显示尺寸、根透明度和笔触密度；自有图稿只保留24单位坐标，不固定1.5线宽。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-native-icon-stroke-ratio",
-      "file": "packages/client/ui-primitives/src/icons/index.tsx",
-      "selector": "IconCheckOutlineRegular / svg",
-      "property": "stroke-width / viewBox width",
-      "acquisition": "Host Button 内的真实原生 SVG 提供显示尺寸、根透明度和笔触密度；自有图稿只保留24单位坐标，不固定1.5线宽。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-switch-radius",
-      "file": "packages/client/ui-primitives/src/Switch.module.css",
-      "selector": ".switch",
-      "property": "border-radius",
-      "acquisition": "从真实 Host Switch 的轨道/拇指实时采样；不猜圆角、阴影或过渡时长/曲线。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-switch-thumb-radius",
-      "file": "packages/client/ui-primitives/src/Switch.module.css",
-      "selector": ".thumb",
-      "property": "border-radius",
-      "acquisition": "从真实 Host Switch 的轨道/拇指实时采样；不猜圆角、阴影或过渡时长/曲线。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-switch-thumb-transition",
-      "file": "packages/client/ui-primitives/src/Switch.module.css",
-      "selector": ".thumb",
-      "property": "transition",
-      "acquisition": "从真实 Host Switch 的轨道/拇指实时采样；不猜圆角、阴影或过渡时长/曲线。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-switch-thumb-shadow",
-      "file": "packages/client/ui-primitives/src/Switch.module.css",
-      "selector": ".thumb",
-      "property": "box-shadow",
-      "acquisition": "从真实 Host Switch 的轨道/拇指实时采样；不猜圆角、阴影或过渡时长/曲线。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-tooltip-padding",
-      "file": "packages/client/ui-primitives/src/Tooltip.module.css",
-      "selector": ".bubble[data-portal]",
-      "property": "padding",
-      "acquisition": "Host Tooltip 明确 portal=false，在自有不可绘制探针内生成 bubble；仅为自有 bubble 添加 data-portal 以测 Provider 的 portal 层级样式，不移动 DOM、不改变 activeElement、不操作用户 Tooltip。DOM adapter 消费同一组实时变量。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-tooltip-duration",
-      "file": "packages/client/ui-primitives/src/Tooltip.module.css",
-      "selector": ".bubble[data-portal]",
-      "property": "animation-duration",
-      "acquisition": "Host Tooltip 明确 portal=false，在自有不可绘制探针内生成 bubble；仅为自有 bubble 添加 data-portal 以测 Provider 的 portal 层级样式，不移动 DOM、不改变 activeElement、不操作用户 Tooltip。DOM adapter 消费同一组实时变量。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-tooltip-ease",
-      "file": "packages/client/ui-primitives/src/Tooltip.module.css",
-      "selector": ".bubble[data-portal]",
-      "property": "animation-timing-function",
-      "acquisition": "Host Tooltip 明确 portal=false，在自有不可绘制探针内生成 bubble；仅为自有 bubble 添加 data-portal 以测 Provider 的 portal 层级样式，不移动 DOM、不改变 activeElement、不操作用户 Tooltip。DOM adapter 消费同一组实时变量。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-tooltip-max-width",
-      "file": "packages/client/ui-primitives/src/Tooltip.module.css",
-      "selector": ".bubble[data-portal]",
-      "property": "max-width",
-      "acquisition": "Host Tooltip 明确 portal=false，在自有不可绘制探针内生成 bubble；仅为自有 bubble 添加 data-portal 以测 Provider 的 portal 层级样式，不移动 DOM、不改变 activeElement、不操作用户 Tooltip。DOM adapter 消费同一组实时变量。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--pdsh-tooltip-layer",
-      "file": "packages/client/ui-primitives/src/Tooltip.module.css",
-      "selector": ".bubble[data-portal]",
-      "property": "z-index",
-      "acquisition": "Host Tooltip 明确 portal=false，在自有不可绘制探针内生成 bubble；仅为自有 bubble 添加 data-portal 以测 Provider 的 portal 层级样式，不移动 DOM、不改变 activeElement、不操作用户 Tooltip。DOM adapter 消费同一组实时变量。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--dsw-mask-blur",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "selector": ".mask",
-      "property": "backdrop-filter",
-      "acquisition": "Modal 原生遮罩的实时主题变量；不自造blur(3px)。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--dsw-alias-bg-mask-1",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "selector": ".mask::after",
-      "property": "background",
-      "acquisition": "Modal 原生遮罩色，不混用 menu drop 遮罩。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--dsw-alias-button-primary-hover",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "selector": ".primary:hover:not(:disabled)",
-      "property": "background",
-      "acquisition": "Host Button 的主按钮悬浮色，不自造混色。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--dsw-alias-interactive-bg-active",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "selector": ".ghost:active:not(:disabled)",
-      "property": "background",
-      "acquisition": "Host Button 的按压色，侧栏按钮继续继承原生class。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--dsw-corner-shape",
-      "file": "packages/client/ui-theme/src/styles/corner-shape.css",
-      "selector": ":root",
-      "property": "corner-shape",
-      "acquisition": "Host 全局曲率；圆形控件沿用 Switch round 几何例外。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--dsw-focus-ring-width",
-      "file": "packages/client/ui-theme/src/styles/base.css",
-      "selector": ":root / :focus-visible",
-      "property": "outline-width",
-      "acquisition": "Host 全局焦点线宽；工作台自有选中环/外移距离按同一宽度比例布局。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--dsw-alias-switch-thumb",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "selector": ".switch[aria-checked=false] .thumb",
-      "property": "background",
-      "acquisition": "Switch 未选中拇指的原生颜色。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--dsw-alias-label-primary-foreground",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "selector": ".switch[aria-checked=true] .thumb",
-      "property": "background",
-      "acquisition": "Switch 选中拇指和主按钮文字的原生前景色。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--dsw-alias-border-l4",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "selector": ".wrap",
-      "property": "border-color",
-      "acquisition": "Host Input 的实时原生描边色。"
-    },
-    {
-      "role": "live native control provider",
-      "variable": "--dsw-font-s-14",
-      "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css",
-      "selector": "body theme scope",
-      "property": "font",
-      "acquisition": "工作台按钮和 Input 使用完整字号/行高 token。"
-    },
-    {
-      "role": "capture toolbar persistent selection",
-      "variable": "--dsw-alias-bg-module-platform",
-      "file": "packages/client/ui-theme/src/styles/design-platform.css",
-      "selector": "packages/client/ui-theme/src/AppearanceRow.module.css .selected",
-      "acquisition": "复用宿主外观选项的持久选择表面；浅色与 dialog layer-2 的同白 layer-3 分离，深色沿宿主模块表面；不冻结 RGB 或复制 CSS Modules hash。"
-    }
-  ],
-  "artwork": {
-    "file": "packages/client/ui-theme/src/styles/design-platform.css",
-    "foreground": {
-      "variable": "--dsw-static-neutral-bluish-1000",
-      "value": "rgb(15, 17, 21)"
-    },
-    "acquisition": "官方 package.json.icon 由独立 img 呈现，不能继承宿主 CSS 变量；仅固定 rc.2 原生前景色快照，底保持透明。build.ts 复用单个复合描边路径；侧栏仍使用 currentColor 与实时原生几何/透明度。"
-  },
-  "captureMaterial": {
-    "role": "截图内容的模拟磨砂底层，不是 Host 控件主题或真实桌面截图",
-    "implementation": "src/client/capture/material.ts",
-    "nativeReference": {
-      "system": "macOS 27.0.1 (26A434)",
-      "view": "NSVisualEffectView",
-      "material": "sidebar",
-      "state": "active",
-      "blendingMode": "behindWindow",
-      "source": "https://developer.apple.com/documentation/appkit/nsvisualeffectview"
-    },
-    "acquisition": "自有离屏 NSVisualEffectView 的 CALayer 只读取证，未激活窗口、未请求录屏；研究参数固化为编辑 recipe，该材质绘制自身不调用取像 helper 或私有 API；RC 的整窗取像另由显式调用的原生 helper 完成。",
-    "light": {
-      "blurRadius": 30,
-      "saturation": 2.2,
-      "fillSrgb": 0.9647,
-      "fillAlpha": 0.84,
-      "toneSrgb": 0.915,
-      "toneBlend": "darken"
-    },
-    "dark": {
-      "blurRadius": 30,
-      "saturation": 2.4,
-      "fillSrgb": 0.1569,
-      "fillAlpha": 0.8,
-      "toneSrgb": 0.14,
-      "toneBlend": "lighten"
-    },
-    "limits": "只模糊用户选择的编辑背景，原始 PNG 无滤镜并保留。缺少真实桌面背景、Chameleon 桌面着色及 SDR 归一化，Canvas blur 不是 Core Animation 的逐像素复刻；后续系统版本不保证参数一致。透明选项仅使窗口外围透明，窗口内部保留材质底层。"
-  },
-  "capturePicker": {
-    "role": "编辑内容色谱坐标指示器，不是Host按钮",
-    "pointerRole": "编辑内容色谱坐标指示器，不是Host按钮",
-    "implementation": "src/client/capture/color-popover.css",
-    "referenceFile": "src/runtime/capture-window/color-popover.css",
-    "referenceBranch": "feature/capture-generated-gradients",
-    "referenceCommit": "96f9ce30f06a255db572f4cc6092c2f15429fc76",
-    "pointerSize": 28,
-    "pointerBorder": {
-      "width": 2,
-      "color": "#fff"
-    },
-    "acquisition": "参考Shot原始几何保持在色谱内容内，白色对比环不跟主题反转；自有浮层限定所有react-colorful规则，外壳/Input仍消费DSH语义token。",
-    "pointerShadow": "0 2px 4px rgb(0 0 0 / 20%)",
-    "curveIsolation": "pointer和pointer-fill分别显式corner-shape:round；corner-shape本身不继承，Host universal selector直接为每个元素应用曲率，见ui-theme/src/styles/corner-shape.css与docs/ui-radius.md",
-    "popoverElevation": "border:0配合--dsw-elevation-panel；其阴影已含0.5px发丝描边，来源ui-theme/src/styles/gradient-shadow-text.css及docs/ui-radius.md"
-  },
-  "captureIcons": {
-    "release": "1.51.0",
-    "commit": "45b0e148db4ee4d748340d0f99982aa1c2159d52",
-    "implementation": "src/client/capture/icons.ts",
-    "geometry": "只同步24单位SVG路径；实际尺寸、描边与透明度由Host实时探针提供",
-    "icons": {
-      "camera": {
-        "name": "camera",
-        "bodySha256": "2e315804a007219b67a24638c682250e41765026bdc0f9e855b11f156427834e",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/camera.svg"
-      },
-      "check": {
-        "name": "check",
-        "bodySha256": "b1fae48e85719ffb4fc7c4bad64bdd2417de1911186b00482e8bb2df73983c2d",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/check.svg"
-      },
-      "chevron-down": {
-        "name": "chevron-down",
-        "bodySha256": "ff92e9c43a316c6e5364cff78e2636078b26ae26af90fb9b10a0eac642c1fa44",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/chevron-down.svg"
-      },
-      "copy": {
-        "name": "copy",
-        "bodySha256": "cc35b6ca38550b0e04022da3ed0e69be489a0fd4ef1fc0366bf21228185a3862",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/copy.svg"
-      },
-      "download": {
-        "name": "download",
-        "bodySha256": "91ac1cf0026ea1da294019a115d33b1545f08e8a149e4a4fad889ad8a048d68e",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/download.svg"
-      },
-      "droplet": {
-        "name": "droplet",
-        "bodySha256": "803503321a2a39442be14f3d5856508c24f3d37b6fb90ae204baaba72caa17a6",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/droplet.svg"
-      },
-      "grid-3x3": {
-        "name": "grid-3x3",
-        "bodySha256": "30b3fa95571a2a13a1b57e50c214b3a8f7c3f3f14870e9edb0cf25ac3105615d",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/grid-3x3.svg"
-      },
-      "hand": {
-        "name": "hand",
-        "bodySha256": "a3b0e0c30b094710dd9f8901a69a1bec542e5f78e89cea49c7d9d2b7aa8c8425",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/hand.svg"
-      },
-      "image": {
-        "name": "image",
-        "bodySha256": "76ec95a15e6daf74b7d898ecc26be828dc094de7177f1701f92309e3437f5281",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/image.svg"
-      },
-      "maximize": {
-        "name": "maximize",
-        "bodySha256": "178c7e81c3dbaf433f5ee6e4ec973f4dfdde40feeb53feaf1eddd830347e1d28",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/maximize.svg"
-      },
-      "move": {
-        "name": "move",
-        "bodySha256": "4bb6eec74d87dd98ded4a8f043d22fb4779cf6b6bad8ebc2f75d91e618f29fbf",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/move.svg"
-      },
-      "palette": {
-        "name": "palette",
-        "bodySha256": "6b3f48bf7bcde087c14f66e03bf896c5fc5ed963176e07c9632261707dc53254",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/palette.svg"
-      },
-      "pen-line": {
-        "name": "pencil-line",
-        "bodySha256": "51e5b170315951c7e43d6174a7c8efd8ff716b952894fbae2c827e5d102f0ac0",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/pencil-line.svg"
-      },
-      "pipette": {
-        "name": "pipette",
-        "bodySha256": "68561c4096e5ccb90738153a9d85bea1d726c67019b8607a3b3164dd00df5082",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/pipette.svg"
-      },
-      "plus": {
-        "name": "plus",
-        "bodySha256": "0b18b67a3f40c67f5c84e90480e7178178e8b9f4fbccde09bfec13df007a1742",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/plus.svg"
-      },
-      "redo": {
-        "name": "redo-2",
-        "bodySha256": "b80e0e2bfd66980e08607f4879e7ccfa0f1350a1c987e6e224d03df5693c4b0d",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/redo-2.svg"
-      },
-      "retake": {
-        "name": "rotate-ccw",
-        "bodySha256": "0b7a71ab728579816152a7abc0fce1ca806f38413efcffb7b75c5fdc71659b87",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/rotate-ccw.svg"
-      },
-      "scan": {
-        "name": "scan-line",
-        "bodySha256": "cb3a3532bfcbf837ed70a9d42edae0c6a31be8eaf72f6afe59ba72dec1cee3e0",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/scan-line.svg"
-      },
-      "scan-search": {
-        "name": "scan-search",
-        "bodySha256": "5042d43813ce7772736f76a8769a8bea453b03be8823157c952046d8803d43cd",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/scan-search.svg"
-      },
-      "save": {
-        "name": "save",
-        "bodySha256": "0a5fac16182892f25207e88ca8f33d3465013679f5c08cfcb6a43a4d22b64af5",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/save.svg"
-      },
-      "shield": {
-        "name": "shield-check",
-        "bodySha256": "bc7d946304aec795f2ccda00af7a96c8f431adfd254e8bfc3bbbef3697e09579",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/shield-check.svg"
-      },
-      "square": {
-        "name": "square",
-        "bodySha256": "c5097ee868b45f784688a8521911d7cd7cbf23fbbc0375094eb0a7fa81889ef5",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/square.svg"
-      },
-      "square-dashed": {
-        "name": "square-dashed",
-        "bodySha256": "e0299a53db7db49fb00b2a624188db4b3925beeffed6c36aa840479d85ac0d7e",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/square-dashed.svg"
-      },
-      "trash": {
-        "name": "trash",
-        "bodySha256": "b7a7cdd78f2f5188cb14a92b3df0ac1d3feee2114c0f3b057a6be18920b40efb",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/trash.svg"
-      },
-      "undo": {
-        "name": "undo-2",
-        "bodySha256": "3a5192fd77ee3f3a45e6837180190789ddfa295d54248861997377cebd47fc4f",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/undo-2.svg"
-      },
-      "wallpaper": {
-        "name": "wallpaper",
-        "bodySha256": "1e345898e1771885d7f8378a34e8e9f5d1d6519c6f5a0cc70d9ecaa2dcc94be8",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/wallpaper.svg"
-      },
-      "x": {
-        "name": "x",
-        "bodySha256": "da77ddd5cb8dcaec3320ce7322a4478c4efa66033dff4bb7cdbabce3a7ae28da",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/x.svg"
-      },
-      "zoom-in": {
-        "name": "zoom-in",
-        "bodySha256": "8e68b3a145ff69c9849ad65af393a274bb5ce028c6ea82fd49fa9c2e07f2d20c",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/zoom-in.svg"
-      },
-      "zoom-out": {
-        "name": "zoom-out",
-        "bodySha256": "327a396d06b0a083440286a39a16af3c4811bbdd7bb0620437941b9e4fa5d1ed",
-        "source": "https://raw.githubusercontent.com/lucide-icons/lucide/45b0e148db4ee4d748340d0f99982aa1c2159d52/icons/zoom-out.svg"
-      }
-    }
-  },
-  "captureInspector": {
-    "implementation": [
-      "src/client/capture/capture-window.css",
-      "src/client/capture/background-picker.css"
-    ],
-    "gutterToken": "--dsw-focus-ring-width",
-    "gutterMultiplier": 2,
-    "widthPx": 240,
-    "widthReferenceFile": "src/runtime/capture-window/capture-window.css",
-    "widthDecision": "用户2026-10-03最终选择参考默认右侧240px、左侧剩余宽度；不固定4:1，也不把DSH field-gap/2改成4px。240px是产品布局约束而非缺失Host token的回退。",
-    "referenceFile": "src/runtime/capture-window/background-picker.css",
-    "referenceCommit": "96f9ce30f06a255db572f4cc6092c2f15429fc76",
-    "decision": "参考用4px空间保护4px双层环；DSH space并不保证同样预算，使用Host焦点环宽度两倍保护检查器和网格。拾色图标取Host尺寸与色块减安全边距的较小值，纯色改为与图片/渐变相同的五列圆角方框，局部选择器胜过全局探针尺寸；不去除裁切或缩小整个界面。",
-    "imageSourceGroupingDecision": "按图片来源分组：五预设原网格、系统图片独立组、个人标题行右侧plus。标题使用现有--dsw-font-xxs-12/--dsw-alias-label-tertiary；行高与plus命中区沿用原生Button .md测量的--pdsh-action-size，行间距沿用space=--pdsh-field-gap/2，标题与动作最小gap为2*space即--pdsh-field-gap；文字操作复用已映射前景/禁用态/Host focus-ring，图标复用captureIcons.icons.plus；只改归属，不复制Host选择器或添加数值主题回退。",
-    "selectionRingMultiplier": 0.5,
-    "selectionRingDecision": "用户2026-10-04要求内外选中环更细，两层各取Host焦点宽度的一半；键盘焦点环及安全边距保留原宽。自选颜色入口始终显示pipette，表面/前景采用Host token，不让任意自选色吞掉图标。"
-  },
-  "captureBackgroundTabs": {
-    "implementation": [
-      "src/client/capture/background-tabs.tsx",
-      "src/client/capture/background-modes.ts",
-      "src/client/capture/view.ts",
-      "src/client/capture/background-picker.css"
-    ],
-    "component": "@deepseek-ai/dsh-client-ui-primitives SegmentedControl",
-    "hostVersion": "0.2.0-rc.2",
-    "hostFiles": [
-      "packages/client/ui-primitives/src/SegmentedControl.tsx",
-      "packages/client/ui-primitives/src/SegmentedControl.module.css"
-    ],
-    "installedExport": "app.asar/dsh/node_modules/@deepseek-ai/dsh-client-ui-primitives/lib/index.js",
-    "research": {
-      "shadcn": "https://ui.shadcn.com/docs/components/base/tabs",
-      "shadcnCommit": "295a1f114a138f23b5dfee0e0c6812394dfeb90c",
-      "baseUi": "https://base-ui.com/react/components/tabs",
-      "baseUiCommit": "19511bb171f3b360b006c94cf6d07e53cb446505"
-    },
-    "decision": "不引入BaseUI/Tailwind依赖。四类即刻应用并记住本次最近素材，实际background是唯一模式真源。沿用Host自动激活/四向箭头/循环/Home-End/禁用跳过，与BaseUI默认手动激活和可聚焦禁用项有意不同，不宣称完整行为复刻。",
-    "panelContract": "四面板始终保留稳定id/aria-labelledby，非当前面板hidden/inert/tabindex=-1；工作台Tab围栏跳过负tabindex与不可见项。 空的无背景面板不添加不可见焦点停靠。",
-    "layout": "240px检查器内四等宽轨道，局部移除Host tab左右16px内边距，不复制CSS Modules hash、主题色或指标几何。键盘走位关闭本控件过渡，指针和减少运动沿用Host。 不重复类别标题；20个渐变全部显示，不设展开/收起控制。",
-    "wallpaperBoundary": "macOS adapter从官方目录关联规则选择最多四项活动系统静图/静帧，不提供Windows系统壁纸获取。图片面板保留五内置预设，系统图片独立组拥有单获取/补缺动作与缓存项，我的图片标题行右侧plus归个人导入；缺provider不展示伪获取操作，已存素材仍可用。"
-  },
-  "captureToolbar": {
-    "stateOwner": "src/client/capture/model.ts",
-    "referenceBehavior": "Alma 0.4.160 toolbar: mode、redactSource、style 为三个正交选中状态；只参考交互，不复用主题类。",
-    "consumer": "src/client/capture/view.ts / capture-window.css",
-    "selectedBackground": "--dsw-alias-bg-module-platform",
-    "selectedForeground": "--dsw-alias-label-primary",
-    "hoverBackground": "--dsw-alias-interactive-bg-hover",
-    "pressedBackground": "--dsw-alias-interactive-bg-active",
-    "sourceFile": "packages/client/ui-theme/src/styles/design-platform.css",
-    "decision": "aria-pressed 是唯一选中标记；复用 DSH AppearanceRow 的持久选择底色。rc.2 浅色 layer-2/3 同为 neutral-bluish-00，不可用表面层级充当可见选中。普通 ghost hover/active 仅作用于未选按钮；焦点仍消费 DSH focus ring。不复制 Alma bg-muted/text-foreground 或数值主题色。",
-    "selectedSourceFile": "packages/client/ui-theme/src/AppearanceRow.module.css",
-    "selectedSelector": ".selected"
-  },
-  "captureShell": {
-    "implementation": "src/client/capture/capture-window.css",
-    "spacingSource": "--pdsh-field-gap",
-    "spacingSourceFile": "packages/client/ui-primitives/src/settings-form/fields.module.css",
-    "spaceDivisor": 2,
-    "insetMultiplier": 5,
-    "decision": "用户2026-10-04要求外壳上下留白按现有左右对齐；header顶部、workspace左右、footer底部复用同一inset。段落间隔与视口边距不属于外壳inset，保留原值；chrome高度预算补上新增的上下两格。"
-  }
+      "acquisition": "映射 InCodex Shot 工作台的表面、文字、字体、控件和层级语义到 Harness rc.2 主题；只保留编辑内容自身的色谱与布局比例。" },
+    { "role": "native capture control or tooltip", "variable": "--pdsh-switch-width",
+      "file": "packages/client/ui-primitives/src/Switch.module.css", "selector": ".switch", "property": "width",
+      "acquisition": "读取不可绘制但可布局的原生 Switch 的实时 computed width；工作台 checkbox 与原生轨道同宽。" },
+    { "role": "native capture control or tooltip", "variable": "--pdsh-switch-height",
+      "file": "packages/client/ui-primitives/src/Switch.module.css", "selector": ".switch", "property": "height",
+      "acquisition": "读取不可绘制但可布局的原生 Switch 的实时 computed height；工作台 checkbox 与原生轨道同高。" },
+    { "role": "native capture control or tooltip", "variable": "--pdsh-switch-thumb-size",
+      "file": "packages/client/ui-primitives/src/Switch.module.css", "selector": ".thumb", "property": "width",
+      "acquisition": "读取不可绘制但可布局的原生 Switch 拇指的实时 computed width；不以字段间距猜尺寸。" },
+    { "role": "native capture control or tooltip", "variable": "--dsw-alias-state-business-primary",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css", "selector": "body theme scope",
+      "acquisition": "原生 Switch 的键盘焦点颜色；与编辑区域选中态分离。" },
+    { "role": "native capture control or tooltip", "variable": "--dsw-font-xxs-strong-12",
+      "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css", "selector": "body theme scope",
+      "acquisition": "检查器标题采用宿主完整 12px 强调字体、行高和字重。" },
+    { "role": "native capture control or tooltip", "variable": "--dsw-alias-tooltip-bg",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css", "selector": "body theme scope",
+      "acquisition": "非 React DOM 控件提示复用宿主 Tooltip 背景。" },
+    { "role": "native capture control or tooltip", "variable": "--dsw-static-neutral-bluish-00",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css", "selector": "body theme scope",
+      "acquisition": "非 React DOM 控件提示复用宿主 Tooltip 前景。" },
+    { "role": "DOM tooltip exact behavior",
+      "file": "packages/client/ui-primitives/src/Tooltip.tsx / Tooltip.module.css", "selector": "Tooltip side=bottom delayMs=500 focusDelayMs=0 portal / .bubble[data-portal]",
+      "acquisition": "React 设置和更新入口直接用官方 Tooltip；原生 DOM 工作台/侧栏入口用相同延时、方位、间距、主题色、圆角和 portal 层级，不使用浏览器 title。" },
+    { "role": "avatar source text gap", "variable": "--pdsh-button-inset",
+      "file": "packages/client/ui-primitives/src/Button.module.css", "selector": ".md", "property": "padding-inline-start",
+      "acquisition": "由原生 Button computed style 取单侧文字内边距；来源标签与三个按钮一起右对齐。标签到首个按钮轮廓的可见间距等于原生 field gap 加两个按钮内边距，匹配两个 ghost 来源按钮的文字间距，不改按钮内部布局。" },
+    { "role": "live native control provider", "variable": "--pdsh-action-radius",
+      "file": "packages/client/ui-primitives/src/Button.module.css", "selector": ".button:disabled", "property": "border-radius",
+      "acquisition": "真实 Host Button 探针保留布局但不绘制；DOM/主题/尺寸变化重读计算样式，数值未变不写回，卸载恢复原值；不复制 Provider 常数。" },
+    { "role": "live native control provider", "variable": "--pdsh-action-corner-shape",
+      "file": "packages/client/ui-primitives/src/Button.module.css", "selector": ".button:disabled", "property": "corner-shape",
+      "acquisition": "真实 Host Button 探针保留布局但不绘制；DOM/主题/尺寸变化重读计算样式，数值未变不写回，卸载恢复原值；不复制 Provider 常数。" },
+    { "role": "live native control provider", "variable": "--pdsh-action-disabled-opacity",
+      "file": "packages/client/ui-primitives/src/Button.module.css", "selector": ".button:disabled", "property": "opacity",
+      "acquisition": "真实 Host Button 探针保留布局但不绘制；DOM/主题/尺寸变化重读计算样式，数值未变不写回，卸载恢复原值；不复制 Provider 常数。" },
+    { "role": "live native control provider", "variable": "--pdsh-action-transition",
+      "file": "packages/client/ui-primitives/src/Button.module.css", "selector": ".button:disabled", "property": "transition",
+      "acquisition": "真实 Host Button 探针保留布局但不绘制；DOM/主题/尺寸变化重读计算样式，数值未变不写回，卸载恢复原值；不复制 Provider 常数。" },
+    { "role": "live native control provider", "variable": "--pdsh-button-gap",
+      "file": "packages/client/ui-primitives/src/Button.module.css", "selector": ".button:disabled", "property": "gap",
+      "acquisition": "真实 Host Button 探针保留布局但不绘制；DOM/主题/尺寸变化重读计算样式，数值未变不写回，卸载恢复原值；不复制 Provider 常数。" },
+    { "role": "live native control provider", "variable": "--pdsh-native-icon-size",
+      "file": "packages/client/ui-primitives/src/icons/index.tsx", "selector": "IconCheckOutlineRegular / svg", "property": "width",
+      "acquisition": "Host Button 内的真实原生 SVG 提供显示尺寸、根透明度和笔触密度；自有图稿只保留24单位坐标，不固定1.5线宽。" },
+    { "role": "live native control provider", "variable": "--pdsh-native-icon-opacity",
+      "file": "packages/client/ui-primitives/src/icons/index.tsx", "selector": "IconCheckOutlineRegular / svg", "property": "opacity",
+      "acquisition": "Host Button 内的真实原生 SVG 提供显示尺寸、根透明度和笔触密度；自有图稿只保留24单位坐标，不固定1.5线宽。" },
+    { "role": "live native control provider", "variable": "--pdsh-native-icon-stroke-ratio",
+      "file": "packages/client/ui-primitives/src/icons/index.tsx", "selector": "IconCheckOutlineRegular / svg", "property": "stroke-width / viewBox width",
+      "acquisition": "Host Button 内的真实原生 SVG 提供显示尺寸、根透明度和笔触密度；自有图稿只保留24单位坐标，不固定1.5线宽。" },
+    { "role": "live native control provider", "variable": "--pdsh-switch-radius",
+      "file": "packages/client/ui-primitives/src/Switch.module.css", "selector": ".switch", "property": "border-radius",
+      "acquisition": "从真实 Host Switch 的轨道/拇指实时采样；不猜圆角、阴影或过渡时长/曲线。" },
+    { "role": "live native control provider", "variable": "--pdsh-switch-thumb-radius",
+      "file": "packages/client/ui-primitives/src/Switch.module.css", "selector": ".thumb", "property": "border-radius",
+      "acquisition": "从真实 Host Switch 的轨道/拇指实时采样；不猜圆角、阴影或过渡时长/曲线。" },
+    { "role": "live native control provider", "variable": "--pdsh-switch-thumb-transition",
+      "file": "packages/client/ui-primitives/src/Switch.module.css", "selector": ".thumb", "property": "transition",
+      "acquisition": "从真实 Host Switch 的轨道/拇指实时采样；不猜圆角、阴影或过渡时长/曲线。" },
+    { "role": "live native control provider", "variable": "--pdsh-switch-thumb-shadow",
+      "file": "packages/client/ui-primitives/src/Switch.module.css", "selector": ".thumb", "property": "box-shadow",
+      "acquisition": "从真实 Host Switch 的轨道/拇指实时采样；不猜圆角、阴影或过渡时长/曲线。" },
+    { "role": "live native control provider", "variable": "--pdsh-tooltip-padding",
+      "file": "packages/client/ui-primitives/src/Tooltip.module.css", "selector": ".bubble[data-portal]", "property": "padding",
+      "acquisition": "Host Tooltip 明确 portal=false，在自有不可绘制探针内生成 bubble；仅为自有 bubble 添加 data-portal 以测 Provider 的 portal 层级样式，不移动 DOM、不改变 activeElement、不操作用户 Tooltip。DOM adapter 消费同一组实时变量。" },
+    { "role": "live native control provider", "variable": "--pdsh-tooltip-duration",
+      "file": "packages/client/ui-primitives/src/Tooltip.module.css", "selector": ".bubble[data-portal]", "property": "animation-duration",
+      "acquisition": "Host Tooltip 明确 portal=false，在自有不可绘制探针内生成 bubble；仅为自有 bubble 添加 data-portal 以测 Provider 的 portal 层级样式，不移动 DOM、不改变 activeElement、不操作用户 Tooltip。DOM adapter 消费同一组实时变量。" },
+    { "role": "live native control provider", "variable": "--pdsh-tooltip-ease",
+      "file": "packages/client/ui-primitives/src/Tooltip.module.css", "selector": ".bubble[data-portal]", "property": "animation-timing-function",
+      "acquisition": "Host Tooltip 明确 portal=false，在自有不可绘制探针内生成 bubble；仅为自有 bubble 添加 data-portal 以测 Provider 的 portal 层级样式，不移动 DOM、不改变 activeElement、不操作用户 Tooltip。DOM adapter 消费同一组实时变量。" },
+    { "role": "live native control provider", "variable": "--pdsh-tooltip-max-width",
+      "file": "packages/client/ui-primitives/src/Tooltip.module.css", "selector": ".bubble[data-portal]", "property": "max-width",
+      "acquisition": "Host Tooltip 明确 portal=false，在自有不可绘制探针内生成 bubble；仅为自有 bubble 添加 data-portal 以测 Provider 的 portal 层级样式，不移动 DOM、不改变 activeElement、不操作用户 Tooltip。DOM adapter 消费同一组实时变量。" },
+    { "role": "live native control provider", "variable": "--pdsh-tooltip-layer",
+      "file": "packages/client/ui-primitives/src/Tooltip.module.css", "selector": ".bubble[data-portal]", "property": "z-index",
+      "acquisition": "Host Tooltip 明确 portal=false，在自有不可绘制探针内生成 bubble；仅为自有 bubble 添加 data-portal 以测 Provider 的 portal 层级样式，不移动 DOM、不改变 activeElement、不操作用户 Tooltip。DOM adapter 消费同一组实时变量。" },
+    { "role": "live native control provider", "variable": "--dsw-mask-blur",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css", "selector": ".mask", "property": "backdrop-filter",
+      "acquisition": "Modal 原生遮罩的实时主题变量；不自造blur(3px)。" },
+    { "role": "live native control provider", "variable": "--dsw-alias-bg-mask-1",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css", "selector": ".mask::after", "property": "background",
+      "acquisition": "Modal 原生遮罩色，不混用 menu drop 遮罩。" },
+    { "role": "live native control provider", "variable": "--dsw-alias-button-primary-hover",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css", "selector": ".primary:hover:not(:disabled)", "property": "background",
+      "acquisition": "Host Button 的主按钮悬浮色，不自造混色。" },
+    { "role": "live native control provider", "variable": "--dsw-alias-interactive-bg-active",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css", "selector": ".ghost:active:not(:disabled)", "property": "background",
+      "acquisition": "Host Button 的按压色，侧栏按钮继续继承原生class。" },
+    { "role": "live native control provider", "variable": "--dsw-corner-shape",
+      "file": "packages/client/ui-theme/src/styles/corner-shape.css", "selector": ":root", "property": "corner-shape",
+      "acquisition": "Host 全局曲率；圆形控件沿用 Switch round 几何例外。" },
+    { "role": "live native control provider", "variable": "--dsw-focus-ring-width",
+      "file": "packages/client/ui-theme/src/styles/base.css", "selector": ":root / :focus-visible", "property": "outline-width",
+      "acquisition": "Host 全局焦点线宽；工作台自有选中环/外移距离按同一宽度比例布局。" },
+    { "role": "live native control provider", "variable": "--dsw-alias-switch-thumb",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css", "selector": ".switch[aria-checked=false] .thumb", "property": "background",
+      "acquisition": "Switch 未选中拇指的原生颜色。" },
+    { "role": "live native control provider", "variable": "--dsw-alias-label-primary-foreground",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css", "selector": ".switch[aria-checked=true] .thumb", "property": "background",
+      "acquisition": "Switch 选中拇指和主按钮文字的原生前景色。" },
+    { "role": "live native control provider", "variable": "--dsw-alias-border-l4",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css", "selector": ".wrap", "property": "border-color",
+      "acquisition": "Host Input 的实时原生描边色。" },
+    { "role": "live native control provider", "variable": "--dsw-font-s-14",
+      "file": "packages/client/ui-theme/src/styles/gradient-shadow-text.css", "selector": "body theme scope", "property": "font",
+      "acquisition": "工作台按钮和 Input 使用完整字号/行高 token。" },
+    { "role": "capture toolbar persistent selection", "variable": "--dsw-alias-bg-module-platform",
+      "file": "packages/client/ui-theme/src/styles/design-platform.css", "selector": "packages/client/ui-theme/src/AppearanceRow.module.css .selected",
+      "acquisition": "复用宿主外观选项的持久选择表面；浅色与 dialog layer-2 的同白 layer-3 分离，深色沿宿主模块表面；不冻结 RGB 或复制 CSS Modules hash。" }
+  ]
 }

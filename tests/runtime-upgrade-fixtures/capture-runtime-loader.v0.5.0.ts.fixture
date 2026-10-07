@@ -1,42 +1,29 @@
 /**
- * [INPUT]: 依赖安装身份、标准 ESM、稳定基础合同与独立壁纸扩展合同。
- * [OUTPUT]: 协调同合同业务换载。扩展缺失不阻断截图和保存；旧操作结算后才换载。
- * [POS]: 固定壳与业务模块的边界。接受已发布 v2 的兼容基础面，不给旧壳新增 Remote。
+ * [INPUT]: 依赖当前稳定/RC构建身份对应的安装包定位器、标准ESM import与v2 capture/save/wallpaper实现的真实dispose。
+ * [OUTPUT]: 提供按当前安装版本换载的单实例协调器，拒绝旧v1 Remote ABI/不兼容协议与卸载后复活。
+ * [POS]: v2 Remote 外壳与业务实现的边界。新增 Remote 方法必须正常加载，不承诺旧外壳热兼容。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { BUNDLE_NAME } from '../shared/components.ts'
-import { CAPTURE_RUNTIME_CONTRACT, CAPTURE_WALLPAPER_CONTRACT } from '../shared/capture-runtime-contract.ts'
 import { lstat, readFile, realpath } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { WallpaperFrame, WallpaperRequest } from '../shared/system-wallpaper-protocol.ts'
 
-export { CAPTURE_RUNTIME_CONTRACT, CAPTURE_WALLPAPER_CONTRACT }
-const LEGACY_V2_CONTRACT = 'pdsh-capture-runtime-v2'
+export const CAPTURE_RUNTIME_CONTRACT = 'pdsh-capture-runtime-v2'
 const VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[\w.-]+)?$/
 
 export interface CaptureRuntimeInstance {
   readonly version: string
   refreshCaptureEnabled(): void
-  wallpaper?(request: WallpaperRequest, signal: AbortSignal): AsyncIterable<WallpaperFrame>
+  wallpaper(request: WallpaperRequest, signal: AbortSignal): AsyncIterable<WallpaperFrame>
   dispose(): Promise<void>
 }
 
 interface RuntimeModule {
   readonly version: string
   readonly contract: string
-  readonly wallpaperContract?: string
   create(context?: unknown): CaptureRuntimeInstance
-}
-
-function matchesBase(module: RuntimeModule, version: string): boolean {
-  return (module.contract === CAPTURE_RUNTIME_CONTRACT || module.contract === LEGACY_V2_CONTRACT)
-    && module.version === version && typeof module.create === 'function'
-}
-
-function matchesWallpaper(module: RuntimeModule): boolean {
-  return module.wallpaperContract === CAPTURE_WALLPAPER_CONTRACT
-    || (module.contract === LEGACY_V2_CONTRACT && module.wallpaperContract === undefined)
 }
 
 /** realpath 绕开旧入口的 resolver 缓存，只读官方 Manager 当前管理的自身包。 */
@@ -59,7 +46,6 @@ export function createCaptureRuntimeLoader(options: {
 }) {
   let active: CaptureRuntimeInstance | undefined
   let activeUrl: string | undefined
-  let activeWallpaper = false
   let loading: Promise<CaptureRuntimeInstance> | undefined
   let disposed = false
   let disposal: Promise<void> | undefined
@@ -70,12 +56,12 @@ export function createCaptureRuntimeLoader(options: {
     if (active && activeUrl === target.url && active.version === target.version) return active
     let module = await (options.importModule ?? (url => import(url)))(target.url)
     if (disposed) throw new Error('capture runtime disposed')
-    if (!matchesBase(module, target.version)) {
+    if (module.contract !== CAPTURE_RUNTIME_CONTRACT || module.version !== target.version || typeof module.create !== 'function') {
       throw new Error('incompatible capture runtime')
     }
     // +--- 新模块验证通过后撤回旧 generation，等待实际 helper/保存结算 ---+
     const previous = active
-    active = undefined; activeUrl = undefined; activeWallpaper = false
+    active = undefined; activeUrl = undefined
     await previous?.dispose()
     if (disposed) throw new Error('capture runtime disposed')
     // +--- 结算可能跨越第二次安装；重新定位，不能把中间版本冒充当前版本 ---+
@@ -87,18 +73,17 @@ export function createCaptureRuntimeLoader(options: {
       target = latest
       module = await (options.importModule ?? (url => import(url)))(target.url)
       if (disposed) throw new Error('capture runtime disposed')
-      if (!matchesBase(module, target.version)) {
+      if (module.contract !== CAPTURE_RUNTIME_CONTRACT || module.version !== target.version || typeof module.create !== 'function') {
         throw new Error('incompatible capture runtime')
       }
     }
     const next = module.create(options.context)
     if (!next || next.version !== target.version
-      || ['capture', 'save', 'refreshCaptureEnabled', 'dispose'].some(method => typeof next[method] !== 'function')) {
+      || ['capture', 'save', 'wallpaper', 'refreshCaptureEnabled', 'dispose'].some(method => typeof next[method] !== 'function')) {
       if (typeof next?.dispose === 'function') await next.dispose()
       throw new Error('incompatible capture runtime instance')
     }
     active = next; activeUrl = target.url
-    activeWallpaper = matchesWallpaper(module) && typeof next.wallpaper === 'function'
     return next
   }
 
@@ -113,13 +98,10 @@ export function createCaptureRuntimeLoader(options: {
       return loading
     },
     refreshCaptureEnabled() { if (!disposed) active?.refreshCaptureEnabled() },
-    supportsWallpaper(instance: CaptureRuntimeInstance): boolean {
-      return !disposed && active === instance && activeWallpaper
-    },
     dispose(): Promise<void> {
       if (disposal) return disposal
       disposed = true
-      const current = active; active = undefined; activeUrl = undefined; activeWallpaper = false
+      const current = active; active = undefined; activeUrl = undefined
       disposal = Promise.all([current?.dispose(), loading?.catch(() => undefined)]).then(() => undefined)
       return disposal
     },

@@ -1,12 +1,12 @@
 /**
  * [INPUT]: 依赖版本实现协调器与内存模块、可控卸载 Promise。
- * [OUTPUT]: 验证同合同桥换实现、并发合并、v1/缺壁纸方法拒绝、失败不伪装旧版本及终态卸载。
+ * [OUTPUT]: 验证基础换载、扩展独立退让、已发布 v2 兼容、真实结算与终态卸载。
  * [POS]: Host 热更新回归门；不启动 helper、不取像、不操作用户配置。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createCaptureRuntimeLoader, CAPTURE_RUNTIME_CONTRACT } from '../src/host/capture-runtime-loader.ts'
+import { createCaptureRuntimeLoader, CAPTURE_RUNTIME_CONTRACT, CAPTURE_WALLPAPER_CONTRACT } from '../src/host/capture-runtime-loader.ts'
 
 function fixture() {
   let version = '0.3.6'
@@ -18,7 +18,7 @@ function fixture() {
     importModule: async () => {
       imports++
       const ownVersion = version
-      return { version: ownVersion, contract, create: () => ({
+      return { version: ownVersion, contract, wallpaperContract: CAPTURE_WALLPAPER_CONTRACT, create: () => ({
         version: ownVersion, capture() {}, save() {}, wallpaper() {}, refreshCaptureEnabled() {},
         dispose: async () => { disposed.push(ownVersion) },
       }) }
@@ -28,22 +28,45 @@ function fixture() {
     version(value: string) { version = value }, contract(value: string) { contract = value } }
 }
 
-test('新增 wallpaper ABI 后 v1 不能热换，声称 v2 的实例也须真正有该方法', async () => {
+test('可选壁纸缺失或合同未知不阻断稳定截图与保存', async () => {
   let creates = 0;
-  let contract = 'pdsh-capture-runtime-v1';
+  let version = '0.5.1';
+  let wallpaperContract: string | undefined;
   const loader = createCaptureRuntimeLoader({
-    locate: async () => ({ version: '0.4.0-rc.1', url: 'file:///fixture/wallpaper.js' }),
-    importModule: async () => ({ version: '0.4.0-rc.1', contract, create: () => {
+    locate: async () => ({ version, url: `file:///fixture/${version}.js` }),
+    importModule: async () => ({ version, contract: CAPTURE_RUNTIME_CONTRACT, wallpaperContract, create: () => {
       creates++;
-      return { version: '0.4.0-rc.1', capture() {}, save() {}, refreshCaptureEnabled() {}, async dispose() {} } as any;
+      return { version, capture() {}, save() {}, wallpaper() {}, refreshCaptureEnabled() {}, async dispose() {} };
     } }),
   });
   try {
-    await assert.rejects(loader.current(), /incompatible/);
-    assert.equal(creates, 0, '旧模块不能获得 v2 运行资格');
-    contract = CAPTURE_RUNTIME_CONTRACT;
-    await assert.rejects(loader.current(), /invalid|incompatible/);
-    assert.equal(creates, 1, '仅版本号与协议标记相同不代表方法完整');
+    const base = await loader.current();
+    assert.equal(creates, 1);
+    assert.equal(loader.supportsWallpaper(base), false, '方法存在不代表扩展合同有效');
+    version = '0.5.2'; wallpaperContract = 'unknown-wallpaper-contract';
+    assert.equal(loader.supportsWallpaper(await loader.current()), false);
+    version = '0.5.3'; wallpaperContract = CAPTURE_WALLPAPER_CONTRACT;
+    assert.equal(loader.supportsWallpaper(await loader.current()), true);
+    assert.equal(loader.supportsWallpaper(base), false, '旧 generation 不获得新扩展资格');
+  } finally { await loader.dispose(); }
+});
+
+test('基础合同未知或缺少保存方法仍拒绝；已发布 v2 基础面保持兼容', async () => {
+  let version = '0.5.0';
+  let contract = 'pdsh-capture-runtime-v2';
+  let save: (() => void) | undefined = () => {};
+  const loader = createCaptureRuntimeLoader({
+    locate: async () => ({ version, url: `file:///fixture/${version}.js` }),
+    importModule: async () => ({ version, contract, create: () => ({
+      version, capture() {}, save, wallpaper() {}, refreshCaptureEnabled() {}, async dispose() {},
+    }) }),
+  });
+  try {
+    assert.equal(loader.supportsWallpaper(await loader.current()), true);
+    version = '0.5.1'; contract = 'unknown-base-contract';
+    await assert.rejects(loader.current(), /incompatible capture runtime/);
+    contract = CAPTURE_RUNTIME_CONTRACT; save = undefined;
+    await assert.rejects(loader.current(), /incompatible capture runtime instance/);
   } finally { await loader.dispose(); }
 });
 

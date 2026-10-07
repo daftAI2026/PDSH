@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖官方Typert v2 Remote ABI、当前构建身份Manager包位置与版本实现协调器。
- * [OUTPUT]: 提供唯一capture/save/wallpaper streams与只读implementationVersion；运行时版本变化不替代Remote ABI重载。
- * [POS]: 唯一 Cordis Remote 外壳。wallpaper 改变 ABI，旧 v1 外壳不兼容，升级必须正常加载 Host 层。
+ * [INPUT]: 依赖官方 Typert、Manager 包位置与基础/扩展分离的业务协调器。
+ * [OUTPUT]: 提供截图、保存、可选壁纸、纯注册握手与实际实现版本；扩展不适配不阻断基础。
+ * [POS]: 唯一 Remote 外壳。payload 换载不改变已运行类的 Remote marker。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { BUNDLE_NAME } from '../shared/components.ts'
@@ -43,6 +43,10 @@ export class WindowCaptureService extends TypertRemoteService {
     catch { throw new Error('capture-runtime-unavailable') }
   }
 
+  /** 只证明运行壳已注册壁纸 Remote；不载入 payload、读取配置或请求素材。 */
+  @Remote
+  wallpaperRegistered(): boolean { return true }
+
   @Remote({ mode: 'stream' })
   capture(signal: AbortSignal): AsyncIterable<CaptureFrame> {
     const owner = this
@@ -83,6 +87,7 @@ export class WindowCaptureService extends TypertRemoteService {
       try { runtime = await owner.runtime.current() as CaptureRuntime }
       catch { yield { type: 'terminal', status: owner.disposed ? 'disposed' : 'helper-failed' }; return }
       if (owner.disposed) { yield { type: 'terminal', status: 'disposed' }; return }
+      if (!owner.runtime.supportsWallpaper(runtime)) { yield { type: 'terminal', status: 'unavailable' }; return }
       yield* runtime.wallpaper(request, signal)
     } }
   }

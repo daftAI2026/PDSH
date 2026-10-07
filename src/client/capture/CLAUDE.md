@@ -9,7 +9,7 @@
 
 Host 的 Remote 取消终态可能先于 Client 配置撤权；批获取收到取消立即停止后续 ID，保留已入库项并回到可操作状态，不把普通取消显示成下载错误。
 
-- `controller.ts`: 已知 Mac rc.2 同范围合同中，拍摄前后复核候选与窗口/PNG 尺寸才按零原点假设映射，原生内容原点仍待实机验收，未知范围候选为空；初拍与每次重拍实时读取 Host accepted `captureMaskIdentity`，与本地 `privacyEnabled` 标题预遮挡独立；把可选系统壁纸 adapter 所有权传入工作台，固定已知失败提示与 request UUID 阶段交给官方 logger/Toast，资源按拍摄时序归还。
+- `controller.ts`: 已知 Mac rc.2 同范围合同中，拍摄前后复核候选与窗口/PNG 尺寸才按零原点假设映射，原生内容原点仍待实机验收，未知范围候选为空；初拍与每次重拍实时读取 Host accepted `captureMaskIdentity`，与本地 `privacyEnabled` 标题预遮挡独立；每次打开工作台重读可选壁纸能力，迟到握手不重建当前工作台；固定失败提示与 request UUID 阶段交给官方 logger/Toast，资源按拍摄时序归还。
 - `window-capture.ts`: 冻结 PNG 等尺寸解码至编辑器画布；WeakMap 留存原生比例，不猜 renderer 原点或页面 DPR，不重绘 DOM。
 - `window-capture-stream.ts`: 官方 Remote 的一次性 PNG 流消费；严格帧序/CRC/预算/解码与本地 URL 释放，保留整窗原生比例，无重连、路径或持久化。
 - `viewport.ts`: 已退出装配的旧 current-page PNG 桥消费者与错误分类；旧合同回归仍使用它，当前 controller 从 window-capture 获取原生整窗，不回退此路线。
@@ -57,7 +57,7 @@ Host 的 Remote 取消终态可能先于 Client 配置撤权；批获取收到�
 
 - `directory.ts`: DSH 原生目录选择窄端口；复用 shared POSIX/Windows 绝对目录语法，取消保持 null，不引入路径输入或第二偏好仓。
 
-- `runtime-readiness.ts`: 更新反馈和显式 capture/save 的只读版本围栏；用官方 Remote 实际实现版本判断，已知旧版与连接未知分账，不触发像素或修改用户设置。
+- `runtime-readiness.ts`: 实际版本围栏与独立壁纸注册握手。旧版和连接未知分账；扩展未知不阻断基础版本。不取像，不写设置。
 
 - `candidate-mapping.ts`: Mac Electron 44 的 rc.2 hiddenInset 满窗零原点条件映射，原生 PNG 内容原点仍待实机验收；内/外尺寸、页面/原生比例、PNG 尺寸和拍摄前后几何一致才做 CSS→像素缩放；未知、窗口变动、页面缩放或移动候选退让，不用 alpha bbox 猜偏移。
 

@@ -74,7 +74,8 @@ test('RC 即使直接调用更新控制器也不探测正式版本、不安装�
 test('RC 版本化业务闭包只读自身 accepted Settings，并按调用切换 capture lifetime', async () => {
   const business = await captureBusiness();
   assert.equal(business.version, '0.3.5-rc.1');
-  assert.equal(business.contract, 'pdsh-capture-runtime-v2');
+  assert.equal(business.contract, 'pdsh-capture-runtime-v1');
+  assert.equal(business.wallpaperContract, 'pdsh-wallpaper-runtime-v1');
   const accepted = { captureEnabled: true };
   const ctx = { settings: { describe: () => [
     { ns: 'pdsh', value: { captureEnabled: false } },

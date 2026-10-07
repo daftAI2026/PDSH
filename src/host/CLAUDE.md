@@ -4,8 +4,8 @@
 - `index.ts`: 唯一 `pdsh` Host Config/apply 与 Typert 源面；保留根 Config 地址，macOS 保持注册 capture service，Windows 仅在 x64 且包内 exe 为普通文件时注册；其余功能与 captureEnabled 撤回独立。
 - `capture.ts`: 声明 `captureEnabled`、独立身份遮挡与导出设置，引用 shared POSIX/Windows 绝对目录语法；保留历史默认迁移和 root owner-scoped listener，实际写入仍受 Host native path 校验。默认目录沿用本机用户home下Downloads，不探测重定向known folder。
 - `context.ts`: 以类型扩充 Cordis Context，描述唯一已注册 capture service；不制造 runtime binding 或 Typert descriptor。
-- `window-capture-service.ts`: 唯一 Cordis/Remote v2 外壳，提供三流与 implementationVersion。按调用定位 Manager 当前自身包版本。wallpaper 改变 Remote ABI，旧 v1 外壳必须正常加载，不承诺 payload 热兼容。
-- `capture-runtime.ts`: v2 capture/save/wallpaper唯一业务闭包；目录选当前Apple两主题，load重新核对四项来源后本机优先/缺失下载；撤权/卸载join网络、临时文件及helper真实结算。
+- `window-capture-service.ts`: 唯一 Remote 外壳，提供三流、实现版本与纯壁纸注册握手。基础换载不添加 Remote marker。壁纸扩展不兼容时返回 unavailable，不阻断截图/保存。
+- `capture-runtime.ts`: 稳定 v1 截图/保存与独立壁纸扩展闭包；目录选当前Apple两主题，load重核来源；撤权/卸载join网络、临时文件及helper真实结算。
 - `window-capture-stream.ts`: 纯异步 capture 编排；惰性首拉、单航班、固定阶段/终态和≤32KiB PNG chunk，取消不微任务自旋且在锁释放前等待 helper Promise settle。
 - `native-window-capture.ts`: Node adapter 只选择已支持的 macOS/Windows x64 包内 helper，Windows 隐藏子进程窗口；校验固定状态与 PNG envelope，取消后 SIGTERM/强制结束仍等待 close；不持久化图像、不挂 Main 或网络路由。
 - `system-wallpaper-native.ts`: 同包macOS helper的有界JPEG边界；旧list只保留兼容，动态材料ID与固定系统HEIC/Host私有MOV仅由Host选择；匹配缺失状态可下载，取消等真实close，不泄漏stderr。
@@ -23,7 +23,7 @@
 - `page-capture-main.ts`: **已退役**的旧 Electron Main pixel route；不挂载、不注入、不供本次 camera 触发。
 - `page-save-main.ts`: **已退役**的旧 Main 保存实现；`page-save-file.ts` 的原子 writer仍被新 Host backend复用，Main/dialog 代码本身不挂载。
 
-- `capture-runtime-loader.ts`: 安装身份与构建中的稳定/RC 包严格一致； 标准 realpath/import 的版本实现协调器；只读 Manager 当前自身包，保留单实例与协议围栏，旧 helper/save 结算后才换载，不触碰 Node 私有缓存或设置。
+- `capture-runtime-loader.ts`: 标准 realpath/import 的单实例协调器。基础接受稳定 v1 与已发布 v2 兼容面；壁纸独立校验。只读自身包，旧操作结算后换载，不碰私有缓存或设置。
 
 - `system-wallpaper-catalog.ts`: 只读有界Apple metadata选择器；前两Landscape subgroup的preferredOrder/代表UUID对应dynamic子组或root-owned扩展，不把排序当OS版本；旧ID缓存桥/未来材料身份，未知关联拒绝，路径URL留Host。
 

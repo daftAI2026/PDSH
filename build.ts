@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 esbuild、官方 Typert workspace generator、当前 staging manifest 身份、唯一 Host/Client 源与 macOS helper 编译器。
- * [OUTPUT]: 生成唯一 Host/Client bundle、版本 Host 业务闭包、官方 Typert faces、公开 DTO 声明和包内 native helper；不生成 Main route。
+ * [OUTPUT]: 生成唯一 Host/Client、基础/扩展分离的业务闭包、官方 Typert 面、DTO 和助手。
  * [POS]: 单 Bundle 的唯一构建边界；身份、截图、保存与壁纸共用 Host service 和 Client entry。新增 Remote ABI 必须正常加载。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -30,7 +30,7 @@ await build({ absWorkingDir: root, entryPoints: ['src/host/index.ts'], outfile: 
 // +--- 只保留当前版本闭包；版本文件名让标准 ESM 缓存区分升级前后代码 ---+
 const runtimeDirectory = join(root, 'lib/capture-runtime');
 await mkdir(runtimeDirectory, { recursive: true });
-await writeFile(join(runtimeDirectory, 'CLAUDE.md'), `# lib/capture-runtime/\n> L2 | 父级: ../CLAUDE.md\n\n- \`${version}.js\`: 取像、保存与壁纸业务闭包，由 src/host/capture-runtime.ts 生成。Remote 外壳从 Manager 当前自身包载入。旧操作实际结算后才换载。v2 新增 wallpaper ABI，旧 v1 外壳不能热加载。正常加载 v2 后，同合同实现才可换载。不手工修改，不保留其他版本产物。\n\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n`);
+await writeFile(join(runtimeDirectory, 'CLAUDE.md'), `# lib/capture-runtime/\n> L2 | 父级: ../CLAUDE.md\n\n- \`${version}.js\`: 稳定 v1 截图/保存与独立壁纸扩展，由 src/host/capture-runtime.ts 生成。旧操作结算后换载。扩展不改变基础合同；payload 不新增既运行壳的 Remote marker。不手工修改，不保留其他版本产物。\n\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n`);
 for (const file of await readdir(runtimeDirectory)) if (/^\d+\.\d+\.\d+(?:-[\w.-]+)?\.js$/.test(file) && file !== `${version}.js`) await rm(join(runtimeDirectory, file));
 await build({ absWorkingDir: root, entryPoints: ['src/host/capture-runtime.ts'], outfile: `lib/capture-runtime/${version}.js`, bundle: true, format: 'esm', platform: 'node', target: 'es2022',
   define: { ...identityDefine, __PDSH_VERSION__: JSON.stringify(version) }, external: ['@deepseek-ai/cordis', '@deepseek-ai/dsh-typert-protocol'],

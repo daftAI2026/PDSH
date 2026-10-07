@@ -1,7 +1,7 @@
 /**
  * [INPUT]: src/host/index.ts 与官方 Typert service，由 build.ts 生成。
  * [OUTPUT]: 唯一 pdsh Config/name/apply 与 owned-window capture/save/wallpaper。
- * [POS]: 单包运行产物；PDSH build "0.5.0"，不手工修改。
+ * [POS]: 单包运行产物；PDSH build "0.5.1"，不手工修改。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 var __create = Object.create;
@@ -174,12 +174,22 @@ import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
 import { dirname, join as join3 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 
+// src/shared/capture-runtime-contract.ts
+var CAPTURE_RUNTIME_CONTRACT = "pdsh-capture-runtime-v1";
+var CAPTURE_WALLPAPER_CONTRACT = "pdsh-wallpaper-runtime-v1";
+
 // src/host/capture-runtime-loader.ts
 import { lstat, readFile, realpath } from "node:fs/promises";
 import { join as join2, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
-var CAPTURE_RUNTIME_CONTRACT = "pdsh-capture-runtime-v2";
+var LEGACY_V2_CONTRACT = "pdsh-capture-runtime-v2";
 var VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[\w.-]+)?$/;
+function matchesBase(module, version) {
+  return (module.contract === CAPTURE_RUNTIME_CONTRACT || module.contract === LEGACY_V2_CONTRACT) && module.version === version && typeof module.create === "function";
+}
+function matchesWallpaper(module) {
+  return module.wallpaperContract === CAPTURE_WALLPAPER_CONTRACT || module.contract === LEGACY_V2_CONTRACT && module.wallpaperContract === void 0;
+}
 async function locateCaptureRuntime(packageLink) {
   const root = await realpath(packageLink);
   const manifest = JSON.parse(await readFile(join2(root, "package.json"), "utf8"));
@@ -194,6 +204,7 @@ async function locateCaptureRuntime(packageLink) {
 function createCaptureRuntimeLoader(options) {
   let active;
   let activeUrl;
+  let activeWallpaper = false;
   let loading;
   let disposed = false;
   let disposal;
@@ -203,12 +214,13 @@ function createCaptureRuntimeLoader(options) {
     if (active && activeUrl === target.url && active.version === target.version) return active;
     let module = await (options.importModule ?? ((url) => import(url)))(target.url);
     if (disposed) throw new Error("capture runtime disposed");
-    if (module.contract !== CAPTURE_RUNTIME_CONTRACT || module.version !== target.version || typeof module.create !== "function") {
+    if (!matchesBase(module, target.version)) {
       throw new Error("incompatible capture runtime");
     }
     const previous = active;
     active = void 0;
     activeUrl = void 0;
+    activeWallpaper = false;
     await previous?.dispose();
     if (disposed) throw new Error("capture runtime disposed");
     for (let attempt = 0; ; attempt++) {
@@ -219,17 +231,18 @@ function createCaptureRuntimeLoader(options) {
       target = latest;
       module = await (options.importModule ?? ((url) => import(url)))(target.url);
       if (disposed) throw new Error("capture runtime disposed");
-      if (module.contract !== CAPTURE_RUNTIME_CONTRACT || module.version !== target.version || typeof module.create !== "function") {
+      if (!matchesBase(module, target.version)) {
         throw new Error("incompatible capture runtime");
       }
     }
     const next = module.create(options.context);
-    if (!next || next.version !== target.version || ["capture", "save", "wallpaper", "refreshCaptureEnabled", "dispose"].some((method) => typeof next[method] !== "function")) {
+    if (!next || next.version !== target.version || ["capture", "save", "refreshCaptureEnabled", "dispose"].some((method) => typeof next[method] !== "function")) {
       if (typeof next?.dispose === "function") await next.dispose();
       throw new Error("incompatible capture runtime instance");
     }
     active = next;
     activeUrl = target.url;
+    activeWallpaper = matchesWallpaper(module) && typeof next.wallpaper === "function";
     return next;
   }
   return {
@@ -249,12 +262,16 @@ function createCaptureRuntimeLoader(options) {
     refreshCaptureEnabled() {
       if (!disposed) active?.refreshCaptureEnabled();
     },
+    supportsWallpaper(instance) {
+      return !disposed && active === instance && activeWallpaper;
+    },
     dispose() {
       if (disposal) return disposal;
       disposed = true;
       const current = active;
       active = void 0;
       activeUrl = void 0;
+      activeWallpaper = false;
       disposal = Promise.all([current?.dispose(), loading?.catch(() => void 0)]).then(() => void 0);
       return disposal;
     }
@@ -269,8 +286,8 @@ function isCaptureId(value) {
 }
 
 // src/host/window-capture-service.ts
-var _wallpaper_dec, _save_dec, _capture_dec, _implementationVersion_dec, _a, _init;
-var WindowCaptureService = class extends (_a = TypertRemoteService, _implementationVersion_dec = [Remote], _capture_dec = [Remote({ mode: "stream" })], _save_dec = [Remote({ mode: "stream" })], _wallpaper_dec = [Remote({ mode: "stream" })], _a) {
+var _wallpaper_dec, _save_dec, _capture_dec, _wallpaperRegistered_dec, _implementationVersion_dec, _a, _init;
+var WindowCaptureService = class extends (_a = TypertRemoteService, _implementationVersion_dec = [Remote], _wallpaperRegistered_dec = [Remote], _capture_dec = [Remote({ mode: "stream" })], _save_dec = [Remote({ mode: "stream" })], _wallpaper_dec = [Remote({ mode: "stream" })], _a) {
   constructor(ctx) {
     super(ctx, "pdshWindowCapture", { namespace: "pdshNativeWindowCapture" });
     __runInitializers(_init, 5, this);
@@ -290,6 +307,9 @@ var WindowCaptureService = class extends (_a = TypertRemoteService, _implementat
     } catch {
       throw new Error("capture-runtime-unavailable");
     }
+  }
+  wallpaperRegistered() {
+    return true;
   }
   capture(signal) {
     const owner = this;
@@ -346,6 +366,10 @@ var WindowCaptureService = class extends (_a = TypertRemoteService, _implementat
         yield { type: "terminal", status: "disposed" };
         return;
       }
+      if (!owner.runtime.supportsWallpaper(runtime)) {
+        yield { type: "terminal", status: "unavailable" };
+        return;
+      }
       yield* runtime.wallpaper(request, signal);
     } };
   }
@@ -355,6 +379,7 @@ var WindowCaptureService = class extends (_a = TypertRemoteService, _implementat
 };
 _init = __decoratorStart(_a);
 __decorateElement(_init, 1, "implementationVersion", _implementationVersion_dec, WindowCaptureService);
+__decorateElement(_init, 1, "wallpaperRegistered", _wallpaperRegistered_dec, WindowCaptureService);
 __decorateElement(_init, 1, "capture", _capture_dec, WindowCaptureService);
 __decorateElement(_init, 1, "save", _save_dec, WindowCaptureService);
 __decorateElement(_init, 1, "wallpaper", _wallpaper_dec, WindowCaptureService);

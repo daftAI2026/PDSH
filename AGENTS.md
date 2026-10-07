@@ -206,7 +206,13 @@ Git 安装依赖这些已提交产物。不要分别手写它们。
 - owner 仍在 LOADING 时，不把子服务永久锁为关闭。
 - disposing/disposed 不得重新激活。
 - 兼容业务实现须等旧操作结算后再换载。
-- Config、Remote ABI、固定壳或依赖变化须正常加载。
+- 截图/保存基础合同保持稳定，扩展独立声明。
+- 扩展缺失或不兼容只撤回该扩展。
+- 基础变更须保留旧壳兼容面并验证真实升级。
+- 实现版本独立演进，不用删除校验代替兼容。
+- 新增 Remote 只在新壳正常加载后可用。
+- Config、固定壳或依赖变化须正常加载。
+- Client 本地方法不证明 Host 注册；扩展须实际握手。
 - 首次桥 bootstrap 不是免重启升级证据。
 - `setBundleEnabled` 只协调配置，不证明代码已重载。
 - 保留 Host `restart-required`、官方 Modal 和行内提醒。
@@ -399,8 +405,9 @@ L2/L3 必须带固定 PROTOCOL 行。
 - 仅显式移除自有条目。
 - 关闭只释放连接、stream 和 URL，不清除已存材料。
 - browser 持久化与正常 Desktop 重启必须分别验证。
-- `wallpaper` 扩展采用内部 v2 ABI。
-- 它是正常加载边界，不是稳定旧壳的兼容 payload 更新。
+- `wallpaper` Remote 是可选扩展，须纯注册握手。
+- 壁纸 payload 合同独立于截图/保存基础合同。
+- payload 换载不新增既运行壳的 Remote marker。
 
 ## Testing and Review
 
@@ -448,6 +455,9 @@ L2/L3 必须带固定 PROTOCOL 行。
 - 使用 `metadata:check` 和 `metadata:check-github` 回读。
 - 网络或认证失败使发布门失败，不跳过。
 - 稳定发布要求清洁 main 和 `release:check`。
+- 发布前核对已发布壳的升级合同。
+- 修复 tag 验证须有本次授权并披露已知失配。
+- tag 上线不等于所有旧壳或原生门已通过。
 - 发布门核对固定的 `Release` 章节。
 - 当前版本留在 manifest 与 README，不绑定指南标题。
 - 逐版本合同见 [PUBLISHING.md](PUBLISHING.md)。

@@ -341,7 +341,8 @@ async function main(): Promise<void> {
     const service = ctx.get('pdshWindowCapture')[cordis.symbols.original]
     const implementationVersion = await service.implementationVersion()
     assert.equal(implementationVersion, installedManifest.version, '实际载入的业务版本不是当前安装版本')
-    console.log(`PASS runtime-load: implementationVersion=${implementationVersion}; installed ESM/v2 contract accepted (no pixels requested)`)
+    assert.equal(service.wallpaperRegistered(), true, '正常加载的 Host 未声明壁纸 Remote')
+    console.log(`PASS runtime-load: implementationVersion=${implementationVersion}; base/optional-extension contracts accepted (no pixels requested)`)
     const runtimeHashes: Record<string, string> = {}
     // +--- manifest glob 是分发规则，不是磁盘文件；只展开已校验的两个固定成员模式。 ---+
     for (const file of candidate.files.flatMap((file: string) => {

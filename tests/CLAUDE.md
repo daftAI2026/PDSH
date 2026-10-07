@@ -14,13 +14,13 @@
 
 - `component-host.test.ts`: 生成唯一Config、root owner captureEnabled observer、配置不触发旧连接与Mac/Windows helper包内相对路径；新代码的单航班/结算另列专门合同，不冒充真实Loader或实机。
 - `client-injection.test.ts`: Cordis 4.0.4 真注册器运行唯一生成 Client；旧 ready Host 缺少截图字段时身份/标题照常而相机撤回，完整 snapshot 可恢复；另验平台/Remote provider、旧桥隔离与 namespace 生命周期，不冒充实机像素验收。
-- `client.test.ts`: 唯一 root Client 在完整截图配置下的八种功能组合、身份/标题恢复、相机资源撤回与装配失败归还；真实 ReactDOM 探针完整子树隐藏和移除样式负例，不冒充 Host 控件/CSP 或实窗验收。
+- `client.test.ts`: 生成 Client 的八组合、取消、回滚和页脚。内存编译真实组合根，验证同 proxy 握手世代；两个 mutant 须失败。spy 不证明像素、Host 或 Desktop。
 - `capture-bootstrap.test.ts`: 副作用适配下的真实启动编排，拒绝身份/端口、ACK 失败、关闭 unknown 与取消，系统临时根内私有目录独占创建/分别归还，只读真实 macOS ps 路径格式；不操作真实 Main。
 - `capture-control.test.ts`: 生成 Main 与真实 Host socket transport 的畸形帧、握手、控制 ACK、取消与资源归还；新增系统临时根内真实 Unix socket 两端握手及目录边界/权限/符号链接拒绝及根别名接受；不打开真实应用调试端口。
 - `capture-route.test.ts`: 官方 RPC 控制封套、owner 世代与迟到 release 围栏；Host 自己撤回 consent 即刻取消，不依赖 Renderer 消息；确认归还后的断连不永久缓存；Main/control 关闭未知不随新 owner/排队/release/重装清除。
 - `capture-settings.test.ts`: 完整 accepted capture 字段就绪门、旧 Host ready 只读提示/无写入无 picker且隐藏 fallback 目录文案、loading 不误报与后续完整快照恢复；完整但空目录沿用原目录状态；另验导出 revision/路径围栏，不改变常驻身份开关。
 - `inspector-ownership.test.ts`: 隔离 VM 的 PID/nonce/原调试地址围栏与 watchdog 归还，不打开真实 Main 调试端口。
-- `capture-controller.test.ts`: 初拍/重拍实时读取 Host 身份遮挡并与本地标题遮挡正交；并覆盖截图/挂载错误分层及卸载清理，不臆断系统权限。
+- `capture-controller.test.ts`: 初拍/重拍实时读取身份遮挡，标题遮挡独立；工作台重读壁纸能力，迟到握手不重建当前工作台；验证失败与卸载，不臆断系统权限。
 - `capture-notice.test.ts`: 官方 Toast 参数和默认生命周期委托、同文重显、旧完成围栏及 React 根回收；不另模拟宿主计时器。
 - `capture-material.test.ts`: 当前 macOS sidebar 配方、仅背景模糊与临时画布释放合同；不冒充原生窗口覆盖证明。
 - `capture-pixels.test.ts`: 宿主/显式 PNG 桥的能力、目标范围与关联 ID；预算/DPR/130% 缩放量化、冻结解码及取消/视口变化；固定 Main 错误和 Electron invoke 包装保持分类，未知通道不冒充、忙碌不误报端口；桩桥不是安装件能力证据。
@@ -36,7 +36,7 @@
 - `settings-card.test.ts`: React 字段级写入、取消、冲突和焦点合同，来源标签属于右侧操作组并邻接首个按钮。
 - `sidebar-redaction.test.ts`: 普通/空白会话、搜索与 HoverCard 标记和恢复。
 - `native-style-probe.test.ts`: 原生 Input/Button/Switch/设置字段/Tooltip 几何与动效采样，SVG 笔画比例/透明度/尺寸及主题/DOM/resize 重采；合法零长度保真、无效值或探针节点缺席时撤销旧值，节点重建后重采，root 脱离后清空且卸载恢复原值。
-- `styles.test.ts`: 视觉规则与上游 token 来源；入口只合成 SVG 根透明度、按压态不绘常驻底色且复用原生按钮交互，实时原生控件测量由独立可卸载 controller 负责；视觉隐藏 probe 不入页面流且保留几何采样，Tooltip 只发自有 mouseover，不抢焦点，并校验来源文本间距和昵称行对称留白。
+- `styles.test.ts`: 视觉规则与上游 token 来源；整排页脚紧凑靠右，正文同字号，GitHub 图稿不带内联基线空白。保留间距、主题与焦点。入口只合成根透明度；原生探针独占测量并隐藏绘制。验证来源文本间距和昵称留白，不抢焦点。
 - `title-toggle.test.ts`: Host 单路径切换及失败状态。
 - `updater.test.ts`: 首次清单等待卸载不安装、重试通知卸载围栏、第二次 PNPM 超时不误报 GitHub；稳定 tag、固定 Git 提交、官方 Remote 回包封套、显式安装、预检查超时最多重试一次与失败原因白名单；第四参 activation hook 仅以 `true` 确认升格 `restart-required`，false/throw 保留 restart，旧三参兼容且 dispose 拒绝迟到成功；安装失败保留目标版本，不假定 Manager 回滚磁盘清单，提示覆盖全部已知结果白名单。
 - `update-badge.test.ts`: 官方详情更新状态只由当前 Client 版本探测；验证 installing 中磁盘版本先变仍显示进度、成功/失败终态保留、失配时无旧 Client 检查/重试，restart Modal 与“稍后”只关闭提示且不模拟一键重启；restart 行内测试只覆盖同一挂载；另以真正详情卸载/重挂验证同 updater 的失败结果，不作跨 Fiber 承诺。
@@ -78,7 +78,7 @@
 
 - `window-capture-stream.test.ts`: Host 惰性取像、整窗帧、单航班真实结算与取消时事件循环不自旋的定时器合同，不执行 helper。
 
-- `window-capture-typert.test.ts`: 官方生成Host/Remote face的唯一namespace、capture/save/wallpaper方法、uplink codec与完整DTO出口，静态证据不冒充实机能力。
+- `window-capture-typert.test.ts`: 官方生成 Host/Remote face 的唯一 namespace、基础流、wallpaperRegistered 与扩展流、uplink codec 和完整 DTO 出口。静态证据不冒充实机能力。
 - `native-window-capture.test.ts`: fake子进程/时钟的原生包装器、CRC/PNG封套、真实close/单航班结算合同；覆盖Mac universal 与 Win x64 路由、包内 exe provider gate、hidden/non-shell argv、ARM64 拒绝及取消强杀等待；只读Mach-O验证Mac双架构，不运行真实helper。
 - `system-wallpaper-native.test.ts`: 源码锁定缓存桥/动态UUID和root-owned系统HEIC命令；macOS临时ObjC++ harness只开私有fixture fd，验证Aerial路径拒绝符号链接；不触用户缓存、解码或代替SDK/媒体/Desktop。
 - `system-wallpaper-mov-fixture.ts`: 共用人工单轨QuickTime Range源，模拟tapt/双hdlr/自包含alis/hvc1+nclc与已知辅助表，暴露64B头、moov、首sample和逻辑总长；可表示大源而不分配整片媒体，不代表Apple素材/native证据。
@@ -102,9 +102,11 @@
 
 - `capture-background-tabs.test.ts`: 原生 SegmentedControl 参数/受控更新/忙碌与卸载围栏，根桩不模拟 Host 键盘或视觉。
 
-- `capture-runtime-loader.test.ts`: v2版本实现协调器的换载、并发合并、协议/缺方法拒绝和旧实例真实结算；v1→v2为正常加载边界，不取像或操作设置。
+- `capture-runtime-loader.test.ts`: v1/v2基础合同和wallpaper扩展独立验收；旧实例真实结算，不取像。
+- `capture-runtime-legacy-upgrade.test.ts`: 固定历史壳边界：v1→当前、v2→拒绝v1。用真实payload和空Settings，不调用Remote RPC。
+- `runtime-upgrade-fixtures/CLAUDE.md`: 固定Loader、身份、manifest和payload字节；测试不调用Git。
 
-- `capture-runtime-readiness.test.ts`: 固定实际后台版本封套与取消围栏；旧版本/错误不得报告热更新成功，旧后台与连接未知提示分账，纯内存 Remote 不取像。
+- `capture-runtime-readiness.test.ts`: 固定实际版本封套、独立壁纸握手与取消围栏；扩展未知不阻断基础版本，旧后台与连接未知分账。不取像。
 
 - `capture-runtime-location.test.ts`: 稳定/RC 构建身份只接受同名 manifest；真实 realpath/ESM 换载并拒绝 foreign 包和包根外模块，非 Manager/实机验收。
 

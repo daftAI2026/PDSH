@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 shared/components 的稳定/RC 配置身份与宿主 locale 字典协议；不读取或持久化独立语言偏好。
- * [OUTPUT]: 提供当前配置身份的 NS 与齐全 zh/en 运行文案，含旧 Host 截图配置重启提示和已知安装失败、受控重试/未知结果区分文案。
+ * [OUTPUT]: 提供当前配置身份的 NS 与 zh/en 文案，覆盖设置、项目链接提示、重启及闭集安装结果。
  * [POS]: PDSH 文案归属层；界面语言由 Harness 拥有，包展示元信息由 locale/*.json 离线提供。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -8,6 +8,9 @@ import { ROOT_ENTRY_ID } from './components.ts';
 export const NS = ROOT_ENTRY_ID;
 export const dictionaries = {
   zh: {
+    'project.star': '如果 PDSH 对你有帮助，欢迎在 GitHub 点个 Star 支持我们 👉',
+    'project.github': '在 GitHub 查看 PDSH 项目',
+    'project.author': '在 X / Twitter 关注 @daftAI',
     identityDescription: '自定义侧栏显示的头像与昵称，不修改账号资料。',
     saveLocation: '保存位置', chooseDirectory: '选择目录', saveAsk: '每次选择', saveDirect: '默认目录', saveDirectory: '保存目录', directoryUnavailable: '目录尚未就绪', editFileName: '编辑文件名模板', doneFileName: '保存文件名模板', templateTokens: '{date} 日期 · {time} 时间 · {title} 页面标题 · {width} 宽 · {height} 高', saveFormat: '保存格式', fileNamePattern: '文件名模板', exportSaveFailed: '设置未保存，请重试。',
     entry: '遮挡侧栏标题', entryOn: '显示侧栏标题', toggleFailed: '未能保存切换，请重试', capture: '截取当前窗口', captureEnabled: '开启拍照功能', captureMaskIdentity: '截图时遮挡头像和名称', captureConfigurationUnavailable: '截图组件尚未加载此版本配置，保留工作后重新启动DSH。',
@@ -45,6 +48,9 @@ export const dictionaries = {
     'update.installFailed': '安装结果未确认；请在官方插件页核对状态后重试。',
   },
   en: {
+    'project.star': 'If PDSH helps you, please support us with a Star on GitHub 👉',
+    'project.github': 'View PDSH on GitHub',
+    'project.author': 'Follow @daftAI on X / Twitter',
     identityDescription: 'Customize the sidebar avatar and nickname without changing account data.',
     saveLocation: 'Save location', chooseDirectory: 'Choose folder', saveAsk: 'Choose each time', saveDirect: 'Default folder', saveDirectory: 'Save folder', directoryUnavailable: 'Folder is not ready', editFileName: 'Edit file name template', doneFileName: 'Save file name template', templateTokens: '{date} Date · {time} Time · {title} Page title · {width} Width · {height} Height', saveFormat: 'Save format', fileNamePattern: 'File name template', exportSaveFailed: 'Settings were not saved. Try again.',
     entry: 'Mask sidebar titles', entryOn: 'Show sidebar titles', toggleFailed: 'Toggle was not saved. Try again', capture: 'Capture current window', captureEnabled: 'Enable capture', captureMaskIdentity: 'Mask avatar and name in screenshots', captureConfigurationUnavailable: 'Capture settings have not loaded for this version. Save your work, then restart DSH.',

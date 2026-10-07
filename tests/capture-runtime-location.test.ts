@@ -12,7 +12,7 @@ import { build } from 'esbuild'
 import { mkdir, mkdtemp, rm, symlink, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { CAPTURE_RUNTIME_CONTRACT, createCaptureRuntimeLoader, locateCaptureRuntime } from '../src/host/capture-runtime-loader.ts'
+import { CAPTURE_RUNTIME_CONTRACT, CAPTURE_WALLPAPER_CONTRACT, createCaptureRuntimeLoader, locateCaptureRuntime } from '../src/host/capture-runtime-loader.ts'
 
 async function buildLocator(packageName: '@daftai/pdsh' | '@daftai/pdsh-rc') {
   const result = await build({ entryPoints: ['src/host/capture-runtime-loader.ts'], bundle: true, write: false,
@@ -37,6 +37,7 @@ test('实际 ESM 和稳定安装链接能载入两个不同实现，非 createRe
       await writeFile(join(directory, `lib/capture-runtime/${version}.js`), `
         export const version = ${JSON.stringify(version)};
         export const contract = ${JSON.stringify(CAPTURE_RUNTIME_CONTRACT)};
+        export const wallpaperContract = ${JSON.stringify(CAPTURE_WALLPAPER_CONTRACT)};
         export function create() {return {version, capture(){}, save(){}, wallpaper(){}, refreshCaptureEnabled(){}, async dispose(){}}}
       `)
     }

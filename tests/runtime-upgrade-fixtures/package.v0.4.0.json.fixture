@@ -1,7 +1,7 @@
 {
   "name": "@daftai/pdsh",
-  "description": "DeepSeek Harness plugin for sidebar masking, display aliases, and local screenshot editing. No session isolation.",
-  "version": "0.5.1",
+  "description": "Same-window presentation and local capture workbench for DeepSeek Harness; no session isolation.",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "main": "./index.js",
@@ -18,7 +18,6 @@
     "lib/types/shared/remote-types.d.ts",
     "lib/types/shared/window-capture-protocol.d.ts",
     "lib/types/shared/window-save-protocol.d.ts",
-    "lib/types/shared/system-wallpaper-protocol.d.ts",
     "native/window-capture",
     "native/windows/window-capture-x64.exe",
     "cordis.patch.yml",
@@ -53,12 +52,7 @@
     "bundle:rc": "node --experimental-strip-types tools/pack-rc.ts",
     "release:check": "node --experimental-strip-types check-release.ts",
     "artifacts:check": "node --experimental-strip-types --input-type=module -e \"import { validateBundleArtifacts } from './bundle-artifacts.ts'; validateBundleArtifacts(process.cwd())\"",
-    "archive:check": "node --experimental-strip-types --input-type=module -e \"import { validatePackedBundle } from './bundle-artifacts.ts'; console.log(validatePackedBundle(process.cwd()))\"",
-    "metadata:check": "node --experimental-strip-types tools/release-metadata.ts check",
-    "metadata:sync": "node --experimental-strip-types tools/release-metadata.ts sync-local",
-    "metadata:check-github": "node --experimental-strip-types tools/release-metadata.ts check-github",
-    "metadata:sync-github": "node --experimental-strip-types tools/release-metadata.ts sync-github",
-    "compat:assess": "node --experimental-strip-types tools/assess-host-compatibility.ts"
+    "archive:check": "node --experimental-strip-types --input-type=module -e \"import { validatePackedBundle } from './bundle-artifacts.ts'; console.log(validatePackedBundle(process.cwd()))\""
   },
   "dsh": {
     "client": {

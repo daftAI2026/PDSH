@@ -1,10 +1,18 @@
 /**
- * [INPUT]: 依赖官方 Remote 的只读 implementationVersion 封套与当前 Client 版本。
- * [OUTPUT]: 确认真正运行的后台版本；区分已知旧后台与连接未知，不以磁盘清单或旧后台截图成功代替确认。
+ * [INPUT]: 依赖官方实现版本封套与独立的纯壁纸注册握手。
+ * [OUTPUT]: 确认后台版本和壁纸 Remote 注册；扩展握手失败不阻断基础截图。
  * [POS]: 更新完成反馈和显式 capture/save 共享的版本围栏；不写设置、不安装、不取像。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { CaptureClientError } from './window-capture-stream.ts'
+
+export async function isWallpaperRemoteRegistered(remote: any): Promise<boolean> {
+  if (typeof remote?.wallpaperRegistered !== 'function') return false
+  try {
+    const reply = await remote.wallpaperRegistered()
+    return reply?.ok === true && reply.value === true
+  } catch { return false }
+}
 
 async function runtimeStatus(remote: any, version: string): Promise<'current' | 'outdated' | 'unavailable'> {
   if (typeof remote?.implementationVersion !== 'function') return 'outdated'

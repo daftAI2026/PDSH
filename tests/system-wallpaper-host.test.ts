@@ -574,8 +574,9 @@ test('versioned CaptureRuntime revalidates captureEnabled with a fake catalog; r
       module, exports: module.exports, AbortController, Buffer, URL, process,
       setTimeout, clearTimeout, require: createRequire(import.meta.url),
     })
-    const { CaptureRuntime, contract } = module.exports
-    assert.equal(contract, 'pdsh-capture-runtime-v2')
+    const { CaptureRuntime, contract, wallpaperContract } = module.exports
+    assert.equal(contract, 'pdsh-capture-runtime-v1')
+    assert.equal(wallpaperContract, 'pdsh-wallpaper-runtime-v1')
     const ctx = {
       settings: { describe: () => [{ ns: 'pdsh-rc', value: accepted }] },
       logger: { info() {} },

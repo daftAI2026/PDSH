@@ -71,7 +71,8 @@ export function validateBundleArtifacts(root: string): void {
     if (!read(file).includes(`PDSH build ${JSON.stringify(manifest.version)}`)) throw new Error(`bundle artifact ${file} version drift; rebuild`);
   }
   const runtime = read(`lib/capture-runtime/${manifest.version}.js`);
-  if (!runtime.includes(`PDSH build ${JSON.stringify(manifest.version)}`) || !runtime.includes('pdsh-capture-runtime-v2')) throw new Error('bundle capture runtime version/contract drift');
+  if (!runtime.includes(`PDSH build ${JSON.stringify(manifest.version)}`)
+    || !runtime.includes('pdsh-capture-runtime-v1') || !runtime.includes('pdsh-wallpaper-runtime-v1')) throw new Error('bundle capture runtime version/contract drift');
   const helper = lstatSync(join(root, 'native/window-capture'));
   if (!helper.isFile() || (helper.mode & 0o777) !== 0o755) throw new Error('native helper must be a packaged executable regular file with mode 0755');
   validateMacHelper(readFileSync(join(root, 'native/window-capture')));

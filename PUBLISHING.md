@@ -112,8 +112,11 @@ transport 固定为 /usr/bin/curl，使用 --disable 和 shell:false。
 使用系统默认 TLS，不改变 Host dispatcher、CA 或代理。
 取消等待 child close，再清理自有临时文件。
 
-wallpaper Remote 方法采用内部 v2 ABI。
-旧 v1 外壳不能热加载，升级必须正常加载新版代码。
+wallpaper Remote 是独立可选扩展。
+纯注册握手证明 Host 已装配新接口。
+旧壳的截图/保存 payload 基础合同保持稳定。
+payload 换载不会新增既运行壳的 Remote marker。
+新接口仍须正常加载新版壳。
 同合同业务换载仍须等旧操作实际结算。
 真实材料、预览、导出、取消和恢复分别验收。
 源码、归档或隔离 Host 通过不等于 Desktop 通过。
@@ -123,6 +126,28 @@ wallpaper Remote 方法采用内部 v2 ABI。
 1. 运行 `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm build` 和 `pnpm run bundle`。检查当前版本真实 tgz 的成员、字节、权限、版本与依赖许可，不复用旧包冒充当前结果。归档只包含 manifest allowlist，不包含 node_modules、profile、凭据、日志或私有研究。
 2. 通过 `verify-host.ts` 在当前用户拥有的全新临时 profile 中运行目标 DSH 的实际 PluginManager、Typert Loader 和自带 PNPM。绑定被装版本、运行字节和来源摘要，检查单 root 行/Client、八组合功能设置、revision 写入与恢复、停用与重新启用。不得关闭 `blockExoticSubdeps`、替换解析器或伪造活动状态。此检查不拍摄像素，也不代替 Desktop UI。
 3. 实际 Desktop 验收独立记录：目标安装件的主题、入口、搜索展开/折叠、三个开关、截图覆盖/比例、重拍、复制、选目录/直接保存及取消/停用。旧版到新版的官方管理器升级也单独验证；实验重装不是升级证据。普通功能开关无需重启，替换包仅遵从宿主明确的加载/重启提示并保护未保存工作。
+
+## 0.5.1 发布决定：正式修复 tag 验证
+
+本版保留 v1 截图/保存兼容面。
+壁纸扩展使用独立合同和 Host 注册握手。
+该包用于恢复仍运行 v1 壳的升级链路。
+它不是所有已发布壳的免重启迁移包。
+
+已发布 v0.5.0 v2 壳仍拒绝此 v1 payload。
+两代旧壳读取同一路径并比较互斥字符串。
+该失配是已知代码限制，不标为兼容通过。
+用户在披露后明确要求用正式 patch tag 逐版验证。
+本次发布 v0.5.1，再走官方 Git 安装链路。
+本地归档安装不冒充 tag 升级。
+仅发布 main 与 tag，不创建 Release 或 npm 包。
+本次不重启 Desktop，不以递增版本号代替修复。
+最终绘制、导出和 Windows 实机仍未验。
+默认并发测试的图库超时不改写为通过。
+有界全量、产物和精确 Host 门仍须通过。
+旧 v0.5.0 tag 保留，不移动或删除。
+本次授权、升级与失败证据归入私人文档。
+不以本机成功声称全量旧壳兼容。
 
 ## 0.5.0 发布决定
 

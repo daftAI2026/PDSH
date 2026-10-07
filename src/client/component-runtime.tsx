@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖当前稳定/RC 包身份的唯一 ConfigForm、locale/slot/PluginManager 服务、实际后台版本围栏和可选 capture/壁纸 Remote 服务。
- * [OUTPUT]: 按身份、标题打码、截图顺序呈现设置，仅用完整有效的 Host accepted 截图配置装配相机；Mac 壁纸 adapter 限定在同一 provider，拍照初拍/重拍读取 accepted 身份遮挡。
+ * [INPUT]: 依赖唯一 ConfigForm、locale/slot/PluginManager、项目页脚、后台版本与壁纸注册握手。
+ * [OUTPUT]: 按身份、标题、截图、项目页脚呈现详情；页脚随 Host 语言切换。完整 accepted 截图配置才装配相机，拍照重读身份遮挡。
  * [POS]: 单 Bundle Client 组合根；临时 RC 隔离配置且不注册正式更新入口，常驻身份、标题预遮挡与截图身份遮挡独立，共享唯一 ConfigForm；截图配置尚未就绪时只撤回相机，不影响身份/标题，后续快照可恢复。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -21,13 +21,14 @@ import { mountCaptureBackgroundTabs } from './capture/background-tabs.tsx';
 import { mountCaptureController } from './capture/controller.ts';
 import { mountCaptureNotices } from './capture-notice.tsx';
 import { readCaptureDirectoryPicker } from './capture/directory.ts';
-import { isCaptureRuntimeCurrent, requireCaptureRuntimeCurrent } from './capture/runtime-readiness.ts';
+import { isCaptureRuntimeCurrent, isWallpaperRemoteRegistered, requireCaptureRuntimeCurrent } from './capture/runtime-readiness.ts';
 import { captureOwnedWindow, capturedWindowScale } from './capture/window-capture.ts';
 import { createSystemWallpaperRemoteAdapter } from './capture/system-wallpaper-remote.ts';
 import { saveWindowImage, prepareWindowSaveDirectory } from './capture/window-save.ts';
 import { SettingsCard } from './settings-card.tsx';
 import { CaptureSettingsCard } from './capture-settings.tsx';
 import { TitleSettingsCard } from './title-settings.tsx';
+import { ProjectFooter } from './project-footer.tsx';
 import { createUpdateController } from './updater.ts';
 import { loadReleaseTags } from './update-source.ts';
 import { UpdateBadge } from './update-badge.tsx';
@@ -54,6 +55,7 @@ function BundleSettings({ view, form, t, presentation, titleControl, subscribe, 
     <SettingsCard view={view} preferencesForm={form} presentation={presentation} t={t} showTitles={false} />
     <TitleSettingsCard view={view} form={form} control={titleControl} t={t} />
     <CaptureSettingsCard view={view} form={form} t={t} chooseDirectory={chooseDirectory} />
+    <ProjectFooter t={t} />
   </>;
 }
 
@@ -65,6 +67,7 @@ export function mountComponent(ctx, doc: Document = document) {
     const cleanup: Array<() => void> = [];
     let disposed = false;
     let captureRemote: any;
+    let wallpaperRemoteRegistered = false;
     let captureController: any;
     let captureNotices: any;
     let entry: any;
@@ -193,7 +196,7 @@ export function mountComponent(ctx, doc: Document = document) {
             notify: captureNotices.show,
             presetAssets,
             mountBackgroundTabs: mountCaptureBackgroundTabs,
-            systemWallpapers,
+            readSystemWallpapers: () => captureRemote === remote && wallpaperRemoteRegistered ? systemWallpapers : undefined,
           });
           syncEntry();
       } catch (error) {
@@ -242,12 +245,18 @@ export function mountComponent(ctx, doc: Document = document) {
     // +--- 可选官方 namespace；缺少取像服务不阻塞身份与标题 ---+
     const captureFiber = ctx.inject(['remote.pdshNativeWindowCapture'], (captureCtx) => {
       const current = captureCtx.remote.pdshNativeWindowCapture;
+      let currentActive = true;
       captureRemote = current;
+      wallpaperRemoteRegistered = false;
+      void isWallpaperRemoteRegistered(current).then(registered => {
+        if (currentActive && !disposed && captureRemote === current) wallpaperRemoteRegistered = registered;
+      });
       // +--- Client 热装配后只读激活当前后台；权限与像素仍只由明确拍照动作触发 ---+
       void isCaptureRuntimeCurrent(current, __PDSH_VERSION__);
       syncCapture();
       captureCtx.effect(() => () => {
-        if (captureRemote === current) captureRemote = undefined;
+        currentActive = false;
+        if (captureRemote === current) { captureRemote = undefined; wallpaperRemoteRegistered = false; }
         syncCapture();
       }, 'pdsh optional capture remote');
     });

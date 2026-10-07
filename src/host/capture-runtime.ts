@@ -1,10 +1,11 @@
 /**
  * [INPUT]: 依赖稳定service上下文、accepted Settings、同包 helper、Apple 元数据选择器/有界系统下载器与同 namespace 保存。
- * [OUTPUT]: 提供 v2 capture/save/wallpaper 业务；目录来自 Apple 顺序/代表关联，每个 load 重核对活动 ID，本机优先/缺失才下载。
+ * [OUTPUT]: 提供稳定 v1 截图/保存和独立壁纸扩展；目录来自 Apple 顺序/代表关联，load 重核来源。
  * [POS]: 可更新Host业务闭包；复用唯一captureEnabled generation，在途壁纸下载/子进程真实settle后才释放；不注册service或改Config身份。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { ROOT_ENTRY_ID } from '../shared/components.ts'
+import { CAPTURE_RUNTIME_CONTRACT, CAPTURE_WALLPAPER_CONTRACT } from '../shared/capture-runtime-contract.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import type { RemoteStream } from '@deepseek-ai/dsh-typert-protocol'
 import { createClickCapture, resolveNativeCaptureHelperPath, runNativeCapture, isNativeCaptureFailureCode } from './native-window-capture.ts'
@@ -88,7 +89,8 @@ async function* observeCaptureFrames(
 /** 单 Cordis service 拥有capture/save/wallpaper；壁纸只经同一官方Remote stream返回静态JPEG。 */
 declare const __PDSH_VERSION__: string
 export const version = __PDSH_VERSION__
-export const contract = 'pdsh-capture-runtime-v2'
+export const contract = CAPTURE_RUNTIME_CONTRACT
+export const wallpaperContract = CAPTURE_WALLPAPER_CONTRACT
 export function create(ctx: Context): CaptureRuntime { return new CaptureRuntime(ctx) }
 
 export class CaptureRuntime {

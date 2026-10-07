@@ -2,8 +2,9 @@
 > L2 | 父级: ../CLAUDE.md
 
 - `model.ts`: 定义并校验 Host/Client 共用的显示偏好合同，生成本地头像；不把真实账户 URL 写回配置。
-- `locales.ts`: 提供 Client 运行文案，含截图配置未加载时的中英文重启提示与更新后重启、已知安装失败、重试进度和未知安装结果文案；语言所有权仍在 Harness locale 服务，区别于包元信息 `locale/*.json`。
+- `locales.ts`: 提供设置、项目链接提示及重启/安装结果的 zh/en 文案。固定作者名不翻译。Harness locale 拥有语言状态；`locale/*.json` 只提供离线包元信息。
 - `components.ts`: 构建注入稳定/RC Bundle 与 root 身份，RC 禁用稳定更新；内部功能模块共用当前包的唯一配置域，不创建额外依赖包。
+- `capture-runtime-contract.ts`: 固定截图/保存基础合同，独立声明壁纸扩展。只有破坏原调用或结算语义才升级基础合同。
 
 - `capture-bridge.ts`: 已退出运行时的 Main/Inspector 实验控制合同；保留历史回归，不是现行 Remote 路由，也不作为取像失败回退。
 

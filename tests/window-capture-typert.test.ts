@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖构建阶段 official WorkspaceTypertGenerator 发射的 Host/Remote 面与 DTO declaration。
- * [OUTPUT]: 防止唯一 service、壁纸/取像 stream、双向保存 codec 或共享类型出口偏离调用合同。
+ * [OUTPUT]: 验证唯一 service、壁纸纯握手/stream、保存 codec 和共享类型出口。
  * [POS]: Host/build integration regression；仅读取静态产物，不执行 descriptor、helper 或 capture。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -41,9 +41,11 @@ test('official generator emits wallpaper on the same namespace with public DTO d
   const publicTypes = await readFile(new URL('lib/types/shared/remote-types.d.ts', root), 'utf8')
   for (const descriptor of [host, remote]) {
     assert.match(descriptor, /method: 'wallpaper'/)
+    assert.match(descriptor, /method: 'wallpaperRegistered'/)
     assert.deepEqual([...new Set([...descriptor.matchAll(/namespace: '([^']+)'/g)].map(match => match[1]))], ['pdshNativeWindowCapture'])
   }
   assert.match(declaration, /wallpaper: \(request: WallpaperRequest, signal\?: AbortSignal\) => RemoteStreamHandle<WallpaperFrame, never>/)
+  assert.match(declaration, /wallpaperRegistered: \(\) => Promise<RemoteResult<boolean>>/)
   assert.match(publicTypes, /system-wallpaper-protocol\.ts/)
   const dto = await readFile(new URL('lib/types/shared/system-wallpaper-protocol.d.ts', root), 'utf8')
   assert.match(dto, /system-wallpaper-tahoe-day/)

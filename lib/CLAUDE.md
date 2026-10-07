@@ -5,7 +5,7 @@
 - `typert.host.d.ts`: 同次生成的 Host face 类型出口，不引入产品运行时。
 - `typert.remote-client.js`: 官方 generator 的 Client contribution/codec，内联进唯一 lazy Client factory。
 - `typert.remote-client.d.ts`: 官方生成的 Remote declaration merge，经公开 `./types` 引用同源 DTO。
-- `capture-runtime/`: 构建生成的当前版本 Host 业务闭包；固定 Remote 外壳通过 Manager 当前自身包定位，不使用私有模块缓存。
+- `capture-runtime/`: 当前版本业务闭包。稳定基础合同与壁纸扩展分离；固定壳从自身安装包定位，不使用私有缓存，不因此新增 Remote。
 - `types/`: TypeScript 从 shared 源发射的公开声明闭包，跟随协议源码而非独立维护。
 
 官方 faces 的生成标记是源契约，不向第三方生成输出插入手写 L3；业务语义由 Host/shared L3 与本地图解释。源码改动后用 build/typecheck 重生成。

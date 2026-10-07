@@ -1,6 +1,6 @@
 /*
  * [INPUT]: Harness ui-theme 的语义色/圆角/字号，以及可卸载的原生 Input/Button/Switch/SettingsValueField/Tooltip/图标探针的实时计算参数。
- * [OUTPUT]: 提供标题灰条、身份覆盖、可见头像来源、原生设置/提示、等高字段动作槽、成功色更新徽标与无常驻底色的入口样式。
+ * [OUTPUT]: 提供标题灰条、身份覆盖、原生设置、等高动作槽与更新/入口样式。页脚紧凑靠右，正文同字号，图稿不留内联基线空白。
  * [POS]: PDSH 的展示层；来源和使用处记录于 style-sources.json，卸载时整体移除。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -43,6 +43,16 @@ html.pdsh-capture-redact [data-pdsh-capture-redact="text"]::after {
 .pdsh-update-confirm { font: var(--dsw-font-xxs-12); color: var(--dsw-alias-label-secondary); }
 .pdsh-group h4, .pdsh-profile-name { font: var(--dsw-font-s-strong-14); }
 .pdsh-hint { font: var(--dsw-font-xxs-12); color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
+/* +--- 项目页脚沿用设置字体和实时控件几何，不新增卡片或主题常量 ---+ */
+.pdsh-project-footer { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: var(--pdsh-field-gap); padding-inline: calc(var(--pdsh-section-inset) + var(--pdsh-outline-width)); font: var(--dsw-font-xs-13); color: var(--dsw-alias-label-secondary); }
+.pdsh-project-support { display: flex; align-items: center; flex: 0 1 auto; gap: var(--pdsh-field-gap); min-width: 0; max-width: 100%; }
+.pdsh-project-footer p { margin: 0; min-width: 0; overflow-wrap: anywhere; text-align: right; }
+.pdsh-project-link { display: inline-flex; align-items: center; flex: none; min-height: var(--pdsh-action-size); font: inherit; color: var(--dsw-alias-label-secondary); }
+.pdsh-project-link:hover { color: var(--dsw-alias-label-primary); }
+.pdsh-project-link:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-alias-state-business-primary); outline-offset: var(--dsw-focus-ring-width); }
+.pdsh-project-github { justify-content: center; min-width: var(--pdsh-action-size); border-radius: var(--dsw-radius-xs); }
+.pdsh-project-github > span { display: flex; align-items: center; }
+.pdsh-project-github svg { display: block; width: var(--pdsh-native-icon-size); height: var(--pdsh-native-icon-size); opacity: var(--pdsh-native-icon-opacity); }
 .pdsh-label { font: var(--dsw-font-xs-strong-13); }
 .pdsh-copy, .pdsh-field { display: flex; flex-direction: column; gap: var(--pdsh-field-gap); min-width: 0; }
 .pdsh-row { display: flex; align-items: center; justify-content: space-between; gap: var(--pdsh-action-gap); }

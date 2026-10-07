@@ -12,12 +12,14 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     implementationVersion: () => Promise<RemoteResult<string>>
     save: (request: WindowSaveRequest, signal?: AbortSignal) => RemoteStreamHandle<WindowSaveFrame, WindowSaveInputFrame>
     wallpaper: (request: WallpaperRequest, signal?: AbortSignal) => RemoteStreamHandle<WallpaperFrame, never>
+    wallpaperRegistered: () => Promise<RemoteResult<boolean>>
   }
   interface TypertRemoteMap {
     'pdshNativeWindowCapture/capture': (signal?: AbortSignal) => RemoteStreamHandle<CaptureFrame, never>
     'pdshNativeWindowCapture/implementationVersion': () => Promise<RemoteResult<string>>
     'pdshNativeWindowCapture/save': (request: WindowSaveRequest, signal?: AbortSignal) => RemoteStreamHandle<WindowSaveFrame, WindowSaveInputFrame>
     'pdshNativeWindowCapture/wallpaper': (request: WallpaperRequest, signal?: AbortSignal) => RemoteStreamHandle<WallpaperFrame, never>
+    'pdshNativeWindowCapture/wallpaperRegistered': () => Promise<RemoteResult<boolean>>
   }
   interface TypertRemoteNamespaceMap {
     'pdshNativeWindowCapture': TypertRemoteNamespace$706473684e617469766557696e646f7743617074757265
