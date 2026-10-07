@@ -303,6 +303,12 @@ L2/L3 必须带固定 PROTOCOL 行。
 - 官方 Plugins 依次展示身份、标题和截图设置。
 - 功能标题本地化，不展示包路径。
 - `captureEnabled` 独立控制相机、工作台和 stream。
+- 会话相机追加官方 header utilities，不替换 corner。
+- 两相机入口共用一个截图 controller。
+- 会话相机只在侧栏收起时显示。
+- 无 Session 的首页不渲染该会话插槽。
+- 侧栏状态只读 rc.2 AppFrame 语义属性。
+- root/main/sidebar 归属未知时隐藏会话相机。
 - 根表单完整 accepted 且 revision 一致时才提交。
 - 身份覆盖只作用于唯一识别的 rc.2 sidebar launcher。
 - 保留 native button、账号节点、菜单及登录语义。

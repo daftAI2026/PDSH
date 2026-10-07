@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖生成 Client、Cordis、ReactDOM 与内存编译的组合根。
- * [OUTPUT]: 验证两 Remote 顺序、迟到握手、版本围栏及卸载。
+ * [OUTPUT]: 验证两 Remote、版本围栏及相机会话插槽。
  * [POS]: 组合根合同；不冒充 Host、原生像素或 Desktop 验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -227,6 +227,13 @@ function environment({ value = {}, status = 'ready', bridge = false, failRoot = 
 
 async function tick(dom) { await new Promise(resolve => dom.window.setTimeout(resolve, 15)); }
 
+function assertBundleSlots(registrations) {
+  assert.deepEqual([...registrations.values()].map(item => item.options.name).sort(), [
+    'conversation.session.header.utilities', 'plugins.bundle.config',
+    'plugins.detail.badge', 'plugins.row.config',
+  ]);
+}
+
 async function loadComponentRuntime(assemblies, mutateSource = source => source) {
   const source = new URL('../src/client/component-runtime.tsx', import.meta.url).pathname;
   const built = await esbuild({
@@ -260,6 +267,8 @@ async function loadComponentRuntime(assemblies, mutateSource = source => source)
       const entry = { options, refresh() {}, dispose() { this.disposed = true; } };
       assemblies.entries.push(entry); return entry;
     } }],
+    ['/sidebar-state.ts', { createSidebarState: () => ({ getSnapshot: () => undefined, subscribe: () => () => {}, dispose() {} }) }],
+    ['/header-camera.tsx', { HeaderCamera: component }],
     ['/dom-tooltip.ts', { mountDomTooltips: () => () => {} }],
     ['/capture/background-tabs.tsx', { mountCaptureBackgroundTabs: () => lifecycle() }],
     ['/capture/controller.ts', { mountCaptureController: (_doc, options) => {
@@ -639,7 +648,7 @@ for (let mask = 0; mask < 8; mask++) test(`单 Bundle 的身份/标题/拍照设
     assert.equal(h.doc.querySelectorAll('[data-pdsh-redacted-title="session"]').length, mask & 2 ? 1 : 0);
     assert.equal(h.doc.querySelectorAll('[data-pdsh-capture-entry]').length, mask & 4 ? 1 : 0);
     assert.equal(h.doc.querySelectorAll('[data-pdsh-probe]').length, 1, '共享视觉探针随唯一 Bundle 而非功能设置存在');
-    assert.equal(h.registrations.size, 3, '一个 Bundle 只注册一次设置行、详情与更新 badge');
+    assertBundleSlots(h.registrations);
   } finally { await h.close(); }
   assert.equal(h.finalBody, h.before);
   assert.equal(h.roots.size, 0);
@@ -727,8 +736,25 @@ test('配置未就绪时身份/标题恢复灰掉，拍照不启动', async () =
     assert.equal(h.doc.querySelector('[data-row-key="session:s-secret"] > span:nth-child(2)').hasAttribute('data-pdsh-redacted-title'), false);
     assert.equal(entry.disabled, true, 'Host 未接受配置时帽子显示但不可写');
     assert.equal(h.doc.querySelector('[data-pdsh-capture-entry]'), null);
-    assert.equal(h.registrations.size, 3, '设置仍由唯一 Bundle 所有');
+    assertBundleSlots(h.registrations);
   } finally { await h.close(); }
+});
+
+test('会话相机追加官方 utilities，不覆盖既有 corner', async () => {
+  const h = environment({ bridge: true });
+  try {
+    await h.start();
+    const entries = [...h.registrations.values()].filter(item => item.options.name === 'conversation.session.header.utilities');
+    assert.equal(entries.length, 1, '生成 Client 必须注册唯一会话相机');
+    assert.equal(entries[0].options.id, 'pdsh-capture');
+    assert.ok(entries[0].options.order < -10, '相机排在官方 open-in-app 之前');
+    assert.equal([...h.registrations.values()].some(item => item.options.name === 'conversation.session.header.corner'), false);
+    assert.equal(h.pageCapture.pending.size, 0, '注册入口不取像');
+    await h.update({ captureEnabled: false });
+    assert.equal(h.doc.querySelector('[data-pdsh-capture-entry]'), null);
+    assert.equal(h.pageCapture.pending.size, 0, '关闭截图不取像');
+  } finally { await h.close(); }
+  assert.equal(h.registrations.size, 0, '停用归还自身 slot');
 });
 
 test('root/render/slot/mount 注册异常均回滚样式、React root、DOM 标记与监听器', async t => {

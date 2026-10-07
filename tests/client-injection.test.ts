@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖唯一生成 Client、Cordis 4.0.4 真注册器、Mac/Win Navigator fixture、官方 Remote namespace 与遗留桥负例。
- * [OUTPUT]: 验证旧 ready Host 缺少截图字段时不装相机、完整后续快照恢复；并覆盖平台/provider 围栏、namespace 撤回和独立设置。
+ * [OUTPUT]: 验证截图字段、两入口注册和 Remote 撤回。
  * [POS]: Client 服务图回归；不直调 apply 绕过注入，React root 仅作生命周期桩，不冒充界面或 Main 取像。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -76,7 +76,10 @@ test('正式单根 Client 无取像服务也启动；官方 Remote namespace 加
     assert.equal(h.doc.querySelector('[data-pdsh-capture-entry]'), null);
     assert.equal(h.doc.querySelectorAll('[data-pdsh-name]').length, 1);
     assert.equal(h.doc.querySelectorAll('[data-pdsh-redacted-title="session"]').length, 1);
-    assert.equal(registrations.size, 3);
+    assert.deepEqual([...registrations].sort(), [
+      'conversation.session.header.utilities', 'plugins.bundle.config',
+      'plugins.detail.badge', 'plugins.row.config',
+    ]);
     await bundle.dispose();
     assert.equal(registeredLocale, false); assert.equal(served, 0); assert.equal(registrations.size, 0); assert.equal(h.roots.size, 0);
     assert.equal(h.doc.body.outerHTML, h.before);

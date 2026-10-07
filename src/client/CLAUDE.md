@@ -2,7 +2,9 @@
 > L2 | 父级: ../CLAUDE.md
 
 - `client-entry.tsx`: 唯一 `@daftai/pdsh` Client 入口；顺序挂载真实基础/内部能力 Remote 面，不触发取像/权限；必需 Cordis 服务只声明一次，身份/标题/拍照为共享 Bundle 内的独立设置而非运行时子入口。
-- `component-runtime.tsx`: 唯一 Bundle 装配、设置页脚与语言订阅。完整 accepted 配置与 Remote provider 才装相机；业务调用复核实现版本。基础版本先等 Host 就绪，内部能力再独立核版本/注册；双代理世代隔离，迟到握手不重建工作台。
+- `component-runtime.tsx`: 唯一 Bundle 装配、设置页脚与语言订阅。两相机入口共用一个截图控制器。会话入口追加官方 utilities。完整 accepted 配置与 Remote provider 才装相机；业务调用复核实现版本。基础版本先等 Host 就绪，内部能力再独立核版本/注册；双代理世代隔离，迟到握手不重建工作台。
+- `sidebar-state.ts`: 只读 rc.2 AppFrame 语义属性。root/main/sidebar 唯一归属成立才返回收起态；未知或歧义布局退让。观察器先过滤边界变化，聊天增删不触发全局查询。订阅跟随 Bundle 释放，不读取搜索展开态。
+- `header-camera.tsx`: 官方 utilities 会话相机视图。仅侧栏收起且截图控制器存在时呈现。复用 Host Button/Tooltip，点击重读当前控制器，不创建取像链路。
 - `native-style-view.tsx`: 唯一真实原生控件探针视图；布局测量与 React 生命周期绑定，不持有功能配置。
 - `title-settings.tsx`: 共享唯一 `pdsh` ConfigForm 的标题即时开关；复用帽子控制器和官方控件，不建立独立 namespace，也不读身份偏好。
 - `capture-settings.tsx`: Plugins 截图区提供独立身份遮挡开关与询问/直接保存、完整目录、格式/文件名模板；旧/无效 ready 配置显示中英重启提示并锁住全部字段与目录 picker，目录位不泄漏 fallback/不误报目录故障；loading 不误报，完整后续快照恢复原 revision 写入；身份开关不改常驻 maskIdentity 或工作台标题偏好。
@@ -22,7 +24,7 @@
 - `title-toggle.ts`: 通过单一路径提交 Host `maskTitles`，处理 pending、失败和版本围栏。
 - `updater.ts`: 临时 RC 禁用探测和安装； 详情驱动的探测与显式安装状态机；解开官方 Remote 结果封套、校验唯一已安装自身和稳定版本，只安装固定 Git 提交，仅官方明确未安装的 spec-host timeout 重试同一目标一次；可选 activation hook 仅能在确认目标实现运行后将 `restart-required` 升为 `installed`，缺失/失败仍保留重启提示；不重装未知结果、不切功能设置，状态仅属当前 Client Fiber。
 - `update-source.ts`: GitHub 公共 tag 读取边界；不带凭据，网络失败不影响既有设置与遮挡。
-- `styles.css`: 设置及整排页脚复用 Host 语义色和实时控件几何；页脚同设置正文字号、紧凑靠右并自然换行。右端对齐卡片内容边界，图稿不留内联基线空白。标题灰条共用常驻/临时标记。来源由 style-sources.json 记录。
+- `styles.css`: 设置、页脚和会话相机复用 Host 语义色及控件几何。会话相机为 Host 小按钮，图稿消费已有探针。页脚同设置正文字号、紧凑靠右并自然换行。右端对齐卡片内容边界，图稿不留内联基线空白。标题灰条共用常驻/临时标记。来源由 style-sources.json 记录。
 - `entry-icon.svg`: 透明底单复合路径的 Lucide/InCodex 图形；运行线宽由原生搜索换算，整体透明度在根合成，构建复用为透明包图标。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

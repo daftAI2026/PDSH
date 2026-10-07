@@ -1,6 +1,6 @@
 /*
  * [INPUT]: Harness ui-theme 的语义色/圆角/字号，以及可卸载的原生 Input/Button/Switch/SettingsValueField/Tooltip/图标探针的实时计算参数。
- * [OUTPUT]: 提供标题灰条、身份覆盖、原生设置、等高动作槽与更新/入口样式。页脚紧凑靠右，正文同字号，图稿不留内联基线空白。
+ * [OUTPUT]: 提供遮挡、设置、页脚和相机样式。会话相机沿用 Host 小按钮。
  * [POS]: PDSH 的展示层；来源和使用处记录于 style-sources.json，卸载时整体移除。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -87,6 +87,10 @@ html.pdsh-capture-redact [data-pdsh-capture-redact="text"]::after {
 [data-pdsh-search-entry], [data-pdsh-capture-entry] { color: var(--pdsh-search-color); }
 [data-pdsh-search-entry] svg, [data-pdsh-capture-entry] svg { opacity: var(--pdsh-icon-opacity); }
 [data-pdsh-search-entry][hidden], [data-pdsh-capture-entry][hidden] { display: none !important; }
+/* +--- utilities 布局由宿主拥有；相机命中区保持小按钮的正方形 ---+ */
+.pdsh-header-camera { flex: none; padding-inline: 0; aspect-ratio: 1; color: var(--dsw-alias-label-secondary); }
+.pdsh-header-camera > span { display: flex; align-items: center; }
+.pdsh-header-camera svg { display: block; width: var(--pdsh-native-icon-size); height: var(--pdsh-native-icon-size); stroke-width: calc(24 * var(--pdsh-native-icon-stroke-ratio)); opacity: var(--pdsh-native-icon-opacity); }
 /* +--- 原生 searchSlot 的自动留白迁至自有左侧入口；隐藏/卸载后规则自动失效 ---+ */
 [data-pdsh-search-entry="wide"], [data-pdsh-capture-entry="wide"][data-pdsh-entry-first] { margin-left: auto; flex: none; }
 [data-pdsh-search-entry="wide"]:not([hidden]) + div { margin-left: 0; }

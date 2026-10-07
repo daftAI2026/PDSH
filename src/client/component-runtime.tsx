@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖唯一 ConfigForm、基础 Capture 与独立 RuntimeCapabilities Remote。
- * [OUTPUT]: 装配身份、标题、截图及页脚；壁纸需版本与注册握手。
+ * [INPUT]: 依赖 ConfigForm、两 Remote 和只读侧栏状态。
+ * [OUTPUT]: 装配身份、标题、两相机入口及设置页脚。
  * [POS]: 单 Bundle 组合根。迟到扩展不重建工作台，不阻断基础截图。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -16,6 +16,8 @@ import { mountPresentation } from './presentation.ts';
 import { mountSidebarRedaction } from './sidebar-redaction.ts';
 import { mountTitleToggle } from './title-toggle.ts';
 import { mountSearchEntry } from './search-entry.ts';
+import { createSidebarState } from './sidebar-state.ts';
+import { HeaderCamera } from './header-camera.tsx';
 import { mountDomTooltips } from './dom-tooltip.ts';
 import { mountCaptureBackgroundTabs } from './capture/background-tabs.tsx';
 import { mountCaptureController } from './capture/controller.ts';
@@ -134,6 +136,8 @@ export function mountComponent(ctx, doc: Document = document) {
       }
       const titleControl = mountTitleToggle(form, publish);
       cleanup.push(() => titleControl.dispose());
+      const sidebar = createSidebarState(doc);
+      cleanup.push(() => sidebar.dispose());
 
       function syncEntry() {
         if (disposed) return;
@@ -157,7 +161,7 @@ export function mountComponent(ctx, doc: Document = document) {
         try {
           disposeAll([oldController && (() => oldController.dispose()), oldNotices && (() => oldNotices.dispose())].filter(Boolean));
         } finally {
-          if (hadCapture && !disposed) syncEntry();
+          if (hadCapture && !disposed) { syncEntry(); publish(); }
         }
       }
       cleanup.push(stopCapture);
@@ -208,6 +212,7 @@ export function mountComponent(ctx, doc: Document = document) {
             readSystemWallpapers: () => captureRemote === remote && runtimeCapabilitiesRemote && runtimeCapabilitiesReady ? runtimeWallpaperAdapter : undefined,
           });
           syncEntry();
+          publish();
       } catch (error) {
         try { stopCapture(); } catch (disposeError) { ctx.logger.warn('PDSH capture cleanup failed.', disposeError); }
         ctx.logger.warn('PDSH capture capability could not be mounted.', error);
@@ -261,7 +266,11 @@ export function mountComponent(ctx, doc: Document = document) {
     syncPreferences();
 
     const subscribe = (listener) => { listeners.add(listener); return () => listeners.delete(listener); };
-    const snapshot = () => `${ctx.locale.getSnapshot?.().active ?? ''}:${form.getSnapshot().revision}:${captureController ? 1 : 0}`;
+    const snapshot = () => `${ctx.locale.getSnapshot?.().active ?? ''}:${form.getSnapshot().revision}:${captureController ? 1 : 0}:${captureController?.state().busy ?? false}:${captureController?.state().disabled ?? true}`;
+    const SessionCamera = () => <HeaderCamera sidebar={sidebar} readCapture={() => disposed ? undefined : captureController} subscribe={subscribe} snapshot={snapshot} t={t} />;
+    cleanup.push(ctx.slots.inject('conversation.session.header.utilities', () => ctx.slots.register({
+      name: 'conversation.session.header.utilities', id: `${ROOT_ENTRY_ID}-capture`, order: -20, locale: NS,
+    }, SessionCamera)));
     const chooseDirectory = readCaptureDirectoryPicker(doc);
     const RowSettings = ({ view }) => <BundleSettings view={view} form={form} t={t} presentation={presentation} titleControl={titleControl} subscribe={subscribe} snapshot={snapshot} chooseDirectory={chooseDirectory} />;
     cleanup.push(ctx.slots.inject('plugins.row.config', () => ctx.slots.register({
