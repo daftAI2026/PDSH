@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖当前单包 manifest 与自有临时目录。
- * [OUTPUT]: 提供固定 token 的合成 Typert 面、私有能力清单和归档闭包。
+ * [OUTPUT]: 提供合成 Typert 面、内部能力清单及含双语 README 的归档闭包。
  * [POS]: bundle/release 测试共用静态夹具；假面与假 helper 均不可执行。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -11,7 +11,7 @@ export function artifactFixture() {
   const root = mkdtempSync(join(tmpdir(), 'pdsh-artifacts-'));
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   manifest.version = '0.3.0'; manifest.scripts = {};
-  const files: string[] = [...manifest.files.filter((file: string) => !file.includes('*')), `lib/capture-runtime/${manifest.version}.js`, 'locale/zh.json', 'locale/en.json', 'package.json', 'README.md'];
+  const files: string[] = [...manifest.files.filter((file: string) => !file.includes('*')), `lib/capture-runtime/${manifest.version}.js`, 'locale/zh.json', 'locale/en.json', 'package.json', 'README.md', 'README.en.md'];
   const write = (file: string, value: string) => { mkdirSync(dirname(join(root, file)), {recursive:true}); writeFileSync(join(root, file), value); };
   const save = () => write('package.json', JSON.stringify(manifest));
   for (const file of files) write(file, 'fixture');

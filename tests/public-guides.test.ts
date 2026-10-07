@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖根指南、发布 skill、README 和许可。依赖 Node 文件与摘要接口。
- * [OUTPUT]: 验证指南边界、tag 渠道、升级说明分层、skill 导航、历史原文和头像致谢。
+ * [INPUT]: 依赖根指南、发布 skill、双语公开文档和许可。依赖 Node 文件与摘要接口。
+ * [OUTPUT]: 验证文档互链、同源版本、升级边界和致谢。守护指南分层与历史原文。
  * [POS]: tests 的公开文档合同。不运行宿主或联网。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -121,6 +121,77 @@ test('README 安装段保留升级提醒，技术合同留在发布文档', asyn
   assert.ok(publishing.includes('## 升级兼容\n'));
   assert.ok(publishing.includes('根 Config、基础 Remote 协议或固定壳变更'));
   assert.ok(publishing.includes('该壳不接受恢复的 v1 payload'));
+});
+
+test('双语产品与发布入口互链，README 不罗列页脚装饰', async () => {
+  const readme = await read('README.md');
+  const english = await read('README.en.md');
+  const publishing = await read('PUBLISHING.md');
+  const publishingEnglish = await read('PUBLISHING.en.md');
+  assert.match(readme, /\[English\]\(README\.en\.md\)/u);
+  assert.match(english, /\[简体中文\]\(README\.md\)/u);
+  assert.match(publishing, /\[English\]\(PUBLISHING\.en\.md\)/u);
+  assert.match(publishingEnglish, /\[简体中文\]\(PUBLISHING\.md\)/u);
+  assert.match(english, /PUBLISHING\.en\.md#upgrade-compatibility/u);
+  assert.match(publishingEnglish, /\[README\]\(README\.en\.md\)/u);
+  assert.doesNotMatch(readme, /\*\*项目链接\*\*/u);
+  assert.doesNotMatch(english, /\*\*Project links\*\*/iu);
+  for (const [name, text] of [['README.en.md', english], ['PUBLISHING.en.md', publishingEnglish]]) {
+    assert.ok(guide.includes('`' + name + '`'), name);
+    assert.ok(text.includes('[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md'), name);
+  }
+});
+
+test('中英文 README 当前版本同源，英文不省略兼容、平台和隐私边界', async () => {
+  const version = JSON.parse(await read('package.json')).version;
+  const readme = await read('README.md');
+  const english = await read('README.en.md');
+  assert.ok(readme.includes(`**${version} 版本**`));
+  assert.ok(english.includes(`**Version ${version}**`));
+  for (const text of [readme, english]) {
+    assert.ok(text.includes(`[\`v${version}\`](https://github.com/daftAI2026/PDSH/tree/v${version})`));
+  }
+  assert.match(english, /0\.3\.2[^\n]*normal load/iu);
+  assert.match(english, /0\.5\.0[^\n]*does not support a no-restart upgrade/iu);
+  assert.match(english, /Windows[^\n]*does not provide system wallpaper/iu);
+  assert.match(english, /unverified/iu);
+  for (const boundary of ['dark', 'Windows', 'English Desktop', 'alignment']) {
+    assert.ok(english.includes(boundary), boundary);
+  }
+  assert.match(english, /does not provide session isolation, credential migration, or forensic privacy guarantees/iu);
+  assert.match(english, /\[blobatar\]\(https:\/\/github\.com\/Alain00\/blobatar\)/u);
+  assert.match(english, /generated locally[\s\S]*MIT License/u);
+  assert.match(english, /\[Third-Party Notices\]\(THIRD_PARTY_NOTICES\.md\)/u);
+});
+
+test('英文发布指南完整保留现行门，历史原文只指向权威归档', async () => {
+  const english = await read('PUBLISHING.en.md');
+  for (const heading of ['Public Metadata and Tag Gate', 'Single Bundle and Native Artifacts',
+    'Upgrade Compatibility', 'Temporary RC Packages', 'Separate Verification Gates',
+    'System Wallpapers and Local Gallery', 'Standard Layered Gates', 'Historical Contracts']) {
+    assert.ok(english.includes('## ' + heading) || english.includes('### ' + heading), heading);
+  }
+  assert.match(english, /GitHub Releases are disabled by default/u);
+  assert.match(english, /npm publishing remains disabled/iu);
+  assert.match(english, /fixed SHA/u);
+  assert.match(english, /0\.5\.0[^\n]*v2 shell/u);
+  assert.match(english, /user[\s\S]*click[\s\S]*upgrade/iu);
+  assert.match(english, /PUBLISHING\.md#历史发布合同原文/u);
+  assert.match(english, /Historical contracts do not authorize/u);
+  assert.doesNotMatch(english, /pdsh:legacy-release-contracts:start/u);
+});
+
+test('项目 skill 强制公开文档成对同步，不要求改写历史原话', async () => {
+  const skill = await read('.agents/skills/pdsh-release-lifecycle/SKILL.md');
+  const stable = await read('.agents/skills/pdsh-release-lifecycle/references/stable.md');
+  for (const text of [skill, stable]) {
+    assert.ok(text.includes('README.md') && text.includes('README.en.md'));
+    assert.ok(text.includes('PUBLISHING.md') && text.includes('PUBLISHING.en.md'));
+  }
+  assert.match(skill, /双语[^\n]*同步/u);
+  assert.match(skill, /互链/u);
+  assert.match(skill, /历史[^\n]*原文[^\n]*(?:保留|不改写)/u);
+  assert.ok(skill.includes('tests/public-guides.test.ts'));
 });
 
 // -------------------- 开源致谢 --------------------

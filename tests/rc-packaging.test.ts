@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 pack-rc 的显式公开源白名单、隔离 staging 与候选命名规则。
- * [OUTPUT]: 验证 RC 只在自有临时副本派生身份、保留 helper 权限、不触碰私有哨兵并拒绝覆盖。
+ * [OUTPUT]: 验证 RC 副本含双语说明且不改稳定源。保留权限、私有哨兵与拒绝覆盖门。
  * [POS]: 独立测试分发合同；不运行 SDK GUI、不改用户 profile，也不冒充 Manager/Desktop 验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -21,6 +21,7 @@ function sourceFixture() {
   const files = {
     'package.json': JSON.stringify({ name: '@daftai/pdsh', version: '0.3.0', private: true, files: [] }, null, 2),
     'README.md': '# PDSH\n',
+    'README.en.md': '# DSH Private Mode\n',
     'LICENSE': 'MIT\n',
     'THIRD_PARTY_NOTICES.md': 'Notices\n',
     'cordis.patch.yml': '- insert:\n    - id: pdsh\n      name: "@daftai/pdsh"\n',
@@ -89,7 +90,7 @@ test('从稳定语义版本派生独立 RC 身份，只接受正整数候选号'
 
 test('stage 只复制公开白名单，在私有副本派生包/patch/locale，保留 helper 位且不改稳定源', async () => {
   const h = sourceFixture();
-  const stableFiles = ['package.json', 'README.md', 'cordis.patch.yml', 'README.md', 'locale/zh.json', 'locale/en.json'];
+  const stableFiles = ['package.json', 'README.md', 'cordis.patch.yml', 'README.en.md', 'locale/zh.json', 'locale/en.json'];
   const before = new Map(stableFiles.map(path => [path, readFileSync(join(h.rootDir, path))]));
   let stage;
   try {
@@ -113,6 +114,10 @@ test('stage 只复制公开白名单，在私有副本派生包/patch/locale，�
     assert.match(readme, /uninstall only `@daftai\/pdsh-rc`/);
     assert.match(readme, /final native pixel alignment still requires acceptance/i);
     assert.match(readme, /not Desktop UI acceptance/i);
+    const readmeEn = readFileSync(join(stage.stageDir, 'README.en.md'), 'utf8');
+    assert.match(readmeEn, /official Plugin Manager test only/i);
+    assert.match(readmeEn, /uninstall only `@daftai\/pdsh-rc`/u);
+    assert.match(readmeEn, /# DSH Private Mode/u);
     for (const helper of ['native/window-capture', 'native/windows/window-capture-x64.exe']) {
       assert.equal(statSync(join(stage.stageDir, helper)).mode & 0o777, 0o755, helper);
     }

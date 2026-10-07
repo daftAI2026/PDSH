@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖唯一 PUBLIC_METADATA、package.json homepage、zh/en locale 和 README 管理块；GitHub I/O 只经官方 gh CLI。
- * [OUTPUT]: 提供本地/远端元信息校验与受限同步；仅更新公开描述、语言元数据和 topics，不发布、不安装、不改版本。
+ * [INPUT]: 依赖唯一 PUBLIC_METADATA、package homepage、zh/en locale 和双语 README 管理块。
+ * [OUTPUT]: 提供本地/远端校验及受限同步。双语结构全部合格后才写描述，不改正文或版本。
  * [POS]: 项目公开文案的一致性边界；导入仅声明 API，显式 CLI 才能执行本地写入或 GitHub 请求。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -31,6 +31,13 @@ const DEFAULT_ROOT = fileURLToPath(new URL('../', import.meta.url));
 
 type JsonObject = Record<string, unknown>;
 type GithubApi = (args: string[], input?: string) => string;
+type ReadmeFile = {
+  name: string;
+  path: string;
+  text: string;
+  description: string;
+  block: { start: number; end: number; content: string };
+};
 type LocalFiles = {
   packageText: string;
   packageJson: JsonObject;
@@ -38,11 +45,10 @@ type LocalFiles = {
   zhJson: JsonObject;
   enText: string;
   enJson: JsonObject;
-  readme: string;
-  readmeBlock: { start: number; end: number; content: string };
+  readmes: ReadmeFile[];
 };
 
-/** 校验项目内公开描述、导出语言 metadata 与 README 单一管理块。 */
+/** 校验项目内公开描述、语言 metadata 与两份 README 的单行管理块。 */
 export function validatePublicMetadata(root: string): void {
   validateLocalFiles(readLocalFiles(root));
 }
@@ -52,27 +58,31 @@ function validateLocalFiles(files: LocalFiles): void {
   assertEqualString(packageDescription, PUBLIC_METADATA.description, 'package.json description');
   validateLocale(files.zhJson, PUBLIC_METADATA.zh, 'locale/zh.json');
   validateLocale(files.enJson, PUBLIC_METADATA.en, 'locale/en.json');
-  if (!isCanonicalReadmeContent(files.readmeBlock.content, PUBLIC_METADATA.zh.description)) {
-    throw new Error('README description block must contain exactly the fixed one-line Chinese description');
+  for (const file of files.readmes) {
+    if (!isCanonicalReadmeContent(file.block.content, file.description)) {
+      throw new Error(`${file.name} description block must contain exactly the fixed one-line description`);
+    }
   }
 }
 
-/** 仅改公开描述目标；所有文件与唯一 README 标记先完整读取、校验，再开始写入。 */
+/** 所有目标与双语标记先读取、验结构，再写允许字段。保留各文件换行与块外正文。 */
 export function syncPublicMetadata(root: string): void {
   const files = readLocalFiles(root);
   const nextPackage = { ...files.packageJson, description: PUBLIC_METADATA.description };
   const nextZh = replaceLocaleMetadata(files.zhJson, PUBLIC_METADATA.zh);
   const nextEn = replaceLocaleMetadata(files.enJson, PUBLIC_METADATA.en);
-  const eol = files.readme.includes('\r\n') ? '\r\n' : '\n';
-  const nextReadme = files.readme.slice(0, files.readmeBlock.start + README_START.length)
-    + eol + PUBLIC_METADATA.zh.description + eol
-    + files.readme.slice(files.readmeBlock.end);
+  const nextReadmes = files.readmes.map(file => {
+    const eol = file.text.includes('\r\n') ? '\r\n' : '\n';
+    const text = file.text.slice(0, file.block.start + README_START.length)
+      + eol + file.description + eol + file.text.slice(file.block.end);
+    return { path: file.path, text };
+  });
   const paths = pathsFor(root);
 
   writeFileSync(paths.packageJson, serializeJson(nextPackage, files.packageText));
   writeFileSync(paths.zhLocale, serializeJson(nextZh, files.zhText));
   writeFileSync(paths.enLocale, serializeJson(nextEn, files.enText));
-  writeFileSync(paths.readme, nextReadme);
+  for (const file of nextReadmes) writeFileSync(file.path, file.text);
 }
 
 /** 只读校验 GitHub Repo API 返回，不联网；topics 对顺序不敏感但拒绝重复/缺失/未知项。 */
@@ -105,14 +115,17 @@ function readLocalFiles(root: string): LocalFiles {
   }
   const zhText = readText(paths.zhLocale, 'locale/zh.json');
   const enText = readText(paths.enLocale, 'locale/en.json');
-  const readme = readText(paths.readme, 'README.md');
   const zhJson = parseObject(zhText, 'locale/zh.json');
   const enJson = parseObject(enText, 'locale/en.json');
-  // +--- 先验证每个本地写目标结构；README 标记失败时不得提前写 JSON。 ---+
+  // +--- 先验证全部写目标；任一语言的 README 缺失或标记错误均不得提前写 JSON。 ---+
   requiredObject(zhJson.meta, 'locale/zh.json meta');
   requiredObject(enJson.meta, 'locale/en.json meta');
-  const readmeBlock = locateReadmeBlock(readme);
-  return { packageText, packageJson, zhText, zhJson, enText, enJson, readme, readmeBlock };
+  const readmes = ([['README.md', 'zh'], ['README.en.md', 'en']] as const).map(([name, locale]) => {
+    const path = join(resolve(root), name);
+    const text = readText(path, name);
+    return { name, path, text, description: PUBLIC_METADATA[locale].description, block: locateReadmeBlock(text, name) };
+  });
+  return { packageText, packageJson, zhText, zhJson, enText, enJson, readmes };
 }
 
 function pathsFor(root: string) {
@@ -121,7 +134,6 @@ function pathsFor(root: string) {
     packageJson: join(base, 'package.json'),
     zhLocale: join(base, 'locale', 'zh.json'),
     enLocale: join(base, 'locale', 'en.json'),
-    readme: join(base, 'README.md'),
   };
 }
 
@@ -154,16 +166,16 @@ function replaceLocaleMetadata(value: JsonObject, expected: { title: string; des
   return { ...value, meta: { ...meta, title: expected.title, description: expected.description } };
 }
 
-function locateReadmeBlock(readme: string): { start: number; end: number; content: string } {
+function locateReadmeBlock(readme: string, label: string): { start: number; end: number; content: string } {
   if (count(readme, README_START) !== 1 || count(readme, README_END) !== 1) {
-    throw new Error('README must contain exactly one description start/end marker pair');
+    throw new Error(`${label} must contain exactly one description start/end marker pair`);
   }
   const start = readme.indexOf(README_START);
   const end = readme.indexOf(README_END);
   if (start < 0 || end < start + README_START.length
     || !isLineStart(readme, start) || !isLineEnd(readme, start + README_START.length)
     || !isLineStart(readme, end) || !isLineEnd(readme, end + README_END.length)) {
-    throw new Error('README description markers must be ordered and occupy their own lines');
+    throw new Error(`${label} description markers must be ordered and occupy their own lines`);
   }
   return { start, end, content: readme.slice(start + README_START.length, end) };
 }

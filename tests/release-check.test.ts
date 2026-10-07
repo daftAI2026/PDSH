@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实发布守门脚本与隔离 Git 单包产物。
- * [OUTPUT]: 验证长期指南与当前版本分离。拒绝指南缺章、产物或元信息漂移、脏树及 tag 冲突。
+ * [OUTPUT]: 验证长期指南与双语当前版本分离。拒绝缺章、漂移、脏树及 tag 冲突。
  * [POS]: 发布流程回归；实验包安装不依赖本门或 tag。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -21,6 +21,7 @@ function fixture() {
     copyFileSync(new URL(`../${file}`, import.meta.url), join(root, file));
   }
   write('README.md','**0.3.0 版本** v0.3.0\n<!-- pdsh:description:start -->\n旧简介\n<!-- pdsh:description:end -->'); write('AGENTS.md','# PDSH Agent Guide\n\n## Release\n\n稳定发布使用清洁 main。\n');
+  write('README.en.md','**Version 0.3.0** v0.3.0\n<!-- pdsh:description:start -->\nOld description\n<!-- pdsh:description:end -->');
   write('locale/zh.json', JSON.stringify({meta:{}}));write('locale/en.json', JSON.stringify({meta:{}}));
   syncPublicMetadata(root);
   const currentManifest=JSON.parse(readFileSync(join(root,'package.json'),'utf8'));
@@ -50,9 +51,10 @@ test('发布门拒绝缺失、逐版本或非精确的 Release 章节',()=>{
   }
 });
 test('漂移、脏树、错误 tag 与已存在异位 tag 均拒绝',()=>{
-  for(const defect of ['artifact','readme','dirty','tag','existing','branch']) {const h=fixture();try{
+  for(const defect of ['artifact','readme','readmeEnglish','dirty','tag','existing','branch']) {const h=fixture();try{
     if(defect==='artifact')h.write('index.js','stale');
     if(defect==='readme'){h.write('README.md',readFileSync(join(h.root,'README.md'),'utf8').replaceAll('0.3.0','0.2.1'));h.commit();}
+    if(defect==='readmeEnglish'){h.write('README.en.md',readFileSync(join(h.root,'README.en.md'),'utf8').replaceAll('0.3.0','0.2.1'));h.commit();}
     if(defect==='branch')h.git('switch','-c','rc/fixture');
     if(defect==='dirty')h.write('untracked','x');
     if(defect==='existing'){h.git('tag','v0.3.0');h.write('change','x');h.commit();}

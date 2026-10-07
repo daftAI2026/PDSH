@@ -1,6 +1,6 @@
 <!--
-[INPUT]: 依赖稳定 manifest、tag 到 SHA 的更新链路及本次发布授权。依赖最终归档与分层回执。
-[OUTPUT]: 完成清洁 main、稳定 tag 和远端回读。规定逐功能升级验收，不自行安装。
+[INPUT]: 依赖稳定 manifest、双语文档、tag 链路及本次授权。依赖最终归档与分层回执。
+[OUTPUT]: 完成清洁 main、稳定 tag 和远端回读。核双语版本与逐功能升级，不自行安装。
 [POS]: release-lifecycle 的稳定分支。复用 release:check，不另建发布系统。
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 -->
@@ -37,6 +37,10 @@ RC 的临时身份、元数据和运行产物不得混入正式包。
 ## 冻结最终安装件
 
 先检查锁定依赖、文档和公开元信息。
+核对 `README.md` 与 `README.en.md`。
+核对 `PUBLISHING.md` 与 `PUBLISHING.en.md`。
+按入口的双语同步步骤核版本、边界与互链。
+两份 README 的当前版本均须匹配 manifest。
 运行 `pnpm test` 与 `pnpm run bundle`。
 两者已有构建步骤，不靠旧 `lib/` 或助手填门。
 核对真实 tgz 的 allowlist、字节、唯一版本与 helper 0755。

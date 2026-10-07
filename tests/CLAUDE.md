@@ -43,8 +43,8 @@
 - `update-badge.test.ts`: 官方详情更新状态只由当前 Client 版本探测；验证 installing 中磁盘版本先变仍显示进度、成功/失败终态保留、失配时无旧 Client 检查/重试，restart Modal 与“稍后”只关闭提示且不模拟一键重启；restart 行内测试只覆盖同一挂载；另以真正详情卸载/重挂验证同 updater 的失败结果，不作跨 Fiber 承诺。
 - `update-source.test.ts`: 公共 GitHub tag 请求的无凭据网络边界；不冒充 Desktop CSP 证明。
 - `dom-tooltip.test.ts`: 非 React 控件跟随宿主 Tooltip 延时与方位参数，卸载彻底清理。
-- `release-check.test.ts`: 隔离 Git 验发布门。长期 Release 章节与 README 当前版本分离。拒绝缺章、漂移、脏树及异位 tag。假 gh 拒绝写请求，不创建 tag。
-- `release-metadata.test.ts`: 真实临时 package/locale/README 的公开文案同源与受限同步，GitHub About/topics 集合验证及注入 API 的远端请求边界；不联网、不写真实远端。
+- `release-check.test.ts`: 隔离 Git 验发布门。长期 Release 章节与双语 README 当前版本分离。拒绝缺章、漂移、脏树及异位 tag。假 gh 拒绝写请求，不创建 tag。
+- `release-metadata.test.ts`: 双语 README 与 package/locale 文案同源。英文缺失或结构错误时拒绝全部写入，保留块外正文。另验 GitHub 集合与请求边界；不联网。
 - `release-push.test.ts`: 稳定 tag pre-push 发布门、同名 ref、不可改删旧 tag 与多记录 stdin 隔离；普通分支/RC 排除，假 pnpm 不触及真实远端。
 - `profile-loading.test.ts`: 隔离 profile 根包链接结构桩验证唯一 Host/Client/locale 解析与缺包负例；不冒充官方安装。
 - `source-layout.test.ts`: 手写 TypeScript 与宿主所需生成 JavaScript 的边界。
@@ -65,7 +65,7 @@
 
 - `host-acceptance.test.ts`: 集成 CLI 安全前置；自有临时目录验证 owner/路径/符号链接/凭据、stable/RC候选身份和精确PNPM版本门，不启动DSH或替代安装件验收。
 
-- `bundle-artifacts.test.ts`: Mac helper双架构/最低macOS14、Windows x64 console/asInvoker PE与归档0755丢失的正反回归，单包与内部反射作用域的版本/入口、同源 DTO 和真实 tgz 字节门；拒绝功能子依赖、宽泛 files 与安装 hook，不执行用户安装。
+- `bundle-artifacts.test.ts`: 双语 README 与内部能力面的真实 tgz 闭包。核 Mac universal、Windows x64/asInvoker、执行位和字节。拒绝子依赖、宽泛 files 与安装 hook，不执行安装。
 - `capture-defaults.test.ts`: 旧导出默认只通过根 pdsh revision 修正；自定义值、已移除子域与迟到卸载不覆盖偏好。
 
 - `window-capture-controller.test.ts`: 整窗元数据比例、禁猜页面坐标和人工授权等待的 Client 合同，不冒充实机证据。
@@ -91,7 +91,7 @@
 - `capture-background-image-store.test.ts`: 完成图LRU/current pin、共享消费者独立取消/最后退出中止、同URL重试拒绝旧回填、dispose及时settle及hydrate换图取消/同图去重；不取系统素材或测RSS。
 - `capture-image-loader.test.ts`: 可控Image验证预取消、load/error/abort监听归还、移除src及无需load事件的取消结算；成功保留渲染源，不测真实浏览器解码线程或RSS。
 
-- `bundle-fixture.ts`: 共用合成单包、可解析但不可运行的双架构Mach-O及x64 PE头部与精确归档成员；不执行假helper。
+- `bundle-fixture.ts`: 共用合成单包与双语 README 归档闭包；可解析的双架构 Mach-O 与 x64 PE 无可运行指令。不执行假 helper。
 
 - `window-capture-host-gate.test.ts`: 真实 Cordis owner-filter 与构建 Host service 连线，假 helper/uplink 验证撤权同时中止和实际 settle；已取消调用覆盖 Settings 迟到就绪、撤权与终态卸载，防止挂载时的空投影永久锁死；不取像；版本闭包在相机调用前拒绝异版本实例。
 
@@ -115,7 +115,7 @@
 
 - `rc-identity.test.ts`: 以 esbuild 注入 stable/RC 名称验证根配置、locale、编辑偏好键与更新边界；实例化版本化 capture 业务闭包，以 Remote iterable 终态黑盒验证只读自身 accepted Settings、启停和迟挂载恢复，不启动 helper；不验证 Manager 共存或 Desktop UI。
 
-- `rc-packaging.test.ts`: 独立候选身份/白名单 staging、私有路径排除、stable 源不变、locale 提示、native helper 执行位、符号链接/同名归档拒绝与失败清理；不运行 SDK GUI 或真实安装。
+- `rc-packaging.test.ts`: 独立候选身份、双语说明与白名单 staging。核私有路径排除、稳定源不变、权限及拒绝覆盖。不运行 SDK GUI 或真实安装。
 - `system-wallpaper-host.test.ts`: fake-helper本地静图/匹配download-required/旧目录兼容与stream取消/配置/证书固定码、Range预算和真实settle；旧local-only断言已被新需求替代，不执行helper或联网。
 - `system-wallpaper-client.test.ts`: 最多四项动态/legacyRemote目录授权、名称/失败码保真、unlisted动态ID拒发媒体、严格JPEG/终态/取消与URL归还；桩不替代Browser/Desktop。
 - `system-wallpaper-selection.test.ts`: 系统媒体返回后的背景解码仍归选择 signal，重选缓存/切类/销毁取消旧工作且不迟到应用或提示；不取系统素材或量RSS。
@@ -126,6 +126,6 @@
 
 - `system-wallpaper-stream-catalog.test.ts`: 动态ID活动目录0–4项、重复/非法ID/名称C1与unavailable边界；fake operation不读取系统或联网。
 
-- `public-guides.test.ts`: 验证指南边界、tag 渠道和升级说明分层。README 只给用户动作与必要提醒，技术合同留在 PUBLISHING。另核 skill 导航、历史原文摘要及头像许可。不运行宿主或联网。
+- `public-guides.test.ts`: 验证双语公开入口互链、同源版本和兼容边界。README 写用户动作，PUBLISHING 留技术合同。另核 skill 同步要求、历史原文摘要及头像许可。不运行宿主或联网。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

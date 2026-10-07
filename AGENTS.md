@@ -88,20 +88,21 @@ InCodex 的所有权与路径安全约束应按目标场景保留。
 | `.github/workflows/` | 固定 Windows SDK 构建；不自动发布。 |
 | `.githooks/` | 本地稳定 tag 门；不覆盖用户 hooks。 |
 | `docs/` | 用户授权的 README 展示图；不是验收回执。 |
-| `README.md` | 产品、安装、兼容边界与开源致谢。 |
-| `PUBLISHING.md` | 渠道、发布门、版本决定与历史合同原文。 |
+| `README.md` / `README.en.md` | 双语产品入口；安装、兼容提醒和致谢成对同步。 |
+| `PUBLISHING.md` / `PUBLISHING.en.md` | 双语渠道、发布门与版本决定；历史原文只保留一份。 |
+| `plugin-icon.svg` | 构建生成的透明品牌图标；供插件元信息使用。 |
 | `style-sources.json` | 上游文件、选择器、变量和图标来源。 |
 | `THIRD_PARTY_NOTICES.md` / `LICENSE` | 完整分发许可。 |
 | `package.json` / `pnpm-lock.yaml` | 单 Bundle manifest、唯一版本及锁定依赖。 |
 | `cordis.patch.yml` | 唯一 Cordis 插入层。 |
 | `build.ts` / `tsconfig*.json` | 构建与源码类型边界。 |
-| `bundle-artifacts.ts` | 入口、原生二进制、tgz 字节与权限验真。 |
+| `bundle-artifacts.ts` | 入口、双语 README、二进制、tgz 字节与权限验真。 |
 | `verify-host.ts` | 临时 profile 的官方安装、业务载入与生命周期门。 |
-| `check-release.ts` | 长期发布章节、版本、产物、元信息与清洁树门。 |
+| `check-release.ts` | 长期发布章节、双语版本、产物与清洁树门。 |
 | `tools/release-metadata.ts` | 公开简介和 Topics 的唯一声明。 |
 | `tools/pack-rc.ts` | 同源临时 RC 构建；不安装到用户 profile。 |
 | `tools/assess-host-compatibility.ts` | 只读触点评估；不启动 Host 或认证兼容。 |
-| `tests/public-guides.test.ts` | 验证指南边界、skill 导航和头像许可。 |
+| `tests/public-guides.test.ts` | 验证双语互链、指南边界、skill 同步与头像许可。 |
 | `output/` / `node_modules/` | 忽略的证据、临时产物与依赖。 |
 
 手写行为留在 TypeScript 或原生源码。
@@ -254,6 +255,10 @@ Git 安装依赖这些已提交产物。不要分别手写它们。
 测试与候选结果只入本次授权的私人证据。
 不把单次结果追加到本指南或 README。
 产品能力与兼容边界仍须同步 README。
+公开产品和发布说明须同步中英文。
+两套说明互链；版本、平台和未验门同源。
+历史原文及第三方许可保留原字节。
+双语维护步骤见项目发布 skill。
 
 缺失 L3 时先补契约。新模块必须有 L2。
 L2 列出全部成员，保留有效父级链接。
@@ -472,13 +477,14 @@ L2/L3 必须带固定 PROTOCOL 行。
 - 修复 tag 验证须有本次授权并披露已知失配。
 - tag 上线不等于所有旧壳或原生门已通过。
 - 发布门核对固定的 `Release` 章节。
-- 当前版本留在 manifest 与 README，不绑定指南标题。
+- 当前版本留在 manifest 与两份 README，不绑定指南标题。
 - 逐版本合同见 [PUBLISHING.md](PUBLISHING.md)。
 - 历史合同不授予后续版本的发布或安装权限。
 - 本地 pre-push hook 不能描述为服务器强制策略。
 - 启用 `.githooks` 前核对用户 hooks 和 `core.hooksPath`。
 - 不覆盖或遮蔽用户已有 hooks。
-- 归档仅含 manifest allowlist。
+- 归档含 manifest allowlist 与 npm 固定附带文件。
+- 固定附带文件仅为 package.json 和两份 README。
 - 不归档 profile、node_modules、凭据、日志或私人研究。
 - `npm pack --ignore-scripts` 必须保留助手 0755。
 - 不用 bin、install hook 或运行时 chmod 修补归档。

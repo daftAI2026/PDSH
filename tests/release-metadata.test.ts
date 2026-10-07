@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 release-metadata 的固定公开文案、真实临时 package/locale/README 文件与纯 GitHub metadata 校验。
- * [OUTPUT]: 验证本地字段同源、受限同步、README 标记唯一性及 GitHub About/topics 无网络合同。
+ * [INPUT]: 依赖 release-metadata 的固定公开文案、临时双语 README 和元信息文件。
+ * [OUTPUT]: 验证双语描述同源、受限同步和写入前结构校验。另验纯 GitHub 边界。
  * [POS]: 公开元信息的文件/远端校验回归；不请求 GitHub、不写远端、不改正式项目文件。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -29,14 +29,17 @@ function createFixture() {
   const zh = { meta: { ...PUBLIC_METADATA.zh }, extra: { preserve: 'zh' } };
   const en = { meta: { ...PUBLIC_METADATA.en }, extra: { preserve: 'en' } };
   const readme = `# DSH 私密模式\n\nBefore block.\n${START}\n${PUBLIC_METADATA.zh.description}\n${END}\n\n**0.4.0 版本** · v0.4.0\nAfter block.\n`;
+  const readmeEn = `# DSH Private Mode\n\nBefore English block.\n${START}\n${PUBLIC_METADATA.en.description}\n${END}\n\n**Version 0.4.0** · v0.4.0\nAfter English block.\n`;
   writeFileSync(join(root, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`);
   writeFileSync(join(root, 'locale/zh.json'), `${JSON.stringify(zh, null, 2)}\n`);
   writeFileSync(join(root, 'locale/en.json'), `${JSON.stringify(en, null, 2)}\n`);
   writeFileSync(join(root, 'README.md'), readme);
+  writeFileSync(join(root, 'README.en.md'), readmeEn);
   return {
     root,
     dispose: () => rmSync(root, { recursive: true, force: true }),
     readme,
+    readmeEn,
   };
 }
 
@@ -95,6 +98,49 @@ test('README description 管理块必须且只能有一对匹配标记与固定�
     try {
       writeFileSync(join(fixture.root, 'README.md'), mutate(fixture.readme));
       assert.throws(() => validatePublicMetadata(fixture.root), /README|marker|description/i);
+    } finally { fixture.dispose(); }
+  }
+});
+
+test('英文 README 缺失、描述漂移或标记损坏也须拒绝，不让中文绿灯掩盖漏译', () => {
+  for (const defect of ['missing', 'drift', 'duplicate', 'reversed']) {
+    const fixture = createFixture();
+    try {
+      const path = join(fixture.root, 'README.en.md');
+      if (defect === 'missing') rmSync(path);
+      else writeFileSync(path, defect === 'drift'
+        ? fixture.readmeEn.replace(PUBLIC_METADATA.en.description, 'Stale English description.')
+        : defect === 'duplicate' ? `${fixture.readmeEn}\n${START}\n${PUBLIC_METADATA.en.description}\n${END}\n`
+          : fixture.readmeEn.replace(`${START}\n${PUBLIC_METADATA.en.description}\n${END}`, `${END}\n${PUBLIC_METADATA.en.description}\n${START}`));
+      assert.throws(() => validatePublicMetadata(fixture.root), /README\.en\.md/iu, defect);
+    } finally { fixture.dispose(); }
+  }
+});
+
+test('sync 同步英文描述且保留 CRLF、版本和块外正文', () => {
+  const fixture = createFixture();
+  try {
+    const stale = fixture.readmeEn.replace(PUBLIC_METADATA.en.description, 'Old English.').replaceAll('\n', '\r\n');
+    writeFileSync(join(fixture.root, 'README.en.md'), stale);
+    syncPublicMetadata(fixture.root);
+    validatePublicMetadata(fixture.root);
+    assert.equal(readFileSync(join(fixture.root, 'README.en.md'), 'utf8'), stale.replace('Old English.', PUBLIC_METADATA.en.description));
+  } finally { fixture.dispose(); }
+});
+
+test('英文结构错误或文件缺失时 sync 在写入前失败，保留全部中文和 JSON 目标', () => {
+  for (const missing of [false, true]) {
+    const fixture = createFixture();
+    try {
+      updateJson(fixture.root, 'package.json', value => { value.description = 'stale package'; });
+      updateJson(fixture.root, 'locale/zh.json', value => { value.meta.description = '旧描述'; });
+      const path = join(fixture.root, 'README.en.md');
+      if (missing) rmSync(path);
+      else writeFileSync(path, fixture.readmeEn.replace(END, '<!-- missing end -->'));
+      const targets = ['package.json', 'locale/zh.json', 'locale/en.json', 'README.md', ...(missing ? [] : ['README.en.md'])];
+      const before = targets.map(name => readFileSync(join(fixture.root, name), 'utf8'));
+      assert.throws(() => syncPublicMetadata(fixture.root), /README\.en\.md/iu);
+      assert.deepEqual(targets.map(name => readFileSync(join(fixture.root, name), 'utf8')), before);
     } finally { fixture.dispose(); }
   }
 });

@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖显式公开源码白名单、稳定 package manifest、官方 build.ts 与归档验证器。
- * [OUTPUT]: 在私有 OS staging 中派生独立 @daftai/pdsh-rc 候选并拒绝覆盖输出。
+ * [INPUT]: 依赖公开源码白名单、双语 README、稳定 manifest 与官方构建和归档门。
+ * [OUTPUT]: 在私有 OS staging 派生独立 RC，保留双语测试提醒并拒绝覆盖输出。
  * [POS]: 只负责候选制作；不安装、不触碰 Desktop/profile，不能替代 Manager 或实机验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -16,7 +16,7 @@ import { validateBundleArtifacts, validatePackedBundle } from '../bundle-artifac
 
 // +--- 只复制参与本次公开构建的路径；工作区、用户数据和已有生成目录不在白名单。 ---+
 export const RC_SOURCE_ALLOWLIST = Object.freeze([
-  'package.json', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md',
+  'package.json', 'README.md', 'README.en.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md',
   'cordis.patch.yml', 'style-sources.json', 'build.ts', 'bundle-artifacts.ts',
   'tsconfig.json', 'tsconfig.remote-types.json', 'src', 'locale', 'native',
   'tools/generate-typert.ts', 'tools/typert-protocol-reference',
@@ -26,7 +26,8 @@ const STABLE_PACKAGE = '@daftai/pdsh';
 const RC_PACKAGE = '@daftai/pdsh-rc';
 const PATCH_STABLE = '- insert:\n    - id: pdsh\n      name: "@daftai/pdsh"\n';
 const PATCH_RC = '- insert:\n    - id: pdsh-rc\n      name: "@daftai/pdsh-rc"\n';
-const RC_README_NOTICE = `> **RC 测试包：仅供当前候选的官方 Plugin Manager 共存测试。** 安装/启用前先停用正式 \`@daftai/pdsh\`；测试后只卸载 \`@daftai/pdsh-rc\`，再重新启用正式包。自动区域建议有限且原生最终落点仍需验收；请检查像素，勿将其当作隐私保证。构建成功不代表 Desktop UI 已验收。\n>\n> **RC candidate: official Plugin Manager test only.** Disable stable \`@daftai/pdsh\` before enabling this package; after testing, uninstall only \`@daftai/pdsh-rc\`, then re-enable stable. Automatic region suggestions are limited and final native pixel alignment still requires acceptance; inspect pixels and do not treat it as a privacy guarantee. A successful build is not Desktop UI acceptance.\n\n`;
+const RC_ENGLISH_NOTICE = `> **RC candidate: official Plugin Manager test only.** Disable stable \`@daftai/pdsh\` before enabling this package; after testing, uninstall only \`@daftai/pdsh-rc\`, then re-enable stable. Automatic region suggestions are limited and final native pixel alignment still requires acceptance; inspect pixels and do not treat it as a privacy guarantee. A successful build is not Desktop UI acceptance.\n\n`;
+const RC_README_NOTICE = `> **RC 测试包：仅供当前候选的官方 Plugin Manager 共存测试。** 安装/启用前先停用正式 \`@daftai/pdsh\`；测试后只卸载 \`@daftai/pdsh-rc\`，再重新启用正式包。自动区域建议有限且原生最终落点仍需验收；请检查像素，勿将其当作隐私保证。构建成功不代表 Desktop UI 已验收。\n>\n${RC_ENGLISH_NOTICE}`;
 const DEFAULT_ROOT = fileURLToPath(new URL('../', import.meta.url));
 
 export type RcIdentity = {
@@ -265,10 +266,14 @@ async function deriveLocales(stageDir: string): Promise<void> {
 }
 
 async function deriveReadme(stageDir: string): Promise<void> {
-  const path = join(stageDir, 'README.md');
-  const original = await readFile(path, 'utf8');
-  if (original.startsWith('> **RC 测试包：')) throw new Error('RC source README must be derived from the stable user guide');
-  await writeFile(path, `${RC_README_NOTICE}${original}`);
+  for (const [name, notice] of [['README.md', RC_README_NOTICE], ['README.en.md', RC_ENGLISH_NOTICE]]) {
+    const path = join(stageDir, name);
+    const original = await readFile(path, 'utf8');
+    if (original.startsWith('> **RC 测试包：') || original.startsWith('> **RC candidate:')) {
+      throw new Error('RC source README must be derived from the stable user guide');
+    }
+    await writeFile(path, `${notice}${original}`);
+  }
 }
 
 function parseJson(source: string, label: string): Record<string, any> {

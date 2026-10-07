@@ -1,10 +1,12 @@
 <!--
-[INPUT]: 依赖唯一版本、元信息、发布门和官方管理器。依赖旧指南发布合同。
-[OUTPUT]: 规定交付、升级兼容与独立验收门。保存逐版本合同原文。
+[INPUT]: 依赖唯一版本、元信息、发布门和官方管理器。依赖双语说明与旧指南合同。
+[OUTPUT]: 规定中文交付、升级兼容与独立验收门。互链英文版，保存历史合同原文。
 [POS]: 根发布契约；区分源码、归档、实际安装和桌面行为，不将构建成功冒充实机通过
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 -->
 # PDSH 分发与验收
+
+[English](PUBLISHING.en.md) · 简体中文 · [README](README.md)
 
 PDSH 通过 GitHub 仓库作为一个 Harness Bundle 安装。
 普通用户在官方插件页填写项目链接。
@@ -31,10 +33,14 @@ RC 测试与正式发布使用项目内 [pdsh-release-lifecycle skill](.agents/s
 
 ## 公开元信息与 tag 守门
 
-公开简介和 Topics 的唯一源是 `tools/release-metadata.ts` 的 `PUBLIC_METADATA`。README 只管理标记之间的一行简介，正文与展示图仍由人工审查；机器比对不能证明功能或隐私承诺属实。
+公开简介和 Topics 的唯一源是 `tools/release-metadata.ts` 的 `PUBLIC_METADATA`。
+工具只同步两份 README 标记内的单行简介。
+产品、安装、兼容和未验门须双语同步。
+正文与展示图仍由人工审查。
+机器比对不能证明功能或隐私承诺属实。
 
 ```sh
-pnpm metadata:sync          # 同步 README 简介、包简介和中英文插件元信息；不改版本
+pnpm metadata:sync          # 同步双语 README、包简介和插件元信息；不改版本
 pnpm metadata:check         # 本地只读校验
 pnpm metadata:sync-github   # 显式同步 About、主页和 Topics，并读回核对
 pnpm metadata:check-github  # 远端只读校验，网络/鉴权失败即失败
@@ -49,7 +55,7 @@ pnpm release:check
 这是本地保护，可被 `--no-verify` 或未启用 hook 的其他克隆绕过，不是 GitHub 服务器规则。校验只读，不自动修补、提交、发布或操作 DSH。发布之后才发现插件简介漏改，需随下一版本交付，不移动已发布的旧 tag。
 
 发布门核对 AGENTS 的固定 `Release` 章节。
-当前版本由 manifest 与 README 核对。
+当前版本由 manifest 与两份 README 核对。
 指南不绑定逐版本标题。
 
 ## 单包和原生产物
@@ -133,7 +139,7 @@ Client 在基础版本回复后独立核对能力版本。
 
 ### 常规分层门
 
-1. 运行 `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm build` 和 `pnpm run bundle`。检查当前版本真实 tgz 的成员、字节、权限、版本与依赖许可，不复用旧包冒充当前结果。归档只包含 manifest allowlist，不包含 node_modules、profile、凭据、日志或私有研究。
+1. 运行 `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm build` 和 `pnpm run bundle`。检查当前版本真实 tgz 的成员、字节、权限、版本与依赖许可，不复用旧包冒充当前结果。归档包含 manifest allowlist、package.json 和两份 README，不包含 node_modules、profile、凭据、日志或私有研究。
 2. 通过 `verify-host.ts` 在当前用户拥有的全新临时 profile 中运行目标 DSH 的实际 PluginManager、Typert Loader 和自带 PNPM。绑定被装版本、运行字节和来源摘要，检查单 root 行/Client、八组合功能设置、revision 写入与恢复、停用与重新启用。不得关闭 `blockExoticSubdeps`、替换解析器或伪造活动状态。此检查不拍摄像素，也不代替 Desktop UI。
 3. 实际 Desktop 验收独立记录：目标安装件的主题、入口、搜索展开/折叠、三个开关、截图覆盖/比例、重拍、复制、选目录/直接保存及取消/停用。旧版到新版的官方管理器升级也单独验证；实验重装不是升级证据。普通功能开关无需重启，替换包仅遵从宿主明确的加载/重启提示并保护未保存工作。
 

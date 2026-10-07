@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖唯一版本、README、长期指南、Git 和产物门。依赖只读 GitHub 元信息。
- * [OUTPUT]: 核对版本、Release 章节、产物和 HEAD。拒绝元信息漂移、脏树和非 main 发布。
+ * [INPUT]: 依赖唯一版本、双语 README、长期指南、Git 和产物门。依赖只读 GitHub 元信息。
+ * [OUTPUT]: 核对双语 README 版本、元信息、产物与 HEAD。拒绝漂移或非清洁 main。
  * [POS]: 发布前防漂移门；不推送、打 tag、发布 npm 或修改版本。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -20,8 +20,10 @@ if (!/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(tag)) throw new Error('r
 validateBundleArtifacts(root);
 validatePublicMetadata(root);
 const readme = readFileSync(new URL('./README.md', import.meta.url), 'utf8');
+const readmeEnglish = readFileSync(new URL('./README.en.md', import.meta.url), 'utf8');
 const guide = readFileSync(new URL('./AGENTS.md', import.meta.url), 'utf8');
 if (!readme.includes(tag) || !readme.includes(`**${manifest.version} `)) throw new Error('README active release does not match package.json');
+if (!readmeEnglish.includes(tag) || !readmeEnglish.includes(`**Version ${manifest.version}**`)) throw new Error('README.en.md active release does not match package.json');
 if (!/^## Release\r?$/mu.test(guide)) throw new Error('AGENTS must include a version-independent Release section');
 const git = (...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
 if (git('branch', '--show-current') !== 'main') throw new Error('stable release must be checked on main, never the RC branch');

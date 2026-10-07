@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖单包 manifest、双官方 Typert 面、能力 DTO 闭包与 helper。
+ * [INPUT]: 依赖单包 manifest、双语 README、双官方 Typert 面、能力 DTO 闭包与 helper。
  * [OUTPUT]: 提供 validateBundleArtifacts/validatePackedBundle；拒绝拓扑、接口、平台架构、权限或归档漂移。
  * [POS]: 构建与发布共用的静态分发门；支持独立临时 RC 身份且维持同一产物门；只读本包与明确版本 tgz，不执行 bundle/helper，不访问用户 profile。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -232,7 +232,7 @@ export function validatePackedBundle(root: string, archive?: string): { archive:
   if (!stat.isFile() || stat.size > MAX_ARTIFACT_BYTES) throw new Error('bundle archive must be a bounded regular file');
   const tar = (...args: string[]) => execFileSync('tar', args, { encoding: 'utf8', maxBuffer: MAX_ARTIFACT_BYTES });
   const members = tar('-tzf', archive).trim().split('\n');
-  const expected = [...ARCHIVE_FILES.filter(file => !file.includes('*')), `lib/capture-runtime/${manifest.version}.js`, 'locale/zh.json', 'locale/en.json', 'package.json', 'README.md'].map(file => `package/${file}`);
+  const expected = [...ARCHIVE_FILES.filter(file => !file.includes('*')), `lib/capture-runtime/${manifest.version}.js`, 'locale/zh.json', 'locale/en.json', 'package.json', 'README.md', 'README.en.md'].map(file => `package/${file}`);
   if (members.length !== expected.length || new Set(members).size !== expected.length || expected.some(file => !members.includes(file))) throw new Error('bundle archive contains missing, duplicate or unexpected members');
   if (tar('-tvzf', archive).trim().split('\n').some(line => !line.startsWith('-'))) throw new Error('bundle archive must contain regular files only');
   const helperMode = tar('-tvzf', archive, 'package/native/window-capture').slice(0, 10);
