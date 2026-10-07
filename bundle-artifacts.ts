@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖单包 manifest、唯一 Cordis patch 与 build.ts 生成的 Host/Client、壁纸/取像/保存 Typert DTO 及 helper。
- * [OUTPUT]: 提供 validateBundleArtifacts/validatePackedBundle；拒绝运行条目、平台架构/最低系统、权限或归档漂移。
+ * [INPUT]: 依赖单包 manifest、双官方 Typert 面、能力 DTO 闭包与 helper。
+ * [OUTPUT]: 提供 validateBundleArtifacts/validatePackedBundle；拒绝拓扑、接口、平台架构、权限或归档漂移。
  * [POS]: 构建与发布共用的静态分发门；支持独立临时 RC 身份且维持同一产物门；只读本包与明确版本 tgz，不执行 bundle/helper，不访问用户 profile。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -16,6 +16,13 @@ const ARCHIVE_FILES = [
   'lib/types/shared/capture-export.d.ts', 'lib/types/shared/remote-types.d.ts',
   'lib/types/shared/window-capture-protocol.d.ts', 'lib/types/shared/window-save-protocol.d.ts',
   'lib/types/shared/system-wallpaper-protocol.d.ts',
+  'lib/runtime-capabilities/package.json',
+  'lib/runtime-capabilities/typert.host.js', 'lib/runtime-capabilities/typert.host.d.ts',
+  'lib/runtime-capabilities/typert.remote-client.js', 'lib/runtime-capabilities/typert.remote-client.d.ts',
+  'lib/runtime-capabilities/types/shared/capture-export.d.ts', 'lib/runtime-capabilities/types/shared/remote-types.d.ts',
+  'lib/runtime-capabilities/types/shared/window-capture-protocol.d.ts',
+  'lib/runtime-capabilities/types/shared/window-save-protocol.d.ts',
+  'lib/runtime-capabilities/types/shared/system-wallpaper-protocol.d.ts',
   'native/window-capture', 'native/windows/window-capture-x64.exe', 'cordis.patch.yml', 'plugin-icon.svg', 'style-sources.json',
   'THIRD_PARTY_NOTICES.md', 'LICENSE', 'locale/*.json',
 ];
@@ -63,6 +70,7 @@ export function validateBundleArtifacts(root: string): void {
     || !isDeepStrictEqual(exports['./types'], { types: './lib/types/shared/remote-types.d.ts' })) {
     throw new Error('official Typert/type subpath export drift');
   }
+  validateRuntimeCapabilities(root, manifest, read);
   const patch = read('cordis.patch.yml');
   if ([...patch.matchAll(/- id:/g)].length !== 1 || !new RegExp(`id: ${entryId}\\s+name: "${manifest.name}"`).test(patch)) throw new Error('bundle must retain the single pdsh root entry');
 
@@ -93,10 +101,76 @@ export function validateBundleArtifacts(root: string): void {
     if (!hostTypert.includes(`method: '${method}'`) || !remote.includes(`method: '${method}'`)) throw new Error(`generated Typert artifacts missing ${method}`);
   }
   if (!hostTypert.includes("service: 'pdshWindowCapture'") || !hostTypert.includes("namespace: 'pdshNativeWindowCapture'")) throw new Error('generated Host descriptor lost its owned-window service identity');
+  for (const descriptor of [hostTypert, remote]) {
+    if (!descriptor.includes(`package: '${manifest.name}'`)
+      || !sameNamespace(descriptor, 'pdshNativeWindowCapture')) throw new Error('root Typert face must retain only its owned-window identity');
+  }
   if (!hostTypert.includes('uplink:') || !remoteTypes.includes('RemoteStreamHandle<WindowSaveFrame, WindowSaveInputFrame>')) throw new Error('generated save uplink codec/type missing');
 
   const client = read('client.js');
   if ([...client.matchAll(/window\.__ModuleLoader__\.load\(/g)].length !== 1 || !client.includes(`id:${JSON.stringify(manifest.name)}`)) throw new Error('bundle must provide exactly one root Client factory');
+}
+
+/** 能力面是私有反射闭包，不是第二个可安装或独立演进的包。 */
+function validateRuntimeCapabilities(root: string, manifest: { name: string; version: string }, read: (file: string) => string): void {
+  const readBytes = (file: string): Buffer => {
+    try {
+      const path = join(root, file);
+      if (!lstatSync(path).isFile()) throw new Error('not regular');
+      const value = readFileSync(path);
+      if (!value.length) throw new Error('empty');
+      return value;
+    } catch { throw new Error(`runtime capability artifact ${file} must be a nonempty regular file`); }
+  };
+  const inner = JSON.parse(read('lib/runtime-capabilities/package.json'));
+  const expectedExports = {
+    '.': './typert.host.js',
+    './typert': { types: './typert.host.d.ts', default: './typert.host.js' },
+    './remote': { types: './typert.remote-client.d.ts', default: './typert.remote-client.js' },
+    './types': { types: './types/shared/remote-types.d.ts' },
+  };
+  if (inner.name !== `${manifest.name}-capabilities` || inner.version !== manifest.version
+    || inner.private !== true || inner.type !== 'module'
+    || !isDeepStrictEqual(inner.exports, expectedExports)
+    || Object.keys(inner).some(key => !['name', 'version', 'private', 'type', 'exports'].includes(key))) {
+    throw new Error('runtime capability package identity, private boundary, version, or exports drift');
+  }
+
+  const host = read('lib/runtime-capabilities/typert.host.js');
+  const remote = read('lib/runtime-capabilities/typert.remote-client.js');
+  const remoteTypes = read('lib/runtime-capabilities/typert.remote-client.d.ts');
+  for (const [face, expectedOwner] of [[host, inner.name], [remote, inner.name]] as const) {
+    if (!face.includes(`package: '${expectedOwner}'`) || !sameNamespace(face, 'pdshRuntimeCapabilities')) {
+      throw new Error('runtime capability Typert face must have its own package owner and namespace');
+    }
+    for (const method of ['implementationVersion', 'wallpaperRegistered', 'wallpaper']) {
+      if (!face.includes(`method: '${method}'`)) throw new Error(`runtime capability Typert face missing ${method}`);
+    }
+    if (face.includes("namespace: 'pdshNativeWindowCapture'")) throw new Error('runtime capability face must not own the capture namespace');
+    if (face.includes("method: 'capture'") || face.includes("method: 'save'")) throw new Error('runtime capability face must not duplicate base capture methods');
+  }
+  if (!host.includes("service: 'pdshRuntimeCapabilities'")
+    || !remoteTypes.includes(`from '${inner.name}/types'`)
+    || !remoteTypes.includes("'pdshRuntimeCapabilities/implementationVersion'")
+    || !remoteTypes.includes("'pdshRuntimeCapabilities':")
+    || remoteTypes.includes("'pdshNativeWindowCapture':")
+    || !remoteTypes.includes('implementationVersion: () => Promise<RemoteResult<string>>')
+    || !remoteTypes.includes('wallpaperRegistered: () => Promise<RemoteResult<boolean>>')
+    || !remoteTypes.includes('wallpaper: (request: WallpaperRequest, signal?: AbortSignal) => RemoteStreamHandle<WallpaperFrame, never>')) {
+    throw new Error('runtime capability handshake or typed wallpaper stream drift');
+  }
+
+  const declarations = ['capture-export', 'remote-types', 'window-capture-protocol', 'window-save-protocol', 'system-wallpaper-protocol'];
+  for (const declaration of declarations) {
+    const source = readBytes(`lib/types/shared/${declaration}.d.ts`);
+    const copy = readBytes(`lib/runtime-capabilities/types/shared/${declaration}.d.ts`);
+    if (!source.equals(copy)) throw new Error(`runtime capability DTO copy drift: ${declaration}.d.ts`);
+  }
+}
+
+function sameNamespace(face: string, expected: string): boolean {
+  const namespaces = [...new Set([...face.matchAll(/namespace: '([^']+)'/g)].map(match => match[1]))];
+  return namespaces.length === 1 && namespaces[0] === expected;
 }
 
 /** 只读 Mach-O 头部；不能把构建机架构或测试用文本当成双架构分发物。 */

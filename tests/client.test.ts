@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖生成 Client、Cordis、ReactDOM、rc.2 fixture 与内存编译的 component-runtime。
- * [OUTPUT]: 验证八种设置组合、页脚、取消/回滚及壁纸握手世代隔离。
- * [POS]: Client 与组合根合同；spy 不冒充 Host、原生像素或 Desktop 验收。
+ * [INPUT]: 依赖生成 Client、Cordis、ReactDOM 与内存编译的组合根。
+ * [OUTPUT]: 验证两 Remote 顺序、迟到握手、版本围栏及卸载。
+ * [POS]: 组合根合同；不冒充 Host、原生像素或 Desktop 验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
@@ -18,7 +18,12 @@ import { JSDOM } from 'jsdom';
 import { DEFAULTS } from '../src/shared/model.ts';
 import { DEFAULT_CAPTURE_EXPORT } from '../src/shared/capture-export.ts';
 import { dictionaries, NS } from '../src/shared/locales.ts';
-import { isWallpaperRemoteRegistered } from '../src/client/capture/runtime-readiness.ts';
+import {
+  isCaptureRuntimeCurrent,
+  isWallpaperCapabilityReady,
+  requireCaptureRuntimeCurrent,
+  requireWallpaperCapabilityCurrent,
+} from '../src/client/capture/runtime-readiness.ts';
 
 const CLIENT = new URL('../client.js', import.meta.url);
 const LABEL = dictionaries.zh.captureEnabled;
@@ -264,19 +269,23 @@ async function loadComponentRuntime(assemblies, mutateSource = source => source)
     ['/capture-notice.tsx', { mountCaptureNotices: () => ({ show() {}, dispose() {} }) }],
     ['/capture/directory.ts', { readCaptureDirectoryPicker: () => () => null }],
     ['/capture/runtime-readiness.ts', {
-      isCaptureRuntimeCurrent: async () => true,
-      isWallpaperRemoteRegistered,
-      requireCaptureRuntimeCurrent: async () => {},
+      isCaptureRuntimeCurrent,
+      isWallpaperCapabilityReady,
+      requireCaptureRuntimeCurrent,
+      requireWallpaperCapabilityCurrent,
     }],
-    ['/capture/window-capture.ts', { captureOwnedWindow: async () => null, capturedWindowScale: 1 }],
-    ['/capture/system-wallpaper-remote.ts', { createSystemWallpaperRemoteAdapter: remote => {
-      const adapter = { remote, index: assemblies.adapters.length };
+    ['/capture/window-capture.ts', { captureOwnedWindow: async (_doc, open, options) => { open(options?.signal); return null; }, capturedWindowScale: 1 }],
+    ['/capture/system-wallpaper-remote.ts', { createSystemWallpaperRemoteAdapter: (remote, options) => {
+      const adapter = { remote, options, index: assemblies.adapters.length };
       assemblies.adapters.push(adapter); return adapter;
     } }],
     ['/capture/window-save.ts', { saveWindowImage: async () => {}, prepareWindowSaveDirectory: async () => null }],
     ['/settings-card.tsx', { SettingsCard: component }], ['/capture-settings.tsx', { CaptureSettingsCard: component }],
     ['/title-settings.tsx', { TitleSettingsCard: component }], ['/project-footer.tsx', { ProjectFooter: component }],
-    ['/updater.ts', { createUpdateController: () => ({ dispose() {} }) }],
+    ['/updater.ts', { createUpdateController: (_manager, _load, _version, activateInstalled) => {
+      assemblies.activateInstalled = activateInstalled;
+      return { dispose() {} };
+    } }],
     ['/update-source.ts', { loadReleaseTags: async () => [] }], ['/update-badge.tsx', { UpdateBadge: component }],
     ['/capture/assets.ts', { presetAssets: [] }],
     ['.svg', ''], ['.css', ''],
@@ -300,7 +309,7 @@ function deferred() {
 }
 
 async function flushMicrotasks() {
-  await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+  for (let index = 0; index < 10; index++) await Promise.resolve();
 }
 
 function replaceExactlyOnce(source, before, after) {
@@ -308,7 +317,11 @@ function replaceExactlyOnce(source, before, after) {
   return source.replace(before, after);
 }
 
-async function assertWallpaperHandshakeLifecycle(mutateSource) {
+async function assertCapabilityHandshakeLifecycle(mutateSource, {
+  capabilityFirst = false,
+  delayBaseReadiness = false,
+  replaceBaseWhilePending = false,
+} = {}) {
   const dom = new JSDOM(pageMarkup(), { url: 'dsh-app://desktop/index.html', pretendToBeVisual: true });
   Object.defineProperty(dom.window.navigator, 'platform', { configurable: true, value: 'MacIntel' });
   const assemblies = { controllers: [], entries: [], adapters: [] };
@@ -316,7 +329,7 @@ async function assertWallpaperHandshakeLifecycle(mutateSource) {
   const value = { ...DEFAULTS, ...DEFAULT_CAPTURE_EXPORT, captureEnabled: true, captureMaskIdentity: true };
   const snapshot = { status: 'ready', revision: 0, value };
   const formListeners = new Set(), lifetime = [], providers = [];
-  let injectProvider;
+  const injectors = new Map();
   const form = {
     getSnapshot: () => snapshot,
     subscribe(listener) { formListeners.add(listener); return () => formListeners.delete(listener); },
@@ -335,77 +348,155 @@ async function assertWallpaperHandshakeLifecycle(mutateSource) {
     logger: { info() {}, warn() {}, error() {} },
     effect(factory) { const cleanup = factory(); if (typeof cleanup === 'function') lifetime.push(cleanup); return cleanup; },
     inject(names, callback) {
-      assert.equal(names.length, 1); assert.equal(names[0], 'remote.pdshNativeWindowCapture'); injectProvider = callback;
-      return { dispose() { for (const provider of providers) provider.dispose(); } };
+      assert.equal(names.length, 1);
+      assert.ok(['remote.pdshNativeWindowCapture', 'remote.pdshRuntimeCapabilities'].includes(names[0]));
+      assert.ok(!injectors.has(names[0]));
+      injectors.set(names[0], callback);
+      return { dispose() { for (const provider of providers.filter(item => item.name === names[0])) provider.dispose(); } };
     },
   };
   const disposeBundle = () => { for (const cleanup of lifetime.reverse()) cleanup(); };
   mountComponent(ctx, dom.window.document);
   const gates = [deferred(), deferred(), deferred()];
-  let handshake = 0;
-  const remote = {
-    wallpaperRegistered() { assert.ok(gates[handshake]); return gates[handshake++].promise; },
-    wallpaper() {}, capture() {}, save() {},
+  let handshake = 0, nextHandshake = 0, currentHandshake = 0;
+  let captureReady = !delayBaseReadiness;
+  let captureReadiness = deferred();
+  const captureRemote = {
+    async implementationVersion() {
+      const readiness = captureReadiness;
+      return captureReady ? { ok: true, value: '0.5.1' } : await readiness.promise;
+    },
+    wallpaperRegistered() { assert.fail('基础壳握手不能授权 capability') },
+    wallpaper() { assert.fail('基础壳媒体方法不能授权 capability') },
+    captureCalls: 0,
+    capture() { this.captureCalls++; }, save() {},
   };
-  const inject = () => {
+  let capabilityVersion = '0.5.1';
+  let capabilityVersionReads = 0;
+  const capabilityRemote = {
+    async implementationVersion() { capabilityVersionReads++; return { ok: true, value: capabilityVersion }; },
+    wallpaperRegistered() { handshake++; return gates[currentHandshake].promise; },
+    wallpaper() { assert.fail('测试只验证 readiness，不消费媒体流') },
+  };
+  const inject = (name, remote) => {
     let cleanup, active = true;
+    const key = name === 'capture' ? 'remote.pdshNativeWindowCapture' : 'remote.pdshRuntimeCapabilities';
+    const service = name === 'capture' ? 'pdshNativeWindowCapture' : 'pdshRuntimeCapabilities';
+    if (name === 'capability') currentHandshake = Math.min(nextHandshake++, gates.length - 1);
     const provider = {
-      remote: { pdshNativeWindowCapture: remote },
+      remote: { [service]: remote },
       effect(factory) { cleanup = factory(); return cleanup; },
     };
-    injectProvider(provider);
-    const record = { dispose() { if (!active) return; active = false; cleanup?.(); } };
+    const inject = injectors.get(key);
+    assert.equal(typeof inject, 'function', `${key} 必须各自订阅官方 Remote`);
+    inject(provider);
+    const record = { name, dispose() { if (!active) return; active = false; cleanup?.(); } };
     providers.push(record); return record;
   };
 
   try {
-    const firstProvider = inject();
-    const firstController = assemblies.controllers.at(-1);
-    const firstEntry = assemblies.entries.at(-1);
-    assert.ok(firstController, 'pending 壁纸握手不能阻断基础相机 controller');
-    assert.ok(firstEntry?.options.capture, '基础相机入口在可选握手期间仍装配');
-    assert.equal(typeof remote.wallpaper, 'function');
-    assert.equal(firstController.options.readSystemWallpapers(), undefined,
-      '仅看到 wallpaper 方法不能授权尚未完成的扩展');
+    let captureProvider, firstProvider, controller, entry;
+    if (capabilityFirst) {
+      firstProvider = inject('capability', capabilityRemote);
+      await flushMicrotasks();
+      assert.equal(assemblies.controllers.length, 0, 'capability 早到时不伪造基础截图入口');
+      assert.equal(capabilityVersionReads, 0, '缺少基础 Remote 时不得探测 capability');
+      assert.equal(handshake, 0, '缺少基础 Remote 时不得运行注册握手');
+      captureProvider = inject('capture', captureRemote);
+    } else {
+      captureProvider = inject('capture', captureRemote);
+    }
+    controller = assemblies.controllers.at(-1);
+    entry = assemblies.entries.at(-1);
+    assert.ok(controller, '基础 Remote 注入后必须装配截图 controller');
+    assert.ok(entry?.options.capture, '基础截图入口不等待可选 capability');
+    assert.equal(controller.options.readSystemWallpapers(), undefined,
+      '基础壳即使保留旧 wallpaper 方法也不能授权新增入口');
+    if (capabilityFirst) {
+      if (delayBaseReadiness) {
+        await flushMicrotasks();
+        assert.equal(handshake, 0, '基础 Host runtime 未就绪时不得握手 capability');
+        assert.equal(capabilityVersionReads, 0, '基础 Host runtime 未就绪时不得读取 capability 版本');
+        captureReady = true;
+        captureReadiness.resolve({ ok: true, value: '0.5.1' });
+      }
+    } else {
+      firstProvider = inject('capability', capabilityRemote);
+    }
+    if (replaceBaseWhilePending) {
+      await flushMicrotasks();
+      assert.equal(handshake, 0, '基础 runtime 未 settle 时不得握手 capability');
+      const oldReadiness = captureReadiness;
+      captureProvider.dispose();
+      captureReadiness = deferred();
+      captureReady = false;
+      captureProvider = inject('capture', captureRemote);
+      controller = assemblies.controllers.at(-1);
+      entry = assemblies.entries.at(-1);
+      await flushMicrotasks();
+      oldReadiness.resolve({ ok: true, value: '0.5.1' });
+      await flushMicrotasks();
+      assert.equal(handshake, 0, '旧基础世代 settle 不得启动扩展握手');
+      captureReady = true;
+      captureReadiness.resolve({ ok: true, value: '0.5.1' });
+    }
+    await flushMicrotasks();
+    assert.equal(handshake, 1, '基础实际版本就绪后才启动 capability 注册握手');
+    const controllerCount = assemblies.controllers.length;
+    assert.equal(controller.options.readSystemWallpapers(), undefined,
+      'capability 注册握手未结算时不开放壁纸入口');
 
     gates[0].resolve({ ok: true, value: false });
     await flushMicrotasks();
-    assert.equal(assemblies.controllers.length, 1, 'false 只关闭扩展，不撤回基础 controller');
-    assert.equal(assemblies.entries.at(-1), firstEntry, 'false 不重建基础相机入口');
-    assert.equal(firstController.options.readSystemWallpapers(), undefined);
+    assert.equal(assemblies.controllers.length, controllerCount, '扩展握手失败不撤回基础 controller');
+    assert.equal(assemblies.entries.at(-1), entry, '扩展握手失败不重建基础相机入口');
+    assert.equal(controller.options.readSystemWallpapers(), undefined);
+    await controller.options.capture(dom.window.document, { signal: new AbortController().signal });
+    assert.equal(captureRemote.captureCalls, 1, '扩展握手失败仍允许当前基础 Capture Remote 取像');
+    assert.equal(await assemblies.activateInstalled('0.5.1'), false,
+      '基础实现版本匹配不能单独宣称新增能力已激活');
 
     firstProvider.dispose();
-    assert.equal(firstController.disposed, true, '撤回 provider 归还旧 controller');
-    const secondProvider = inject();
-    const secondController = assemblies.controllers.at(-1);
-    const secondEntry = assemblies.entries.at(-1);
-    assert.notEqual(secondController, firstController);
-    assert.ok(secondEntry?.options.capture, '同 proxy 新世代重新装配基础相机');
-    assert.equal(secondController.options.readSystemWallpapers(), undefined);
-
+    const secondProvider = inject('capability', capabilityRemote);
+    await flushMicrotasks();
+    assert.equal(assemblies.controllers.at(-1), controller, 'capability 重注入不重建截图 controller');
+    assert.equal(assemblies.entries.at(-1), entry, 'capability 重注入不重建相机入口');
+    const thirdProvider = inject('capability', capabilityRemote);
+    await flushMicrotasks();
     secondProvider.dispose();
-    const thirdProvider = inject();
-    const thirdController = assemblies.controllers.at(-1);
-    const thirdEntry = assemblies.entries.at(-1);
-    assert.notEqual(thirdController, secondController);
-    assert.equal(thirdController.options.readSystemWallpapers(), undefined);
+    assert.equal(controller.options.readSystemWallpapers(), undefined);
 
     gates[1].resolve({ ok: true, value: true });
     await flushMicrotasks();
-    assert.equal(assemblies.controllers.at(-1), thirdController,
-      '旧世代迟到 true 不替换新世代 controller');
-    assert.equal(assemblies.entries.at(-1), thirdEntry,
-      '旧世代迟到 true 不替换相机入口');
-    assert.equal(thirdController.options.readSystemWallpapers(), undefined,
-      '同 proxy 身份不能让旧 Promise 授权当前世代');
+    assert.equal(assemblies.controllers.at(-1), controller,
+      '旧 capability 世代迟到 true 不重建基础 controller');
+    assert.equal(assemblies.entries.at(-1), entry,
+      '旧 capability 世代迟到 true 不重建相机入口');
+    assert.equal(controller.options.readSystemWallpapers(), undefined,
+      '同 proxy 身份不能让旧 Promise 授权当前 capability 世代');
 
     gates[2].resolve({ ok: true, value: true });
     await flushMicrotasks();
-    assert.equal(assemblies.controllers.at(-1), thirdController, '正确握手不重建 controller');
-    assert.equal(assemblies.entries.at(-1), thirdEntry, '正确握手不重建相机入口');
-    assert.equal(thirdController.options.readSystemWallpapers(), assemblies.adapters.at(-1),
-      '仅当前注入世代的 true 握手授权壁纸扩展');
+    assert.equal(assemblies.controllers.at(-1), controller, '迟到的正确握手不重建 controller');
+    assert.equal(assemblies.entries.at(-1), entry, '迟到的正确握手不重建相机入口');
+    const adapter = controller.options.readSystemWallpapers();
+    assert.equal(adapter, assemblies.adapters.at(-1), '当前 capability 版本与握手均成功才开放入口');
+    assert.equal(adapter.remote, capabilityRemote, '壁纸 adapter 必须使用独立 capability Remote');
+    assert.equal(typeof adapter.options.beforeRequest, 'function', '每次壁纸动作必须经过 capability 版本围栏');
+    assert.equal(await assemblies.activateInstalled('0.5.1'), true,
+      'Updater activation 同时要求基础和 capability 的实际版本/握手');
+    await adapter.options.beforeRequest();
+    capabilityVersion = '0.5.0';
+    await assert.rejects(adapter.options.beforeRequest(), /runtime-not-current/,
+      '每次壁纸动作都重新核对 capability 实际版本');
+    capabilityVersion = '0.5.1';
+
     thirdProvider.dispose();
+    assert.equal(controller.options.readSystemWallpapers(), undefined, 'dispose 立即撤回本地入口订阅');
+    await assert.rejects(adapter.options.beforeRequest(), /runtime-not-current/,
+      'dispose 后旧 adapter 不得继续使用 capability proxy');
+    assert.equal(assemblies.controllers.at(-1), controller, '扩展 dispose 不重建正在编辑的工作台');
+    captureProvider.dispose();
   } finally {
     disposeBundle();
     dom.window.close();
@@ -414,18 +505,27 @@ async function assertWallpaperHandshakeLifecycle(mutateSource) {
   assert.equal(assemblies.controllers.at(-1).disposed, true, '卸载归还当前 controller');
 }
 
-test('真实 component-runtime 隔离同一 Remote proxy 的壁纸握手世代', async () => {
-  await assertWallpaperHandshakeLifecycle();
+test('真实 component-runtime 分离基础截图与 capability 的迟到握手和世代', async () => {
+  await assertCapabilityHandshakeLifecycle();
+  await assertCapabilityHandshakeLifecycle(undefined, { capabilityFirst: true, delayBaseReadiness: true });
+  await assertCapabilityHandshakeLifecycle(undefined, { delayBaseReadiness: true, replaceBaseWhilePending: true });
   const removeIncarnationFence = source => replaceExactlyOnce(source,
-    'if (currentActive && !disposed && captureRemote === current) wallpaperRemoteRegistered = registered;',
-    'if (!disposed && captureRemote === current) wallpaperRemoteRegistered = registered;');
-  await assert.rejects(assertWallpaperHandshakeLifecycle(removeIncarnationFence),
-    /同 proxy 身份不能让旧 Promise 授权当前世代/);
-  const methodOnlyAuthorization = source => replaceExactlyOnce(source,
-    'readSystemWallpapers: () => captureRemote === remote && wallpaperRemoteRegistered ? systemWallpapers : undefined,',
-    "readSystemWallpapers: () => typeof remote.wallpaper === 'function' ? systemWallpapers : undefined,");
-  await assert.rejects(assertWallpaperHandshakeLifecycle(methodOnlyAuthorization),
-    /仅看到 wallpaper 方法不能授权尚未完成的扩展/);
+    'runtimeCapabilitiesRemote === capabilities && runtimeCapabilitiesGeneration === capabilitiesGeneration) {\n          runtimeCapabilitiesReady = ready;',
+    'runtimeCapabilitiesRemote === capabilities) {\n          runtimeCapabilitiesReady = ready;');
+  await assert.rejects(assertCapabilityHandshakeLifecycle(removeIncarnationFence),
+    /同 proxy 身份不能让旧 Promise 授权当前 capability 世代/);
+  const removeCaptureGenerationFence = source => replaceExactlyOnce(source,
+    'captureRemoteGeneration !== captureGeneration ||\n            runtimeCapabilitiesRemote !== capabilities',
+    'runtimeCapabilitiesRemote !== capabilities');
+  await assert.rejects(assertCapabilityHandshakeLifecycle(removeCaptureGenerationFence, {
+    delayBaseReadiness: true,
+    replaceBaseWhilePending: true,
+  }), /旧基础世代 settle 不得启动扩展握手/);
+  const baseMethodAuthorization = source => replaceExactlyOnce(source,
+    'readSystemWallpapers: () => captureRemote === remote && runtimeCapabilitiesRemote && runtimeCapabilitiesReady ? runtimeWallpaperAdapter : undefined,',
+    "readSystemWallpapers: () => typeof remote.wallpaper === 'function' ? { remote } : undefined,");
+  await assert.rejects(assertCapabilityHandshakeLifecycle(baseMethodAuthorization),
+    /基础壳即使保留旧 wallpaper 方法也不能授权新增入口/);
 });
 
 test('项目页脚只在两种实际设置详情底部呈现；摘要不添加链接或设置写入', async () => {

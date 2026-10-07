@@ -4,8 +4,9 @@
 - `index.ts`: 唯一 `pdsh` Host Config/apply 与 Typert 源面；保留根 Config 地址，macOS 保持注册 capture service，Windows 仅在 x64 且包内 exe 为普通文件时注册；其余功能与 captureEnabled 撤回独立。
 - `capture.ts`: 声明 `captureEnabled`、独立身份遮挡与导出设置，引用 shared POSIX/Windows 绝对目录语法；保留历史默认迁移和 root owner-scoped listener，实际写入仍受 Host native path 校验。默认目录沿用本机用户home下Downloads，不探测重定向known folder。
 - `context.ts`: 以类型扩充 Cordis Context，描述唯一已注册 capture service；不制造 runtime binding 或 Typert descriptor。
-- `window-capture-service.ts`: 唯一 Remote 外壳，提供三流、实现版本与纯壁纸注册握手。基础换载不添加 Remote marker。壁纸扩展不兼容时返回 unavailable，不阻断截图/保存。
-- `capture-runtime.ts`: 稳定 v1 截图/保存与独立壁纸扩展闭包；目录选当前Apple两主题，load重核来源；撤权/卸载join网络、临时文件及helper真实结算。
+- `window-capture-service.ts`: 固定基础 Remote 壳，提供截图/保存及历史壁纸兼容面。只依赖 Loader 的稳定接口；新能力不进入根生成面。
+- `runtime-capabilities-service.ts`: 官方内部能力 service；子 Fiber 拥有版本/壁纸接口，权限与业务仍归根实例。
+- `capture-runtime.ts`: 稳定 v1 基础与内部能力闭包；初始 thenable 等官方子 Fiber。旧操作结算后撤销本代能力，不修改根 Config。
 - `window-capture-stream.ts`: 纯异步 capture 编排；惰性首拉、单航班、固定阶段/终态和≤32KiB PNG chunk，取消不微任务自旋且在锁释放前等待 helper Promise settle。
 - `native-window-capture.ts`: Node adapter 只选择已支持的 macOS/Windows x64 包内 helper，Windows 隐藏子进程窗口；校验固定状态与 PNG envelope，取消后 SIGTERM/强制结束仍等待 close；不持久化图像、不挂 Main 或网络路由。
 - `system-wallpaper-native.ts`: 同包macOS helper的有界JPEG边界；旧list只保留兼容，动态材料ID与固定系统HEIC/Host私有MOV仅由Host选择；匹配缺失状态可下载，取消等真实close，不泄漏stderr。

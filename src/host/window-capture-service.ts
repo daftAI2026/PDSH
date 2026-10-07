@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖官方 Typert、Manager 包位置与基础/扩展分离的业务协调器。
  * [OUTPUT]: 提供截图、保存、可选壁纸、纯注册握手与实际实现版本；扩展不适配不阻断基础。
- * [POS]: 唯一 Remote 外壳。payload 换载不改变已运行类的 Remote marker。
+ * [POS]: 固定基础外壳。只依赖稳定 Loader 接口；新能力由业务子 Fiber 注册。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { BUNDLE_NAME } from '../shared/components.ts'
@@ -11,7 +11,7 @@ import type { RemoteStream } from '@deepseek-ai/dsh-typert-protocol'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createCaptureRuntimeLoader, locateCaptureRuntime } from './capture-runtime-loader.ts'
-import type { CaptureRuntime } from './capture-runtime.ts'
+import type { CaptureRuntimeInstance } from './capture-runtime-loader.ts'
 import type { CaptureFrame } from '../shared/window-capture-protocol.ts'
 import type { WindowSaveFrame, WindowSaveInputFrame, WindowSaveRequest } from '../shared/window-save-protocol.ts'
 import type { WallpaperFrame, WallpaperRequest } from '../shared/system-wallpaper-protocol.ts'
@@ -52,8 +52,8 @@ export class WindowCaptureService extends TypertRemoteService {
     const owner = this
     return { async *[Symbol.asyncIterator]() {
       if (owner.disposed) { yield { type: 'terminal', status: 'disposed' }; return }
-      let runtime: CaptureRuntime
-      try { runtime = await owner.runtime.current() as CaptureRuntime }
+      let runtime: CaptureRuntimeInstance
+      try { runtime = await owner.runtime.current() }
       catch { yield { type: 'terminal', status: owner.disposed ? 'disposed' : 'helper-failed' }; return }
       if (owner.disposed) { yield { type: 'terminal', status: 'disposed' }; return }
       yield* runtime.capture(signal)
@@ -68,8 +68,8 @@ export class WindowCaptureService extends TypertRemoteService {
     const uplink = invocation.uplink<WindowSaveInputFrame>()
     const owner = this
     return (async function* () {
-      let runtime: CaptureRuntime
-      try { runtime = await owner.runtime.current() as CaptureRuntime }
+      let runtime: CaptureRuntimeInstance
+      try { runtime = await owner.runtime.current() }
       catch {
         yield { type: 'terminal', requestId: isCaptureId(request?.requestId) ? request.requestId : '', code: owner.disposed ? 'disposed' : 'save-failed' }
         return
@@ -83,8 +83,8 @@ export class WindowCaptureService extends TypertRemoteService {
     const owner = this
     return { async *[Symbol.asyncIterator]() {
       if (owner.disposed) { yield { type: 'terminal', status: 'disposed' }; return }
-      let runtime: CaptureRuntime
-      try { runtime = await owner.runtime.current() as CaptureRuntime }
+      let runtime: CaptureRuntimeInstance
+      try { runtime = await owner.runtime.current() }
       catch { yield { type: 'terminal', status: owner.disposed ? 'disposed' : 'helper-failed' }; return }
       if (owner.disposed) { yield { type: 'terminal', status: 'disposed' }; return }
       if (!owner.runtime.supportsWallpaper(runtime)) { yield { type: 'terminal', status: 'unavailable' }; return }

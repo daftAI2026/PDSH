@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖唯一 ConfigForm、locale/slot/PluginManager、项目页脚、后台版本与壁纸注册握手。
- * [OUTPUT]: 按身份、标题、截图、项目页脚呈现详情；页脚随 Host 语言切换。完整 accepted 截图配置才装配相机，拍照重读身份遮挡。
- * [POS]: 单 Bundle Client 组合根；临时 RC 隔离配置且不注册正式更新入口，常驻身份、标题预遮挡与截图身份遮挡独立，共享唯一 ConfigForm；截图配置尚未就绪时只撤回相机，不影响身份/标题，后续快照可恢复。
+ * [INPUT]: 依赖唯一 ConfigForm、基础 Capture 与独立 RuntimeCapabilities Remote。
+ * [OUTPUT]: 装配身份、标题、截图及页脚；壁纸需版本与注册握手。
+ * [POS]: 单 Bundle 组合根。迟到扩展不重建工作台，不阻断基础截图。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useSyncExternalStore } from 'react';
@@ -21,7 +21,7 @@ import { mountCaptureBackgroundTabs } from './capture/background-tabs.tsx';
 import { mountCaptureController } from './capture/controller.ts';
 import { mountCaptureNotices } from './capture-notice.tsx';
 import { readCaptureDirectoryPicker } from './capture/directory.ts';
-import { isCaptureRuntimeCurrent, isWallpaperRemoteRegistered, requireCaptureRuntimeCurrent } from './capture/runtime-readiness.ts';
+import { isCaptureRuntimeCurrent, isWallpaperCapabilityReady, requireCaptureRuntimeCurrent, requireWallpaperCapabilityCurrent } from './capture/runtime-readiness.ts';
 import { captureOwnedWindow, capturedWindowScale } from './capture/window-capture.ts';
 import { createSystemWallpaperRemoteAdapter } from './capture/system-wallpaper-remote.ts';
 import { saveWindowImage, prepareWindowSaveDirectory } from './capture/window-save.ts';
@@ -67,7 +67,12 @@ export function mountComponent(ctx, doc: Document = document) {
     const cleanup: Array<() => void> = [];
     let disposed = false;
     let captureRemote: any;
-    let wallpaperRemoteRegistered = false;
+    let captureRemoteGeneration = 0;
+    let captureRuntimeReadiness: { remote: any; generation: number; promise: Promise<boolean> } | undefined;
+    let runtimeCapabilitiesRemote: any;
+    let runtimeCapabilitiesReady = false;
+    let runtimeWallpaperAdapter: any;
+    let runtimeCapabilitiesGeneration = 0;
     let captureController: any;
     let captureNotices: any;
     let entry: any;
@@ -105,7 +110,17 @@ export function mountComponent(ctx, doc: Document = document) {
       root.render(<NativeStyleProbe doc={doc} />);
       const offTooltips = mountDomTooltips(doc);
       cleanup.push(offTooltips);
-      const updater = createUpdateController(ctx.remote.pluginManager, loadReleaseTags, __PDSH_VERSION__, version => isCaptureRuntimeCurrent(captureRemote, version));
+      const updater = createUpdateController(ctx.remote.pluginManager, loadReleaseTags, __PDSH_VERSION__, async version => {
+        const capture = captureRemote;
+        const captureGeneration = captureRemoteGeneration;
+        if (!capture || !await isCaptureRuntimeCurrent(capture, version) || captureRemote !== capture || captureRemoteGeneration !== captureGeneration) return false;
+        const capabilities = runtimeCapabilitiesRemote;
+        if (!capabilities) return false;
+        const capabilitiesGeneration = runtimeCapabilitiesGeneration;
+        const ready = await isWallpaperCapabilityReady(capabilities, version);
+        return ready && captureRemote === capture && captureRemoteGeneration === captureGeneration
+          && runtimeCapabilitiesGeneration === capabilitiesGeneration && runtimeCapabilitiesRemote === capabilities;
+      });
       cleanup.push(() => updater.dispose());
 
       const presentation = mountPresentation(doc);
@@ -163,12 +178,6 @@ export function mountComponent(ctx, doc: Document = document) {
         const trace = createCaptureTrace(ctx.logger, 'renderer');
         try {
           const remote = captureRemote;
-          const systemWallpapers = navigatorPlatform.startsWith('Mac') && typeof remote.wallpaper === 'function'
-            ? createSystemWallpaperRemoteAdapter(remote, {
-              beforeRequest: signal => requireCaptureRuntimeCurrent(remote, __PDSH_VERSION__, signal),
-              locale: () => ctx.locale.getSnapshot?.().active ?? doc.documentElement.lang ?? doc.defaultView.navigator.language,
-            })
-            : undefined;
           captureNotices = mountCaptureNotices(doc);
           captureController = mountCaptureController(doc, {
             capture: async (document, options) => {
@@ -196,13 +205,37 @@ export function mountComponent(ctx, doc: Document = document) {
             notify: captureNotices.show,
             presetAssets,
             mountBackgroundTabs: mountCaptureBackgroundTabs,
-            readSystemWallpapers: () => captureRemote === remote && wallpaperRemoteRegistered ? systemWallpapers : undefined,
+            readSystemWallpapers: () => captureRemote === remote && runtimeCapabilitiesRemote && runtimeCapabilitiesReady ? runtimeWallpaperAdapter : undefined,
           });
           syncEntry();
       } catch (error) {
         try { stopCapture(); } catch (disposeError) { ctx.logger.warn('PDSH capture cleanup failed.', disposeError); }
         ctx.logger.warn('PDSH capture capability could not be mounted.', error);
       }
+    }
+
+    function probeRuntimeCapabilities() {
+      const capture = captureRemote;
+      const captureGeneration = captureRemoteGeneration;
+      const captureReadiness = captureRuntimeReadiness;
+      const capabilities = runtimeCapabilitiesRemote;
+      const capabilitiesGeneration = runtimeCapabilitiesGeneration;
+      if (!capture || !capabilities || !captureReadiness || captureReadiness.remote !== capture ||
+          captureReadiness.generation !== captureGeneration) {
+        runtimeCapabilitiesReady = false;
+        return;
+      }
+      void (async () => {
+        if (!await captureReadiness.promise) return false;
+        if (disposed || captureRemote !== capture || captureRemoteGeneration !== captureGeneration ||
+            runtimeCapabilitiesRemote !== capabilities || runtimeCapabilitiesGeneration !== capabilitiesGeneration) return false;
+        return await isWallpaperCapabilityReady(capabilities, __PDSH_VERSION__);
+      })().then(ready => {
+        if (!disposed && captureRemote === capture && captureRemoteGeneration === captureGeneration &&
+            runtimeCapabilitiesRemote === capabilities && runtimeCapabilitiesGeneration === capabilitiesGeneration) {
+          runtimeCapabilitiesReady = ready;
+        }
+      });
     }
 
     function syncPreferences() {
@@ -242,25 +275,69 @@ export function mountComponent(ctx, doc: Document = document) {
       inject: () => ({ updater, version: __PDSH_VERSION__ }),
     }, UpdateBadge)));
 
-    // +--- 可选官方 namespace；缺少取像服务不阻塞身份与标题 ---+
+    // +--- 基础 Capture 触发版本化业务载入；缺少该服务不阻塞身份与标题 ---+
     const captureFiber = ctx.inject(['remote.pdshNativeWindowCapture'], (captureCtx) => {
       const current = captureCtx.remote.pdshNativeWindowCapture;
-      let currentActive = true;
+      const generation = ++captureRemoteGeneration;
       captureRemote = current;
-      wallpaperRemoteRegistered = false;
-      void isWallpaperRemoteRegistered(current).then(registered => {
-        if (currentActive && !disposed && captureRemote === current) wallpaperRemoteRegistered = registered;
-      });
+      runtimeCapabilitiesReady = false;
       // +--- Client 热装配后只读激活当前后台；权限与像素仍只由明确拍照动作触发 ---+
-      void isCaptureRuntimeCurrent(current, __PDSH_VERSION__);
+      captureRuntimeReadiness = {
+        remote: current,
+        generation,
+        promise: isCaptureRuntimeCurrent(current, __PDSH_VERSION__),
+      };
       syncCapture();
+      probeRuntimeCapabilities();
       captureCtx.effect(() => () => {
-        currentActive = false;
-        if (captureRemote === current) { captureRemote = undefined; wallpaperRemoteRegistered = false; }
+        if (captureRemoteGeneration === generation && captureRemote === current) {
+          captureRemote = undefined;
+          captureRuntimeReadiness = undefined;
+          captureRemoteGeneration++;
+          runtimeCapabilitiesReady = false;
+          probeRuntimeCapabilities();
+        }
         syncCapture();
       }, 'pdsh optional capture remote');
     });
     cleanup.push(() => { void captureFiber.dispose(); });
+
+    // +--- 独立 capability 只在真实版本与纯注册握手通过后开放 ---+
+    const capabilitiesFiber = ctx.inject(['remote.pdshRuntimeCapabilities'], (capabilitiesCtx) => {
+      const current = capabilitiesCtx.remote.pdshRuntimeCapabilities;
+      const generation = ++runtimeCapabilitiesGeneration;
+      let currentActive = true;
+      runtimeCapabilitiesRemote = current;
+      runtimeCapabilitiesReady = false;
+      runtimeWallpaperAdapter = doc.defaultView.navigator.platform.startsWith('Mac')
+        ? createSystemWallpaperRemoteAdapter(current, {
+          beforeRequest: async signal => {
+            const capture = captureRemote;
+            const captureGeneration = captureRemoteGeneration;
+            const isCurrent = () => currentActive && !disposed && runtimeCapabilitiesGeneration === generation &&
+              runtimeCapabilitiesRemote === current && runtimeCapabilitiesReady && Boolean(capture) &&
+              captureRemote === capture && captureRemoteGeneration === captureGeneration;
+            if (!isCurrent()) throw new Error('runtime-not-current');
+            await requireCaptureRuntimeCurrent(capture, __PDSH_VERSION__, signal);
+            if (!isCurrent()) throw new Error('runtime-not-current');
+            await requireWallpaperCapabilityCurrent(current, __PDSH_VERSION__, signal);
+            if (!isCurrent()) throw new Error('runtime-not-current');
+          },
+          locale: () => ctx.locale.getSnapshot?.().active ?? doc.documentElement.lang ?? doc.defaultView.navigator.language,
+        })
+        : undefined;
+      probeRuntimeCapabilities();
+      capabilitiesCtx.effect(() => () => {
+        currentActive = false;
+        if (runtimeCapabilitiesGeneration === generation && runtimeCapabilitiesRemote === current) {
+          runtimeCapabilitiesRemote = undefined;
+          runtimeCapabilitiesReady = false;
+          runtimeWallpaperAdapter = undefined;
+          probeRuntimeCapabilities();
+        }
+      }, 'pdsh optional runtime capabilities remote');
+    });
+    cleanup.push(() => { void capabilitiesFiber.dispose(); });
 
     return disposeBundle;
     } catch (error) {

@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖固定发布源码 fixture、esbuild 严格虚拟依赖与真实安装 payload 字节。
- * [OUTPUT]: 验证 v1 已运行壳换载当前候选，并证明已运行 v2 壳拒绝 v1 候选。
- * [POS]: 跨发布版本 Host Loader 合同；只用自有临时包和空 Settings，不调用完整 Remote RPC。
+ * [INPUT]: 依赖固定旧壳/反射面、官方 Cordis/Registry、真实安装 payload 与 esbuild。
+ * [OUTPUT]: 验证旧壳换载新增严格能力并撤销；保留已发布 v2 拒绝 v1 的负例。
+ * [POS]: 跨版本装配合同。空 Settings 不取像；真实注册不代替 Gateway 或 Desktop。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import assert from 'node:assert/strict'
@@ -10,6 +10,8 @@ import { gunzipSync } from 'node:zlib'
 import { mkdtemp, mkdir, readFile, rm, symlink, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import test from 'node:test'
+import { Context } from '@deepseek-ai/cordis'
+import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
 import { build } from 'esbuild'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -22,6 +24,7 @@ const CURRENT_RUNTIME_CONTRACT = CONTRACT_V1
 const NODE_IMPORTS = new Set(['node:fs/promises', 'node:path', 'node:url'])
 
 const FIXTURE_SHA256 = {
+  'typert.host.v0.4.0.js.fixture': 'b08e59ab54ed99e0adae9afa917ce600d07c61649be6c26c9382a9b653ce89cc',
   'capture-runtime-loader.v0.4.0.ts.fixture': '18eb9ab94eaf995965f841ea7371d891c6e49b1090f896daf749cae244e3472b',
   'components.v0.4.0.ts.fixture': '7cd9dca3b81a7b5e971a32f6ae2e4f4567a51ade3b3601026be4203d33112782',
   'capture-runtime.v0.4.0.js.gz.fixture': 'c4468ab23c3ebe7d7767d0fa8c06a8fe7a7d961df09f7d1486a37e6d545060ea',
@@ -125,6 +128,7 @@ async function writePackage(root: string, name: string, manifestBytes: Buffer, v
   await mkdir(runtimeRoot, { recursive: true })
   await writeFile(join(packageRoot, 'package.json'), manifestBytes)
   await writeFile(join(runtimeRoot, `${version}.js`), payload)
+  await symlink(join(PROJECT_ROOT, 'node_modules'), join(packageRoot, 'node_modules'), 'dir')
   return packageRoot
 }
 
@@ -241,5 +245,163 @@ test('已运行 v0.5.0 immutable v2 壳拒绝 v1 扩展候选', async (t) => {
   } finally {
     await loader?.dispose().catch(() => undefined)
     await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('旧 v1 壳换载时新增能力获得独立官方严格注册，换代与卸载精确撤销', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'pdsh-legacy-capabilities-'))
+  const context = new Context()
+  let loader: ReturnType<HistoricalLoader['createCaptureRuntimeLoader']> | undefined
+  let releasePrevious: (() => void) | undefined
+  try {
+    await symlink(join(PROJECT_ROOT, 'node_modules'), join(root, 'node_modules'), 'dir')
+    await context.plugin(TypertRegistry).await()
+    context.provide('settings', { describe: () => [] })
+    const fixedShell = context.plugin({ name: 'published-fixed-shell', inject: ['typert', 'settings'], apply() {} })
+    await fixedShell.await()
+    const facePath = join(root, 'published-typert.mjs')
+    await writeFile(facePath, await pinnedFixture('typert.host.v0.4.0.js.fixture'))
+    const { TYPERT: publishedFace } = await import(pathToFileURL(facePath).href)
+    fixedShell.ctx.typert.register(publishedFace)
+    assert.equal(context.get('typert').local.get('pdshNativeWindowCapture/wallpaper'), undefined,
+      '旧生成面不能被测试偷偷增加新接口')
+
+    const candidate = await currentCandidate()
+    const packageLink = join(root, 'profile/node_modules/@daftai/pdsh')
+    await mkdir(dirname(packageLink), { recursive: true })
+    const candidateRoot = await writePackage(root, 'installed-first', await readFile(join(PROJECT_ROOT, 'package.json')),
+      candidate.manifest.version, candidate.payload)
+    await symlink(candidateRoot, packageLink, 'dir')
+    const legacy = await compileHistoricalLoader('v0.4.0', root)
+    loader = legacy.createCaptureRuntimeLoader({ locate: () => legacy.locateCaptureRuntime(packageLink), context: fixedShell.ctx })
+
+    // +--- 官方服务注入事件才是就绪屏障；基础版本回复不承担扩展就绪语义。 ---+
+    const readyService = () => new Promise<any>((resolve) => {
+      fixedShell.ctx.inject(['pdshRuntimeCapabilities'], child => resolve(child.get('pdshRuntimeCapabilities')))
+    })
+    const firstReady = readyService()
+    const first = await loader.current()
+    assert.equal(first.version, candidate.manifest.version)
+    assert.equal(typeof first.then, 'undefined', 'Loader 回复前须完成初始 thenable 屏障')
+    assert.ok(context.get('pdshRuntimeCapabilities'), '基础回复时 Host 子能力已实际激活')
+    const capabilities = await withDeadline(firstReady, '新增能力实际就绪')
+    assert.equal(await capabilities.implementationVersion(), candidate.manifest.version)
+    assert.equal(capabilities.wallpaperRegistered(), true)
+    const endpoint = 'pdshRuntimeCapabilities/wallpaper'
+    const registered = context.get('typert').local.get(endpoint)
+    assert.ok(registered, '当前 payload 必须注册新增 endpoint')
+    assert.equal(registered.result.mode, 'strict', '拒绝 marker-only SRC 退化')
+    const requestCodec = registered.parameters.find(parameter => parameter.name === 'request')?.codec
+    assert.ok(requestCodec)
+    assert.equal(requestCodec.mode, 'strict')
+    assert.doesNotThrow(() => requestCodec.create().parse({ kind: 'list' }))
+    assert.throws(() => requestCodec.create().parse({ kind: 'load', id: 42 }))
+    assert.deepEqual(await Array.fromAsync(capabilities.wallpaper({ kind: 'list' }, new AbortController().signal)),
+      [{ type: 'terminal', status: 'not-enabled' }], '实际业务调用继续遵守 accepted 设置，不读系统媒体')
+    const owner = '@daftai/pdsh-capabilities'
+    assert.ok(context.get('typert').getPackage(owner, 'host'))
+    assert.equal(context.get('typert').getPackage('@daftai/pdsh', 'host')?.model, publishedFace.model,
+      '新能力不得改写旧壳缓存的真实贡献')
+
+    // +--- 即使位置变化而版本未变，也须先结算旧 generation，再注册同一内部 owner。 ---+
+    const disposeFirst = first.dispose.bind(first)
+    let settling = false
+    const held = new Promise<void>(resolve => { releasePrevious = resolve })
+    first.dispose = async () => { settling = true; await held; await disposeFirst() }
+    const secondRoot = await writePackage(root, 'installed-second', await readFile(join(PROJECT_ROOT, 'package.json')),
+      candidate.manifest.version, candidate.payload)
+    await unlink(packageLink)
+    await symlink(secondRoot, packageLink, 'dir')
+    const swapping = loader.current()
+    while (!settling) await new Promise(resolve => setImmediate(resolve))
+    assert.equal(context.get('typert').local.get(endpoint), registered, '旧结算未结束不能提前注册下一代')
+    releasePrevious(); releasePrevious = undefined
+    const second = await swapping
+    assert.notEqual(second, first)
+    const secondCapabilities = await withDeadline(readyService(), '第二代能力就绪')
+    assert.equal(await secondCapabilities.implementationVersion(), candidate.manifest.version)
+    assert.notEqual(context.get('typert').local.get(endpoint), registered, '版本化 payload 必须贡献本代生成对象')
+    assert.equal(context.get('typert').listPackages({ package: owner }).length, 1)
+
+    await withDeadline(loader.dispose(), '能力与旧操作卸载')
+    assert.equal(context.get('typert').local.get(endpoint), undefined)
+    assert.equal(context.get('typert').getPackage(owner, 'host'), undefined)
+    assert.equal(context.get('pdshRuntimeCapabilities'), undefined)
+    assert.ok(context.get('typert').local.get('pdshNativeWindowCapture/capture'), '子能力撤销不删除基础贡献')
+    await fixedShell.dispose()
+    assert.equal(context.get('typert').local.get('pdshNativeWindowCapture/capture'), undefined)
+  } finally {
+    releasePrevious?.()
+    await loader?.dispose().catch(() => undefined)
+    await context.fiber.dispose()
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+async function capabilityShell(context: Context, enabled = false) {
+  await context.plugin(TypertRegistry).await()
+  context.provide('settings', { describe: () => enabled ? [{ ns: 'pdsh', value: { captureEnabled: true } }] : [] })
+  const shell = context.plugin({ name: 'capability-lifetime-shell', inject: ['typert', 'settings'], apply() {} })
+  await shell.await()
+  const candidate = await currentCandidate()
+  const module = await import(pathToFileURL(join(PROJECT_ROOT, 'lib/capture-runtime', `${candidate.manifest.version}.js`)).href)
+  return { shell, module }
+}
+
+test('同步工厂的初始 thenable 等官方 Fiber，保留实例身份；父卸载等待业务结算', async () => {
+  const context = new Context()
+  let runtime: any
+  try {
+    const { shell, module } = await capabilityShell(context)
+    runtime = module.create(shell.ctx)
+    assert.equal(runtime instanceof Promise, false)
+    assert.equal(typeof runtime.then, 'function')
+    assert.equal(context.get('pdshRuntimeCapabilities'), undefined, '不能伪造同步 child ready')
+    shell.ctx.effect(() => () => runtime.dispose(), 'test: settle owned runtime')
+    const [first, second] = await Promise.all([Promise.resolve(runtime), Promise.resolve(runtime)])
+    assert.equal(first, runtime)
+    assert.equal(second, runtime)
+    assert.equal(runtime.then, undefined, '就绪后的原实例不能递归 assimilate')
+    assert.ok(context.get('pdshRuntimeCapabilities'))
+    assert.equal(context.get('typert').local.get('pdshRuntimeCapabilities/wallpaper').result.mode, 'strict')
+    await withDeadline(shell.dispose(), '父 Fiber 实际卸载')
+    assert.equal(context.get('pdshRuntimeCapabilities'), undefined)
+    assert.equal(context.get('typert').getPackage('@daftai/pdsh-capabilities', 'host'), undefined)
+    assert.deepEqual(await Array.fromAsync(runtime.capture(new AbortController().signal)),
+      [{ type: 'terminal', status: 'disposed' }])
+  } finally {
+    await runtime?.dispose()
+    await context.fiber.dispose()
+  }
+})
+
+test('可选能力启动失败不阻断基础，也不删除其他 owner 的贡献；启动中卸载不重激活', async () => {
+  const context = new Context()
+  let runtime: any
+  try {
+    const { shell, module } = await capabilityShell(context, true)
+    const { TYPERT: occupied } = await import(new URL('../lib/runtime-capabilities/typert.host.js', import.meta.url).href)
+    const off = shell.ctx.typert.register(occupied)
+    runtime = module.create(shell.ctx)
+    assert.equal(await withDeadline(Promise.resolve(runtime), '失败扩展结算'), runtime)
+    assert.equal(context.get('pdshRuntimeCapabilities'), undefined)
+    assert.equal(context.get('typert').local.get('pdshRuntimeCapabilities/wallpaper'), occupied.invocations.find(item => item.method === 'wallpaper'))
+    const cancelled = new AbortController(); cancelled.abort()
+    assert.deepEqual(await Array.fromAsync(runtime.capture(cancelled.signal)),
+      [{ type: 'terminal', status: 'cancelled' }], '扩展失败不得撤回已启用的基础；预取消不启动 helper')
+    await runtime.dispose()
+    assert.ok(context.get('typert').getPackage('@daftai/pdsh-capabilities', 'host'))
+    await off()
+
+    runtime = module.create(shell.ctx)
+    shell.ctx.effect(() => () => runtime.dispose(), 'test: dispose during startup')
+    const starting = Promise.resolve(runtime)
+    await withDeadline(shell.dispose(), '启动期间父卸载')
+    await withDeadline(starting, '启动 Promise 结算')
+    assert.equal(context.get('pdshRuntimeCapabilities'), undefined)
+    assert.equal(context.get('typert').local.get('pdshRuntimeCapabilities/wallpaper'), undefined)
+  } finally {
+    await runtime?.dispose()
+    await context.fiber.dispose()
   }
 })

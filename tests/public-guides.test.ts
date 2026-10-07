@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖根指南、发布 skill、README 和许可。依赖 Node 文件与摘要接口。
- * [OUTPUT]: 验证指南边界、tag 渠道、skill 导航、历史原文和头像致谢。
+ * [OUTPUT]: 验证指南边界、tag 渠道、逐功能升级、skill 导航、历史原文和头像致谢。
  * [POS]: tests 的公开文档合同。不运行宿主或联网。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -87,6 +87,24 @@ test('公开规则与项目 skill 都默认只打 tag，不推断 Release 授权
   assert.ok(!currentContract.includes('GitHub Release 页面可选'));
   assert.ok(publishing.includes('[update-source.ts](src/client/update-source.ts)'));
   assert.ok(publishing.includes('[updater.ts](src/client/updater.ts)'));
+});
+
+test('升级合同逐功能验同路径，基础恢复不能代替扩展就绪', async () => {
+  const skill = await read('.agents/skills/pdsh-release-lifecycle/SKILL.md');
+  const stable = await read('.agents/skills/pdsh-release-lifecycle/references/stable.md');
+  const check = (entry: string) => {
+    assert.match(guide, /每项新增业务功能.*同一官方 tag 升级路径/u);
+    assert.match(entry, /每项新增业务功能.*同一官方 tag 升级路径/u);
+    assert.ok(entry.includes('包内代码不代表运行时装配。'));
+    assert.ok(entry.includes('纯版本回复不代替新增能力验收；缺失的功能仍记为失败。'));
+    assert.ok(stable.includes('逐项核对该版新增功能的入口、实际接口和业务动作。'));
+    assert.ok(stable.includes('保持同进程，不重启或切开关补齐业务功能。'));
+  };
+  check(skill);
+  // -------------------- 基础恢复不能伪装整版通过 --------------------
+  const baseOnly = skill.replace(/^- 每项新增业务功能[^\n]*\n/mu, '');
+  assert.notEqual(baseOnly, skill);
+  assert.throws(() => check(baseOnly));
 });
 
 // -------------------- 开源致谢 --------------------

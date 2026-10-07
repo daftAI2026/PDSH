@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖单包产物校验器与隔离临时发布目录。
- * [OUTPUT]: 验证有效单包，拒绝拓扑/版本、壁纸 ABI/声明闭包、helper架构/最低系统及归档执行位漂移。
+ * [OUTPUT]: 验证单包与私有能力面闭包，拒绝 ABI、helper 架构和归档执行位漂移。
  * [POS]: 分发拓扑回归门；不读取用户配置、联网或运行安装脚本。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -17,6 +17,37 @@ import { artifactFixture } from './bundle-fixture.ts';
 test('单包完整产物不需要 tag、Git 子依赖或安装脚本', () => {
   const h = artifactFixture(); try { assert.doesNotThrow(() => validateBundleArtifacts(h.root)); } finally { h.dispose(); }
 });
+test('能力面身份、版本、私有边界、独立 namespace 与 DTO 副本不可漂移', () => {
+  type Fixture = ReturnType<typeof artifactFixture>;
+  const defects: Record<string, (h: Fixture) => void> = {
+    missingManifest: h => unlinkSync(join(h.root, 'lib/runtime-capabilities/package.json')),
+    wrongOwner: h => {
+      const path = join(h.root, 'lib/runtime-capabilities/package.json');
+      const inner = JSON.parse(readFileSync(path, 'utf8')); inner.name = '@daftai/other-capabilities';
+      h.write('lib/runtime-capabilities/package.json', JSON.stringify(inner));
+    },
+    wrongVersion: h => {
+      const path = join(h.root, 'lib/runtime-capabilities/package.json');
+      const inner = JSON.parse(readFileSync(path, 'utf8')); inner.version = '0.4.0';
+      h.write('lib/runtime-capabilities/package.json', JSON.stringify(inner));
+    },
+    installable: h => {
+      const path = join(h.root, 'lib/runtime-capabilities/package.json');
+      const inner = JSON.parse(readFileSync(path, 'utf8')); inner.dependencies = { runtime: '1.2.3' };
+      h.write('lib/runtime-capabilities/package.json', JSON.stringify(inner));
+    },
+    onlyBaseFace: h => {
+      h.write('lib/runtime-capabilities/typert.host.js', readFileSync(join(h.root, 'lib/typert.host.js'), 'utf8'));
+      h.write('lib/runtime-capabilities/typert.remote-client.js', readFileSync(join(h.root, 'lib/typert.remote-client.js'), 'utf8'));
+    },
+    dtoDrift: h => h.write('lib/runtime-capabilities/types/shared/system-wallpaper-protocol.d.ts', 'different DTO copy'),
+  };
+  for (const [name, defect] of Object.entries(defects)) {
+    const h = artifactFixture();
+    try { defect(h); assert.throws(() => validateBundleArtifacts(h.root), /bundle|runtime capability/i, name); }
+    finally { h.dispose(); }
+  }
+});
 test('壁纸候选须带完整 DTO、官方 Remote 方法和 v2 实现，不复用旧壳', () => {
   for (const defect of ['declaration', 'descriptor', 'runtime']) {
     const h = artifactFixture();
@@ -24,7 +55,7 @@ test('壁纸候选须带完整 DTO、官方 Remote 方法和 v2 实现，不复�
       if (defect === 'declaration') unlinkSync(join(h.root, 'lib/types/shared/system-wallpaper-protocol.d.ts'));
       if (defect === 'descriptor') h.write('lib/typert.remote-client.js', "method: 'capture' method: 'save' method: 'implementationVersion'");
       if (defect === 'runtime') h.write('lib/capture-runtime/0.3.0.js', '/* PDSH build "0.3.0" */ pdsh-capture-runtime-v1');
-      assert.throws(() => validateBundleArtifacts(h.root), /bundle|Typert/, defect);
+      assert.throws(() => validateBundleArtifacts(h.root), /bundle|Typert|runtime capability/i, defect);
     } finally { h.dispose(); }
   }
 });

@@ -1,12 +1,13 @@
 /**
- * [INPUT]: 依赖稳定service上下文、accepted Settings、同包 helper、Apple 元数据选择器/有界系统下载器与同 namespace 保存。
- * [OUTPUT]: 提供稳定 v1 截图/保存和独立壁纸扩展；目录来自 Apple 顺序/代表关联，load 重核来源。
- * [POS]: 可更新Host业务闭包；复用唯一captureEnabled generation，在途壁纸下载/子进程真实settle后才释放；不注册service或改Config身份。
+ * [INPUT]: 依赖稳定壳、accepted Settings、原生后端与官方生成的内部能力面。
+ * [OUTPUT]: 提供稳定 v1 截图/保存与可更新能力。初始 thenable 等官方子 Fiber 就绪。
+ * [POS]: 同包版本化业务闭包。根 Config 拥有权限；旧操作结算后撤销本代能力。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { ROOT_ENTRY_ID } from '../shared/components.ts'
 import { CAPTURE_RUNTIME_CONTRACT, CAPTURE_WALLPAPER_CONTRACT } from '../shared/capture-runtime-contract.ts'
-import type { Context } from '@deepseek-ai/cordis'
+import { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-typert-registry'
 import type { RemoteStream } from '@deepseek-ai/dsh-typert-protocol'
 import { createClickCapture, resolveNativeCaptureHelperPath, runNativeCapture, isNativeCaptureFailureCode } from './native-window-capture.ts'
 import type { NativeCaptureFailureCode } from './native-window-capture.ts'
@@ -23,6 +24,8 @@ import { resolveSystemWallpaperHelperPath, runNativeWallpaperImage, NativeWallpa
 import type { NativeWallpaperImage } from './system-wallpaper-native.ts'
 import { downloadAppleWallpaperVideo } from './system-wallpaper-download.ts'
 import { discoverSystemWallpaperSources } from './system-wallpaper-catalog.ts'
+import { RuntimeCapabilitiesService } from './runtime-capabilities-service.ts'
+import { TYPERT } from '../../lib/runtime-capabilities/typert.host.js'
 
 type HostServiceContext = Context & {
   readonly settings: {
@@ -86,27 +89,58 @@ async function* observeCaptureFrames(
   }
 }
 
-/** 单 Cordis service 拥有capture/save/wallpaper；壁纸只经同一官方Remote stream返回静态JPEG。 */
+/** 基础壳和内部能力共用业务实例、权限与操作结算。 */
 declare const __PDSH_VERSION__: string
 export const version = __PDSH_VERSION__
 export const contract = CAPTURE_RUNTIME_CONTRACT
 export const wallpaperContract = CAPTURE_WALLPAPER_CONTRACT
-export function create(ctx: Context): CaptureRuntime { return new CaptureRuntime(ctx) }
+export function create(ctx: Context): CaptureRuntime {
+  const runtime = new CaptureRuntime(ctx)
+  // +--- 旧壳的 async return 自动等待 thenable；保持同步工厂与原实例身份。 ---+
+  return Object.defineProperty(runtime, 'then', {
+    configurable: true,
+    value(resolve: (instance: CaptureRuntime) => unknown, reject: (error: unknown) => unknown) {
+      return runtime.ready.then(() => {
+        delete (runtime as CaptureRuntime & { then?: unknown }).then
+        return resolve(runtime)
+      }, reject)
+    },
+  })
+}
 
 export class CaptureRuntime {
   readonly version = version
+  readonly ready: Promise<void>
 
   private readonly lifetime: CaptureServiceLifetime = createCaptureServiceLifetime()
   private readonly saveBackend = createWindowSaveBackend({
     preferences: () => acceptedWindowSavePreferences(this.ctx as HostServiceContext),
   })
   private disposal: Promise<void> | undefined
+  private readonly capabilities: ReturnType<Context['plugin']> | undefined
 
   constructor(private readonly ctx: Context) {
     const serviceContext = this.ctx as HostServiceContext
     const enabled = acceptedWindowSavePreferences(serviceContext).captureEnabled === true
     this.lifetime.setEnabled(enabled)
     logCaptureObservation(this.ctx, 'service-mounted', enabled)
+    // +--- 无 Cordis 的后端合同不伪造 provider；生产上下文由固定壳注入 typert。 ---+
+    if (!Context.is(ctx) || !ctx.get('typert')) {
+      this.ready = Promise.resolve()
+      return
+    }
+    this.capabilities = ctx.plugin({
+      name: 'pdsh-runtime-capabilities', inject: ['typert', 'settings'],
+      apply: child => {
+        child.typert.register(TYPERT)
+        new RuntimeCapabilitiesService(child, this)
+      },
+    })
+    this.ready = this.capabilities.await().then(() => undefined).catch(async () => {
+      // +--- 扩展启动失败只撤回扩展；不能再次阻断基础截图/保存。 ---+
+      await this.capabilities?.dispose()
+      try { ctx.get('logger')?.warn('PDSH runtime capabilities unavailable.') } catch { /* 固定诊断不改变结算。 */ }
+    })
   }
 
   /** 权限只在该 Remote iterable 首次被拉取时经原生 helper 请求。 */
@@ -225,7 +259,8 @@ export class CaptureRuntime {
   dispose(): Promise<void> {
     if (!this.disposal) {
       // +--- capture/save/wallpaper在同一个 synchronous turn撤权；关闭等待真实helper/write settle ---+
-      this.disposal = Promise.all([this.lifetime.dispose(), this.saveBackend.dispose()]).then(() => undefined)
+      this.disposal = Promise.all([this.lifetime.dispose(), this.saveBackend.dispose()])
+        .then(async () => { await this.capabilities?.dispose() })
     }
     return this.disposal
   }

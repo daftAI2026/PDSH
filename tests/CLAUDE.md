@@ -64,7 +64,7 @@
 
 - `host-acceptance.test.ts`: 集成 CLI 安全前置；自有临时目录验证 owner/路径/符号链接/凭据、stable/RC候选身份和精确PNPM版本门，不启动DSH或替代安装件验收。
 
-- `bundle-artifacts.test.ts`: Mac helper双架构/最低macOS14、Windows x64 console/asInvoker PE与归档0755丢失的正反回归，单包分发/生成版本/入口与真实 tgz 成员、类型、字节门；拒绝功能子依赖、宽泛 files 与安装 hook，不执行用户安装。
+- `bundle-artifacts.test.ts`: Mac helper双架构/最低macOS14、Windows x64 console/asInvoker PE与归档0755丢失的正反回归，单包与内部反射作用域的版本/入口、同源 DTO 和真实 tgz 字节门；拒绝功能子依赖、宽泛 files 与安装 hook，不执行用户安装。
 - `capture-defaults.test.ts`: 旧导出默认只通过根 pdsh revision 修正；自定义值、已移除子域与迟到卸载不覆盖偏好。
 
 - `window-capture-controller.test.ts`: 整窗元数据比例、禁猜页面坐标和人工授权等待的 Client 合同，不冒充实机证据。
@@ -78,7 +78,7 @@
 
 - `window-capture-stream.test.ts`: Host 惰性取像、整窗帧、单航班真实结算与取消时事件循环不自旋的定时器合同，不执行 helper。
 
-- `window-capture-typert.test.ts`: 官方生成 Host/Remote face 的唯一 namespace、基础流、wallpaperRegistered 与扩展流、uplink codec 和完整 DTO 出口。静态证据不冒充实机能力。
+- `window-capture-typert.test.ts`: 官方基础/内部能力面分域、真实内部 owner、自引用 DTO、流与纯握手。静态证据不冒充实际 Host。
 - `native-window-capture.test.ts`: fake子进程/时钟的原生包装器、CRC/PNG封套、真实close/单航班结算合同；覆盖Mac universal 与 Win x64 路由、包内 exe provider gate、hidden/non-shell argv、ARM64 拒绝及取消强杀等待；只读Mach-O验证Mac双架构，不运行真实helper。
 - `system-wallpaper-native.test.ts`: 源码锁定缓存桥/动态UUID和root-owned系统HEIC命令；macOS临时ObjC++ harness只开私有fixture fd，验证Aerial路径拒绝符号链接；不触用户缓存、解码或代替SDK/媒体/Desktop。
 - `system-wallpaper-mov-fixture.ts`: 共用人工单轨QuickTime Range源，模拟tapt/双hdlr/自包含alis/hvc1+nclc与已知辅助表，暴露64B头、moov、首sample和逻辑总长；可表示大源而不分配整片媒体，不代表Apple素材/native证据。
@@ -103,7 +103,7 @@
 - `capture-background-tabs.test.ts`: 原生 SegmentedControl 参数/受控更新/忙碌与卸载围栏，根桩不模拟 Host 键盘或视觉。
 
 - `capture-runtime-loader.test.ts`: v1/v2基础合同和wallpaper扩展独立验收；旧实例真实结算，不取像。
-- `capture-runtime-legacy-upgrade.test.ts`: 固定历史壳边界：v1→当前、v2→拒绝v1。用真实payload和空Settings，不调用Remote RPC。
+- `capture-runtime-legacy-upgrade.test.ts`: 固定历史壳/反射面，v1 换载新增严格能力并撤销；v2 拒绝 v1。真实 Cordis/Registry 和空 Settings 不证明 Gateway 或实机。
 - `runtime-upgrade-fixtures/CLAUDE.md`: 固定Loader、身份、manifest和payload字节；测试不调用Git。
 
 - `capture-runtime-readiness.test.ts`: 固定实际版本封套、独立壁纸握手与取消围栏；扩展未知不阻断基础版本，旧后台与连接未知分账。不取像。
@@ -125,6 +125,6 @@
 
 - `system-wallpaper-stream-catalog.test.ts`: 动态ID活动目录0–4项、重复/非法ID/名称C1与unavailable边界；fake operation不读取系统或联网。
 
-- `public-guides.test.ts`: 验证指南边界、tag 默认渠道和 skill 导航。按摘要核历史原文与头像许可。不运行宿主或联网。
+- `public-guides.test.ts`: 验证指南边界、tag 默认渠道、逐功能升级和 skill 导航。按摘要核历史原文与头像许可。不运行宿主或联网。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

@@ -1,10 +1,10 @@
 /**
  * [INPUT]: 依赖当前单包 manifest 与自有临时目录。
- * [OUTPUT]: 提供含壁纸 DTO/descriptor、独立基础/扩展标记的合成产物与归档清单。
- * [POS]: bundle/release 测试共用合成产物；假 helper 从不执行，不冒充实机产物。
+ * [OUTPUT]: 提供固定 token 的合成 Typert 面、私有能力清单和归档闭包。
+ * [POS]: bundle/release 测试共用静态夹具；假面与假 helper 均不可执行。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, chmodSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, chmodSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 export function artifactFixture() {
@@ -20,9 +20,38 @@ export function artifactFixture() {
   write('index.js', '/* PDSH build "0.3.0" */ @deepseek-ai/dsh-typert-protocol ./native/window-capture');
   write('lib/capture-runtime/0.3.0.js', '/* PDSH build \"0.3.0\" */ pdsh-capture-runtime-v1 pdsh-wallpaper-runtime-v1');
   write('client.js', '/* PDSH build "0.3.0" */\nwindow.__ModuleLoader__.load({id:"@daftai/pdsh",factory:()=>({})});');
-  write('lib/typert.host.js', "service: 'pdshWindowCapture' namespace: 'pdshNativeWindowCapture' method: 'capture' method: 'save' method: 'wallpaper' method: 'implementationVersion' uplink:");
-  write('lib/typert.remote-client.js', "method: 'capture' method: 'save' method: 'wallpaper' method: 'implementationVersion'");
+  write('lib/typert.host.js', "package: '@daftai/pdsh' service: 'pdshWindowCapture' namespace: 'pdshNativeWindowCapture' method: 'capture' method: 'save' method: 'wallpaper' method: 'implementationVersion' uplink:");
+  write('lib/typert.remote-client.js', "package: '@daftai/pdsh' namespace: 'pdshNativeWindowCapture' method: 'capture' method: 'save' method: 'wallpaper' method: 'implementationVersion'");
   write('lib/typert.remote-client.d.ts', 'RemoteStreamHandle<WindowSaveFrame, WindowSaveInputFrame>');
+  const capabilityName = `${manifest.name}-capabilities`;
+  write('lib/runtime-capabilities/package.json', JSON.stringify({
+    name: capabilityName, version: manifest.version, private: true, type: 'module',
+    exports: {
+      '.': './typert.host.js',
+      './typert': { types: './typert.host.d.ts', default: './typert.host.js' },
+      './remote': { types: './typert.remote-client.d.ts', default: './typert.remote-client.js' },
+      './types': { types: './types/shared/remote-types.d.ts' },
+    },
+  }));
+  // +--- 固定 token 只供静态反射门；这些描述符不模拟可执行 Typert 面。 ---+
+  const capabilityFace = `/* SYNTHETIC STATIC FIXTURE; NOT EXECUTABLE */ package: '${capabilityName}' service: 'pdshRuntimeCapabilities' namespace: 'pdshRuntimeCapabilities' method: 'implementationVersion' method: 'wallpaperRegistered' method: 'wallpaper'`;
+  write('lib/runtime-capabilities/typert.host.js', capabilityFace);
+  write('lib/runtime-capabilities/typert.remote-client.js', capabilityFace);
+  write('lib/runtime-capabilities/typert.host.d.ts', '/* SYNTHETIC STATIC FIXTURE; NOT EXECUTABLE */ export declare const TYPERT: unknown');
+  write('lib/runtime-capabilities/typert.remote-client.d.ts', `/* SYNTHETIC STATIC FIXTURE; NOT EXECUTABLE */
+import type { WallpaperFrame, WallpaperRequest } from '${capabilityName}/types'
+interface CapabilityRemote {
+  implementationVersion: () => Promise<RemoteResult<string>>
+  wallpaperRegistered: () => Promise<RemoteResult<boolean>>
+  wallpaper: (request: WallpaperRequest, signal?: AbortSignal) => RemoteStreamHandle<WallpaperFrame, never>
+}
+interface SyntheticNamespaceMap {
+  'pdshRuntimeCapabilities/implementationVersion': () => Promise<RemoteResult<string>>
+  'pdshRuntimeCapabilities': CapabilityRemote
+}`);
+  for (const declaration of ['capture-export', 'remote-types', 'window-capture-protocol', 'window-save-protocol', 'system-wallpaper-protocol']) {
+    copyFileSync(join(root, `lib/types/shared/${declaration}.d.ts`), join(root, `lib/runtime-capabilities/types/shared/${declaration}.d.ts`));
+  }
   // +--- 只有可解析的头部，没有机器指令；从不作为可运行 helper 使用 ---+
   const helper = Buffer.alloc(160);
   helper.writeUInt32BE(0xcafebabe, 0); helper.writeUInt32BE(2, 4);

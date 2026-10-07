@@ -112,11 +112,13 @@ transport 固定为 /usr/bin/curl，使用 --disable 和 shell:false。
 使用系统默认 TLS，不改变 Host dispatcher、CA 或代理。
 取消等待 child close，再清理自有临时文件。
 
-wallpaper Remote 是独立可选扩展。
-纯注册握手证明 Host 已装配新接口。
-旧壳的截图/保存 payload 基础合同保持稳定。
-payload 换载不会新增既运行壳的 Remote marker。
-新接口仍须正常加载新版壳。
+新增业务接口由当前实现注册官方内部能力面。
+内部反射包与根 Bundle 使用同一归档。
+包名和版本由根 manifest 派生，不增加安装依赖。
+基础壳继续保留截图/保存合同。
+初始 thenable 等官方子 Fiber，不改变原实例身份。
+Client 在基础版本回复后独立核对能力版本。
+壁纸还须纯注册握手，不用本地代理证明 Host 就绪。
 同合同业务换载仍须等旧操作实际结算。
 真实材料、预览、导出、取消和恢复分别验收。
 源码、归档或隔离 Host 通过不等于 Desktop 通过。
@@ -126,6 +128,21 @@ payload 换载不会新增既运行壳的 Remote marker。
 1. 运行 `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm build` 和 `pnpm run bundle`。检查当前版本真实 tgz 的成员、字节、权限、版本与依赖许可，不复用旧包冒充当前结果。归档只包含 manifest allowlist，不包含 node_modules、profile、凭据、日志或私有研究。
 2. 通过 `verify-host.ts` 在当前用户拥有的全新临时 profile 中运行目标 DSH 的实际 PluginManager、Typert Loader 和自带 PNPM。绑定被装版本、运行字节和来源摘要，检查单 root 行/Client、八组合功能设置、revision 写入与恢复、停用与重新启用。不得关闭 `blockExoticSubdeps`、替换解析器或伪造活动状态。此检查不拍摄像素，也不代替 Desktop UI。
 3. 实际 Desktop 验收独立记录：目标安装件的主题、入口、搜索展开/折叠、三个开关、截图覆盖/比例、重拍、复制、选目录/直接保存及取消/停用。旧版到新版的官方管理器升级也单独验证；实验重装不是升级证据。普通功能开关无需重启，替换包仅遵从宿主明确的加载/重启提示并保护未保存工作。
+
+## 0.5.2 发布决定：同路径新增业务能力修复
+
+本版让官方生成能力面随版本化业务装配。
+不改根 Config、基础 Remote 身份或安装路径。
+同一 tag 升级须验证截图和壁纸，不以基础恢复代替整体升级。
+仍运行 v1 壳的同进程链路是本次实测目标。
+已发布 v0.5.0 immutable v2 壳仍拒绝 v1，不能声称已兼容。
+用户明确授权以 0.5.1、0.5.2 等正式 patch tag 逐版验证。
+本次仅推 main 与 v0.5.2，不创建 Release 或 npm 包。
+不重启，不切开关；保护用户未保存的工作台。
+源码、严格装配合同、当前归档和精确 Host 门仍须通过。
+正式 tag 上线后再验实际官方 Git 升级及新增业务动作。
+最终像素对位、导出、Windows 实机与重启持久化仍分别未验。
+原话、红绿结果和实机回执只进入私人文档。
 
 ## 0.5.1 发布决定：正式修复 tag 验证
 

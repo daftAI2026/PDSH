@@ -1,10 +1,11 @@
 /**
- * [INPUT]: 依赖 staging manifest 包身份、PDSH Host/shared TypeScript、固定 upstream protocol reference 与官方 WorkspaceTypertGenerator。
- * [OUTPUT]: 把官方模型生成的取像/保存/壁纸 descriptor、Remote client 类型/API 与 schemas 写入 package/lib；不手写 wire descriptor。
- * [POS]: 单 Bundle 的 build-only generator bridge；真实源在临时 packages/ workspace 内按路径复制，规避 Generator 的 realpath package boundary。
+ * [INPUT]: 依赖根 manifest、基础壳/内部能力源码与固定官方 Generator/protocol。
+ * [OUTPUT]: 同源生成基础面、内部能力面及真实内部 manifest。不改生成 owner。
+ * [POS]: 单 Bundle 的构建边界。内部包作用域只供反射与类型，不增加安装依赖。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { createHash } from 'node:crypto'
+import { execFileSync } from 'node:child_process'
 import { cp, lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -23,36 +24,56 @@ const REFERENCE_FILES = {
 
 /** Official generator resolves only real packages beneath workspace/packages. */
 export async function generateTypertArtifacts(root = fileURLToPath(new URL('../', import.meta.url))): Promise<void> {
-  const { name: packageName } = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+  const { name: packageName, version } = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
   if (!['@daftai/pdsh', '@daftai/pdsh-rc'].includes(packageName)) throw new Error('unsupported Typert package identity')
   await verifyProtocolReference(root)
   const workspace = await mkdtemp(join(tmpdir(), 'pdsh-typert-workspace-'))
   try {
     const packageRoot = join(workspace, 'packages', 'pdsh')
+    const capabilityRoot = join(workspace, 'packages', 'pdsh-capabilities')
+    const capabilityName = `${packageName}-capabilities`
     const protocolRoot = join(workspace, 'packages', 'typert-protocol-reference')
     await mkdir(packageRoot, { recursive: true })
     await mkdir(join(workspace, 'packages'), { recursive: true })
     await copySourceFiles(root, packageRoot)
+    await copySourceFiles(root, capabilityRoot)
     await cp(join(root, 'tools/typert-protocol-reference'), protocolRoot, { recursive: true })
     await symlink(join(root, 'node_modules'), join(workspace, 'node_modules'), 'dir')
-    await writeWorkspaceFiles(workspace, packageRoot, packageName)
+    await writeWorkspaceFiles(workspace, packageRoot, packageName, version, capabilityRoot, capabilityName)
 
-    const artifacts = new WorkspaceTypertGenerator(workspace).generate([packageName], ['host'])
-    if (artifacts.length !== 1 || artifacts[0].package !== packageName || artifacts[0].face !== 'host') {
-      throw new Error('official Typert workspace must emit exactly one PDSH Host artifact')
+    const artifacts = new WorkspaceTypertGenerator(workspace).generate([packageName, capabilityName], ['host'])
+    if (artifacts.length !== 2 || artifacts.some(artifact => artifact.face !== 'host')) throw new Error('official Typert workspace must emit both package scopes')
+    for (const [name, output] of [[packageName, join(root, 'lib')], [capabilityName, join(root, 'lib/runtime-capabilities')]]) {
+      const artifact = artifacts.find(candidate => candidate.package === name)
+      if (!artifact?.remote) throw new Error('official Typert workspace missing package scope or Remote artifact')
+      if (name === packageName) assertRemoteContract(artifact.remote.dts, artifact.remote.js)
+      else assertCapabilityContract(artifact.remote.dts, artifact.js, artifact.remote.js)
+      await mkdir(output, { recursive: true })
+      await Promise.all([
+        writeFile(join(output, 'typert.host.js'), artifact.js),
+        writeFile(join(output, 'typert.host.d.ts'), artifact.dts),
+        writeFile(join(output, 'typert.remote-client.js'), artifact.remote.js),
+        writeFile(join(output, 'typert.remote-client.d.ts'), artifact.remote.dts),
+      ])
     }
-    const artifact = artifacts[0]
-    if (!artifact.remote) throw new Error('official Typert workspace did not emit the Remote client artifact')
-    assertRemoteContract(artifact.remote.dts, artifact.remote.js)
-
-    const output = join(root, 'lib')
-    await mkdir(output, { recursive: true })
-    await Promise.all([
-      writeFile(join(output, 'typert.host.js'), artifact.js),
-      writeFile(join(output, 'typert.host.d.ts'), artifact.dts),
-      writeFile(join(output, 'typert.remote-client.js'), artifact.remote.js),
-      writeFile(join(output, 'typert.remote-client.d.ts'), artifact.remote.dts),
-    ])
+    await writeFile(join(root, 'lib/runtime-capabilities/package.json'), JSON.stringify({
+      name: capabilityName, version, private: true, type: 'module',
+      exports: {
+        '.': './typert.host.js',
+        './typert': { types: './typert.host.d.ts', default: './typert.host.js' },
+        './remote': { types: './typert.remote-client.d.ts', default: './typert.remote-client.js' },
+        './types': { types: './types/shared/remote-types.d.ts' },
+      },
+    }, null, 2) + '\n')
+    // +--- 两个反射作用域共用 DTO 源；内部 self-reference 必须有实际声明闭包。 ---+
+    execFileSync(join(root, 'node_modules/.bin/tsc'), ['-p', 'tsconfig.remote-types.json'], { cwd: root, stdio: 'inherit' })
+    const declarationNames = ['capture-export', 'remote-types', 'window-capture-protocol', 'window-save-protocol', 'system-wallpaper-protocol']
+    await mkdir(join(root, 'lib/runtime-capabilities/types/shared'), { recursive: true })
+    for (const name of declarationNames) await cp(join(root, `lib/types/shared/${name}.d.ts`), join(root, `lib/runtime-capabilities/types/shared/${name}.d.ts`))
+    const protocol = '[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n'
+    await writeFile(join(root, 'lib/runtime-capabilities/CLAUDE.md'), `# lib/runtime-capabilities/\n> L2 | 父级: ../CLAUDE.md\n\n- \`package.json\`: 根身份派生的真实 private 包作用域。版本由根 manifest 生成；不安装第二依赖。\n- \`typert.host.js\`: 官方能力反射面。版本化业务在自有子 Fiber 注册，不覆盖旧基础面。\n- \`typert.host.d.ts\`: 同次生成的 Host 面声明。\n- \`typert.remote-client.js\`: 官方能力 Remote 贡献，内联到唯一根 Client。\n- \`typert.remote-client.d.ts\`: 官方 Remote 声明，self-reference 指向同源 ./types。\n- \`types/\`: 从 shared 源复制的 TypeScript 声明闭包。\n\n${protocol}`)
+    await writeFile(join(root, 'lib/runtime-capabilities/types/CLAUDE.md'), `# lib/runtime-capabilities/types/\n> L2 | 父级: ../CLAUDE.md\n\n- \`shared/\`: shared DTO 的同源声明闭包。只供内部反射包的类型自引用。\n\n${protocol}`)
+    await writeFile(join(root, 'lib/runtime-capabilities/types/shared/CLAUDE.md'), `# lib/runtime-capabilities/types/shared/\n> L2 | 父级: ../CLAUDE.md\n\n${declarationNames.map(name => `- \`${name}.d.ts\`: src/shared/${name}.ts 的声明副本；由生成入口同步，不手工修改。`).join('\n')}\n\n${protocol}`)
   } finally {
     await rm(workspace, { recursive: true, force: true })
   }
@@ -75,10 +96,12 @@ async function copyTypeTree(source: string, destination: string): Promise<void> 
   }
 }
 
-async function writeWorkspaceFiles(workspace: string, packageRoot: string, packageName: string): Promise<void> {
+async function writeWorkspaceFiles(workspace: string, packageRoot: string, packageName: string, version: string,
+  capabilityRoot: string, capabilityName: string): Promise<void> {
   const packageManifest = {
     name: packageName,
-    version: '0.0.0-build-only',
+    version,
+    private: true,
     type: 'module',
     exports: {
       '.': './src/host/index.ts',
@@ -126,6 +149,7 @@ async function writeWorkspaceFiles(workspace: string, packageRoot: string, packa
     },
     references: [
       { path: 'packages/pdsh/tsconfig.host.json' },
+      { path: 'packages/pdsh-capabilities/tsconfig.host.json' },
       { path: 'packages/typert-protocol-reference/tsconfig.source-analysis.json' },
     ],
   }
@@ -135,8 +159,28 @@ async function writeWorkspaceFiles(workspace: string, packageRoot: string, packa
     writeFile(join(workspace, 'tsconfig.host.json'), JSON.stringify(aggregateConfig, null, 2)),
     writeFile(join(packageRoot, 'package.json'), JSON.stringify(packageManifest, null, 2)),
     writeFile(join(packageRoot, 'tsconfig.host.json'), JSON.stringify(hostConfig, null, 2)),
+    writeFile(join(capabilityRoot, 'package.json'), JSON.stringify({
+      ...packageManifest, name: capabilityName,
+      exports: { ...packageManifest.exports, '.': './src/host/runtime-capabilities-service.ts' },
+    }, null, 2)),
+    writeFile(join(capabilityRoot, 'tsconfig.host.json'), JSON.stringify({
+      ...hostConfig, files: ['src/host/runtime-capabilities-service.ts', 'src/shared/remote-types.ts'],
+    }, null, 2)),
     writeFile(join(workspace, 'packages/typert-protocol-reference/tsconfig.source-analysis.json'), JSON.stringify(protocolConfig, null, 2)),
   ])
+}
+
+function assertCapabilityContract(dts: string, host: string, remote: string): void {
+  if (!dts.includes('wallpaper: (request: WallpaperRequest, signal?: AbortSignal) => RemoteStreamHandle<WallpaperFrame, never>')
+    || !dts.includes('implementationVersion: () => Promise<RemoteResult<string>>')
+    || !dts.includes('wallpaperRegistered: () => Promise<RemoteResult<boolean>>')) throw new Error('official runtime capability declarations drifted')
+  for (const source of [host, remote]) {
+    const namespaces = [...new Set([...source.matchAll(/namespace: '([^']+)'/g)].map(match => match[1]))]
+    if (namespaces.length !== 1 || namespaces[0] !== 'pdshRuntimeCapabilities') throw new Error('runtime capabilities must use their own namespace')
+    for (const method of ['implementationVersion', 'wallpaperRegistered', 'wallpaper']) {
+      if (!source.includes(`method: '${method}'`)) throw new Error(`official runtime capability missing ${method}`)
+    }
+  }
 }
 
 async function verifyProtocolReference(root: string): Promise<void> {

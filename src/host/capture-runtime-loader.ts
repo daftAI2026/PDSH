@@ -10,6 +10,9 @@ import { lstat, readFile, realpath } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { WallpaperFrame, WallpaperRequest } from '../shared/system-wallpaper-protocol.ts'
+import type { CaptureFrame } from '../shared/window-capture-protocol.ts'
+import type { WindowSaveFrame, WindowSaveInputFrame, WindowSaveRequest } from '../shared/window-save-protocol.ts'
+import type { RemoteStream } from '@deepseek-ai/dsh-typert-protocol'
 
 export { CAPTURE_RUNTIME_CONTRACT, CAPTURE_WALLPAPER_CONTRACT }
 const LEGACY_V2_CONTRACT = 'pdsh-capture-runtime-v2'
@@ -17,6 +20,8 @@ const VERSION = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[\w.-]+)?$/
 
 export interface CaptureRuntimeInstance {
   readonly version: string
+  capture(signal: AbortSignal): AsyncIterable<CaptureFrame>
+  save(request: WindowSaveRequest, signal: AbortSignal, uplink: AsyncIterable<WindowSaveInputFrame>): RemoteStream<WindowSaveFrame, WindowSaveInputFrame>
   refreshCaptureEnabled(): void
   wallpaper?(request: WallpaperRequest, signal: AbortSignal): AsyncIterable<WallpaperFrame>
   dispose(): Promise<void>

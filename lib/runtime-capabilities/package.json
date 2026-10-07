@@ -1,0 +1,20 @@
+{
+  "name": "@daftai/pdsh-capabilities",
+  "version": "0.5.2",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./typert.host.js",
+    "./typert": {
+      "types": "./typert.host.d.ts",
+      "default": "./typert.host.js"
+    },
+    "./remote": {
+      "types": "./typert.remote-client.d.ts",
+      "default": "./typert.remote-client.js"
+    },
+    "./types": {
+      "types": "./types/shared/remote-types.d.ts"
+    }
+  }
+}

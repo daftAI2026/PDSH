@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 通过 fixtureRoot/package.json 解析精确 DSH Host；从当前或显式 candidateRoot 读取 stable/RC 归档身份，在隔离 profile 接收官方 PNPM 命令。
- * [OUTPUT]: 经官方 Manager 与 Loader 验证安装字节、业务版本载入、权限、设置与生命周期。不消费取像流，不替代 Desktop 验收。
+ * [OUTPUT]: 验官方安装、基础/内部能力版本、严格注册与生命周期。不取像或下载媒体。
  * [POS]: 仓库根目录的集成验收入口；只操作调用方指定且 owner/权限验证的临时 profile，不改写 DSH 用户 profile 或替代官方解析器。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -183,10 +183,31 @@ async function waitWindowCapability(ctx: any, present: boolean, identity: Accept
   while (Date.now() < deadline) {
     const states = [Boolean(ctx.get('pdshWindowCapture')), Boolean(ctx.typert.getPackage(identity.name, 'host')),
       ...['capture', 'save', 'wallpaper'].map(method => Boolean(ctx.typert.local.get(`pdshNativeWindowCapture/${method}`)))]
+    if (!present) states.push(Boolean(ctx.get('pdshRuntimeCapabilities')),
+      Boolean(ctx.typert.getPackage(`${identity.name}-capabilities`, 'host')),
+      ...['implementationVersion', 'wallpaperRegistered', 'wallpaper'].map(method => Boolean(ctx.typert.local.get(`pdshRuntimeCapabilities/${method}`))))
     if (states.every(value => value === present)) return
     await new Promise(resolve => setTimeout(resolve, 10))
   }
   throw new Error(`Host service/Typert descriptors did not become ${present ? 'ready' : 'withdrawn'}`)
+}
+
+/** 基础版本回复之后，内部能力还须有真实严格注册和独立版本；不读取媒体。 */
+async function assertRuntimeCapabilities(ctx: any, identity: AcceptanceIdentity, version: string): Promise<void> {
+  const service = ctx.get('pdshRuntimeCapabilities')
+  assert.ok(service, '当前业务未装配内部能力 service')
+  assert.equal(await service.implementationVersion(), version, '内部能力不是当前安装版本')
+  assert.equal(service.wallpaperRegistered(), true, '内部能力未授权壁纸接口')
+  const owner = `${identity.name}-capabilities`
+  assert.ok(ctx.typert.getPackage(owner, 'host'), '缺少真实内部包反射 owner')
+  for (const method of ['implementationVersion', 'wallpaperRegistered', 'wallpaper']) {
+    const descriptor = ctx.typert.local.get(`pdshRuntimeCapabilities/${method}`)
+    assert.ok(descriptor, `内部能力缺少 ${method} descriptor`)
+    assert.equal(descriptor.service, 'pdshRuntimeCapabilities')
+    assert.ok(descriptor.id.startsWith(`${owner}#`))
+    assert.equal(descriptor.result.mode, 'strict', '禁止退化为 SRC JSON')
+  }
+  console.log(`PASS runtime-capabilities: implementationVersion=${version}; real owner, strict descriptors, pure wallpaper handshake (no media requested)`)
 }
 
 function assertPnpm11(manager: PackageManagerCommand, profile: string): void {
@@ -342,6 +363,7 @@ async function main(): Promise<void> {
     const implementationVersion = await service.implementationVersion()
     assert.equal(implementationVersion, installedManifest.version, '实际载入的业务版本不是当前安装版本')
     assert.equal(service.wallpaperRegistered(), true, '正常加载的 Host 未声明壁纸 Remote')
+    await assertRuntimeCapabilities(ctx, identity, installedManifest.version)
     console.log(`PASS runtime-load: implementationVersion=${implementationVersion}; base/optional-extension contracts accepted (no pixels requested)`)
     const runtimeHashes: Record<string, string> = {}
     // +--- manifest glob 是分发规则，不是磁盘文件；只展开已校验的两个固定成员模式。 ---+
@@ -444,6 +466,7 @@ async function main(): Promise<void> {
     await waitWindowCapability(ctx, true, identity)
     const reenabledVersion = await ctx.get('pdshWindowCapture')[cordis.symbols.original].implementationVersion()
     assert.equal(reenabledVersion, installedManifest.version, '重新启用后业务版本未正确载入')
+    await assertRuntimeCapabilities(ctx, identity, installedManifest.version)
     console.log(`PASS runtime-reenable: implementationVersion=${reenabledVersion}; fresh service accepted current runtime`)
     console.log('PASS bundle lifecycle: official disable removed Host/Client/service/descriptors; re-enable restored single root capability (no pixels requested)')
     console.log(`PASS fixture: ${fixtureRoot}`)

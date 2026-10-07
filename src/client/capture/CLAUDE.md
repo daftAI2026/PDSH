@@ -57,7 +57,7 @@ Host 的 Remote 取消终态可能先于 Client 配置撤权；批获取收到�
 
 - `directory.ts`: DSH 原生目录选择窄端口；复用 shared POSIX/Windows 绝对目录语法，取消保持 null，不引入路径输入或第二偏好仓。
 
-- `runtime-readiness.ts`: 实际版本围栏与独立壁纸注册握手。旧版和连接未知分账；扩展未知不阻断基础版本。不取像，不写设置。
+- `runtime-readiness.ts`: 基础/内部能力分别核实际版本。壁纸注册握手不代替版本；旧版与连接未知分账，扩展失败不阻断基础。不取像、不写设置。
 
 - `candidate-mapping.ts`: Mac Electron 44 的 rc.2 hiddenInset 满窗零原点条件映射，原生 PNG 内容原点仍待实机验收；内/外尺寸、页面/原生比例、PNG 尺寸和拍摄前后几何一致才做 CSS→像素缩放；未知、窗口变动、页面缩放或移动候选退让，不用 alpha bbox 猜偏移。
 

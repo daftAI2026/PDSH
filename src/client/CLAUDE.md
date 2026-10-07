@@ -1,8 +1,8 @@
 # src/client/
 > L2 | 父级: ../CLAUDE.md
 
-- `client-entry.tsx`: 唯一 `@daftai/pdsh` Client 入口；先注册真实生成 Remote 描述，不触发取像/权限；必需 Cordis 服务只声明一次，身份/标题/拍照为共享 Bundle 内的独立设置而非运行时子入口。
-- `component-runtime.tsx`: 唯一 Bundle 装配、设置页脚与语言订阅。完整 accepted 配置与 Remote provider 才装相机；业务调用复核实现版本。壁纸须有纯注册握手，不用本地生成方法冒充 Host 能力；迟到握手不重建工作台。
+- `client-entry.tsx`: 唯一 `@daftai/pdsh` Client 入口；顺序挂载真实基础/内部能力 Remote 面，不触发取像/权限；必需 Cordis 服务只声明一次，身份/标题/拍照为共享 Bundle 内的独立设置而非运行时子入口。
+- `component-runtime.tsx`: 唯一 Bundle 装配、设置页脚与语言订阅。完整 accepted 配置与 Remote provider 才装相机；业务调用复核实现版本。基础版本先等 Host 就绪，内部能力再独立核版本/注册；双代理世代隔离，迟到握手不重建工作台。
 - `native-style-view.tsx`: 唯一真实原生控件探针视图；布局测量与 React 生命周期绑定，不持有功能配置。
 - `title-settings.tsx`: 共享唯一 `pdsh` ConfigForm 的标题即时开关；复用帽子控制器和官方控件，不建立独立 namespace，也不读身份偏好。
 - `capture-settings.tsx`: Plugins 截图区提供独立身份遮挡开关与询问/直接保存、完整目录、格式/文件名模板；旧/无效 ready 配置显示中英重启提示并锁住全部字段与目录 picker，目录位不泄漏 fallback/不误报目录故障；loading 不误报，完整后续快照恢复原 revision 写入；身份开关不改常驻 maskIdentity 或工作台标题偏好。
