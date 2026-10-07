@@ -1,6 +1,6 @@
 <!--
 [INPUT]: 依赖唯一版本、元信息、发布门和官方管理器。依赖旧指南发布合同。
-[OUTPUT]: 规定单包交付与独立验收门。保存逐版本合同原文。
+[OUTPUT]: 规定交付、升级兼容与独立验收门。保存逐版本合同原文。
 [POS]: 根发布契约；区分源码、归档、实际安装和桌面行为，不将构建成功冒充实机通过
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 -->
@@ -59,6 +59,14 @@ pnpm release:check
 macOS helper 经 `native/build.sh` 构建为最低 macOS 14 的 arm64/x86_64 universal 文件。用 `npm pack --ignore-scripts` 保留 0755，由 `pnpm run bundle` 统一调用；源文件、归档和实际安装均核对执行位，不能只比较摘要，也不以安装 hook 或运行时 chmod 修补包装错误。
 
 Windows helper 经 `native/windows/build.ps1` 在 Windows SDK/MSVC 上编译。`native-windows.yml` 运行真实 Windows 保存目录合同，上传短期 x64 构建物，不执行截图或自动发布。按构建提交核对 CI 与下载摘要，再将真实 PE 提交到 `native/windows/window-capture-x64.exe`。发布门校验 x64、控制台 PE 与 `asInvoker` manifest；缺失或伪造产物不得发包。编译、目录合同和 PE 检查都不是 Windows Desktop 实机验收。
+
+## 升级兼容
+
+0.3.2 及更早版本首次升级需正常加载一次。已有 v1 业务壳可沿插件内同一 tag 路径换载截图、保存及新增业务接口；根 Config、基础 Remote 协议或固定壳变更仍是独立加载边界。
+
+0.5.2 保留 v1 截图/保存合同，并随当前业务装配独立壁纸接口。入口须核对实际后台版本与能力；旧图库仍可离线浏览。同进程官方 tag 升级须分别验证截图和壁纸，不以安装成功代替功能就绪。
+
+此修复 tag 不是已运行 0.5.0 v2 壳的免重启迁移包。该壳不接受恢复的 v1 payload；不要把这一代壳的升级写成已兼容。官方正常加载与旧截图业务换载是不同边界。
 
 ## 临时 RC 共存测试包
 
@@ -128,6 +136,19 @@ Client 在基础版本回复后独立核对能力版本。
 1. 运行 `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm build` 和 `pnpm run bundle`。检查当前版本真实 tgz 的成员、字节、权限、版本与依赖许可，不复用旧包冒充当前结果。归档只包含 manifest allowlist，不包含 node_modules、profile、凭据、日志或私有研究。
 2. 通过 `verify-host.ts` 在当前用户拥有的全新临时 profile 中运行目标 DSH 的实际 PluginManager、Typert Loader 和自带 PNPM。绑定被装版本、运行字节和来源摘要，检查单 root 行/Client、八组合功能设置、revision 写入与恢复、停用与重新启用。不得关闭 `blockExoticSubdeps`、替换解析器或伪造活动状态。此检查不拍摄像素，也不代替 Desktop UI。
 3. 实际 Desktop 验收独立记录：目标安装件的主题、入口、搜索展开/折叠、三个开关、截图覆盖/比例、重拍、复制、选目录/直接保存及取消/停用。旧版到新版的官方管理器升级也单独验证；实验重装不是升级证据。普通功能开关无需重启，替换包仅遵从宿主明确的加载/重启提示并保护未保存工作。
+
+## 0.5.3 发布决定：收起侧栏的会话相机
+
+侧栏收起时，会话右上角提供相机入口。
+两个入口复用同一截图、重拍与卸载生命周期。
+不改 Config、基础 Remote 合同或媒体仓身份。
+发布前须验实际显示、取像、重拍和稳定包恢复。
+同进程官方 tag 升级另验，不由 RC 首装代替。
+本次仅推 main 与 v0.5.3，不创建 Release。
+RC 验收后，正式升级由用户自行点击。
+代理不安装正式新版，不把升级门记为通过。
+Windows 实机、导出对位与撤权仍分别未验。
+深色主题及英文 Desktop 仍分别未验。
 
 ## 0.5.2 发布决定：同路径新增业务能力修复
 

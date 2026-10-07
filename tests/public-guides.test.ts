@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖根指南、发布 skill、README 和许可。依赖 Node 文件与摘要接口。
- * [OUTPUT]: 验证指南边界、tag 渠道、逐功能升级、skill 导航、历史原文和头像致谢。
+ * [OUTPUT]: 验证指南边界、tag 渠道、升级说明分层、skill 导航、历史原文和头像致谢。
  * [POS]: tests 的公开文档合同。不运行宿主或联网。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -105,6 +105,22 @@ test('升级合同逐功能验同路径，基础恢复不能代替扩展就绪',
   const baseOnly = skill.replace(/^- 每项新增业务功能[^\n]*\n/mu, '');
   assert.notEqual(baseOnly, skill);
   assert.throws(() => check(baseOnly));
+});
+
+// -------------------- 用户说明与技术合同分层 --------------------
+test('README 安装段保留升级提醒，技术合同留在发布文档', async () => {
+  const readme = await read('README.md');
+  const installation = readme.split('## 安装\n')[1]?.split('\n## ')[0];
+  assert.ok(installation, '安装说明不得缺失');
+  assert.match(installation, /插件详情页.*确认升级/u);
+  assert.match(installation, /0\.3\.2[^\n]*首次升级需正常加载一次/u);
+  assert.match(installation, /0\.5\.0[^\n]*不支持免重启升级/u);
+  assert.match(installation, /PUBLISHING\.md#升级兼容/u);
+  assert.doesNotMatch(installation, /\b(?:Config|Remote|payload)\b|业务壳|固定壳|旧壳|截图\/保存合同/u);
+  const publishing = await read('PUBLISHING.md');
+  assert.ok(publishing.includes('## 升级兼容\n'));
+  assert.ok(publishing.includes('根 Config、基础 Remote 协议或固定壳变更'));
+  assert.ok(publishing.includes('该壳不接受恢复的 v1 payload'));
 });
 
 // -------------------- 开源致谢 --------------------

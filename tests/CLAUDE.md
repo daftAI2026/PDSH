@@ -126,6 +126,6 @@
 
 - `system-wallpaper-stream-catalog.test.ts`: 动态ID活动目录0–4项、重复/非法ID/名称C1与unavailable边界；fake operation不读取系统或联网。
 
-- `public-guides.test.ts`: 验证指南边界、tag 默认渠道、逐功能升级和 skill 导航。按摘要核历史原文与头像许可。不运行宿主或联网。
+- `public-guides.test.ts`: 验证指南边界、tag 渠道和升级说明分层。README 只给用户动作与必要提醒，技术合同留在 PUBLISHING。另核 skill 导航、历史原文摘要及头像许可。不运行宿主或联网。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
