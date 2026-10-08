@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 node:test、fake 子进程/时钟与 Host native capture 适配器，只读Mach-O双架构头，不触发真实 helper。
+ * [INPUT]: 依赖 Node 测试、路径/URL、fake 子进程/时钟与 Host native capture 适配器；只读 Mach-O 头，不触发真实 helper。
  * [OUTPUT]: 固定显式取像门、PNG/CRC封套、平台路由及取消/close结算合同；验证Win x64启动参数/隐藏窗口和ARM64拒绝。
  * [POS]: 原生整窗 Host 适配器的纯合同测试；不请求系统权限、不取像、不操作用户应用。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -8,6 +8,8 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { PassThrough } from 'node:stream';
 import { crc32, deflateSync } from 'node:zlib';
 import {
@@ -212,7 +214,7 @@ test('PNG头签名、长度、零尺寸与像素预算拒绝；合法尺寸通�
 
 test('helper 仅以真实 Host pid/ppid 和显式授权参数启动，无 shell 或文件管道', async () => {
   const h = harness();
-  const work = runNativeCapture(h.options);
+  const work = runNativeCapture({ ...h.options, platform: 'darwin', arch: 'arm64' });
   const call = h.calls[0];
   assert.ok(call);
   assert.equal(call.file, '/fake/native/window-capture');
@@ -241,8 +243,9 @@ test('原生 helper 路由只支持 universal macOS 与包内 Windows x64，不�
   assert.equal(nativeCaptureTarget('win32', 'arm64'), undefined);
   assert.equal(nativeCaptureTarget('linux', 'x64'), undefined);
 
-  const bundleUrl = 'file:///opt/pdsh/index.js';
-  assert.equal(resolveNativeCaptureHelperPath('win32', 'x64', bundleUrl), '/opt/pdsh/native/windows/window-capture-x64.exe');
+  const bundleRoot = resolve('fixtures/pdsh');
+  const bundleUrl = pathToFileURL(resolve(bundleRoot, 'index.js')).href;
+  assert.equal(resolveNativeCaptureHelperPath('win32', 'x64', bundleUrl), resolve(bundleRoot, 'native/windows/window-capture-x64.exe'));
   assert.equal(resolveNativeCaptureHelperPath('win32', 'arm64', bundleUrl), undefined);
   assert.equal(shouldRegisterNativeCaptureProvider('darwin', 'arm64', () => false, bundleUrl), true,
     'macOS retains its existing provider registration behavior');

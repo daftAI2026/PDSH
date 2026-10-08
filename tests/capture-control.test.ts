@@ -27,7 +27,7 @@ async function fixture({socketPath='/tmp/pdsh-main-fixture/bridge.sock',realIo=f
       if(name==='node:os')return{tmpdir:()=>realIo?tmpdir():'/tmp'};
       if(name==='node:crypto')return {randomBytes(){throw Error('unexpected randomness');}};
       if(name==='node:fs/promises')return {open(){throw Error('unexpected write');},rename(){throw Error('unexpected rename');},unlink(){throw Error('unexpected unlink');}};
-      if(name==='node:path')return path;throw Error(`unexpected module ${name}`);},
+      if(name==='node:path')return path.posix;throw Error(`unexpected module ${name}`);},
     setTimeout:realIo?setTimeout:function(fn){const timer={fn,unref(){}};timers.add(timer);return timer;},clearTimeout:realIo?clearTimeout:function(timer){timers.delete(timer);}};
   runInNewContext(readFileSync(new URL('../main.cjs',import.meta.url),'utf8'),context);
   await context.module.exports.startMainBridge({expectedPid:45,socketPath,secret},{app:{getVersion:()=> '0.2.0-rc.2'},BrowserWindow:{getAllWindows:()=>[win]}});

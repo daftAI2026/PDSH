@@ -14,17 +14,18 @@ import { createNativePageSave } from '../src/host/page-save-main.ts';
 import { writeConfirmedImage, writeUniqueImage } from '../src/host/page-save-file.ts';
 const id='11111111-1111-4111-8111-111111111111',owner='22222222-2222-4222-8222-222222222222';
 function fixture() {
+  const directory=join(tmpdir(),'pdsh-fixture'),fileName=join(directory,'demo.png');
   const contents=new EventEmitter() as any,win=new EventEmitter() as any,writes=[],uniqueWrites=[],dialogs=[];
-  let data={nonce:owner,mime:'image/png',fileName:'demo.png',directory:'/tmp/pdsh-fixture',base64:'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aDVYAAAAASUVORK5CYII='},answer={canceled:false,filePath:'/tmp/pdsh-fixture/demo.png'},size={width:1,height:1};
+  let data={nonce:owner,mime:'image/png',fileName:'demo.png',directory,base64:'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aDVYAAAAASUVORK5CYII='},answer={canceled:false,filePath:fileName},size={width:1,height:1};
   const frame={isDestroyed:()=>false,executeJavaScript:async(code)=>{assert.match(code,/exportData/);assert.doesNotMatch(code,/pdsh-fixture|demo\.png/);return data;}};
   Object.assign(contents,{mainFrame:frame,isDestroyed:()=>false,getURL:()=> 'dsh-app://app/index.html'});Object.assign(win,{webContents:contents,isDestroyed:()=>false});
   const dialog={async showSaveDialog(w,options){assert.equal(w,win);dialogs.push(options);return answer;}},image={createFromBuffer:()=>({isEmpty:()=>false,getSize:()=>size})};
   let writing=async(...args)=>{writes.push(args);},uniqueWriting=async(...args)=>{uniqueWrites.push(args);};
   const controller=createNativePageSave(win,dialog,image,(...args)=>writing(...args),(...args)=>uniqueWriting(...args));
-  return{win,contents,dialog,image,writes,uniqueWrites,dialogs,controller,setData(value){data={...data,...value};},setAnswer(value){answer=value;},setSize(value){size=value;},setWrite(value){writing=value;},setUniqueWrite(value){uniqueWriting=value;}};
+  return{win,contents,dialog,image,writes,uniqueWrites,dialogs,controller,directory,fileName,setData(value){data={...data,...value};},setAnswer(value){answer=value;},setSize(value){size=value;},setWrite(value){writing=value;},setUniqueWrite(value){uniqueWriting=value;}};
 }
 test('原生保存面板初始目录生效，真实写入完成才返回 saved',async()=>{
-  const h=fixture();try{let finish;h.setWrite(()=>new Promise(resolve=>{finish=resolve;}));let done=false;const work=h.controller.save(id,owner).then(result=>{done=true;return result;});await new Promise(resolve=>setImmediate(resolve));assert.equal(done,false);assert.equal(h.dialogs[0].defaultPath,'/tmp/pdsh-fixture/demo.png');finish();assert.deepEqual(await work,{outcome:'saved'});
+  const h=fixture();try{let finish;h.setWrite(()=>new Promise(resolve=>{finish=resolve;}));let done=false;const work=h.controller.save(id,owner).then(result=>{done=true;return result;});await new Promise(resolve=>setImmediate(resolve));assert.equal(done,false);assert.equal(h.dialogs[0].defaultPath,h.fileName);finish();assert.deepEqual(await work,{outcome:'saved'});
     h.setAnswer({canceled:true});assert.deepEqual(await h.controller.save(id,owner),{outcome:'cancelled'});assert.equal(h.writes.length,0);
   }finally{h.controller.dispose();assert.equal(h.contents.listenerCount('did-start-navigation'),0);}
 });
@@ -32,7 +33,7 @@ test('原生保存面板初始目录生效，真实写入完成才返回 saved',
 test('直接保存不打开面板，绑定目录和 basename 交给不覆盖写入边界',async()=>{
   const h=fixture();try{
     h.setData({saveBehavior:'direct'});assert.deepEqual(await h.controller.save(id,owner),{outcome:'saved'});
-    assert.equal(h.dialogs.length,0);assert.equal(h.writes.length,0);assert.equal(h.uniqueWrites.length,1);assert.equal(h.uniqueWrites[0][0],'/tmp/pdsh-fixture/demo.png');assert.equal(typeof h.uniqueWrites[0][2],'function');
+    assert.equal(h.dialogs.length,0);assert.equal(h.writes.length,0);assert.equal(h.uniqueWrites.length,1);assert.equal(h.uniqueWrites[0][0],h.fileName);assert.equal(typeof h.uniqueWrites[0][2],'function');
   }finally{h.controller.dispose();}
   for(const data of [{saveBehavior:'unknown'},{saveBehavior:'direct',directory:''}]){
     const bad=fixture();try{bad.setData(data);await assert.rejects(bad.controller.save(id,owner));assert.equal(bad.dialogs.length,0);assert.equal(bad.writes.length,0);assert.equal(bad.uniqueWrites.length,0);}finally{bad.controller.dispose();}
@@ -56,7 +57,7 @@ test('面板期间导航、取消或停用不写，卸载后新控制器仍遵�
     const work=h.controller.save(id,owner),rejected=assert.rejects(work);await new Promise(resolve=>setImmediate(resolve));
     if(action==='navigate')h.contents.emit('did-start-navigation');else if(action==='cancel')h.controller.cancel(id);else h.controller.dispose();
     const second=createNativePageSave(h.win,h.dialog,h.image,async()=>{});await assert.rejects(second.save(id,owner));second.dispose();
-    finish({canceled:false,filePath:'/tmp/fixture.png'});await rejected;assert.equal(h.writes.length,0);await h.controller.settled();
+    finish({canceled:false,filePath:join(tmpdir(),'fixture.png')});await rejected;assert.equal(h.writes.length,0);await h.controller.settled();
   }finally{h.controller.dispose();}}
 });
 test('格式、nonce、basename、字节/像素与原页面校验失败从不打开面板或写文件',async()=>{

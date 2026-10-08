@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 tools/assess-host-compatibility 的本地静态扫描 API 与隔离临时目录。
- * [OUTPUT]: 验证只读清单、七类触点、真实宿主 imports、边界缺口及 CLI/导入无副作用。
+ * [INPUT]: 依赖只读静态扫描 API、隔离临时目录与平台目录重解析点。
+ * [OUTPUT]: 验证只读清单、七类触点、重解析点拒绝和 CLI/导入无副作用。
  * [POS]: 宿主依赖盘点器的黑盒合同；只读合成 fixture，不访问 DSH、远端或用户 profile。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -16,6 +16,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { assessHostCompatibility } from '../tools/assess-host-compatibility.ts';
 
 const TOOL = fileURLToPath(new URL('../tools/assess-host-compatibility.ts', import.meta.url));
+
+function createDirectoryLink(target: string, linkPath: string): void {
+  symlinkSync(target, linkPath, process.platform === 'win32' ? 'junction' : 'dir')
+}
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'pdsh-host-assessment-'));
@@ -147,8 +151,8 @@ test('symlink、超大文件、读取缺口与扫描上限均可见且不跟随'
   const outside = mkdtempSync(join(tmpdir(), 'pdsh-assessment-outside-'));
   try {
     writeFileSync(join(outside, 'secret.ts'), 'spawn("outside-secret");\n');
-    symlinkSync(join(outside, 'secret.ts'), join(f.root, 'src/linked.ts'));
-    symlinkSync(outside, join(f.root, 'src/linked-dir'));
+    createDirectoryLink(outside, join(f.root, 'src/linked.ts'));
+    createDirectoryLink(outside, join(f.root, 'src/linked-dir'));
     writeFileSync(join(f.root, 'src/large.ts'), 'x'.repeat(1024 * 1024 + 1));
     const report = assessHostCompatibility(f.root) as any;
     assert.ok(report.scan.skipped.some((item: any) => item.file === 'src/linked.ts' && item.reason === 'symlink'));
@@ -188,14 +192,15 @@ test('拒绝错 package 身份；不读取敏感目录且全树字节保持不�
   } finally { f.dispose(); }
 });
 
-test('根 package manifest symlink 与非法 CLI 参数拒绝；静态导入不执行 CLI', () => {
+test('根 package manifest reparse point 与非法 CLI 参数拒绝；静态导入不执行 CLI', () => {
   const f = fixture();
-  const outsideManifest = join(f.root, 'outside.json');
   try {
-    writeFileSync(outsideManifest, JSON.stringify({ name: '@daftai/pdsh', version: '0.4.0' }));
+    const manifestTarget = join(f.root, 'manifest-target');
+    mkdirSync(manifestTarget);
+    writeFileSync(join(manifestTarget, 'package.json'), JSON.stringify({ name: '@daftai/pdsh', version: '0.4.0' }));
     const linkedRoot = join(f.root, 'linked-root');
     mkdirSync(linkedRoot);
-    symlinkSync(outsideManifest, join(linkedRoot, 'package.json'));
+    createDirectoryLink(manifestTarget, join(linkedRoot, 'package.json'));
     assert.throws(() => assessHostCompatibility(linkedRoot), /package\.json.*symlink/i);
 
     const invalid = spawnSync(process.execPath, ['--experimental-strip-types', TOOL, '--write'], { encoding: 'utf8' });

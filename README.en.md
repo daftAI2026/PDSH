@@ -12,7 +12,7 @@ English · [简体中文](README.md)
 Mask sidebar titles, customize display aliases, and capture and redact this window. No session isolation.
 <!-- pdsh:description:end -->
 
-DeepSeek Harness Desktop plugin · **Version 0.5.3** · [`v0.5.3`](https://github.com/daftAI2026/PDSH/tree/v0.5.3)
+DeepSeek Harness Desktop plugin · **Version 0.5.4** · [`v0.5.4`](https://github.com/daftAI2026/PDSH/tree/v0.5.4)
 
 ![Plugin settings and sidebar preview](https://raw.githubusercontent.com/daftAI2026/PDSH/main/docs/preview.jpg)
 
@@ -32,7 +32,7 @@ In Harness, open **Plugins → Add Plugin → GitHub repository URL** and enter:
 https://github.com/daftAI2026/PDSH
 ```
 
-Choose the fixed version `v0.5.3`. Existing users can confirm an upgrade on the plugin details page.
+Choose the fixed version `v0.5.4`. Existing users can confirm an upgrade on the plugin details page.
 
 **Upgrade note:** Versions `0.3.2` and earlier need one normal load during their first upgrade. A running `0.5.0` installation does not support a no-restart upgrade to the repaired payload. See [Upgrade Compatibility](PUBLISHING.en.md#upgrade-compatibility).
 
@@ -42,7 +42,7 @@ Choose the fixed version `v0.5.3`. Existing users can confirm an upgrade on the 
 - Save as PNG, JPEG, or WebP; copy as PNG. The default directory is `Downloads` under the user's home directory. Users can choose another directory. Duplicate names receive a number; existing files are never overwritten. If the save result is unknown, inspect the directory before retrying.
 - System wallpaper retrieval uses Apple's local catalog. Its grouping is not a system-version API. Unknown or ambiguous formats do not add replacements; saved images remain available. Only an explicit fetch reads the system source or downloads missing media. Normal browsing can use the cache. Windows does not provide system wallpaper retrieval.
 - Background media and editing preferences use a local browser store. It does not store screenshots, source videos, or original filenames. A full store rejects imports instead of silently evicting user images.
-- Suggestions apply only to the studied Mac full-window layout. They do not detect sensitive content. Native candidate-to-final-PNG alignment and complete Desktop rendering remain unverified. Warm-switch pixel consistency, dark themes, the English Desktop UI, Windows real-machine behavior, and permission revocation also remain unverified. Check the image before copying or saving.
+- Suggestions apply only to the studied Mac full-window layout. They do not detect sensitive content. Native candidate-to-final-PNG alignment and complete Desktop rendering remain unverified. Warm-switch pixel consistency, dark themes, and the English Desktop UI also remain unverified. Windows cancellation during active capture and complete pixel alignment remain unverified. Check the image before copying or saving.
 - Visual masking does not change account data, original text, history, logs, or model requests. PDSH does not provide session isolation, credential migration, or forensic privacy guarantees.
 
 ## Development

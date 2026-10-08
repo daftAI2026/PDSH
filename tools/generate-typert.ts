@@ -38,7 +38,8 @@ export async function generateTypertArtifacts(root = fileURLToPath(new URL('../'
     await copySourceFiles(root, packageRoot)
     await copySourceFiles(root, capabilityRoot)
     await cp(join(root, 'tools/typert-protocol-reference'), protocolRoot, { recursive: true })
-    await symlink(join(root, 'node_modules'), join(workspace, 'node_modules'), 'dir')
+    const symlinkType = process.platform === 'win32' ? 'junction' : 'dir'
+    await symlink(join(root, 'node_modules'), join(workspace, 'node_modules'), symlinkType)
     await writeWorkspaceFiles(workspace, packageRoot, packageName, version, capabilityRoot, capabilityName)
 
     const artifacts = new WorkspaceTypertGenerator(workspace).generate([packageName, capabilityName], ['host'])
@@ -66,7 +67,11 @@ export async function generateTypertArtifacts(root = fileURLToPath(new URL('../'
       },
     }, null, 2) + '\n')
     // +--- 两个反射作用域共用 DTO 源；内部 self-reference 必须有实际声明闭包。 ---+
-    execFileSync(join(root, 'node_modules/.bin/tsc'), ['-p', 'tsconfig.remote-types.json'], { cwd: root, stdio: 'inherit' })
+    execFileSync(
+      process.execPath,
+      [join(root, 'node_modules/typescript/bin/tsc'), '-p', 'tsconfig.remote-types.json'],
+      { cwd: root, stdio: 'inherit' },
+    )
     const declarationNames = ['capture-export', 'remote-types', 'window-capture-protocol', 'window-save-protocol', 'system-wallpaper-protocol']
     await mkdir(join(root, 'lib/runtime-capabilities/types/shared'), { recursive: true })
     for (const name of declarationNames) await cp(join(root, `lib/types/shared/${name}.d.ts`), join(root, `lib/runtime-capabilities/types/shared/${name}.d.ts`))
@@ -187,7 +192,14 @@ async function verifyProtocolReference(root: string): Promise<void> {
   const folder = join(root, 'tools/typert-protocol-reference')
   for (const [path, expected] of Object.entries(REFERENCE_FILES)) {
     const bytes = await readFile(join(folder, path))
-    const actual = createHash('sha256').update(bytes).digest('hex')
+    const text = bytes.toString('utf8')
+    if (!Buffer.from(text, 'utf8').equals(bytes)) throw new Error(`Typert protocol reference is not UTF-8: ${path}`)
+    const lineEndings = new Set(text.match(/\r\n|\r|\n/g) ?? [])
+    if (lineEndings.has('\r') || lineEndings.size > 1) {
+      throw new Error(`Typert protocol reference must use uniform LF or CRLF line endings: ${path}`)
+    }
+    // +--- 规范化只消除 Git 行尾差异；固定 SHA 仍锁定全部源码字节。 ---+
+    const actual = createHash('sha256').update(text.replace(/\r\n/g, '\n')).digest('hex')
     if (actual !== expected) throw new Error(`Typert protocol reference drift: ${path}`)
   }
   const dependencyPath = join(root, 'node_modules/@deepseek-ai/dsh-typert-protocol/package.json')

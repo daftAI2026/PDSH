@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖生成 Client、Cordis、ReactDOM 与内存编译的组合根。
+ * [INPUT]: 依赖生成 Client、Cordis、ReactDOM、Windows 文件 URL 与内存编译组合根。
  * [OUTPUT]: 验证两 Remote、版本围栏及相机会话插槽。
  * [POS]: 组合根合同；不冒充 Host、原生像素或 Desktop 验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { TextEncoder } from 'node:util';
 import { runInNewContext } from 'node:vm';
+import { fileURLToPath } from 'node:url';
 import { Context } from '@deepseek-ai/cordis';
 import { build as esbuild } from 'esbuild';
 import React, { act } from 'react';
@@ -235,13 +236,13 @@ function assertBundleSlots(registrations) {
 }
 
 async function loadComponentRuntime(assemblies, mutateSource = source => source) {
-  const source = new URL('../src/client/component-runtime.tsx', import.meta.url).pathname;
+  const source = fileURLToPath(new URL('../src/client/component-runtime.tsx', import.meta.url));
   const built = await esbuild({
     entryPoints: [source], bundle: true, write: false, format: 'cjs', platform: 'node', logLevel: 'silent',
     plugins: [
       { name: 'in-memory-component-source', setup(build) {
         build.onLoad({ filter: /component-runtime\.tsx$/ }, () => ({
-          contents: mutateSource(readFileSync(source, 'utf8')), loader: 'tsx',
+          contents: mutateSource(readFileSync(source, 'utf8').replace(/\r\n/gu, '\n')), loader: 'tsx',
         }));
       } },
       { name: 'externalize-runtime-dependencies', setup(build) {

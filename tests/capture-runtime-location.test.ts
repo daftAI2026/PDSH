@@ -9,10 +9,19 @@ import { createRequire } from 'node:module'
 import test from 'node:test'
 import { runInNewContext } from 'node:vm'
 import { build } from 'esbuild'
-import { mkdir, mkdtemp, rm, symlink, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, rmdir, symlink, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { CAPTURE_RUNTIME_CONTRACT, CAPTURE_WALLPAPER_CONTRACT, createCaptureRuntimeLoader, locateCaptureRuntime } from '../src/host/capture-runtime-loader.ts'
+
+async function createDirectoryLink(target: string, linkPath: string): Promise<void> {
+  await symlink(target, linkPath, process.platform === 'win32' ? 'junction' : 'dir')
+}
+
+async function removeDirectoryLink(linkPath: string): Promise<void> {
+  if (process.platform === 'win32') await rmdir(linkPath)
+  else await unlink(linkPath)
+}
 
 async function buildLocator(packageName: '@daftai/pdsh' | '@daftai/pdsh-rc') {
   const result = await build({ entryPoints: ['src/host/capture-runtime-loader.ts'], bundle: true, write: false,
@@ -41,16 +50,16 @@ test('实际 ESM 和稳定安装链接能载入两个不同实现，非 createRe
         export function create() {return {version, capture(){}, save(){}, wallpaper(){}, refreshCaptureEnabled(){}, async dispose(){}}}
       `)
     }
-    await symlink(join(root, '0.3.3-rc.1'), link, 'dir')
+    await createDirectoryLink(join(root, '0.3.3-rc.1'), link)
     loader = createCaptureRuntimeLoader({locate:()=>locateCaptureRuntime(link)})
     const first = await loader.current()
     assert.equal(first.version, '0.3.3-rc.1')
-    await unlink(link); await symlink(join(root, '0.3.3-rc.2'), link, 'dir')
+    await removeDirectoryLink(link); await createDirectoryLink(join(root, '0.3.3-rc.2'), link)
     const second = await loader.current()
     assert.equal(second.version, '0.3.3-rc.2')
     assert.notEqual(first, second)
     await rm(join(root,'0.3.3-rc.2/lib/capture-runtime'), {recursive:true})
-    await symlink(join(root,'0.3.3-rc.1/lib/capture-runtime'), join(root,'0.3.3-rc.2/lib/capture-runtime'), 'dir')
+    await createDirectoryLink(join(root,'0.3.3-rc.1/lib/capture-runtime'), join(root,'0.3.3-rc.2/lib/capture-runtime'))
     await writeFile(join(root,'0.3.3-rc.1/lib/capture-runtime/0.3.3-rc.2.js'), 'export const version = "0.3.3-rc.2";')
     await assert.rejects(loader.current(), /invalid capture runtime location/)
     await writeFile(join(root,'0.3.3-rc.2/package.json'), JSON.stringify({name:'foreign',version:'0.3.3-rc.2'}))

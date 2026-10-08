@@ -76,8 +76,10 @@ Host starts the packaged macOS or Windows helper only after an explicit capture 
 Do not add an installer, persistent service, local server, or Main debugging bridge.
 
 `native/build.sh` builds a macOS 14+ arm64/x86_64 universal helper.
-`pnpm run bundle` uses `npm pack --ignore-scripts` to preserve mode 0755.
-Check executable bits in the source, archive, and installed package, not only byte digests.
+`pnpm run bundle` uses npm to select members and checks mode 0755 in the actual archive.
+On POSIX, check source and installed executable bits separately.
+Check the actual archive mode on every platform.
+Windows stat does not establish POSIX permissions.
 Do not repair packaging errors with install hooks or runtime `chmod`.
 
 `native/windows/build.ps1` builds the Windows helper with Windows SDK/MSVC.
@@ -86,6 +88,19 @@ Bind CI results and download digests to the build commit before committing the a
 The release gate checks x64, console PE, and the `asInvoker` manifest.
 Missing or fabricated artifacts cannot be distributed.
 Compilation, directory contracts, and PE checks do not prove Windows Desktop behavior.
+
+Windows can build a stable bundle or an RC.
+The local SDK rebuilds the Windows helper.
+The Mac helper and every native compilation input must match the pinned baseline.
+Changed inputs require a rebuild with the macOS SDK.
+Reuse does not establish a new Mac build or Desktop test.
+Windows invokes the npm CLI through Node.
+Stable archives remain in a private temporary directory with a verified ACL.
+The Windows build workspace is not treated as a private directory.
+Its tar implementation writes helper mode 0755 during packaging.
+The archive gate independently checks members, bytes, architecture, and mode.
+Windows stat does not establish POSIX permissions.
+No installation hook or runtime chmod repairs the package.
 
 ## Upgrade Compatibility
 
@@ -103,6 +118,8 @@ That shell rejects the restored v1 payload; do not describe its upgrade as compa
 A normal Host load and replacement of an older capture business payload are different boundaries.
 
 ## Temporary RC Packages
+
+RC packages use the same platform build and archive gates described above.
 
 `pnpm bundle:rc 1` creates isolated temporary staging from the current public source.
 The same builder produces `@daftai/pdsh-rc` / `pdsh-rc` and a numbered candidate version based on the stable manifest.
@@ -185,6 +202,31 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 1. Run `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm build`, and `pnpm run bundle`. Check the current version's actual tgz members, bytes, permissions, version, and dependency licenses. Do not substitute an older package. Include only the manifest allowlist and npm's fixed package metadata and README files; exclude node_modules, profiles, credentials, logs, and private research.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
+
+## 0.5.4 Release Decision: Windows Capture Repair
+
+Frame content can be smaller than the capture buffer.
+Remove the incorrect equality requirement.
+Keep ownership, stable-window, texture-boundary and budget checks.
+Config, Remote contracts and media identities remain unchanged.
+
+The user authorized main and v0.5.4 publication.
+Then test the official fixed-SHA update from 0.5.3.
+Do not create a GitHub Release or publish to npm.
+Mac inputs and helper bytes match the frozen baseline.
+The user waived this round's Mac machine test.
+
+RC machine checks cover capture, retake and PNG copy.
+They also cover PNG, JPEG and WebP file completion.
+Other checks cover picker cancellation and duplicate names.
+Plugin disable releases the camera and helper processes.
+Native fixtures cover target closure and startup termination.
+Cancellation during active capture and full pixel alignment remain unverified.
+Bind formal archive, native and isolated Host results separately.
+Run the stable update test after publishing its tag.
+Do not count RC installation as the stable update test.
+Respect an official restart-required result.
+Restarting requires separate authorization.
 
 ## 0.5.3 Release Decision: Session Camera with a Collapsed Sidebar
 

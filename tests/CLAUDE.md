@@ -1,6 +1,13 @@
 # tests/
 > L2 | 父级: ../CLAUDE.md
 
+- `native-baseline.test.ts`: 固定 Mac 原生闭包的复用合同。逐项改动输入和助手，验证 Windows RC 拒绝异源产物。
+- `windows-temp-ownership.test.ts`: 真实文件和目录 ACL 合同。拒绝叶写权限、继承写权限和祖先 Delete/DeleteChild；非空目录拒绝后 ACL 不变。
+- `windows-rc-archive.test.ts`: 真实 Windows npm/tar 的权限红绿合同。验实际归档 0755，拒绝模式漂移并保留成员和字节门。
+- `typert-generator-platform.test.ts`: 在临时副本运行真实官方生成器。Windows junction 与 Node 驱动 tsc；LF/CRLF 同源通过，内容漂移和裸 CR 拒绝。
+- `windows-capture-fixture.cpp`: 自有 Main→Host→helper 链。WGC/WIC 验内容与容量差异、PNG 尺寸和像素；启动前目标关闭与助手异常终止必须无 PNG。真实 EOF 和 Job 归零证明结算。
+- `windows-capture-contract.ps1`: 默认重建助手，运行正常取像、目标关闭和启动取消三项合同。指定 HelperPath 时验该产物；不冒充 WGC 中途撤权。
+
 - `capture-failure-observation.test.ts`: 公开失败码双语提示与旧后台/连接未知分账，从控制器到通知/logger的红绿回归，拒绝未知code泄漏；不替代实机链路验收。
 
 这些 TypeScript 合同运行在 Node/jsdom；只能证明源码和生成产物，不替代 Desktop 实窗验收。

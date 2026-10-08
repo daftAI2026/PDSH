@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖真实 bootstrap 编排、隔离副作用适配与系统临时根内私有目录；不发真实信号或打开调试端口。
- * [OUTPUT]: 验证身份/端口拒绝、启动 ACK 失败、关闭 unknown、取消、系统临时根选择和独占资源清理。
+ * [INPUT]: 依赖真实 bootstrap 编排、隔离副作用适配与系统临时根；不发真实信号或打开调试端口。
+ * [OUTPUT]: 验证身份/端口拒绝、ACK/取消结算和独占清理；POSIX目录模式仅由 POSIX stat 验证。
  * [POS]: Main 启动失败路径合同；覆盖编排而不把模拟 transport 认作原 DSH 验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -32,9 +32,12 @@ test('平台/父 Main 身份/已有 inspector 不符时零信号、零连接',as
     const h=fixture();alter(h);await assert.rejects(h.open('/package/main.cjs',new AbortController().signal));assert.deepEqual(h.calls,[]);
   }
 });
-test('成功须 ACK 加关闭证明；连接正常释放时归还临时目录',async()=>{
+test('成功须 ACK 加关闭证明；连接正常释放时归还临时目录',async t=>{
   const h=fixture(), bridge=await h.open('/package/main.cjs',new AbortController().signal);
-  assert.equal(h.calls.filter(call=>call[0]==='signal').length,1);assert.equal(h.paths.length,1);assert.equal((await lstat(dirname(h.paths[0]))).mode&0o777,0o700);
+  assert.equal(h.calls.filter(call=>call[0]==='signal').length,1);assert.equal(h.paths.length,1);assert.ok((await lstat(dirname(h.paths[0]))).isDirectory());
+  await t.test('POSIX 私有桥目录权限为0700',{skip:process.platform==='win32'?'Win32 文件模式不表达 POSIX 权限位':false},async()=>{
+    assert.equal((await lstat(dirname(h.paths[0]))).mode&0o777,0o700);
+  });
   assert.ok(h.closed>0);await bridge.dispose();assert.equal(h.destroyed,1);await directoryAbsent(h);
 });
 test('socket ACK 失败仍关闭 inspector 并清理私有目录',async()=>{

@@ -8,7 +8,7 @@
 > L2 | 父级: ../CLAUDE.md
 
 成员清单
-`window-capture.cpp`: Windows.Graphics.Capture `CreateForWindow(HWND)` 单窗编排器；先委托归属门，再由 D3D11 读帧、WIC 编码，stdout 仅 PNG、stderr 固定状态
+`window-capture.cpp`: WGC 单窗编排器。归属门先于取像。帧池尺寸仅定容量；按 ContentSize 验纹理边界并编码 PNG。窗口快照独立复核稳定性。
 `window-owner.cpp`: Host→Main 身份链与窗口归属实现；复核 helper/Host/Main 的 PID 创建代际、同路径/同用户、唯一可见普通窗口及窗口状态漂移
 `window-owner.h`: Windows helper 内部状态码、进程/窗口快照与归属校验接口；避免 capture 编排器重复实现 Win32 身份规则
 `window-capture.manifest`: helper使用 `asInvoker` 且 `uiAccess=false`，不请求管理员权限、不声明程序化/无边框取像能力

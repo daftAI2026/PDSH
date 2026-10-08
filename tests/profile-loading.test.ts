@@ -14,7 +14,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 function fixture(installed=true) {
   const profile=mkdtempSync(join(tmpdir(),'pdsh-profile-loading-'));
   mkdirSync(join(profile,'node_modules/@daftai'),{recursive:true});
-  if(installed)symlinkSync(fileURLToPath(new URL('../',import.meta.url)),join(profile,'node_modules/@daftai/pdsh'));
+  if(installed)symlinkSync(fileURLToPath(new URL('../',import.meta.url)),join(profile,'node_modules/@daftai/pdsh'),process.platform==='win32'?'junction':'dir');
   return {require:createRequire(join(profile,'profile.cjs')),dispose:()=>rmSync(profile,{recursive:true,force:true})};
 }
 test('单安装包通过一个正式包名解析 Host、Client、离线名称',async()=>{

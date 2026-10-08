@@ -1,11 +1,12 @@
 /**
- * [INPUT]: 依赖固定 Apple 下载器、shared 获取预算与仅分配小片段的人工 MOV fixture。
- * [OUTPUT]: 验证三次严格Range/强ETag一致性、预算/首帧重建/取消结算；已知证书拒绝只出固定码，不重试、改信任策略或泄漏异常正文。
+ * [INPUT]: 依赖固定 Apple 下载器、shared 预算、人工 MOV fixture 与 Windows 测试视图。
+ * [OUTPUT]: 验证协议/预算/取消；测试视图不证明真实 Windows ACL，POSIX mode 只在 POSIX stat 平台断言。
  * [POS]: 网络到本地首帧文件的窄合同；不联网或运行 native，不把人工 sample 当作真实解码证据。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import assert from 'node:assert/strict'
 import { lstat, mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { createRequire, syncBuiltinESMExports } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
@@ -15,6 +16,24 @@ import { createSystemWallpaperMovFixture } from './system-wallpaper-mov-fixture.
 
 const id = 'system-wallpaper-golden-gate-sunset'
 const etag = '"fixed-apple-object"'
+const mutableFsPromises = createRequire(import.meta.url)('node:fs/promises') as { lstat: (...args: any[]) => Promise<any> }
+const realLstat = mutableFsPromises.lstat
+
+async function withWindowsPosixMetadata<T>(run: () => Promise<T>): Promise<T> {
+  if (process.platform !== 'win32') return run()
+  mutableFsPromises.lstat = async (...args: any[]) => {
+    const info = await realLstat(...args)
+    const mode = (info.mode & ~0o777) | (info.isDirectory() ? 0o700 : 0o600)
+    Object.defineProperty(info, 'mode', { value: mode, configurable: true })
+    return info
+  }
+  syncBuiltinESMExports()
+  try { return await run() }
+  finally {
+    mutableFsPromises.lstat = realLstat
+    syncBuiltinESMExports()
+  }
+}
 
 function rangeHarness(sourceLength = 600 * 1024 * 1024) {
   const fixture = createSystemWallpaperMovFixture(sourceLength)
@@ -43,8 +62,24 @@ function rangeHarness(sourceLength = 600 * 1024 * 1024) {
 
 async function withRoot(run: (directory: string) => Promise<void>): Promise<void> {
   const directory = await mkdtemp(join(tmpdir(), 'pdsh-range-test-'))
+  try { await withWindowsPosixMetadata(() => run(directory)) }
+  finally { await rm(directory, { recursive: true, force: true }) }
+}
+
+async function withRawRoot(run: (directory: string) => Promise<void>): Promise<void> {
+  const directory = await mkdtemp(join(tmpdir(), 'pdsh-range-posix-test-'))
   try { await run(directory) }
   finally { await rm(directory, { recursive: true, force: true }) }
+}
+
+async function waitForSignal(signal: Promise<void>, label: string): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    await Promise.race([
+      signal,
+      new Promise<void>((_resolve, reject) => { timer = setTimeout(() => reject(new Error(`${label} did not settle within 2000ms`)), 2000) }),
+    ])
+  } finally { if (timer) clearTimeout(timer) }
 }
 
 test('known certificate rejection is distinguishable without changing trust, retrying or leaking raw errors', async t => {
@@ -99,8 +134,7 @@ test('large fixed Apple source uses only three bounded ranges and produces a com
     assert.equal(request.headers.get('accept-encoding'), 'identity')
   }
   const info = await lstat(video.path)
-  assert.equal(info.mode & 0o777, 0o600)
-  assert.equal((await lstat(join(video.path, '..'))).mode & 0o777, 0o700)
+  assert.equal(info.isFile(), true)
   const bytes = await readFile(video.path)
   const types: string[] = []
   for (let offset = 0; offset < bytes.length;) {
@@ -115,6 +149,16 @@ test('large fixed Apple source uses only three bounded ranges and produces a com
   await video.cleanup()
   await video.cleanup()
   assert.deepEqual(await readdir(directory), [])
+}))
+
+test('POSIX 临时目录与媒体文件权限分别保持0700和0600', {
+  skip: process.platform === 'win32' ? 'Windows 不提供系统壁纸；Win32 stat 无法表达 POSIX 权限门，且此断言不验证 Windows ACL' : false,
+}, async () => withRawRoot(async directory => {
+  const h = rangeHarness()
+  const video = await createAppleWallpaperDownloader({ tempDirectory: directory, fetcher: h.fetcher })(id, new AbortController().signal)
+  assert.equal((await lstat(video.path)).mode & 0o777, 0o600)
+  assert.equal((await lstat(join(video.path, '..'))).mode & 0o777, 0o700)
+  await video.cleanup()
 }))
 
 test('range replies reject full GET, inconsistent addresses/objects, compression, malformed lengths and weak ETags', async t => {
@@ -212,9 +256,9 @@ test('abort waits for actual body cancellation settlement before releasing owned
   let settled = false
   const operation = downloader(id, controller.signal).catch(error => error)
   void operation.then(() => { settled = true })
-  await started
+  await waitForSignal(started, 'body read')
   controller.abort()
-  await cancelStarted
+  await waitForSignal(cancelStarted, 'body cancellation')
   await new Promise(resolve => setImmediate(resolve))
   assert.equal(settled, false)
   assert.equal((await readdir(directory)).length, 1)

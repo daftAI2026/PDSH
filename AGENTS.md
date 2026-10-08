@@ -80,7 +80,7 @@ InCodex 的所有权与路径安全约束应按目标场景保留。
 | `src/client/capture/` | 工作台状态、背景图库、合成和导出。 |
 | `native/` | 包内 macOS universal 与 Windows x64 助手。 |
 | `lib/` | 官方基础/内部能力面、声明和版本化运行产物。 |
-| `tests/` | Node/jsdom 合同；不冒充 Desktop 或原生像素证据。 |
+| `tests/` | Node/jsdom 合同及 Windows 合成窗口原生夹具；不代替 Desktop 验收。 |
 | `locale/` | 中英文导出包元信息。 |
 | `tools/` | 构建、协议生成、RC staging 和只读宿主评估。 |
 | `.agents/skills/pdsh-host-compatibility/` | 宿主升级评估与授权迁移；不安装普通插件更新。 |
@@ -97,10 +97,13 @@ InCodex 的所有权与路径安全约束应按目标场景保留。
 | `cordis.patch.yml` | 唯一 Cordis 插入层。 |
 | `build.ts` / `tsconfig*.json` | 构建与源码类型边界。 |
 | `bundle-artifacts.ts` | 入口、双语 README、二进制、tgz 字节与权限验真。 |
-| `verify-host.ts` | 临时 profile 的官方安装、业务载入与生命周期门。 |
+| `verify-host.ts` | 临时 profile 的官方安装、业务与生命周期门；Windows 路径须验真实 ACL。 |
 | `check-release.ts` | 长期发布章节、双语版本、产物与清洁树门。 |
 | `tools/release-metadata.ts` | 公开简介和 Topics 的唯一声明。 |
 | `tools/pack-rc.ts` | 同源临时 RC 构建；不安装到用户 profile。 |
+| `tools/native-baseline.ts` | Windows 构建的固定 Mac 原生闭包复用门；输入漂移时拒绝。 |
+| `tools/pack-windows.ts` | Windows 打包期写实际 tar 执行位；不增加安装 hook。 |
+| `tools/pack-bundle.ts` | 稳定归档验成员、字节和权限后原子提交；拒绝覆盖。 |
 | `tools/assess-host-compatibility.ts` | 只读触点评估；不启动 Host 或认证兼容。 |
 | `tests/public-guides.test.ts` | 验证双语互链、指南边界、skill 同步与头像许可。 |
 | `output/` / `node_modules/` | 忽略的证据、临时产物与依赖。 |
@@ -120,9 +123,10 @@ Git 安装依赖这些已提交产物。不要分别手写它们。
 | `pnpm install --frozen-lockfile` | 安装锁定依赖；不改锁文件。 |
 | `pnpm typecheck` | 生成 Typert 面和声明，再检查类型。 |
 | `pnpm test` | 类型、构建、产物检查和全部 Node 合同。 |
+| `pnpm test:windows-capture` | 重建 Windows 助手和自有合成窗口夹具。验证真实 PNG，不访问 Desktop profile。 |
 | `pnpm build` | 重建 Host、Client 和版本化实现。 |
 | `pnpm run bundle` | 构建、验产物、打包并验真实 tgz。 |
-| `pnpm bundle:rc <候选号>` | 仅授权时构建正整数编号的同源 RC。 |
+| `pnpm bundle:rc <候选号>` | 仅授权时构建同源 RC。Windows 重建本机助手，异平台原生输入须通过基线门。 |
 | `pnpm metadata:check` | 只读核对本地公开简介。 |
 | `pnpm metadata:check-github` | 只读核对 GitHub About、homepage 和 Topics。 |
 | `pnpm compat:assess` | 只读列出宿主触点；输出不等于兼容验收。 |
@@ -489,7 +493,9 @@ L2/L3 必须带固定 PROTOCOL 行。
 - 归档含 manifest allowlist 与 npm 固定附带文件。
 - 固定附带文件仅为 package.json 和两份 README。
 - 不归档 profile、node_modules、凭据、日志或私人研究。
-- `npm pack --ignore-scripts` 必须保留助手 0755。
+- 最终归档必须保留助手 0755。
+- Windows 只在打包期写入该 tar 模式。
+- 所有平台都须验证归档实际模式和字节。
 - 不用 bin、install hook 或运行时 chmod 修补归档。
 - 发布、安装或未验门的例外须有本次明确授权。
 - 单个版本的历史例外不授予后续权限。

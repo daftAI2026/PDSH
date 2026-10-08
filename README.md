@@ -12,7 +12,7 @@
 遮挡侧栏标题、自定义昵称与头像，截取并打码编辑当前窗口。不提供会话隔离。
 <!-- pdsh:description:end -->
 
-DeepSeek Harness Desktop 插件 · **0.5.3 版本** · [`v0.5.3`](https://github.com/daftAI2026/PDSH/tree/v0.5.3)
+DeepSeek Harness Desktop 插件 · **0.5.4 版本** · [`v0.5.4`](https://github.com/daftAI2026/PDSH/tree/v0.5.4)
 
 ![插件设置与侧栏效果示例](https://raw.githubusercontent.com/daftAI2026/PDSH/main/docs/preview.jpg)
 
@@ -32,7 +32,7 @@ DeepSeek Harness Desktop 插件 · **0.5.3 版本** · [`v0.5.3`](https://github
 https://github.com/daftAI2026/PDSH
 ```
 
-固定版本请选择 `v0.5.3`；已安装用户可在插件详情页确认升级。
+固定版本请选择 `v0.5.4`；已安装用户可在插件详情页确认升级。
 
 **旧版提醒**：`0.3.2` 及更早版本首次升级需正常加载一次；运行中的 `0.5.0` 不支持免重启升级。[兼容说明](PUBLISHING.md#升级兼容)。
 
@@ -47,7 +47,8 @@ https://github.com/daftAI2026/PDSH
 - 背景媒体与编辑偏好存在本地浏览器仓，不保存截图、源视频或原文件名。空间满时拒绝导入，不静默淘汰用户图片。
 - 检测候选仅适用于已研究的 Mac 满窗布局，不是敏感内容检测。
   原生 PNG 候选对位与完整 Desktop 绘制仍待验收。
-  暖切换像素一致性、深色主题、英文 Desktop、Windows 实机及撤权仍未验。
+  暖切换像素一致性、深色主题及英文 Desktop 仍未验。
+  Windows 的采集中途取消与完整像素对位仍未验。
   保存或复制前请检查图片。
 - 显示遮挡不改变账号、原始文字、历史、日志或模型请求。PDSH 不提供会话隔离、凭据迁移或取证级隐私保证。
 

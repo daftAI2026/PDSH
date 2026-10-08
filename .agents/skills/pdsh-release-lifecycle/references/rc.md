@@ -21,6 +21,13 @@
 RC 关闭稳定 updater，不向正式配置地址写入。
 制作工具不安装到用户 profile，也不重启应用。
 
+Windows RC 用本机 SDK 重建 Windows 助手。
+Mac 助手及全部编译输入须通过固定基线门。
+输入变化时，停止复用并要求 macOS SDK 重建。
+Windows 的 POSIX stat 不证明执行权限。
+打包期写入实际 tar 0755，再验归档成员和字节。
+此路径不证明本次 Mac 编译或实机验收。
+
 ## 隔离 Host
 
 读取 [verify-host 契约](../../../../verify-host.ts)。

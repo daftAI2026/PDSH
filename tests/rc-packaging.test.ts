@@ -11,7 +11,7 @@ import {
   realpathSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { createRcStage, deriveRcIdentity, packRc, RC_SOURCE_ALLOWLIST } from '../tools/pack-rc.ts';
 
 function sourceFixture() {
@@ -31,6 +31,7 @@ function sourceFixture() {
     'tsconfig.json': '{}\n',
     'tsconfig.remote-types.json': '{}\n',
     'tools/generate-typert.ts': 'generator source\n',
+    'tools/native-baseline.ts': 'baseline source\n',
     'tools/typert-protocol-reference/package.json': '{"name":"fixture"}\n',
     'tools/typert-protocol-reference/src/index.ts': 'export {}\n',
     'src/host/index.ts': 'export {}\n',
@@ -96,8 +97,8 @@ test('stage 只复制公开白名单，在私有副本派生包/patch/locale，�
   try {
     assert.ok(RC_SOURCE_ALLOWLIST.includes('src') && RC_SOURCE_ALLOWLIST.includes('native'));
     stage = await createRcStage({ rootDir: h.rootDir, candidate: 3, stageParent: h.stageParent });
-    assert.equal(resolve(stage.stageDir).startsWith(resolve(h.stageParent) + '/'), true);
-    assert.equal(statSync(stage.stageDir).mode & 0o777, 0o700);
+    assert.equal(resolve(stage.stageDir).startsWith(resolve(h.stageParent) + sep), true);
+    if (process.platform !== 'win32') assert.equal(statSync(stage.stageDir).mode & 0o777, 0o700);
     assert.deepEqual(JSON.parse(readFileSync(join(stage.stageDir, 'package.json'), 'utf8')), {
       name: '@daftai/pdsh-rc', version: '0.3.0-rc.3', private: true, files: [],
     });
@@ -119,7 +120,7 @@ test('stage 只复制公开白名单，在私有副本派生包/patch/locale，�
     assert.match(readmeEn, /uninstall only `@daftai\/pdsh-rc`/u);
     assert.match(readmeEn, /# DSH Private Mode/u);
     for (const helper of ['native/window-capture', 'native/windows/window-capture-x64.exe']) {
-      assert.equal(statSync(join(stage.stageDir, helper)).mode & 0o777, 0o755, helper);
+      if (process.platform !== 'win32') assert.equal(statSync(join(stage.stageDir, helper)).mode & 0o777, 0o755, helper);
     }
     assert.equal(lstatSync(join(stage.stageDir, 'node_modules')).isSymbolicLink(), true);
     assert.equal(realpathSync(join(stage.stageDir, 'node_modules')), realpathSync(join(h.rootDir, 'node_modules')));
@@ -143,7 +144,7 @@ test('stage 拒绝白名单内部符号链接并回收自己创建的临时目�
     rmSync(join(h.rootDir, 'src/host'), { recursive: true, force: true });
     mkdirSync(outside, { recursive: true });
     writeFileSync(join(outside, 'secret.ts'), 'do not follow');
-    symlinkSync(outside, join(h.rootDir, 'src/host'), 'dir');
+    symlinkSync(outside, join(h.rootDir, 'src/host'), process.platform === 'win32' ? 'junction' : 'dir');
     await assert.rejects(createRcStage({ rootDir: h.rootDir, candidate: 1, stageParent: h.stageParent }), /symbolic link|symlink/i);
     assert.deepEqual(readdirSync(h.stageParent).sort(), ['caller-owned.txt']);
   } finally {
@@ -170,7 +171,7 @@ test('显式 tools 叶路径不能通过符号链接父目录读取外部源码'
   try {
     const externalTools = join(outside, 'tools');
     renameSync(join(h.rootDir, 'tools'), externalTools);
-    symlinkSync(externalTools, join(h.rootDir, 'tools'), 'dir');
+    symlinkSync(externalTools, join(h.rootDir, 'tools'), process.platform === 'win32' ? 'junction' : 'dir');
     await assert.rejects(createRcStage({ rootDir: h.rootDir, candidate: 1, stageParent: h.stageParent }), /symbolic link|symlink/i);
     assert.deepEqual(readdirSync(h.stageParent).sort(), ['caller-owned.txt']);
   } finally {

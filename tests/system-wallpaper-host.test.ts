@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖系统壁纸Host helper/stream边界、动态shared素材ID语法、可控子进程/operation、node:test虚拟计时及人工MOV Range片段。
- * [OUTPUT]: 验证当前目录的available/downloadable元数据、显式缺素材下载门控、ID/JSON/JPEG硬边界、预算与取消真实结算；不触及真实网络、本机素材或helper。
+ * [INPUT]: 依赖壁纸Host helper/stream、动态ID、可控子进程与 Windows POSIX-stat harness。
+ * [OUTPUT]: 验证目录、下载门控和预算/取消；真实 POSIX 媒体权限由专用合同覆盖。
  * [POS]: Native wallpaper Remote 的Host回归合同；独立于原生源码静态检查和Desktop验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -27,6 +27,37 @@ import {
   createAppleWallpaperDownloader,
 } from '../src/host/system-wallpaper-download.ts'
 import { SYSTEM_WALLPAPER_MOV_FIXTURE } from './system-wallpaper-mov-fixture.ts'
+
+const mutableFsPromises = createRequire(import.meta.url)('node:fs/promises') as { lstat: (...args: any[]) => Promise<any> }
+const realLstat = mutableFsPromises.lstat
+let restoreWindowsModeView: (() => void) | undefined
+
+test.before(() => {
+  if (process.platform !== 'win32') return
+  mutableFsPromises.lstat = async (...args: any[]) => {
+    const info = await realLstat(...args)
+    const mode = (info.mode & ~0o777) | (info.isDirectory() ? 0o700 : 0o600)
+    Object.defineProperty(info, 'mode', { value: mode, configurable: true })
+    return info
+  }
+  syncBuiltinESMExports()
+  restoreWindowsModeView = () => {
+    mutableFsPromises.lstat = realLstat
+    syncBuiltinESMExports()
+  }
+})
+
+test.after(() => restoreWindowsModeView?.())
+
+async function waitForSignal(signal: Promise<void>, label: string): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    await Promise.race([
+      signal,
+      new Promise<void>((_resolve, reject) => { timer = setTimeout(() => reject(new Error(`${label} did not settle within 2000ms`)), 2000) }),
+    ])
+  } finally { if (timer) clearTimeout(timer) }
+}
 
 /** Host 生命周期合同使用合法小片段；HTTP畸形与单sample表在各自专项合同验证。 */
 function appleRangeResponse(init: RequestInit): Response {
@@ -338,7 +369,7 @@ test('cancellation waits for actual helper settlement and retains single-flight 
   assert.equal(h.released, 1)
 })
 
-test('Apple first-sample download is ID-mapped, click-only, redirect-free, private and explicitly cleaned', async () => {
+test('Apple first-sample download is ID-mapped, click-only, redirect-free, private and explicitly cleaned', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'pdsh-wallpaper-download-test-'))
   const id = SYSTEM_WALLPAPER_IDS[0]!
   let fetchCalls = 0
@@ -363,7 +394,9 @@ test('Apple first-sample download is ID-mapped, click-only, redirect-free, priva
     assert.equal(video.path.startsWith(directory), true)
     const info = await lstat(video.path)
     assert.equal(info.isFile(), true)
-    assert.equal(info.mode & 0o777, 0o600)
+    await t.test('POSIX 媒体文件权限保持0600', {
+      skip: process.platform === 'win32' ? 'Win32 stat 无法表达 POSIX 权限位' : false,
+    }, () => assert.equal(info.mode & 0o777, 0o600))
     assert.ok(info.size < 4096)
     assert.deepEqual((await readFile(video.path)).subarray(-SYSTEM_WALLPAPER_MOV_FIXTURE.sourceFirstSampleSize),
       Buffer.from(SYSTEM_WALLPAPER_MOV_FIXTURE.sourceFirstSampleBytes))
@@ -408,7 +441,7 @@ test('requested Range and actual streamed bytes enforce the hard budget without 
   } finally { await rm(directory, { recursive: true, force: true }) }
 })
 
-test('cancellation waits for the download request to actually settle before deleting its temporary root', async () => {
+test('cancellation waits for the download request to actually settle before deleting its temporary root', { timeout: 10_000 }, async () => {
   const directory = await mkdtemp(join(tmpdir(), 'pdsh-wallpaper-cancel-test-'))
   const controller = new AbortController()
   let started!: () => void
@@ -426,7 +459,7 @@ test('cancellation waits for the download request to actually settle before dele
   })
   const task = downloader(SYSTEM_WALLPAPER_IDS[0]!, controller.signal).catch(error => error)
   void task.then(() => { settled = true })
-  await fetchStarted
+  await waitForSignal(fetchStarted, 'wallpaper fetch startup')
   controller.abort()
   await new Promise(resolve => setTimeout(resolve, 0))
   assert.equal(settled, false, 'abort signal does not pretend that the fetch operation has settled')
@@ -437,7 +470,7 @@ test('cancellation waits for the download request to actually settle before dele
   await rm(directory, { recursive: true, force: true })
 })
 
-test('download timeout is bounded and cleanup waits for the timed-out request to settle', async t => {
+test('download timeout is bounded and cleanup waits for the timed-out request to settle', { timeout: 10_000 }, async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] })
   const directory = await mkdtemp(join(tmpdir(), 'pdsh-wallpaper-timeout-test-'))
   let started!: () => void

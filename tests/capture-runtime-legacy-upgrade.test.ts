@@ -1,13 +1,13 @@
 /**
- * [INPUT]: 依赖固定旧壳/反射面、官方 Cordis/Registry、真实安装 payload 与 esbuild。
- * [OUTPUT]: 验证旧壳换载新增严格能力并撤销；保留已发布 v2 拒绝 v1 的负例。
+ * [INPUT]: 依赖固定旧壳、官方 Cordis/Registry、安装 payload、平台能力与 esbuild。
+ * [OUTPUT]: 验证跨代真实目录链接和严格能力撤销；状态断言遵循宿主平台能力。
  * [POS]: 跨版本装配合同。空 Settings 不取像；真实注册不代替 Gateway 或 Desktop。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { gunzipSync } from 'node:zlib'
-import { mkdtemp, mkdir, readFile, rm, symlink, unlink, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, rm, rmdir, symlink, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import test from 'node:test'
 import { Context } from '@deepseek-ai/cordis'
@@ -49,9 +49,19 @@ function sha256(bytes: Uint8Array): string {
 }
 
 async function pinnedFixture(name: keyof typeof FIXTURE_SHA256): Promise<Buffer> {
-  const bytes = await readFile(join(FIXTURE_ROOT, name))
+  const raw = await readFile(join(FIXTURE_ROOT, name))
+  const bytes = name.endsWith('.gz.fixture') ? raw : Buffer.from(raw.toString('utf8').replace(/\r\n/gu, '\n'))
   assert.equal(sha256(bytes), FIXTURE_SHA256[name], `${name} fixture changed`)
   return bytes
+}
+
+async function createDirectoryLink(target: string, linkPath: string): Promise<void> {
+  await symlink(target, linkPath, process.platform === 'win32' ? 'junction' : 'dir')
+}
+
+async function removeDirectoryLink(linkPath: string): Promise<void> {
+  if (process.platform === 'win32') await rmdir(linkPath)
+  else await unlink(linkPath)
 }
 
 function importSpecifiers(source: string): string[] {
@@ -128,7 +138,7 @@ async function writePackage(root: string, name: string, manifestBytes: Buffer, v
   await mkdir(runtimeRoot, { recursive: true })
   await writeFile(join(packageRoot, 'package.json'), manifestBytes)
   await writeFile(join(runtimeRoot, `${version}.js`), payload)
-  await symlink(join(PROJECT_ROOT, 'node_modules'), join(packageRoot, 'node_modules'), 'dir')
+  await createDirectoryLink(join(PROJECT_ROOT, 'node_modules'), join(packageRoot, 'node_modules'))
   return packageRoot
 }
 
@@ -166,7 +176,7 @@ test('已运行 v0.4.0 v1 壳用真实安装链接换载当前业务 payload', a
     const oldPayload = gunzipSync(oldRuntimeCompressed)
     assert.equal(sha256(oldPayload), FIXTURE_SHA256['capture-runtime.v0.4.0.js.fixture:uncompressed'])
     const beforeRoot = await writePackage(root, 'published-v0.4.0', oldPackageBytes, oldManifest.version, oldPayload)
-    await symlink(beforeRoot, packageLink, 'dir')
+    await createDirectoryLink(beforeRoot, packageLink)
 
     loader = legacy.createCaptureRuntimeLoader({
       locate: () => legacy.locateCaptureRuntime(packageLink),
@@ -181,8 +191,8 @@ test('已运行 v0.4.0 v1 壳用真实安装链接换载当前业务 payload', a
     const candidate = await currentCandidate()
     const currentRoot = await writePackage(root, 'current-candidate', await readFile(join(PROJECT_ROOT, 'package.json')),
       candidate.manifest.version, candidate.payload)
-    await unlink(packageLink)
-    await symlink(currentRoot, packageLink, 'dir')
+    await removeDirectoryLink(packageLink)
+    await createDirectoryLink(currentRoot, packageLink)
 
     const after = await loader.current()
     // +--- Host 版本 Remote 读取同一 Loader 的 current().version；本测不调用完整 Remote RPC。 ---+
@@ -233,7 +243,7 @@ test('已运行 v0.5.0 immutable v2 壳拒绝 v1 扩展候选', async (t) => {
 
     const candidateRoot = await writePackage(root, 'current-v1-candidate', await readFile(join(PROJECT_ROOT, 'package.json')),
       candidate.manifest.version, candidate.payload)
-    await symlink(candidateRoot, packageLink, 'dir')
+    await createDirectoryLink(candidateRoot, packageLink)
     loader = v2.createCaptureRuntimeLoader({
       locate: () => v2.locateCaptureRuntime(packageLink),
       context: { settings: { describe: () => [] }, logger: { info: (message: string) => events.push(message) } },
@@ -254,7 +264,7 @@ test('旧 v1 壳换载时新增能力获得独立官方严格注册，换代与�
   let loader: ReturnType<HistoricalLoader['createCaptureRuntimeLoader']> | undefined
   let releasePrevious: (() => void) | undefined
   try {
-    await symlink(join(PROJECT_ROOT, 'node_modules'), join(root, 'node_modules'), 'dir')
+    await createDirectoryLink(join(PROJECT_ROOT, 'node_modules'), join(root, 'node_modules'))
     await context.plugin(TypertRegistry).await()
     context.provide('settings', { describe: () => [] })
     const fixedShell = context.plugin({ name: 'published-fixed-shell', inject: ['typert', 'settings'], apply() {} })
@@ -271,7 +281,7 @@ test('旧 v1 壳换载时新增能力获得独立官方严格注册，换代与�
     await mkdir(dirname(packageLink), { recursive: true })
     const candidateRoot = await writePackage(root, 'installed-first', await readFile(join(PROJECT_ROOT, 'package.json')),
       candidate.manifest.version, candidate.payload)
-    await symlink(candidateRoot, packageLink, 'dir')
+    await createDirectoryLink(candidateRoot, packageLink)
     const legacy = await compileHistoricalLoader('v0.4.0', root)
     loader = legacy.createCaptureRuntimeLoader({ locate: () => legacy.locateCaptureRuntime(packageLink), context: fixedShell.ctx })
 
@@ -296,8 +306,9 @@ test('旧 v1 壳换载时新增能力获得独立官方严格注册，换代与�
     assert.equal(requestCodec.mode, 'strict')
     assert.doesNotThrow(() => requestCodec.create().parse({ kind: 'list' }))
     assert.throws(() => requestCodec.create().parse({ kind: 'load', id: 42 }))
+    const disabledStatus = process.platform === 'darwin' ? 'not-enabled' : 'unsupported-platform'
     assert.deepEqual(await Array.fromAsync(capabilities.wallpaper({ kind: 'list' }, new AbortController().signal)),
-      [{ type: 'terminal', status: 'not-enabled' }], '实际业务调用继续遵守 accepted 设置，不读系统媒体')
+      [{ type: 'terminal', status: disabledStatus }], '平台能力与 accepted 设置共同决定关闭状态，不读系统媒体')
     const owner = '@daftai/pdsh-capabilities'
     assert.ok(context.get('typert').getPackage(owner, 'host'))
     assert.equal(context.get('typert').getPackage('@daftai/pdsh', 'host')?.model, publishedFace.model,
@@ -310,8 +321,8 @@ test('旧 v1 壳换载时新增能力获得独立官方严格注册，换代与�
     first.dispose = async () => { settling = true; await held; await disposeFirst() }
     const secondRoot = await writePackage(root, 'installed-second', await readFile(join(PROJECT_ROOT, 'package.json')),
       candidate.manifest.version, candidate.payload)
-    await unlink(packageLink)
-    await symlink(secondRoot, packageLink, 'dir')
+    await removeDirectoryLink(packageLink)
+    await createDirectoryLink(secondRoot, packageLink)
     const swapping = loader.current()
     while (!settling) await new Promise(resolve => setImmediate(resolve))
     assert.equal(context.get('typert').local.get(endpoint), registered, '旧结算未结束不能提前注册下一代')

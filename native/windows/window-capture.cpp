@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 Host 显式授权请求、window-owner 的进程/窗口归属校验，以及 WGC、`::Windows::Graphics::DirectX::Direct3D11` DXGI interop 与 WIC。
- * [OUTPUT]: `--check-api` 返回无GUI能力状态；身份门通过后仅捕获唯一可见 Main 窗口，并以有界 PNG 写 stdout、固定状态写 stderr。
+ * [OUTPUT]: `--check-api` 返回无GUI能力状态。归属门通过后按帧 ContentSize 输出有界 PNG，stderr 仅固定状态。
  * [POS]: native/windows 的一次性 x64 取像编排器；复用 window-owner 安全门，隔离 WGC/D3D/WIC，不启动 picker、显示器捕获或提权。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -453,9 +453,8 @@ int RunCapture(DWORD hostPID, DWORD mainPID) {
   std::vector<BYTE> pixels;
   Status status = WaitForSingleFrame(item, device, context, &width, &height, &pixels);
   if (status != Status::Captured) return EmitStatus(status);
-  if (width != static_cast<uint32_t>(size.Width) || height != static_cast<uint32_t>(size.Height)) {
-    return EmitStatus(Status::WindowChanged);
-  }
+  // +--- 帧池尺寸表示容量，ContentSize 表示有效内容；纹理边界由 CopyFramePixels 校验 ---+
+  // +--- 窗口是否变化由归属快照证明，不以容量与内容尺寸相等代替 ---+
   if (!ValidatePairSnapshot(hostPID, mainPID, expectedMain, expectedHost)) return EmitStatus(Status::ProcessChanged);
   if (!RevalidateWindow(mainPID, selected)) return EmitStatus(Status::WindowChanged);
 

@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 通过 fixtureRoot/package.json 解析精确 DSH Host；从当前或显式 candidateRoot 读取 stable/RC 归档身份，在隔离 profile 接收官方 PNPM 命令。
+ * [INPUT]: 精确 DSH Host、候选归档与官方 PNPM。Windows 用真实 ACL 验临时路径所有权。
  * [OUTPUT]: 验官方安装、基础/内部能力版本、严格注册与生命周期。不取像或下载媒体。
  * [POS]: 仓库根目录的集成验收入口；只操作调用方指定且 owner/权限验证的临时 profile，不改写 DSH 用户 profile 或替代官方解析器。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -14,6 +14,7 @@ import { tmpdir } from 'node:os'
 import { createHash } from 'node:crypto'
 import { validatePackedBundle } from './bundle-artifacts.ts'
 import { pathToFileURL, fileURLToPath } from 'node:url'
+import { assertWindowsPrivateOwnership, protectWindowsOwnedDirectory } from './tools/windows-temp-ownership.ts'
 
 const FEATURE_FIELDS = ['maskIdentity', 'maskTitles', 'captureEnabled'] as const
 type AcceptanceIdentity = { name: '@daftai/pdsh' | '@daftai/pdsh-rc'; entryId: 'pdsh' | 'pdsh-rc' }
@@ -29,6 +30,7 @@ function usage(): never {
 
 // +--- 临时目录不等于私有目录；验证 owner 与写权限，不擅自 chmod 调用方内容 ---+
 function assertPrivateOwnership(path: string): void {
+  if (process.platform === 'win32') return assertWindowsPrivateOwnership(path);
   const entry = lstatSync(path);
   assert.ok((typeof process.geteuid !== 'function' || entry.uid === process.geteuid()) && !(entry.mode & 0o022),
     `必须属于当前用户且不可由其他用户写入: ${path}`);
@@ -64,7 +66,9 @@ function assertTemporaryProfilePath(profile: string): void {
 
 function assertOwnedTempDirectory(directory: string): void {
   const tempRoots = [realpathSync.native(tmpdir()), ...(existsSync('/tmp') ? [realpathSync.native('/tmp')] : [])]
+  const existed = existsSync(directory)
   mkdirSync(directory, { recursive: true, mode: 0o700 })
+  if (!existed && process.platform === 'win32') protectWindowsOwnedDirectory(directory)
   const entry = lstatSync(directory)
   assert.ok(entry.isDirectory() && !entry.isSymbolicLink(), `拒绝非目录或符号链接: ${directory}`)
   assertPrivateOwnership(directory)
@@ -113,7 +117,9 @@ function managerRegistry(profile: string): string {
 }
 
 function assertEmptyConsumer(profile: string): void {
+  const existed = existsSync(profile)
   mkdirSync(profile, { recursive: true, mode: 0o700 })
+  if (!existed && process.platform === 'win32') protectWindowsOwnedDirectory(profile)
   assertTemporaryProfilePath(profile)
   const allowedInitialFiles = new Set(['.npmrc', 'pnpm-workspace.yaml'])
   const existing = readdirSync(profile)
@@ -355,7 +361,9 @@ async function main(): Promise<void> {
     assertSingleBundle(ctx, identity)
     await waitWindowCapability(ctx, true, identity)
     const installedRoot = join(consumerProfile, 'node_modules', ROOT_BUNDLE)
-    assert.equal(lstatSync(join(installedRoot, 'native/window-capture')).mode & 0o777, 0o755, '官方安装必须保留 helper 执行位；摘要一致不能替代权限验证')
+    const installedMacHelper = lstatSync(join(installedRoot, 'native/window-capture'))
+    assert.ok(installedMacHelper.isFile(), '官方安装必须提供普通 Mac helper 文件')
+    if (process.platform !== 'win32') assert.equal(installedMacHelper.mode & 0o777, 0o755, 'POSIX 安装必须保留 helper 执行位')
     const installedManifest = JSON.parse(readFileSync(join(installedRoot, 'package.json'), 'utf8'))
     assert.equal(installedManifest.version, candidate.version, '被测包版本不是当前候选')
     // +--- 注册和字节相等不证明业务可载入；只调用无像素副作用的版本方法。 ---+

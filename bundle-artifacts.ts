@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖单包 manifest、双语 README、双官方 Typert 面、能力 DTO 闭包与 helper。
- * [OUTPUT]: 提供 validateBundleArtifacts/validatePackedBundle；拒绝拓扑、接口、平台架构、权限或归档漂移。
+ * [OUTPUT]: 验拓扑、接口、架构和字节。POSIX 源文件与所有平台真实 tgz 独立验 0755。
  * [POS]: 构建与发布共用的静态分发门；支持独立临时 RC 身份且维持同一产物门；只读本包与明确版本 tgz，不执行 bundle/helper，不访问用户 profile。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -82,7 +82,7 @@ export function validateBundleArtifacts(root: string): void {
   if (!runtime.includes(`PDSH build ${JSON.stringify(manifest.version)}`)
     || !runtime.includes('pdsh-capture-runtime-v1') || !runtime.includes('pdsh-wallpaper-runtime-v1')) throw new Error('bundle capture runtime version/contract drift');
   const helper = lstatSync(join(root, 'native/window-capture'));
-  if (!helper.isFile() || (helper.mode & 0o777) !== 0o755) throw new Error('native helper must be a packaged executable regular file with mode 0755');
+  if (!helper.isFile() || (process.platform !== 'win32' && (helper.mode & 0o777) !== 0o755)) throw new Error('native helper must be a packaged executable regular file with mode 0755');
   validateMacHelper(readFileSync(join(root, 'native/window-capture')));
   const windowsPath = join(root, 'native/windows/window-capture-x64.exe');
   if (!lstatSync(windowsPath).isFile()) throw new Error('Windows native helper must be a regular PE file');
@@ -231,7 +231,7 @@ export function validatePackedBundle(root: string, archive?: string): { archive:
   const stat = lstatSync(archive);
   if (!stat.isFile() || stat.size > MAX_ARTIFACT_BYTES) throw new Error('bundle archive must be a bounded regular file');
   const tar = (...args: string[]) => execFileSync('tar', args, { encoding: 'utf8', maxBuffer: MAX_ARTIFACT_BYTES });
-  const members = tar('-tzf', archive).trim().split('\n');
+  const members = tar('-tzf', archive).trim().split(/\r?\n/);
   const expected = [...ARCHIVE_FILES.filter(file => !file.includes('*')), `lib/capture-runtime/${manifest.version}.js`, 'locale/zh.json', 'locale/en.json', 'package.json', 'README.md', 'README.en.md'].map(file => `package/${file}`);
   if (members.length !== expected.length || new Set(members).size !== expected.length || expected.some(file => !members.includes(file))) throw new Error('bundle archive contains missing, duplicate or unexpected members');
   if (tar('-tvzf', archive).trim().split('\n').some(line => !line.startsWith('-'))) throw new Error('bundle archive must contain regular files only');

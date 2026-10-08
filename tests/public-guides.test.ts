@@ -1,22 +1,37 @@
 /**
- * [INPUT]: 依赖根指南、发布 skill、双语公开文档和许可。依赖 Node 文件与摘要接口。
- * [OUTPUT]: 验证文档互链、同源版本、升级边界和致谢。守护指南分层与历史原文。
+ * [INPUT]: 依赖根指南、发布 skill、双语文档、Git链接索引与历史 LF blob。
+ * [OUTPUT]: 验证文档互链、换行无关的内容合同、升级边界和致谢。
  * [POS]: tests 的公开文档合同。不运行宿主或联网。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, readlink } from 'node:fs/promises';
+import { lstat, readFile, readlink } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 
 const root = new URL('../', import.meta.url);
-const read = (name: string) => readFile(new URL(name, root), 'utf8');
+const repository = fileURLToPath(root);
+const normalizeLines = (text: string): string => text.replace(/\r\n/gu, '\n');
+const read = async (name: string): Promise<string> => normalizeLines(await readFile(new URL(name, root), 'utf8'));
+const readUrl = async (url: URL): Promise<string> => normalizeLines(await readFile(url, 'utf8'));
+const gitText = (spec: string): string => normalizeLines(execFileSync('git', ['show', spec], { cwd: repository, encoding: 'utf8' }));
 const guide = await read('AGENTS.md');
 
 // -------------------- 稳定指南 --------------------
 test('所有 Agent 共用 AGENTS，CLAUDE 保持相对符号链接', async () => {
-  assert.equal(await readlink(new URL('CLAUDE.md', root)), 'AGENTS.md');
-  assert.equal(await read('CLAUDE.md'), guide);
+  const linkPath = new URL('CLAUDE.md', root);
+  const staged = execFileSync('git', ['ls-files', '--stage', '--', 'CLAUDE.md'], { cwd: repository, encoding: 'utf8' });
+  assert.match(staged, /^120000\s[0-9a-f]{40}\s0\s+CLAUDE\.md$/mu, 'Git 必须保存相对符号链接条目');
+  assert.equal(gitText(':CLAUDE.md'), 'AGENTS.md');
+  if ((await lstat(linkPath)).isSymbolicLink()) {
+    assert.equal(await readlink(linkPath), 'AGENTS.md');
+    assert.equal(await read('CLAUDE.md'), guide);
+    return;
+  }
+  assert.equal(process.platform, 'win32', '只有 Windows 无链接权限时才允许工作树 stub');
+  assert.equal(await read('CLAUDE.md'), 'AGENTS.md', 'Windows stub 必须精确等于 Git 保存的链接目标');
 });
 
 test('项目指南按产品、地图、命令、安全和验收组织', () => {
@@ -45,12 +60,18 @@ test('指南明确禁止 AI 写流水账并指向私人证据仓', () => {
 
 test('旧指南发布合同逐字保留在发布文档，不回流长期指南', async () => {
   const publishing = await read('PUBLISHING.md');
+  const original = gitText('HEAD:PUBLISHING.md');
   const start = '<!-- pdsh:legacy-release-contracts:start -->\n';
   const end = '<!-- pdsh:legacy-release-contracts:end -->';
-  assert.equal(publishing.split(start).length, 2);
-  assert.equal(publishing.split(end).length, 2);
-  const block = publishing.split(start)[1].split(end)[0];
-  assert.equal(createHash('sha256').update(block).digest('hex'), 'ec54f919761a79bd2be1323f216de27aa56d6a757a8d9a29e0a9bd34db0ea784');
+  const extract = (text: string): string => {
+    assert.equal(text.split(start).length, 2);
+    assert.equal(text.split(end).length, 2);
+    return text.split(start)[1].split(end)[0];
+  };
+  const block = extract(publishing);
+  const originalBlock = extract(original);
+  assert.equal(block, originalBlock, '工作树历史原文必须逐字匹配 Git 的 LF blob');
+  assert.equal(createHash('sha256').update(originalBlock).digest('hex'), 'ec54f919761a79bd2be1323f216de27aa56d6a757a8d9a29e0a9bd34db0ea784');
   assert.ok(guide.includes('[PUBLISHING.md](PUBLISHING.md)'));
   assert.ok(publishing.includes('历史合同不授予当前发布或安装权限。'));
 });
@@ -58,7 +79,7 @@ test('旧指南发布合同逐字保留在发布文档，不回流长期指南',
 test('项目发布 skill 可发现，按需引用和局部地图指向真实文件', async () => {
   const directory = '.agents/skills/pdsh-release-lifecycle/';
   const entry = new URL(directory + 'SKILL.md', root);
-  const skill = await readFile(entry, 'utf8');
+  const skill = await readUrl(entry);
   assert.match(skill, /^---\nname: pdsh-release-lifecycle\ndescription: [^\n]+\n---\n/u);
   assert.ok(guide.includes(directory + 'SKILL.md'));
   assert.ok((await read('PUBLISHING.md')).includes(directory + 'SKILL.md'));
@@ -67,7 +88,7 @@ test('项目发布 skill 可发现，按需引用和局部地图指向真实文�
   assert.equal(references.length, 2);
   assert.equal(new Set(references).size, references.length);
   for (const relative of ['CLAUDE.md', 'references/CLAUDE.md', ...references]) {
-    const text = await readFile(new URL(relative, entry), 'utf8');
+    const text = await readUrl(new URL(relative, entry));
     assert.ok(text.includes('[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md'), relative);
   }
   for (const relative of references) {

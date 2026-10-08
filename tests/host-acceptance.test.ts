@@ -1,19 +1,49 @@
 /**
- * [INPUT]: 依赖 verify-host.ts CLI、Node 子进程和独占创建的临时/生成目录。
- * [OUTPUT]: 验证官方验收器在导入 Host 前拒绝非临时目录、符号链接、凭据、未知候选身份及错误包管理器。
+ * [INPUT]: 依赖 verify-host.ts CLI、Node 子进程、目录重解析点和真实 Windows ACL helper。
+ * [OUTPUT]: 验证临时路径、ACL、凭据、候选身份和包管理器边界先于 Host 导入。
  * [POS]: 集成工具的安全前置回归；不启动 DSH、不读取用户 profile、不把拒绝用例冒充功能验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { chmodSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertWindowsPrivateOwnership } from '../tools/windows-temp-ownership.ts';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const verifier = process.env.PDSH_HOST_VERIFIER ?? join(root, 'verify-host.ts');
+
+function createDirectoryLink(target: string, linkPath: string): void {
+  symlinkSync(target, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
+}
+
+function createFileLink(target: string, linkPath: string): string {
+  if (process.platform !== 'win32') {
+    symlinkSync(target, linkPath);
+    return target;
+  }
+  const targetDirectory = `${target}-directory`;
+  mkdirSync(targetDirectory);
+  const content = join(targetDirectory, 'sentinel');
+  writeFileSync(content, readFileSync(target));
+  symlinkSync(targetDirectory, linkPath, 'junction');
+  return content;
+}
+
+function grantEveryoneWrite(path: string): void {
+  execFileSync('icacls.exe', [path, '/grant', '*S-1-1-0:(WD)', '/Q'], {
+    encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
+  });
+}
+
+function removeEveryoneWrite(path: string): void {
+  execFileSync('icacls.exe', [path, '/remove:g', '*S-1-1-0', '/Q'], {
+    encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
+  });
+}
 
 function fixture() {
   const dir = mkdtempSync(join(tmpdir(), 'pdsh-host-safety-'));
@@ -24,13 +54,13 @@ function fixture() {
   writeFileSync(tgz, 'Not an installable package: preflight must reject first.\n');
   const fakePnpm = join(dir, 'old-pnpm.cjs');
   const argsPath = join(dir, 'observed-args.json');
-  writeFileSync(fakePnpm, `#!/usr/bin/env node\nrequire('node:fs').writeFileSync(${JSON.stringify(argsPath)}, JSON.stringify(process.argv.slice(2)));\nprocess.stdout.write('10.0.0\\n');\n`, { mode: 0o700 });
+  writeFileSync(fakePnpm, `require('node:fs').writeFileSync(${JSON.stringify(argsPath)}, JSON.stringify(process.argv.slice(2)));\nprocess.stdout.write('10.0.0\\n');\n`, { mode: 0o700 });
   return {
     dir, argsPath,
-    run(profile: string, command = { command: fakePnpm, args: [] as unknown[] }, candidateRoot?: string) {
+    run(profile: string, command = { command: process.execPath, args: [fakePnpm] as unknown[] }, candidateRoot?: string) {
       const result = spawnSync(process.execPath, ['--experimental-strip-types', verifier, host, profile, tgz, JSON.stringify(command),
         ...(candidateRoot ? ['green', candidateRoot] : [])], {
-        encoding: 'utf8', timeout: 15_000,
+        encoding: 'utf8', timeout: 60_000,
       });
       assert.equal(result.error, undefined);
       assert.equal(result.signal, null);
@@ -73,7 +103,7 @@ test('验收器拒绝从临时目录链接到项目的 profile', () => {
   const h = fixture();
   try {
     const profile = join(h.dir, 'linked-profile');
-    symlinkSync(root, profile, 'dir');
+    createDirectoryLink(root, profile);
     const before = readFileSync(join(root, 'package.json'));
     const result = h.run(profile);
     assert.notEqual(result.status, 0);
@@ -89,11 +119,11 @@ test('验收器拒绝已有 profile 中的配置文件符号链接', () => {
     mkdirSync(profile);
     const sentinel = join(h.dir, 'config-sentinel');
     writeFileSync(sentinel, 'owned sentinel\n');
-    symlinkSync(sentinel, join(profile, 'cordis.patch.yml'));
+    const sentinelContent = createFileLink(sentinel, join(profile, 'cordis.patch.yml'));
     const result = h.run(profile);
     assert.notEqual(result.status, 0);
     assert.match(result.output, /拒绝复用 cordis\.patch\.yml/);
-    assert.equal(readFileSync(sentinel, 'utf8'), 'owned sentinel\n');
+    assert.equal(readFileSync(sentinelContent, 'utf8'), 'owned sentinel\n');
   } finally { h.dispose(); }
 });
 
@@ -116,11 +146,11 @@ test('可预置的 npmrc 也必须是普通文件，不能借链接跨目录读�
     mkdirSync(profile);
     const sentinel = join(h.dir, 'npmrc-sentinel');
     writeFileSync(sentinel, 'registry=https://example.invalid/\n');
-    symlinkSync(sentinel, join(profile, '.npmrc'));
+    const sentinelContent = createFileLink(sentinel, join(profile, '.npmrc'));
     const result = h.run(profile);
     assert.notEqual(result.status, 0);
     assert.match(result.output, /初始文件必须是普通文件: \.npmrc/);
-    assert.equal(readFileSync(sentinel, 'utf8'), 'registry=https://example.invalid/\n');
+    assert.equal(readFileSync(sentinelContent, 'utf8'), 'registry=https://example.invalid/\n');
   } finally { h.dispose(); }
 });
 
@@ -149,17 +179,31 @@ test('验收器拒绝非字符串的 PNPM 参数', () => {
 test('验收器拒绝其他用户可写的临时祖先、profile 和初始配置，且不修权限掩盖风险', () => {
   for (const target of ['parent', 'profile', 'file']) {
     const h = fixture();
+    let granted: string | undefined;
     try {
       const profile = join(h.dir, 'consumer');
       mkdirSync(profile, { mode: 0o700 });
       const npmrc = join(profile, '.npmrc');
       writeFileSync(npmrc, '', { mode: 0o600 });
       const bad = target === 'parent' ? h.dir : target === 'profile' ? profile : npmrc;
-      chmodSync(bad, target === 'file' ? 0o666 : 0o777);
+      if (process.platform === 'win32') {
+        grantEveryoneWrite(bad);
+        granted = bad;
+        assert.throws(() => assertWindowsPrivateOwnership(bad), /Windows 临时目录 ACL 检查或保护失败/);
+      } else {
+        chmodSync(bad, target === 'file' ? 0o666 : 0o777);
+      }
       const result = h.run(profile);
       assert.notEqual(result.status, 0);
-      assert.match(result.output, /必须属于当前用户且不可由其他用户写入/);
-      assert.equal(lstatSync(bad).mode & 0o777, target === 'file' ? 0o666 : 0o777);
-    } finally { h.dispose(); }
+      if (process.platform === 'win32') {
+        assert.match(result.output, /Windows 临时目录 ACL 检查或保护失败/);
+      } else {
+        assert.match(result.output, /必须属于当前用户且不可由其他用户写入/);
+        assert.equal(lstatSync(bad).mode & 0o777, target === 'file' ? 0o666 : 0o777);
+      }
+    } finally {
+      if (granted) removeEveryoneWrite(granted);
+      h.dispose();
+    }
   }
 });

@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖公开源码白名单、双语 README、稳定 manifest 与官方构建和归档门。
+ * [INPUT]: 依赖公开源码白名单、双语 README、官方构建及 Windows 打包期权限适配。
  * [OUTPUT]: 在私有 OS staging 派生独立 RC，保留双语测试提醒并拒绝覆盖输出。
  * [POS]: 只负责候选制作；不安装、不触碰 Desktop/profile，不能替代 Manager 或实机验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -13,13 +13,15 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateBundleArtifacts, validatePackedBundle } from '../bundle-artifacts.ts';
+import { packWindowsArchive } from './pack-windows.ts';
+import { protectWindowsOwnedDirectory } from './windows-temp-ownership.ts';
 
 // +--- 只复制参与本次公开构建的路径；工作区、用户数据和已有生成目录不在白名单。 ---+
 export const RC_SOURCE_ALLOWLIST = Object.freeze([
   'package.json', 'README.md', 'README.en.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md',
   'cordis.patch.yml', 'style-sources.json', 'build.ts', 'bundle-artifacts.ts',
   'tsconfig.json', 'tsconfig.remote-types.json', 'src', 'locale', 'native',
-  'tools/generate-typert.ts', 'tools/typert-protocol-reference',
+  'tools/generate-typert.ts', 'tools/native-baseline.ts', 'tools/typert-protocol-reference',
 ] as const);
 
 const STABLE_PACKAGE = '@daftai/pdsh';
@@ -102,6 +104,7 @@ export async function createRcStage(options: CreateRcStageOptions): Promise<RcSt
   let disposed = false;
   try {
     await chmod(stageDir, 0o700);
+    if (process.platform === 'win32') protectWindowsOwnedDirectory(stageDir);
     const digest = createHash('sha256');
     for (const relative of RC_SOURCE_ALLOWLIST) {
       await copySourceEntry(rootDir, stageDir, relative, digest);
@@ -113,7 +116,7 @@ export async function createRcStage(options: CreateRcStageOptions): Promise<RcSt
       throw new Error('RC build requires a regular root node_modules directory');
     }
     // +--- 显式复用构建依赖；它是唯一 staging 链接，不会被 npm pack 白名单打包。 ---+
-    await symlink(dependencies, join(stageDir, 'node_modules'), 'dir');
+    await symlink(dependencies, join(stageDir, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
 
     await deriveManifest(stageDir, identity);
     await derivePatch(stageDir);
@@ -242,7 +245,7 @@ async function deriveManifest(stageDir: string, identity: RcIdentity): Promise<v
 async function derivePatch(stageDir: string): Promise<void> {
   const path = join(stageDir, 'cordis.patch.yml');
   const original = await readFile(path, 'utf8');
-  if (original !== PATCH_STABLE) throw new Error('RC source patch must be the sole canonical pdsh/@daftai/pdsh entry');
+  if (original.replace(/\r\n/g, '\n') !== PATCH_STABLE) throw new Error('RC source patch must be the sole canonical pdsh/@daftai/pdsh entry');
   await writeFile(path, PATCH_RC);
 }
 
@@ -309,8 +312,8 @@ function buildStage(stageDir: string): void {
 }
 
 async function packStage(stageDir: string, packDir: string, archivePath: string): Promise<void> {
-  const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-  execFileSync(npm, ['pack', '--ignore-scripts', '--pack-destination', packDir], { cwd: stageDir, stdio: 'inherit' });
+  if (process.platform === 'win32') await packWindowsArchive(stageDir, packDir, archivePath);
+  else execFileSync('npm', ['pack', '--ignore-scripts', '--pack-destination', packDir], { cwd: stageDir, stdio: 'inherit' });
   const manifest = parseJson(await readFile(join(stageDir, 'package.json'), 'utf8'), 'staged package.json');
   const expected = `${manifest.name.replace(/^@/, '').replace('/', '-')}-${manifest.version}.tgz`;
   if (basename(archivePath) !== expected) throw new Error('RC archive name drift');

@@ -62,7 +62,18 @@ pnpm release:check
 
 保留一个 `@daftai/pdsh` Bundle、一个 `pdsh` Host 和一个 root Client。身份、标题遮挡、截图是内部功能，不拆成依赖包。包内 macOS 和 Windows 助手仅由 Host 在用户点击截图后启动，完成后退出；不增加安装器、常驻服务、本地服务器或 Main 调试桥。
 
-macOS helper 经 `native/build.sh` 构建为最低 macOS 14 的 arm64/x86_64 universal 文件。用 `npm pack --ignore-scripts` 保留 0755，由 `pnpm run bundle` 统一调用；源文件、归档和实际安装均核对执行位，不能只比较摘要，也不以安装 hook 或运行时 chmod 修补包装错误。
+macOS helper 经 `native/build.sh` 构建为最低 macOS 14 的 arm64/x86_64 universal 文件。`pnpm run bundle` 用 npm 选择成员并验真实 tar 0755；POSIX 源文件与归档独立核对执行位，Windows 的 stat 不证明 POSIX 模式。不用安装 hook 或运行时 chmod 修补包装错误。
+
+Windows 可构建稳定包或 RC。
+本机 SDK 重建 Windows 助手。
+Mac 助手及全部编译输入须匹配固定基线。
+任一输入变化时，要求 macOS SDK 重建。
+复用不代表本次运行了 Mac 编译或实机验收。
+Windows 打包器用 Node 调用 npm CLI。
+正式归档留在已验 ACL 的私有临时目录。
+Windows 构建工作区不视为私有目录。
+其 tar 在打包期写入助手 0755。
+归档门独立验成员、字节、架构和模式。
 
 Windows helper 经 `native/windows/build.ps1` 在 Windows SDK/MSVC 上编译。`native-windows.yml` 运行真实 Windows 保存目录合同，上传短期 x64 构建物，不执行截图或自动发布。按构建提交核对 CI 与下载摘要，再将真实 PE 提交到 `native/windows/window-capture-x64.exe`。发布门校验 x64、控制台 PE 与 `asInvoker` manifest；缺失或伪造产物不得发包。编译、目录合同和 PE 检查都不是 Windows Desktop 实机验收。
 
@@ -75,6 +86,8 @@ Windows helper 经 `native/windows/build.ps1` 在 Windows SDK/MSVC 上编译。`
 此修复 tag 不是已运行 0.5.0 v2 壳的免重启迁移包。该壳不接受恢复的 v1 payload；不要把这一代壳的升级写成已兼容。官方正常加载与旧截图业务换载是不同边界。
 
 ## 临时 RC 共存测试包
+
+RC 复用上述平台构建和归档门。
 
 `pnpm bundle:rc 1` 从当前公开源码建立独立临时 staging，以同一构建器生成 `@daftai/pdsh-rc` / `pdsh-rc` 和编号候选版本（基础版本取正式 manifest）；正式包名、版本及已有发布归档不改。界面元数据标明 RC，配置和浏览器编辑偏好隔离，不提供正式更新安装。输出放在 `output/rc/`，同一候选不覆盖；收据记录源码脏状态与摘要，不把未提交代码冒充稳定 tag。
 
@@ -142,6 +155,31 @@ Client 在基础版本回复后独立核对能力版本。
 1. 运行 `pnpm install --frozen-lockfile`、`pnpm test`、`pnpm build` 和 `pnpm run bundle`。检查当前版本真实 tgz 的成员、字节、权限、版本与依赖许可，不复用旧包冒充当前结果。归档包含 manifest allowlist、package.json 和两份 README，不包含 node_modules、profile、凭据、日志或私有研究。
 2. 通过 `verify-host.ts` 在当前用户拥有的全新临时 profile 中运行目标 DSH 的实际 PluginManager、Typert Loader 和自带 PNPM。绑定被装版本、运行字节和来源摘要，检查单 root 行/Client、八组合功能设置、revision 写入与恢复、停用与重新启用。不得关闭 `blockExoticSubdeps`、替换解析器或伪造活动状态。此检查不拍摄像素，也不代替 Desktop UI。
 3. 实际 Desktop 验收独立记录：目标安装件的主题、入口、搜索展开/折叠、三个开关、截图覆盖/比例、重拍、复制、选目录/直接保存及取消/停用。旧版到新版的官方管理器升级也单独验证；实验重装不是升级证据。普通功能开关无需重启，替换包仅遵从宿主明确的加载/重启提示并保护未保存工作。
+
+## 0.5.4 发布决定：修复 Windows 截图
+
+帧内容允许小于采集缓冲区。
+移除错误的尺寸相等约束。
+保留归属、窗口稳定、纹理边界和预算校验。
+Config、Remote 合同和媒体身份不变。
+
+用户授权推送 main 与 v0.5.4。
+随后通过官方固定 SHA 更新测试 0.5.3 升级。
+不创建 GitHub Release，不发布 npm。
+Mac 输入与助手字节均匹配冻结基线。
+用户免做本轮 Mac 实机测试。
+
+RC 实机检查覆盖初拍、重拍和 PNG 复制。
+它们也覆盖 PNG、JPEG、WebP 文件提交。
+另验目录选择取消和重名编号。
+插件停用后归还相机入口和助手进程。
+原生夹具覆盖目标关闭和启动异常终止。
+采集中途取消与完整像素对位仍未验。
+正式归档、原生和隔离 Host 结果分别绑定。
+稳定升级检查在 tag 发布后执行。
+RC 首装不能代替稳定升级检查。
+遵守官方 restart-required 结果。
+重启须另获授权。
 
 ## 0.5.3 发布决定：收起侧栏的会话相机
 
