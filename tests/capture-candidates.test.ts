@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 capture privacy 的候选识别出口、redactions 选择解析与 jsdom 几何桩。
- * [OUTPUT]: 验证 DOM 候选可见性/裁剪/上限、严格侧栏优先，以及移动节点重定位而替换节点不继承旧选择。
+ * [OUTPUT]: 验证候选几何与身份边界；未登录 More 不入候选，主动替换的身份参与检测。
  * [POS]: 自动遮挡建议的 DOM 识别合同；不证明页面到原生整窗的像素坐标映射。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -9,6 +9,9 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { collectDSHCandidates } from '../src/client/capture/privacy.ts';
 import { resolveSelectedCaptureRegions } from '../src/client/capture/redactions.ts';
+import { mountPresentation } from '../src/client/presentation.ts';
+import { resolvePreferences } from '../src/shared/model.ts';
+import { readFileSync } from 'node:fs';
 import type { CaptureRegion } from '../src/client/capture/model.ts';
 
 function rect(element: Element, left: number, top: number, width: number, height: number) {
@@ -21,6 +24,32 @@ function rect(element: Element, left: number, top: number, width: number, height
 function candidates(dom: JSDOM) {
   return collectDSHCandidates(dom.window.document);
 }
+
+test('未登录更多不作为候选；主动替换后检测自有头像与昵称', () => {
+  const dom = new JSDOM('<div data-slot="settings.launcher"><button aria-haspopup="menu" data-collapsed="false" data-signed-out="true"><svg style="width:14px;height:14px"></svg><span>更多</span></button></div>');
+  const doc = dom.window.document;
+  const native = doc.createElement('style');
+  native.dataset.plugin = '@deepseek-ai/dsh-client-ui-settings-account';
+  native.dataset.pluginCss = `${native.dataset.plugin}/AccountMenu.module.css`;
+  native.textContent = '.fixture_trigger {display:flex;align-items:center;height:44px;padding:6px} .fixture_avatar {display:flex;align-items:center;justify-content:center;flex:none;width:24px;height:24px;border-radius:50%}';
+  doc.head.append(native);
+  doc.querySelector('button').className = 'fixture_trigger';
+  const style = doc.createElement('style');
+  style.textContent = readFileSync(new URL('../src/client/styles.css', import.meta.url), 'utf8');
+  doc.head.append(style);
+  rect(doc.querySelector('svg'), 10, 10, 14, 14);
+  rect(doc.querySelector('button > span'), 50, 10, 100, 24);
+  assert.deepEqual(candidates(dom), []);
+  const presentation = mountPresentation(doc);
+  presentation.update(resolvePreferences({ maskIdentity: true }));
+  rect(doc.querySelector('[data-pdsh-avatar-container]'), 10, 10, 24, 24);
+  rect(doc.querySelector('[data-pdsh-avatar-image]'), 10, 10, 24, 24);
+  rect(doc.querySelector('[data-pdsh-name]'), 50, 10, 100, 24);
+  assert.deepEqual(candidates(dom).map(({ x }) => x), [10, 50]);
+  presentation.dispose();
+  assert.deepEqual(candidates(dom), []);
+  dom.window.close();
+});
 
 test('部分视口可见的通用候选只暴露视口交集几何', () => {
   const dom = new JSDOM('<p>可见文本候选</p>');

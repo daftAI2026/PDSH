@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖共享 sidebar title/唯一 identity 识别、model 矩形契约、DOM 可见性和 viewport 几何。
- * [OUTPUT]: 提供最多150个视口裁剪后的局部候选，ID 仅绑定当前 Document 中的 Element 身份。
+ * [OUTPUT]: 提供最多150个视口裁剪候选；未登录原生更多不作为身份，自有替身参与识别。
  * [POS]: 自动遮挡的 DOM 建议层；与临时隐私预遮挡分离，不推断原生窗口像素原点。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -130,7 +130,7 @@ export function collectDOMCandidates(doc: Document): CaptureCandidate[] {
 
   const strictNodes: Element[] = [...recognizedSidebarTitles(doc)];
   const identity = recognizeSidebarIdentity(doc);
-  if (identity.status === 'recognized') {
+  if (identity.status === 'recognized' && identity.hasIdentity) {
     strictNodes.push(identity.avatar);
     const visibleLabel = identity.trigger.querySelector(':scope > [data-pdsh-name]') ?? identity.label;
     if (visibleLabel) strictNodes.push(visibleLabel);

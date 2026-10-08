@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实编辑器、jsdom、Canvas 编码/绘制窄桩、可控保存回执与延迟 Node File.arrayBuffer。
- * [OUTPUT]: 验证导出回执/取消/迟到编码围栏、Tabs 只在关闭时精确释放当前实例，以及切 Tab/卸载时选图读取中止于 PNG header/decode/storage 前且不迟到通知。
+ * [OUTPUT]: 验证导出回执/取消/迟到编码围栏、头像重拍提交与预览/导出共用新源，以及Tabs和选图取消结算。
  * [POS]: 编辑器导出、背景 Tabs 与本地导入取消合同；像素与原生保存均为窄桩，不证明图像视觉或 Electron 面板实机行为。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -15,7 +15,8 @@ function fixture(options={}) {
   const values={window:dom.window,document:dom.window.document,navigator:dom.window.navigator,HTMLElement:dom.window.HTMLElement,HTMLCanvasElement:dom.window.HTMLCanvasElement,HTMLImageElement:dom.window.HTMLImageElement,ResizeObserver:class{observe(){}disconnect(){}},Image:dom.window.Image};
   const previous=new Map(Object.keys(values).map(key=>[key,Object.getOwnPropertyDescriptor(globalThis,key)]));
   for(const[key,value]of Object.entries(values))Object.defineProperty(globalThis,key,{value,configurable:true,writable:true});
-  const context=new Proxy({canvas:null},{get(target,key){if(key in target)return target[key];if(String(key).startsWith('create'))return()=>({addColorStop(){}});return()=>{};},set(target,key,value){target[key]=value;return true;}});
+  const drawnSources=[];
+  const context=new Proxy({canvas:null},{get(target,key){if(key in target)return target[key];if(key==='drawImage')return source=>drawnSources.push(source);if(String(key).startsWith('create'))return()=>({addColorStop(){}});return()=>{};},set(target,key,value){target[key]=value;return true;}});
   dom.window.HTMLCanvasElement.prototype.getContext=function(){context.canvas=this;return context;};
   const encoded=[];let delay=false;
   dom.window.HTMLCanvasElement.prototype.toBlob=function(fn,mime){const complete=()=>fn(new dom.window.Blob(['fixture'],{type:mime}));if(delay)encoded.push(complete);else complete();};
@@ -24,7 +25,7 @@ function fixture(options={}) {
   const editor=mountCaptureWindowEditor(dom.window.document.querySelector('main'),{source,initialState:{...createCaptureWindowState({width:120,height:80}),background:{kind:'color',color:'#ffffff'}},preferenceStorage:null,locale:'zh',
     fileMetadata:{title:'snapshot-title',capturedAt:new Date(2026,9,1,13,2,3)},exportPreferences:{saveBehavior:'direct',saveDirectory:'/tmp/pdsh-fixture',saveFormat:'webp',fileNamePattern:'{title}-{width}x{height}-{time}'},
     onNotify:message=>notices.push(message),onClose:()=>closed.push(true),onSave:async(...args)=>{saved.push(args);return 'cancelled';},...options});
-  return{dom,editor,notices,saved,closed,encoded,delay(){delay=true;},click(){dom.window.document.querySelector('[data-action="save"]').click();},
+  return{dom,editor,notices,saved,closed,encoded,source,drawnSources,delay(){delay=true;},click(){dom.window.document.querySelector('[data-action="save"]').click();},
     async flush(){await new Promise(resolve=>setImmediate(resolve));},close(){editor.destroy();dom.window.close();for(const[key,descriptor]of previous){if(descriptor)Object.defineProperty(globalThis,key,descriptor);else delete globalThis[key];}}};
 }
 test('取消原生保存保持编辑，模板用冻结标题/时间和合成尺寸，目录与格式传给同一保存边界',async()=>{
@@ -165,3 +166,64 @@ test('旧后台阻止保存时保留编辑，提示正常加载而不误报目�
     assert.doesNotMatch(h.notices.at(-1), /目录|权限/)
   } finally { h.close() }
 })
+
+test('头像开关失败时恢复原状态；成功重拍后预览和导出都使用新原生像素且不持久化头像覆盖', async () => {
+  const writes=[];
+  const initialState={...createCaptureWindowState({width:120,height:80}),avatarMaskEnabled:true,background:{kind:'color',color:'#ffffff'}};
+  let replacementSource:HTMLCanvasElement|null=null;let fail=true;const retakes=[];
+  const storage={getItem:()=>null,setItem:(key,value)=>writes.push([key,JSON.parse(value)])};
+  const h=fixture({initialState,initialAvatarMaskEnabled:true,preferenceStorage:storage,
+    onRetake:async(revision,privacyEnabled,avatarMaskEnabled)=>{retakes.push({revision,privacyEnabled,avatarMaskEnabled});if(fail)throw Error('capture failed');if(!replacementSource)throw Error('missing replacement');return{source:replacementSource,automaticRegions:[],avatarMaskEnabled};}});
+  replacementSource=h.dom.window.document.createElement('canvas');replacementSource.width=140;replacementSource.height=90;
+  const editor=h.editor;
+  try{
+    const root=h.dom.window.document.querySelector('[data-pdsh-capture]');
+    const avatar=root.querySelector('[data-input="avatar-mask"]');
+    assert.ok(avatar);
+    assert.equal(avatar.checked,true);
+    avatar.checked=false;avatar.dispatchEvent(new h.dom.window.Event('change',{bubbles:true}));await h.flush();
+    assert.deepEqual(retakes,[{revision:1,privacyEnabled:true,avatarMaskEnabled:false}]);
+    assert.equal(editor.getState().avatarMaskEnabled,true);
+    assert.equal(editor.getState().sourceRevision,0);
+    assert.equal(h.dom.window.document.querySelector('[data-input="avatar-mask"]').checked,true,'失败后复原稳定 checkbox');
+    assert.equal(editor.getState().source.width,120,'失败不替换原 source');
+    fail=false;
+    const retryAvatar=h.dom.window.document.querySelector('[data-input="avatar-mask"]');
+    retryAvatar.checked=false;retryAvatar.dispatchEvent(new h.dom.window.Event('change',{bubbles:true}));await h.flush();
+    assert.deepEqual(retakes[1],{revision:1,privacyEnabled:true,avatarMaskEnabled:false});
+    assert.equal(editor.getState().avatarMaskEnabled,false);
+    assert.equal(editor.getState().sourceRevision,1);
+    assert.equal(editor.getState().source.width,140);
+    assert.equal(h.dom.window.document.querySelector('[data-input="avatar-mask"]').checked,false);
+    assert.equal(writes.length,0,'会话头像覆盖不写入编辑器偏好或 Host 配置');
+    const titleMask=h.dom.window.document.querySelector('[data-input="privacy"]');titleMask.checked=false;titleMask.dispatchEvent(new h.dom.window.Event('change',{bubbles:true}));await h.flush();
+    assert.deepEqual(retakes[2],{revision:2,privacyEnabled:false,avatarMaskEnabled:false},'标题重拍保留已明确选择的会话头像值');
+    assert.equal(editor.getState().privacyEnabled,false);
+    assert.equal(editor.getState().avatarMaskEnabled,false);
+    assert.equal(writes.length,1);
+    assert.equal(Object.hasOwn(writes[0][1],'avatarMaskEnabled'),false,'标题偏好保存不携带头像覆盖');
+    assert.equal(Object.hasOwn(writes[0][1],'avatarMaskOverride'),false,'头像覆盖来源也不持久化');
+    const previewDraws=h.drawnSources.filter(source=>source===replacementSource).length;
+    assert.ok(previewDraws>=1,'重拍后的工作台预览绘制新原生 canvas');
+    h.dom.window.document.querySelector('[data-action="save"]').click();await h.flush();
+    assert.ok(h.drawnSources.filter(source=>source===replacementSource).length>previewDraws,'导出再次使用同一新原生 canvas');
+  }finally{h.close();}
+});
+
+test('没有本地头像覆盖时，普通重拍跟随返回的 accepted 头像状态', async () => {
+  let replacementSource:HTMLCanvasElement|null=null;const requested=[];
+  const initialState={...createCaptureWindowState({width:120,height:80}),avatarMaskEnabled:true,background:{kind:'color',color:'#ffffff'}};
+  const h=fixture({initialState,initialAvatarMaskEnabled:true,onRetake:async(_revision,_privacyEnabled,avatarMaskOverride)=>{
+    requested.push(avatarMaskOverride);
+    if(!replacementSource)throw Error('missing replacement');
+    return{source:replacementSource,automaticRegions:[],avatarMaskEnabled:false};
+  }});
+  replacementSource=h.dom.window.document.createElement('canvas');replacementSource.width=130;replacementSource.height=85;
+  try{
+    h.dom.window.document.querySelector('[data-action="retake"]').click();await h.flush();
+    assert.deepEqual(requested,[undefined],'未显式切换时不把首拍默认值伪装成本地覆盖');
+    assert.equal(h.editor.getState().avatarMaskEnabled,false);
+    assert.equal(h.editor.getState().avatarMaskOverride,null);
+    assert.equal(h.dom.window.document.querySelector('[data-input="avatar-mask"]').checked,false);
+  }finally{h.close();}
+});

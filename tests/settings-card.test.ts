@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖真实 SettingsCard JSX、React/jsdom 与只替代原生控件外观的 primitives 桩。
- * [OUTPUT]: 验证头像三按钮即时保存、昵称勾选保存、IME/局部取消/焦点、异步失效与字段级冲突。
- * [POS]: PDSH 设置交互回归；宿主 token 和真实布局由 runtime 截图另验。
+ * [OUTPUT]: 验证设置即时提交、局部草稿/异步冲突，以及真实 MutationObserver 驱动的账号头像登出/恢复。
+ * [POS]: PDSH 设置交互回归；真实 presentation 驱动 JSX，宿主 token 与布局由 runtime 截图另验。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
@@ -12,8 +12,10 @@ import { transformSync } from 'esbuild';
 import React, { act } from 'react';
 import { JSDOM } from 'jsdom';
 import * as model from '../src/shared/model.ts';
+import { dictionaries } from '../src/shared/locales.ts';
+import { mountPresentation } from '../src/client/presentation.ts';
 
-async function mountSettings({ fileReader, imageDecode } = {}) {
+async function mountSettings({ fileReader, imageDecode, value, presentation: initialPresentation, realPresentation = false, t = key => key } = {}) {
   const dom = new JSDOM('<body><main></main></body>', { url: 'http://localhost' });
   const previous = new Map(['window', 'document', 'IS_REACT_ACT_ENVIRONMENT'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
@@ -38,17 +40,31 @@ async function mountSettings({ fileReader, imageDecode } = {}) {
   const { createRoot } = await import('react-dom/client');
   const root = createRoot(dom.window.document.querySelector('main'));
   const listeners = new Set(), writes = [];
-  let snapshot = { status: 'ready', writable: true, revision: 7, value: model.DEFAULTS };
+  let snapshot = { status: 'ready', writable: true, revision: 7, value: { ...model.DEFAULTS, ...value } };
   let accepted = false;
-  const form = { getSnapshot: () => snapshot, subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }, async mutate(ops, revision) { writes.push({ ops, revision }); if (accepted) { snapshot = { ...snapshot, revision: snapshot.revision + 1, value: { ...snapshot.value, ...Object.fromEntries(ops.map(op => [op.path[0], op.value])) } }; for (const fn of listeners) fn(); } return accepted; } };
-  const presentation = { accountAvatar: () => 'official.png', status: () => 'disabled', subscribe: () => () => {} };
+  let presentationController = null;
+  const form = { getSnapshot: () => snapshot, subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }, async mutate(ops, revision) { writes.push({ ops, revision }); if (accepted) { snapshot = { ...snapshot, revision: snapshot.revision + 1, value: { ...snapshot.value, ...Object.fromEntries(ops.map(op => [op.path[0], op.value])) } }; presentationController?.update(model.resolvePreferences(snapshot.value)); for (const fn of listeners) fn(); } return accepted; } };
+  const presentationListeners = new Set();
+  let presentationSnapshot = { accountAvatar: 'official.png', accountStatus: 'signed-in', status: 'disabled', ...initialPresentation };
+  const fakePresentation = {
+    accountAvatar: () => presentationSnapshot.accountAvatar,
+    accountStatus: () => presentationSnapshot.accountStatus,
+    status: () => presentationSnapshot.status,
+    subscribe(fn) { presentationListeners.add(fn); return () => presentationListeners.delete(fn); },
+  };
   const doc = dom.window.document;
+  if (realPresentation) {
+    doc.body.insertAdjacentHTML('afterbegin', '<div data-slot="settings.launcher"><button type="button" data-collapsed="false" data-signed-out="false" aria-haspopup="menu"><span class="native-avatar"><img src="official.png" alt=""></span><span class="native-label">账号</span></button></div>');
+    presentationController = mountPresentation(doc);
+    presentationController.update(model.resolvePreferences(snapshot.value));
+  }
+  const presentation = presentationController ?? fakePresentation;
   const buttons = () => [...doc.querySelectorAll('button')];
   const button = name => buttons().find(node => node.textContent === name || node.getAttribute('aria-label') === name || node.getAttribute('aria-label')?.startsWith(`${name}: `));
   return { doc, dom, root, button, writes, form, presentation, listeners,
     accept(value) { accepted = value; },
     async snapshot(changes) { await act(async () => { snapshot = { ...snapshot, ...changes }; for (const fn of listeners) fn(); }); },
-    async render() { await act(async () => root.render(React.createElement(module.exports.SettingsCard, { preferencesForm: form, presentation, t: key => key }))); },
+    async render() { await act(async () => root.render(React.createElement(module.exports.SettingsCard, { preferencesForm: form, presentation, t }))); },
     async input(node, value) { await act(async () => {
       Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, 'value').set.call(node, value);
       node.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
@@ -58,10 +74,14 @@ async function mountSettings({ fileReader, imageDecode } = {}) {
       await act(async () => node.dispatchEvent(new dom.window.Event('change', { bubbles: true })));
     },
     async close() {
-      await act(async () => root.unmount()); dom.window.close();
+      await act(async () => root.unmount());
+      presentationController?.dispose();
+      dom.window.close();
       for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; }
-      assert.equal(listeners.size, 0);
+      assert.equal(listeners.size, 0); assert.equal(presentationListeners.size, 0);
     },
+    async publishPresentation(changes) { await act(async () => { presentationSnapshot = { ...presentationSnapshot, ...changes }; for (const fn of presentationListeners) fn(); }); },
+    setPresentation(changes) { presentationSnapshot = { ...presentationSnapshot, ...changes }; },
     Component: module.exports.SettingsCard,
   };
 }
@@ -104,6 +124,139 @@ test('头像来源属于右侧操作组并紧邻首个按钮，没有额外字�
     assert.equal(h.button('checkUpdate'), undefined);
     assert.equal(h.writes.length, 0);
   } finally { await h.close(); }
+});
+
+test('登出只临时生成已选账号头像，替换关闭时仍可主动启用本地身份', async () => {
+  const t = key => dictionaries.zh[key] ?? key;
+  const savedAvatar = 'data:image/png;base64,Yg==';
+  const h = await mountSettings({ value: { maskIdentity: false, nickname: '临时访客甲', avatar: savedAvatar, useAccountAvatar: true }, presentation: { accountStatus: 'signed-out', accountAvatar: 'stale-account.png', status: 'disabled' }, t });
+  try {
+    await h.render();
+    const account = h.button('账号头像');
+    assert.equal(account.disabled, true);
+    assert.equal(account.closest('.pdsh-avatar-source-tooltip')?.getAttribute('data-native-tooltip'), '登录后可用。');
+    assert.equal(h.button('选择图片').closest('[data-native-tooltip]')?.getAttribute('data-native-tooltip'), '支持 PNG、JPEG、WebP，不会上传。');
+    const preview = h.doc.querySelector('.pdsh-identity img');
+    assert.equal(preview?.getAttribute('src'), model.resolvePreferences({ nickname: '临时访客甲', avatar: '' }).avatar);
+    assert.notEqual(preview?.getAttribute('src'), savedAvatar);
+    assert.notEqual(preview?.getAttribute('src'), 'stale-account.png');
+    assert.equal(h.doc.querySelector('[role="status"]'), null);
+    assert.equal(h.button('编辑显示昵称').disabled, false);
+    assert.equal(h.button('选择图片').disabled, false);
+    assert.equal(h.button('按昵称生成').disabled, false);
+    const replace = h.doc.querySelector('[role="switch"][aria-label="替换侧栏身份"]');
+    assert.equal(replace.checked, false); assert.equal(replace.disabled, false);
+    h.accept(true);
+    await act(async () => replace.click());
+    assert.deepEqual(Array.from(h.writes[0].ops, op => [op.path[0], op.value]), [['maskIdentity', true]]);
+
+    await act(async () => h.button('编辑显示昵称').click());
+    await h.input(h.doc.querySelector('#pdsh-nickname'), '   ');
+    assert.equal(h.doc.querySelector('.pdsh-identity img')?.getAttribute('src'), model.resolvePreferences({ nickname: '临时访客甲', avatar: '' }).avatar);
+    await act(async () => h.doc.querySelector('#pdsh-nickname').dispatchEvent(new h.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+
+    await h.publishPresentation({ accountStatus: 'signed-in', accountAvatar: 'official.png' });
+    assert.equal(h.button('账号头像').disabled, false);
+    assert.equal(h.doc.querySelector('.pdsh-identity img')?.getAttribute('src'), 'official.png');
+    await h.publishPresentation({ accountStatus: 'signed-out', accountAvatar: 'stale-account.png' });
+    assert.equal(h.button('账号头像').disabled, true);
+    assert.equal(h.doc.querySelector('.pdsh-identity img')?.getAttribute('src'), model.resolvePreferences({ nickname: '临时访客甲', avatar: '' }).avatar);
+    assert.equal(h.writes.length, 1, '登录状态切换不得写入账号或头像配置');
+  } finally { await h.close(); }
+});
+
+test('过期 signed-out 状态不再显示账号登录门槛说明', async () => {
+  const t = key => dictionaries.zh[key] ?? key;
+  const h = await mountSettings({ presentation: { accountStatus: 'signed-out', accountAvatar: '', status: 'signed-out' }, t });
+  try {
+    await h.render();
+    assert.equal(h.doc.querySelector('[role="status"]')?.textContent, undefined);
+    assert.equal(h.button('账号头像').closest('.pdsh-avatar-source-tooltip')?.getAttribute('data-native-tooltip'), '登录后可用。');
+    assert.equal(dictionaries.zh['status.signed-out'], undefined);
+    assert.equal(dictionaries.en['status.signed-out'], undefined);
+  } finally { await h.close(); }
+});
+
+test('真实 presentation 的 MutationObserver 驱动登出与登录恢复且不写配置', async () => {
+  const savedAvatar = 'data:image/png;base64,Yg==';
+  const h = await mountSettings({ realPresentation: true, value: { maskIdentity: false, nickname: '访客头像', avatar: savedAvatar, useAccountAvatar: true } });
+  try {
+    await h.render();
+    assert.equal(h.presentation.status(), 'disabled');
+    assert.equal(h.presentation.accountStatus(), 'signed-in');
+    assert.equal(h.button('accountAvatar').disabled, false);
+    assert.equal(h.doc.querySelector('.pdsh-identity img')?.getAttribute('src'), 'official.png');
+
+    const launcher = h.doc.querySelector('[data-slot="settings.launcher"] button');
+    await act(async () => {
+      launcher.dataset.signedOut = 'true';
+      launcher.innerHTML = '<svg style="width:14px;height:14px"></svg><span>更多</span>';
+      await new Promise(resolve => h.dom.window.setTimeout(resolve, 0));
+    });
+    assert.equal(h.presentation.status(), 'disabled');
+    assert.equal(h.presentation.accountStatus(), 'signed-out');
+    assert.equal(h.presentation.accountAvatar(), '');
+    assert.equal(h.button('accountAvatar').disabled, true);
+    assert.equal(h.doc.querySelector('.pdsh-identity img')?.getAttribute('src'), model.resolvePreferences({ nickname: '访客头像', avatar: '' }).avatar);
+    assert.equal(h.doc.querySelector('[role="status"]')?.textContent, undefined);
+    assert.equal(h.writes.length, 0);
+
+    await act(async () => {
+      launcher.dataset.signedOut = 'false';
+      launcher.innerHTML = '<span class="native-avatar"><img src="recovered.png" alt=""></span><span class="native-label">账号</span>';
+      await new Promise(resolve => h.dom.window.setTimeout(resolve, 0));
+    });
+    assert.equal(h.presentation.accountStatus(), 'signed-in');
+    assert.equal(h.presentation.accountAvatar(), 'recovered.png');
+    assert.equal(h.button('accountAvatar').disabled, false);
+    assert.equal(h.doc.querySelector('.pdsh-identity img')?.getAttribute('src'), 'recovered.png');
+    assert.equal(h.writes.length, 0);
+  } finally { await h.close(); }
+});
+
+test('账号状态未知时不称为未登录，并保留无头像占位', async () => {
+  const t = key => dictionaries.en[key] ?? key;
+  const h = await mountSettings({ value: { useAccountAvatar: true, avatar: 'data:image/png;base64,Yg==' }, presentation: { accountStatus: 'unsupported', accountAvatar: '', status: 'disabled' }, t });
+  try {
+    await h.render();
+    const account = h.button('Account avatar');
+    assert.equal(account.disabled, true);
+    assert.equal(account.closest('.pdsh-avatar-source-tooltip')?.getAttribute('data-native-tooltip'), dictionaries.en['status.unsupported']);
+    assert.ok(h.doc.querySelector('.pdsh-avatar-fallback'));
+    assert.equal(h.doc.querySelector('.pdsh-identity img'), null);
+    assert.equal(h.doc.querySelector('[role="status"]')?.textContent, undefined);
+    assert.equal(h.writes.length, 0);
+  } finally { await h.close(); }
+});
+
+test('已登录但使用宿主默认 SVG 时账号来源仍可选，事件处理器复核登录状态', async () => {
+  const h = await mountSettings({ presentation: { accountStatus: 'signed-in', accountAvatar: '' } });
+  try {
+    await h.render();
+    assert.equal(h.button('accountAvatar').disabled, false);
+    h.accept(true);
+    await act(async () => h.button('accountAvatar').click());
+    assert.equal(h.button('accountAvatar').getAttribute('aria-pressed'), 'true');
+    assert.ok(h.doc.querySelector('.pdsh-avatar-fallback'));
+    assert.equal(h.writes.length, 1);
+  } finally { await h.close(); }
+  const race = await mountSettings();
+  try {
+    await race.render(); race.accept(true);
+    const staleRenderButton = race.button('accountAvatar');
+    race.setPresentation({ accountStatus: 'signed-out' });
+    await act(async () => staleRenderButton.click());
+    assert.equal(race.writes.length, 0, '事件必须读取最新账号状态，不能只依赖渲染时的 disabled');
+  } finally { await race.close(); }
+});
+
+test('头像来源提示按中英文说明本地图片与账号原图', () => {
+  assert.equal(dictionaries.zh.avatarHint, '支持 PNG、JPEG、WebP，不会上传。');
+  assert.equal(dictionaries.en.avatarHint, 'Supports PNG, JPEG, and WebP. Your image is not uploaded.');
+  assert.equal(dictionaries.zh.accountAvatarHint, '使用账号原始头像。');
+  assert.equal(dictionaries.en.accountAvatarHint, "Use your account's original avatar.");
+  assert.equal(dictionaries.zh.accountAvatarSignedOut, '登录后可用。');
+  assert.equal(dictionaries.en.accountAvatarSignedOut, 'Available after signing in.');
 });
 
 test('头像切换即保存，只写原子头像字段；原样生成不产生写入', async () => {

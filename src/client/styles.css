@@ -1,6 +1,6 @@
 /*
  * [INPUT]: Harness ui-theme 的语义色/圆角/字号，以及可卸载的原生 Input/Button/Switch/SettingsValueField/Tooltip/图标探针的实时计算参数。
- * [OUTPUT]: 提供遮挡、设置、页脚和相机样式。会话相机沿用 Host 小按钮。
+ * [OUTPUT]: 提供遮挡、设置、页脚和相机样式。未登录头像借用官方身份样式。
  * [POS]: PDSH 的展示层；来源和使用处记录于 style-sources.json，卸载时整体移除。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -21,7 +21,7 @@ html.pdsh-capture-redact [data-pdsh-capture-redact="text"]::after {
   inset-inline: 0; top: 50%; transform: translateY(-50%);
   height: 50%; background: var(--dsw-alias-bg-skeleton); border-radius: var(--dsw-radius-xs);
 }
-[data-pdsh-original-label] { display: none !important; }
+[data-pdsh-original-label], [data-pdsh-original-avatar] { display: none !important; }
 [data-pdsh-avatar] { position: relative; }
 [data-pdsh-avatar] > :not([data-pdsh-avatar-image]) { visibility: hidden; }
 [data-pdsh-avatar-image] {
@@ -39,6 +39,10 @@ html.pdsh-capture-redact [data-pdsh-capture-redact="text"]::after {
 :is(.pdsh-identity-group, .pdsh-fields-group) > p:last-child { padding-bottom: var(--pdsh-section-inset); }
 .pdsh-update-badge, .pdsh-update-confirm { display: inline-flex; align-items: center; flex-wrap: wrap; gap: var(--pdsh-field-gap); }
 .pdsh-update-trigger { flex: none; }
+/* +--- 裁去自身详情标题的字体留白，版本胶囊保留宿主排版 ---+ */
+@supports (text-box: trim-both cap alphabetic) {
+  [data-pdsh-detail-heading] { text-box: trim-both cap alphabetic; }
+}
 .pdsh-update-trigger svg { width: var(--pdsh-native-icon-size); height: var(--pdsh-native-icon-size); stroke-width: calc(24 * var(--pdsh-native-icon-stroke-ratio)); opacity: var(--pdsh-native-icon-opacity); color: var(--dsw-alias-state-success-primary); }
 .pdsh-update-confirm { font: var(--dsw-font-xxs-12); color: var(--dsw-alias-label-secondary); }
 .pdsh-group h4, .pdsh-profile-name { font: var(--dsw-font-s-strong-14); }
@@ -58,6 +62,7 @@ html.pdsh-capture-redact [data-pdsh-capture-redact="text"]::after {
 .pdsh-row { display: flex; align-items: center; justify-content: space-between; gap: var(--pdsh-action-gap); }
 .pdsh-row > :last-child { flex: none; }
 .pdsh-switch-tooltip { display: inline-flex; }
+.pdsh-avatar-source-tooltip { display: inline-flex; }
 .pdsh-identity { display: flex; align-items: center; flex-wrap: wrap; gap: var(--pdsh-section-inset); padding-block: var(--pdsh-section-inset); }
 /* 名字参与原生换行测量，先保住头像+名字，不为三个操作挤成逐字竖排。 */
 .pdsh-profile-copy { flex: 0 1 auto; flex-direction: row; align-items: center; max-width: calc(100% - var(--pdsh-control-size) - var(--pdsh-control-size) - var(--pdsh-section-inset)); }

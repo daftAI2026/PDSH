@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 ConfigForm、两 Remote 和只读侧栏状态。
- * [OUTPUT]: 装配身份、标题、两相机入口及设置页脚。
+ * [INPUT]: 依赖 ConfigForm、两 Remote、只读侧栏状态及插件详情字形适配器。
+ * [OUTPUT]: 装配身份、标题、两相机入口、详情字形对齐及设置页脚；macOS/Windows入口仍经独立 capability 握手。
  * [POS]: 单 Bundle 组合根。迟到扩展不重建工作台，不阻断基础截图。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -13,6 +13,7 @@ import { isCaptureConfigurationReady, resolveCaptureExportPreferences } from '..
 import { createCaptureTrace } from '../shared/capture-trace.ts';
 import { NativeStyleProbe } from './native-style-view.tsx';
 import { mountPresentation } from './presentation.ts';
+import { mountPluginDetailTypography } from './plugin-detail-typography.ts';
 import { mountSidebarRedaction } from './sidebar-redaction.ts';
 import { mountTitleToggle } from './title-toggle.ts';
 import { mountSearchEntry } from './search-entry.ts';
@@ -96,6 +97,8 @@ export function mountComponent(ctx, doc: Document = document) {
       style.textContent = `${css}\n${tooltipCss}\n${captureCss}\n${pickerCss}\n${colorCss}`;
       doc.head.append(style);
       cleanup.push(() => style.remove());
+      const offPluginDetailTypography = mountPluginDetailTypography(doc);
+      cleanup.push(() => offPluginDetailTypography.dispose());
       cleanup.push(() => {
         const oldEntry = entry;
         entry = undefined;
@@ -318,7 +321,9 @@ export function mountComponent(ctx, doc: Document = document) {
       let currentActive = true;
       runtimeCapabilitiesRemote = current;
       runtimeCapabilitiesReady = false;
-      runtimeWallpaperAdapter = doc.defaultView.navigator.platform.startsWith('Mac')
+      const platform = doc.defaultView.navigator.platform;
+      const supportsSystemWallpaper = platform.startsWith('Mac') || platform.startsWith('Win');
+      runtimeWallpaperAdapter = supportsSystemWallpaper
         ? createSystemWallpaperRemoteAdapter(current, {
           beforeRequest: async signal => {
             const capture = captureRemote;

@@ -60,6 +60,7 @@
     "typecheck": "node --experimental-strip-types tools/generate-typert.ts && tsc --noEmit",
     "test": "pnpm typecheck && pnpm build && pnpm artifacts:check && node --experimental-strip-types --test tests/*.test.ts",
     "test:windows-capture": "powershell -NoProfile -File tests/windows-capture-contract.ps1",
+    "test:windows-wallpaper": "powershell -NoProfile -File tests/windows-wallpaper-contract.ps1",
     "bundle": "pnpm build && pnpm artifacts:check && node --experimental-strip-types tools/pack-bundle.ts",
     "bundle:rc": "node --experimental-strip-types tools/pack-rc.ts",
     "release:check": "node --experimental-strip-types check-release.ts",

@@ -70,12 +70,13 @@ function fixture({ cached = 0, status = 'ready', acquisition, locale = 'zh' }: {
 
 function expectSystemWallpaperGroup(panel: HTMLElement, locale: string): HTMLElement {
   const groups = panel.querySelectorAll<HTMLElement>('[data-system-wallpaper-group]');
-  assert.equal(groups.length, 1, '系统图片要有独立来源分组');
+  assert.equal(groups.length, 1, '系统壁纸要有独立来源分组');
   const group = groups[0];
-  const expectedTitle = locale === 'en' ? /system (images|wallpapers)/i : /系统(图片|壁纸)/;
+  const expectedTitle = locale === 'en' ? 'System wallpapers' : '系统壁纸';
+  assert.equal(group.getAttribute('aria-label'), expectedTitle, '分组无障碍名称与获取系统壁纸术语统一');
   const heading = [...group.querySelectorAll<HTMLElement>('h2, h3, h4, [role="heading"]')]
-    .find(candidate => expectedTitle.test(candidate.textContent?.trim() ?? ''));
-  assert.ok(heading, '系统图片分组必须有可辨识的本地化标题');
+    .find(candidate => candidate.textContent?.trim() === expectedTitle);
+  assert.ok(heading, '系统壁纸分组必须使用精确的本地化标题');
   return group;
 }
 
@@ -122,7 +123,7 @@ for (const locale of ['zh', 'en']) {
       assert.equal(h.panel.querySelectorAll('[data-system-wallpaper]').length, 0);
       const actions = h.panel.querySelectorAll('[data-action="acquire-system-wallpapers"]');
       assert.equal(actions.length, 1);
-      assert.ok(systemGroup.contains(actions[0]), '唯一获取按钮归系统图片分组');
+      assert.ok(systemGroup.contains(actions[0]), '唯一获取按钮归系统壁纸分组');
       assert.equal(actions[0].getAttribute('aria-label'), h.copy.loadWallpapers);
       assert.equal(actions[0].textContent?.trim(), h.copy.loadWallpapers, '入口有可见文字，不是另一个下载素材占位');
       assert.equal(h.panel.querySelectorAll('[data-background]').length, 5);
@@ -137,7 +138,7 @@ for (const locale of ['zh', 'en']) {
 }
 
 for (const locale of ['zh', 'en']) {
-  test(`${locale} 系统缓存项和批获取入口归独立系统图片分组`, () => {
+  test(`${locale} 系统缓存项和批获取入口归独立系统壁纸分组`, () => {
     const h = fixture({ cached: 1, locale });
     try {
       const systemGroup = expectSystemWallpaperGroup(h.panel, locale);

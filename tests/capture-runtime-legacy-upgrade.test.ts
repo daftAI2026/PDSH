@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖固定旧壳、官方 Cordis/Registry、安装 payload、平台能力与 esbuild。
+ * [INPUT]: 依赖固定旧壳、官方 Cordis/Registry、安装 payload、macOS/Windows x64 壁纸平台能力与 esbuild。
  * [OUTPUT]: 验证跨代真实目录链接和严格能力撤销；状态断言遵循宿主平台能力。
  * [POS]: 跨版本装配合同。空 Settings 不取像；真实注册不代替 Gateway 或 Desktop。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -306,7 +306,9 @@ test('旧 v1 壳换载时新增能力获得独立官方严格注册，换代与�
     assert.equal(requestCodec.mode, 'strict')
     assert.doesNotThrow(() => requestCodec.create().parse({ kind: 'list' }))
     assert.throws(() => requestCodec.create().parse({ kind: 'load', id: 42 }))
-    const disabledStatus = process.platform === 'darwin' ? 'not-enabled' : 'unsupported-platform'
+    const wallpaperPlatformSupported = process.platform === 'darwin'
+      || (process.platform === 'win32' && process.arch === 'x64')
+    const disabledStatus = wallpaperPlatformSupported ? 'not-enabled' : 'unsupported-platform'
     assert.deepEqual(await Array.fromAsync(capabilities.wallpaper({ kind: 'list' }, new AbortController().signal)),
       [{ type: 'terminal', status: disabledStatus }], '平台能力与 accepted 设置共同决定关闭状态，不读系统媒体')
     const owner = '@daftai/pdsh-capabilities'

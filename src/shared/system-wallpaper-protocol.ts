@@ -1,10 +1,10 @@
 /**
- * [INPUT]: 依赖 Host 从 Apple 元数据选出的四项活动目录、历史缓存 ID 和同一官方 Remote 的有界传输。
+ * [INPUT]: 依赖 Host 的平台活动目录、历史缓存 ID 和同一官方 Remote 的有界传输。
  * [OUTPUT]: 提供材料 ID 语法、四项目录预算及请求/帧 DTO；语法不是来源授权，Host 必须再核对当前目录，不接收路径/URL。
  * [POS]: shared 的壁纸能力合同；不接受路径或 URL，不改变已有 capture/save 协议。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
-/** 仅用于旧缓存/偏好身份兼容；活动目录由 Host 的 Apple 元数据选择器决定。 */
+/** 仅用于旧缓存/偏好身份兼容；活动目录由 Host 的平台来源授权决定。 */
 export const SYSTEM_WALLPAPER_IDS = [
   'system-wallpaper-golden-gate',
   'system-wallpaper-golden-gate-sunset',

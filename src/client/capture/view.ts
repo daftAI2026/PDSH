@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 model.ts 的编辑状态、copy.ts 的本地化文案、presets.ts 的背景分层、持久 Gallery 目录、有限系统目录/失败码校验与 icons.ts 图标
- * [OUTPUT]: 提供四模式/三种图片来源、个人 plus 焦点恢复和四项活动素材；后台获取/图库读取仅标 busy，不插加载/进度行；失败可见，缩略图无长提示
- * [POS]: DSH 工作台声明式视图边界；按来源分账但不改变图库或按钮接线，获取与选择分离；无 provider 不展示获取操作，保留焦点记忆
+ * [OUTPUT]: 提供背景图库与独立标题/头像遮罩开关；后台获取/图库读取仅标 busy，不插加载/进度行。
+ * [POS]: DSH 工作台声明式视图边界；遮罩只表达本次拍摄选择，用户像素与图库来源保持独立。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { captureBackgroundPanelAttributes, captureBackgroundMode } from "./background-modes.ts";
@@ -197,6 +197,13 @@ function inspectorTemplate(
           <p class="pdsh-capture-section-description">${copy.privacyDescription}</p>
         </div>
         <input class="pdsh-capture-switch" data-input="privacy" type="checkbox" aria-label="${copy.privacy}" ${checked(state.privacyEnabled)}>
+      </section>
+      <section class="pdsh-capture-section pdsh-capture-row">
+        <div class="pdsh-capture-privacy-copy">
+          <h2 class="pdsh-capture-section-title">${copy.avatarMask}</h2>
+          <p class="pdsh-capture-section-description">${copy.avatarMaskDescription}</p>
+        </div>
+        <input class="pdsh-capture-switch" data-input="avatar-mask" type="checkbox" aria-label="${copy.avatarMask}" ${checked(state.avatarMaskEnabled)}>
       </section>
       </div>
       </div>

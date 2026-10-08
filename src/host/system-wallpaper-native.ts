@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 Host 活动目录已授权的材料 ID、同包 helper、固定系统 HEIC/Host 临时 MOV 与取消信号。
- * [OUTPUT]: 提供有界helper调用/JPEG校验与Host固定失败类型（下载证书码由网络层产生）；stderr上限1KiB且超限立即终止，不接收Renderer URL/path或暴露stderr。
- * [POS]: 系统素材Host与原生helper之间的窄适配；仅macOS显式调用，等待真实child close后才结算。
+ * [INPUT]: 依赖Host当前roster授权ID、同包helper、macOS固定HEIC/Host临时MOV与取消信号；Windows只接收hash ID。
+ * [OUTPUT]: 提供有界helper调用/JPEG校验与Host固定失败类型；stderr上限1KiB，Windows解析单行JSON固定码，不接收Renderer URL/path或暴露stderr。
+ * [POS]: 系统素材Host与原生helper之间的窄适配；macOS沿Apple目录，Windows x64按native roster/hash ID取静图，等待真实child close后才结算。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { spawn, type SpawnOptionsWithStdioTuple } from 'node:child_process'
@@ -16,6 +16,7 @@ const START_TIMEOUT = WALLPAPER_LIMITS.helperStartMs
 const HELPER_TIMEOUT = WALLPAPER_LIMITS.helperMs
 const FORCE_TIMEOUT = 2_000
 const MAX_ERROR_BYTES = 1_024
+const MAX_WINDOWS_WALLPAPER_ENTRIES = 2
 const JPEG_MARKERS = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf])
 
 export type NativeWallpaperFailureCode =
@@ -89,20 +90,36 @@ const defaultScheduler: NativeWallpaperScheduler = {
 
 const defaultSpawner: NativeWallpaperSpawner = (file, args, options) => spawn(file, args, options)
 
-/** Helper目录和命名空间只在macOS暴露；Windows即使有capture helper也不能误显系统壁纸。 */
+/** Helper只沿随包原生目标暴露；Windows壁纸能力限定x64，与capture helper同路径。 */
 export function resolveSystemWallpaperHelperPath(
   platform: string,
   arch: string,
   bundleUrl: string | URL = import.meta.url,
 ): string | undefined {
-  if (platform !== 'darwin' || !['arm64', 'x64'].includes(arch)) return undefined
+  if (!isSupportedWallpaperTarget(platform, arch)) return undefined
   return resolveNativeCaptureHelperPath(platform, arch, bundleUrl)
 }
 
-/** 历史 helper 目录兼容入口；当前活动目录由 Apple 元数据选择器提供。 */
+/** 保留历史 Apple 固定四项 parser；活动 macOS 目录由 Apple 元数据选择器提供。 */
 export function runNativeWallpaperList(options: NativeWallpaperRunOptions = {}): Promise<WallpaperCatalogEntry[]> {
+  const platform = options.platform ?? process.platform
+  const arch = options.arch ?? process.arch
+  if (platform !== 'darwin' || (arch !== 'arm64' && arch !== 'x64')) {
+    return Promise.reject(new NativeWallpaperFailure('unsupported-platform'))
+  }
   const output = runHelper({ ...options, mode: 'list' })
   return output.then(parseCatalog)
+}
+
+/** Windows 仅信任同包helper当次枚举的content-hash静图roster。 */
+export function runNativeWallpaperCatalog(options: NativeWallpaperRunOptions = {}): Promise<WallpaperCatalogEntry[]> {
+  const platform = options.platform ?? process.platform
+  const arch = options.arch ?? process.arch
+  if (platform !== 'win32' || arch !== 'x64') {
+    return Promise.reject(new NativeWallpaperFailure('unsupported-platform'))
+  }
+  const output = runHelper({ ...options, mode: 'list' })
+  return output.then(parseWindowsCatalog)
 }
 
 /** 来源参数只由 Host 选择器/下载器生成；Remote 仍仅提供已列出的材料 ID。 */
@@ -111,6 +128,11 @@ export function runNativeWallpaperImage(
   options: NativeWallpaperRunOptions & { readonly videoPath?: string; readonly systemImagePath?: string } = {},
 ): Promise<NativeWallpaperImage> {
   if (!isSystemWallpaperId(id)) return Promise.reject(new NativeWallpaperFailure('invalid-request'))
+  const platform = options.platform ?? process.platform
+  const arch = options.arch ?? process.arch
+  if (platform === 'win32' && (options.videoPath !== undefined || options.systemImagePath !== undefined)) {
+    return Promise.reject(new NativeWallpaperFailure('invalid-request'))
+  }
   if (options.videoPath !== undefined && (typeof options.videoPath !== 'string' || !options.videoPath || !isHostTemporaryPath(options.videoPath))) {
     return Promise.reject(new NativeWallpaperFailure('invalid-request'))
   }
@@ -122,8 +144,17 @@ export function runNativeWallpaperImage(
   const args = options.systemImagePath !== undefined
     ? ['--wallpaper-system-image', id, options.systemImagePath]
     : options.videoPath === undefined ? ['--wallpaper', id] : ['--wallpaper-video', id, options.videoPath]
-  const allowDownload = options.videoPath === undefined
-  return runHelper({ ...options, mode: 'image', args, expectedId: id, allowDownload }).then(output => parseImage(output, id))
+  const allowDownload = platform === 'darwin' && options.videoPath === undefined
+  return runHelper({ ...options, mode: 'image', args, expectedId: id, allowDownload }).then(output => {
+    const image = parseImage(output, id)
+    if (platform === 'win32' && image.sourceType !== 'image') throw new NativeWallpaperFailure('protocol-invalid')
+    return image
+  })
+}
+
+function isSupportedWallpaperTarget(platform: string, arch: string): boolean {
+  return (platform === 'darwin' && (arch === 'arm64' || arch === 'x64'))
+    || (platform === 'win32' && arch === 'x64')
 }
 
 function isSystemImagePath(path: string): boolean {
@@ -141,7 +172,7 @@ function runHelper(
 ): Promise<Buffer> {
   const platform = input.platform ?? process.platform
   const arch = input.arch ?? process.arch
-  if (platform !== 'darwin' || !['arm64', 'x64'].includes(arch)) {
+  if (!isSupportedWallpaperTarget(platform, arch)) {
     return Promise.reject(new NativeWallpaperFailure('unsupported-platform'))
   }
   if (input.signal?.aborted) return Promise.reject(new NativeWallpaperFailure('cancelled'))
@@ -156,7 +187,10 @@ function runHelper(
   return new Promise<Buffer>((resolve, reject) => {
     let child: NativeWallpaperChild
     try {
-      child = spawnProcess(helperPath, args, { stdio: ['ignore', 'pipe', 'pipe'], shell: false })
+      child = spawnProcess(helperPath, args, {
+        stdio: ['ignore', 'pipe', 'pipe'], shell: false,
+        ...(platform === 'win32' ? { windowsHide: true } : {}),
+      })
     } catch {
       reject(new NativeWallpaperFailure('helper-start-failed'))
       return
@@ -222,7 +256,7 @@ function runHelper(
       if (!spawned && !failure) failure = new NativeWallpaperFailure('helper-start-failed')
       if (failure) { reject(failure); return }
       const diagnostic = Buffer.concat(stderr, errorBytes)
-      const errorStatus = parseErrorStatus(diagnostic)
+      const errorStatus = parseErrorStatus(diagnostic, platform)
       if (errorStatus === 'download-required') {
         const statusMatches = input.mode === 'image' && input.allowDownload === true && input.expectedId
           && validDownloadRequired(stdout.length ? Buffer.concat(stdout, outputBytes) : Buffer.alloc(0), input.expectedId)
@@ -269,6 +303,27 @@ function parseCatalog(output: Buffer): WallpaperCatalogEntry[] {
   return entries
 }
 
+function parseWindowsCatalog(output: Buffer): WallpaperCatalogEntry[] {
+  const value = parseSingleJsonLine(output, WALLPAPER_LIMITS.maxCatalogBytes)
+  if (!isRecord(value) || exactKeys(value, ['entries', 'status']) !== true || value.status !== 'listed'
+    || !Array.isArray(value.entries) || value.entries.length > MAX_WINDOWS_WALLPAPER_ENTRIES) {
+    throw new NativeWallpaperFailure('protocol-invalid')
+  }
+  const ids = new Set<string>()
+  const entries: WallpaperCatalogEntry[] = []
+  for (const item of value.entries) {
+    if (!isRecord(item) || exactKeys(item, ['available', 'downloadable', 'id', 'name']) !== true
+      || typeof item.id !== 'string' || !/^system-wallpaper-image-[a-f0-9]{64}$/u.test(item.id) || ids.has(item.id)
+      || !isSystemWallpaperId(item.id) || !isSystemWallpaperName(item.name)
+      || item.available !== true || item.downloadable !== false) {
+      throw new NativeWallpaperFailure('protocol-invalid')
+    }
+    ids.add(item.id)
+    entries.push({ id: item.id, name: item.name, available: true, downloadable: false })
+  }
+  return entries
+}
+
 function parseImage(output: Buffer, expectedId: SystemWallpaperId): NativeWallpaperImage {
   const newline = output.indexOf(0x0a)
   if (newline <= 0 || newline > 1_024) throw new NativeWallpaperFailure('protocol-invalid')
@@ -308,11 +363,18 @@ function parseSingleJsonLine(output: Buffer, maxBytes: number): unknown {
   catch { throw new NativeWallpaperFailure('protocol-invalid') }
 }
 
-/** 仅接纳成功元数据外的固定token；stderr正文不进入调用方、日志或终态。 */
-function parseErrorStatus(stderr: Buffer): NativeWallpaperFailureCode | undefined {
+/** 按平台解析固定错误闭集；stderr正文不进入调用方、日志或终态。 */
+function parseErrorStatus(stderr: Buffer, platform: string): NativeWallpaperFailureCode | undefined {
   if (!stderr.length) return undefined
   if (stderr.length > MAX_ERROR_BYTES || stderr[stderr.length - 1] !== 0x0a || stderr.subarray(0, stderr.length - 1).includes(0x0a)) {
     return undefined
+  }
+  if (platform === 'win32') {
+    let value: unknown
+    try { value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(stderr.subarray(0, -1))) as unknown }
+    catch { return 'helper-failed' }
+    if (!isRecord(value) || exactKeys(value, ['status']) !== true || typeof value.status !== 'string') return 'helper-failed'
+    return wallpaperFailureStatus(value.status)
   }
   const token = stderr.toString('ascii')
   if (token === 'download-required\n') return 'download-required'
@@ -323,6 +385,16 @@ function parseErrorStatus(stderr: Buffer): NativeWallpaperFailureCode | undefine
   if (token === 'wallpaper-read-failed\n' || token === 'wallpaper-jpeg-encode-failed\n'
     || token === 'wallpaper-output-failed\n') return 'helper-failed'
   return stderr.length ? 'helper-failed' : undefined
+}
+
+function wallpaperFailureStatus(status: string): NativeWallpaperFailureCode {
+  if (status === 'wallpaper-unavailable') return 'unavailable'
+  if (status === 'wallpaper-decode-failed') return 'decode-failed'
+  if (status === 'wallpaper-byte-budget-exceeded') return 'byte-budget-exceeded'
+  if (status === 'wallpaper-invalid-request') return 'invalid-request'
+  if (status === 'wallpaper-read-failed' || status === 'wallpaper-jpeg-encode-failed'
+    || status === 'wallpaper-output-failed') return 'helper-failed'
+  return 'helper-failed'
 }
 
 function validDownloadRequired(output: Buffer, expectedId: SystemWallpaperId): boolean {

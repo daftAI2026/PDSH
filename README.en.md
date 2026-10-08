@@ -40,12 +40,18 @@ Choose the fixed version `v0.5.4`. Existing users can confirm an upgrade on the 
 
 - Target host: **DeepSeek Harness Desktop 0.2.0-rc.2**. Screenshot targets are macOS 14+ (Apple Silicon or Intel) and Windows 10 1903+ x64. The helper ships in the package; do not install or launch it separately.
 - Save as PNG, JPEG, or WebP; copy as PNG. The default directory is `Downloads` under the user's home directory. Users can choose another directory. Duplicate names receive a number; existing files are never overwritten. If the save result is unknown, inspect the directory before retrying.
-- System wallpaper retrieval uses Apple's local catalog. Its grouping is not a system-version API. Unknown or ambiguous formats do not add replacements; saved images remain available. Only an explicit fetch reads the system source or downloads missing media. Normal browsing can use the cache. Windows does not provide system wallpaper retrieval.
+- System wallpaper retrieval uses Apple's local catalog. Its grouping is not a system-version API. Unknown or ambiguous formats do not add replacements; saved images remain available. Only an explicit fetch reads the system source or downloads missing media. Normal browsing can use the cache. In stable v0.5.4, Windows does not provide system wallpaper retrieval.
 - Background media and editing preferences use a local browser store. It does not store screenshots, source videos, or original filenames. A full store rejects imports instead of silently evicting user images.
 - Suggestions apply only to the studied Mac full-window layout. They do not detect sensitive content. Native candidate-to-final-PNG alignment and complete Desktop rendering remain unverified. Warm-switch pixel consistency, dark themes, and the English Desktop UI also remain unverified. Windows cancellation during active capture and complete pixel alignment remain unverified. Check the image before copying or saving.
 - Visual masking does not change account data, original text, history, logs, or model requests. PDSH does not provide session isolation, credential migration, or forensic privacy guarantees.
 
 ## Development
+
+The unreleased source supports replacing the signed-out “More” display with a local identity. This is off by default, and the host still owns the menu. The account avatar is unavailable while signed out. Signing out temporarily shows a generated avatar; signing in restores the selected account source.
+
+The replacement identity matches the host's signed-in avatar and layout. The detail heading trims font whitespace; the version badge keeps the host's typography. The workbench title is “Edit screenshot”, and the system material group uses “System wallpapers”.
+
+The unreleased source adds Windows x64 default system wallpapers. It reads only the installed img0/img19 images, without reading the user's current wallpaper or downloading from the network. The workbench also adds independent “Avatar masking”. Toggling it retakes the image and updates the image and switch only on success; failure keeps the existing image. The avatar override lasts for the current editing session.
 
 ```sh
 pnpm install --frozen-lockfile

@@ -2,7 +2,7 @@
 > L2 | 父级: ../CLAUDE.md
 
 - `model.ts`: 定义并校验 Host/Client 共用的显示偏好合同，生成本地头像；不把真实账户 URL 写回配置。
-- `locales.ts`: 提供设置、项目链接提示及重启/安装结果的 zh/en 文案。固定作者名不翻译。Harness locale 拥有语言状态；`locale/*.json` 只提供离线包元信息。
+- `locales.ts`: 提供设置、头像来源可用性及更新结果的 zh/en 文案。未登录账号头像提示登录后可用。固定作者名不翻译。Harness locale 拥有语言状态；`locale/*.json` 只提供离线包元信息。
 - `components.ts`: 构建注入稳定/RC Bundle 与 root 身份，RC 禁用稳定更新；内部功能模块共用当前包的唯一配置域，不创建额外依赖包。
 - `capture-runtime-contract.ts`: 固定截图/保存基础合同，独立声明壁纸扩展。只有破坏原调用或结算语义才升级基础合同。
 

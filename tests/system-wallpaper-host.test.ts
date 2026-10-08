@@ -1,22 +1,23 @@
 /**
- * [INPUT]: 依赖壁纸Host helper/stream、动态ID、可控子进程与 Windows POSIX-stat harness。
- * [OUTPUT]: 验证目录、下载门控和预算/取消；真实 POSIX 媒体权限由专用合同覆盖。
+ * [INPUT]: 依赖壁纸Host helper/stream、macOS旧ID与Windows hash roster、可控子进程和平台架构合同。
+ * [OUTPUT]: 验证目录分流、下载门控、Windows静图协议及预算/取消；不冒充原生目录或像素验收。
  * [POS]: Native wallpaper Remote 的Host回归合同；独立于原生源码静态检查和Desktop验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import assert from 'node:assert/strict'
-import { EventEmitter } from 'node:events'
 import { access, lstat, mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import test from 'node:test'
-import { PassThrough } from 'node:stream'
 import { createRequire, syncBuiltinESMExports } from 'node:module'
+import { TextDecoder } from 'node:util'
 import { build } from 'esbuild'
 import { runInNewContext } from 'node:vm'
 import { SYSTEM_WALLPAPER_IDS } from '../src/shared/system-wallpaper-protocol.ts'
 import {
+  resolveSystemWallpaperHelperPath,
   runNativeWallpaperImage,
+  runNativeWallpaperCatalog,
   runNativeWallpaperList,
 } from '../src/host/system-wallpaper-native.ts'
 import type { NativeWallpaperScheduler, NativeWallpaperSpawnOptions } from '../src/host/system-wallpaper-native.ts'
@@ -27,6 +28,7 @@ import {
   createAppleWallpaperDownloader,
 } from '../src/host/system-wallpaper-download.ts'
 import { SYSTEM_WALLPAPER_MOV_FIXTURE } from './system-wallpaper-mov-fixture.ts'
+import { FakeChild, collect, minimalJpeg } from './system-wallpaper-host-fixtures.ts'
 
 const mutableFsPromises = createRequire(import.meta.url)('node:fs/promises') as { lstat: (...args: any[]) => Promise<any> }
 const realLstat = mutableFsPromises.lstat
@@ -73,24 +75,6 @@ function appleRangeResponse(init: RequestInit): Response {
   } })
 }
 
-class FakeChild extends EventEmitter {
-  readonly stdout = new PassThrough()
-  readonly stderr = new PassThrough()
-  readonly kills: NodeJS.Signals[] = []
-  closed = false
-  kill(signal: NodeJS.Signals): boolean {
-    this.kills.push(signal)
-    return true
-  }
-}
-
-function minimalJpeg(width = 2, height = 1): Buffer {
-  const app0 = Buffer.from([0xff, 0xe0, 0x00, 0x10, ...Buffer.from('JFIF\0'), 1, 1, 0, 0, 1, 0, 1, 0, 0])
-  const sof = Buffer.from([0xff, 0xc0, 0x00, 0x0b, 8, 0, height, 0, width, 1, 1, 0x11, 0])
-  const sos = Buffer.from([0xff, 0xda, 0x00, 0x08, 1, 1, 0, 0, 63, 0])
-  return Buffer.concat([Buffer.from([0xff, 0xd8]), app0, sof, sos, Buffer.from([0x00, 0xff, 0xd9])])
-}
-
 function catalogJson(entries = SYSTEM_WALLPAPER_IDS.map((id, index) => ({
   id,
   name: `Wallpaper ${index + 1}`,
@@ -127,12 +111,6 @@ function nativeHarness(output: Buffer, exitCode = 0, errorOutput = Buffer.alloc(
   }
 }
 
-async function collect<T>(source: AsyncIterable<T>): Promise<T[]> {
-  const values: T[] = []
-  for await (const value of source) values.push(value)
-  return values
-}
-
 function reservationHarness() {
   let reserved = false
   let released = 0
@@ -158,6 +136,61 @@ test('system wallpaper catalog uses only the list command and preserves Host dow
   assert.deepEqual(harness.calls[0]?.args, ['--wallpaper-list'])
   assert.equal(harness.calls[0]?.options.shell, false)
   assert.equal(harness.calls[0]?.options.stdio.join(','), 'ignore,pipe,pipe')
+})
+
+test('Windows x64 catalog accepts only the current bounded hash roster and hides the helper window', async () => {
+  const helperPath = resolveSystemWallpaperHelperPath('win32', 'x64', new URL('../index.js', import.meta.url))
+  assert.match(helperPath ?? '', /[\\/]native[\\/]windows[\\/]window-capture-x64\.exe$/u)
+  assert.equal(resolveSystemWallpaperHelperPath('win32', 'arm64', new URL('../index.js', import.meta.url)), undefined)
+  const entries = [
+    { id: `system-wallpaper-image-${'a'.repeat(64)}`, name: 'Windows · img0', available: true, downloadable: false },
+    { id: `system-wallpaper-image-${'b'.repeat(64)}`, name: 'Windows · img19', available: true, downloadable: false },
+  ]
+  const harness = nativeHarness(catalogJson(entries))
+  const result = await runNativeWallpaperCatalog({ ...harness.options, platform: 'win32', arch: 'x64' })
+  assert.deepEqual(result, entries)
+  assert.deepEqual(harness.calls[0]?.args, ['--wallpaper-list'])
+  assert.equal(harness.calls[0]?.options.windowsHide, true)
+  await assert.rejects(runNativeWallpaperList({ ...harness.options, platform: 'win32', arch: 'x64' }), { code: 'unsupported-platform' })
+  assert.equal(harness.calls.length, 1, 'the legacy fixed roster parser cannot dispatch the Windows dynamic envelope')
+
+  for (const invalid of [
+    [{ ...entries[0]!, id: SYSTEM_WALLPAPER_IDS[0]! }],
+    [{ ...entries[0]!, downloadable: true }],
+    [entries[0]!, { ...entries[1]!, id: entries[0]!.id }],
+    [...entries, { ...entries[0]!, id: `system-wallpaper-image-${'c'.repeat(64)}` }],
+  ]) {
+    await assert.rejects(runNativeWallpaperCatalog({
+      ...nativeHarness(catalogJson(invalid)).options, platform: 'win32', arch: 'x64',
+    }), { code: 'protocol-invalid' })
+  }
+})
+
+test('Windows image loading uses only an authorized hash ID and the native fixed-code envelope', async () => {
+  const id = `system-wallpaper-image-${'c'.repeat(64)}`
+  const jpeg = minimalJpeg()
+  const header = Buffer.from(`${JSON.stringify({ status: 'loaded', id, sourceType: 'image', width: 2, height: 1, jpegBytes: jpeg.length })}\n`)
+  const harness = nativeHarness(Buffer.concat([header, jpeg]))
+  const image = await runNativeWallpaperImage(id, { ...harness.options, platform: 'win32', arch: 'x64' })
+  assert.equal(image.id, id)
+  assert.equal(image.sourceType, 'image')
+  assert.deepEqual(harness.calls[0]?.args, ['--wallpaper', id])
+  assert.equal(harness.calls[0]?.options.windowsHide, true)
+
+  let spawns = 0
+  const noSpawn = { ...harness.options, platform: 'win32', arch: 'x64', spawnProcess: () => { spawns++; throw Error('must not spawn') } }
+  await assert.rejects(runNativeWallpaperImage(id, { ...noSpawn, videoPath: join(tmpdir(), 'source.mov') }), { code: 'invalid-request' })
+  await assert.rejects(runNativeWallpaperImage(id, { ...noSpawn, systemImagePath: '/System/Library/ExtensionKit/Extensions/Wallpaper.appex/Contents/Resources/ImageLight.heic' }), { code: 'invalid-request' })
+  assert.equal(spawns, 0)
+
+  const unavailable = nativeHarness(Buffer.alloc(0), 1, Buffer.from('{"status":"wallpaper-unavailable"}\n'))
+  await assert.rejects(runNativeWallpaperImage(id, { ...unavailable.options, platform: 'win32', arch: 'x64' }), { code: 'unavailable' })
+  const unknownCode = nativeHarness(Buffer.alloc(0), 1, Buffer.from('{"status":"wallpaper-secret-path"}\n'))
+  await assert.rejects(runNativeWallpaperImage(id, { ...unknownCode.options, platform: 'win32', arch: 'x64' }), { code: 'helper-failed' })
+  const video = nativeHarness(Buffer.concat([Buffer.from(`${JSON.stringify({
+    status: 'loaded', id, sourceType: 'video', width: 2, height: 1, jpegBytes: jpeg.length,
+  })}\n`), jpeg]))
+  await assert.rejects(runNativeWallpaperImage(id, { ...video.options, platform: 'win32', arch: 'x64' }), { code: 'protocol-invalid' })
 })
 
 test('native boundary rejects unknown IDs, malformed catalog entries, and caller-supplied paths before spawn', async () => {
@@ -233,6 +266,35 @@ test('native helper cancellation sends SIGTERM but settles only after its real c
   child.emit('close', null, 'SIGTERM')
   const failure = await task
   assert.equal((failure as { code?: unknown }).code, 'cancelled')
+  assert.equal(settled, true)
+})
+
+test('Windows x64 cancellation keeps native wallpaper ownership until child close', async () => {
+  const id = `system-wallpaper-image-${'f'.repeat(64)}`
+  const child = new FakeChild()
+  const controller = new AbortController()
+  let settled = false
+  let spawnOptions: NativeWallpaperSpawnOptions | undefined
+  const task = runNativeWallpaperImage(id, {
+    ...nativeHarness(Buffer.alloc(0)).options,
+    platform: 'win32', arch: 'x64', signal: controller.signal,
+    spawnProcess: (_file, _args, options) => {
+      spawnOptions = options
+      queueMicrotask(() => child.emit('spawn'))
+      return child
+    },
+  }).catch(error => error)
+  void task.then(() => { settled = true })
+  await new Promise(resolve => setImmediate(resolve))
+  controller.abort()
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(spawnOptions?.windowsHide, true)
+  assert.deepEqual(child.kills, ['SIGTERM'])
+  assert.equal(settled, false, 'Windows cancellation still waits for the actual process close')
+  child.stdout.end()
+  child.stderr.end()
+  child.emit('close', null, 'SIGTERM')
+  assert.equal(((await task) as { code?: unknown }).code, 'cancelled')
   assert.equal(settled, true)
 })
 
@@ -327,7 +389,10 @@ test('unsupported platform and malformed Remote payload fail closed without help
     list: async () => { operations++; return [] },
     load: async (id: string) => { operations++; return { id, sourceType: 'image', width: 2, height: 1, jpeg: minimalJpeg() } },
   }
-  assert.deepEqual(await collect(createSystemWallpaperStream({ ...base, request: { kind: 'list' }, platform: 'win32' })), [
+  assert.deepEqual(await collect(createSystemWallpaperStream({ ...base, request: { kind: 'list' }, platform: 'win32', arch: 'arm64' })), [
+    { type: 'terminal', status: 'unsupported-platform' },
+  ])
+  assert.deepEqual(await collect(createSystemWallpaperStream({ ...base, request: { kind: 'list' }, platform: 'linux', arch: 'x64' })), [
     { type: 'terminal', status: 'unsupported-platform' },
   ])
   assert.deepEqual(await collect(createSystemWallpaperStream({ ...base, request: { kind: 'load', id: '../tmp/a.mov', path: '/tmp/a.mov' } as never, platform: 'darwin' })), [

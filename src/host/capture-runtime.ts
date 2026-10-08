@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖稳定壳、accepted Settings、原生后端与官方生成的内部能力面。
- * [OUTPUT]: 提供稳定 v1 截图/保存与可更新能力。初始 thenable 等官方子 Fiber 就绪。
+ * [OUTPUT]: 提供稳定 v1 截图/保存与可更新能力。壁纸按Host平台分流：macOS读取Apple目录，Windows x64读取native动态roster。
  * [POS]: 同包版本化业务闭包。根 Config 拥有权限；旧操作结算后撤销本代能力。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -20,7 +20,12 @@ import type { CaptureFrame } from '../shared/window-capture-protocol.ts'
 import { createCaptureFrameStream, createCaptureServiceLifetime } from './window-capture-stream.ts'
 import type { CaptureServiceLifetime } from './window-capture-stream.ts'
 import { createSystemWallpaperStream } from './system-wallpaper-stream.ts'
-import { resolveSystemWallpaperHelperPath, runNativeWallpaperImage, NativeWallpaperFailure } from './system-wallpaper-native.ts'
+import {
+  resolveSystemWallpaperHelperPath,
+  runNativeWallpaperCatalog,
+  runNativeWallpaperImage,
+  NativeWallpaperFailure,
+} from './system-wallpaper-native.ts'
 import type { NativeWallpaperImage } from './system-wallpaper-native.ts'
 import { downloadAppleWallpaperVideo } from './system-wallpaper-download.ts'
 import { discoverSystemWallpaperSources } from './system-wallpaper-catalog.ts'
@@ -188,25 +193,31 @@ export class CaptureRuntime {
   wallpaper(request: WallpaperRequest, signal: AbortSignal): AsyncIterable<WallpaperFrame> {
     if (this.version !== version) throw new Error('capture-runtime-version-mismatch')
     this.refreshCaptureEnabled()
+    const platform = process.platform
+    const arch = process.arch
     const helperPath = resolveSystemWallpaperHelperPath(
-      process.platform,
-      process.arch,
+      platform,
+      arch,
       new URL('../../index.js', import.meta.url).href,
     )
     return createSystemWallpaperStream({
       request,
       signal,
       lifetimeSignal: this.lifetime.signal,
-      platform: process.platform,
+      platform,
+      arch,
       enabled: () => acceptedWindowSavePreferences(this.ctx as HostServiceContext).captureEnabled === true,
       disposed: () => Boolean(this.disposal),
       reserve: () => this.lifetime.reserve(),
       list: async operationSignal => {
         if (!helperPath) throw new NativeWallpaperFailure('unavailable')
+        if (platform === 'win32') {
+          return runNativeWallpaperCatalog({ signal: operationSignal, helperPath, platform, arch })
+        }
         const sources = await discoverSystemWallpaperSources(operationSignal)
         return sources.map(({ id, name, available, downloadable }) => ({ id, name, available, downloadable }))
       },
-      load: (id, operationSignal, onPhase) => this.loadWallpaperImage(id, operationSignal, onPhase, helperPath),
+      load: (id, operationSignal, onPhase) => this.loadWallpaperImage(id, operationSignal, onPhase, helperPath, platform, arch),
     })
   }
 
@@ -215,14 +226,21 @@ export class CaptureRuntime {
     signal: AbortSignal,
     onPhase: (phase: 'downloading' | 'decoding') => void,
     helperPath: string | undefined,
+    platform: string,
+    arch: string,
   ): Promise<NativeWallpaperImage> {
     if (!helperPath) throw new NativeWallpaperFailure('unavailable')
+    if (platform === 'win32') {
+      const roster = await runNativeWallpaperCatalog({ signal, helperPath, platform, arch })
+      if (!roster.some(source => source.id === id)) throw new NativeWallpaperFailure('invalid-request')
+      return runNativeWallpaperImage(id, { signal, helperPath, platform, arch })
+    }
     const sources = await discoverSystemWallpaperSources(signal)
     const source = sources.find(entry => entry.id === id)
     if (!source) throw new NativeWallpaperFailure('invalid-request')
     try {
       return await runNativeWallpaperImage(id, {
-        signal, helperPath, platform: process.platform, arch: process.arch,
+        signal, helperPath, platform, arch,
         ...(source.imagePath ? { systemImagePath: source.imagePath } : {}),
       })
     } catch (error) {
@@ -238,8 +256,8 @@ export class CaptureRuntime {
       return await runNativeWallpaperImage(id, {
         signal,
         helperPath,
-        platform: process.platform,
-        arch: process.arch,
+        platform,
+        arch,
         videoPath: video.path,
       })
     } finally {

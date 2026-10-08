@@ -6,6 +6,7 @@
 - `windows-rc-archive.test.ts`: 真实 Windows npm/tar 的权限红绿合同。验实际归档 0755，拒绝模式漂移并保留成员和字节门。
 - `typert-generator-platform.test.ts`: 在临时副本运行真实官方生成器。Windows junction 与 Node 驱动 tsc；LF/CRLF 同源通过，内容漂移和裸 CR 拒绝。
 - `windows-capture-fixture.cpp`: 自有 Main→Host→helper 链。WGC/WIC 验内容与容量差异、PNG 尺寸和像素；启动前目标关闭与助手异常终止必须无 PNG。真实 EOF 和 Job 归零证明结算。
+- `windows-wallpaper-contract.ps1`: 当前 helper 的真实系统壁纸列表、内容 ID、JPEG 解码和字节合同。中途取消等待实际退出；不访问 Desktop profile。
 - `windows-capture-contract.ps1`: 默认重建助手，运行正常取像、目标关闭和启动取消三项合同。指定 HelperPath 时验该产物；不冒充 WGC 中途撤权。
 
 - `capture-failure-observation.test.ts`: 公开失败码双语提示与旧后台/连接未知分账，从控制器到通知/logger的红绿回归，拒绝未知code泄漏；不替代实机链路验收。
@@ -35,13 +36,14 @@
 - `capture-privacy.test.ts`: 标题与截图身份独立；唯一识别后遮挡自有名牌/原生名称/头像，未知结构及账号编辑退让，属性按所有权归还并守候选比例。
 - `capture-styles.test.ts`: 五列统一圆角色块、固定240px检查器与设置开关等高槽；检查器选中环安全边距与圆形拾色图标局部约束， 工作台Host token来源/实时几何消费及自有色谱28px白环及内层圆形隔离、浮层单一elevation描边；禁Codex主题、数值回退与宿主拾色器样式污染。
 - `capture-editor-keyboard.test.ts`: 背景面板Tab围栏跳过hidden/inert/CSS隐藏、disabled与负tabindex；不替代原生键盘验收。
-- `capture-view.test.ts`: 双语编辑器操作面板、标题遮罩与身份设置分界，无系统壁纸adapter时不伪造入口。
+- `capture-view.test.ts`: 双语编辑截图标题及操作面板。标题遮罩与身份设置独立；无系统壁纸 adapter 时不伪造入口。
 - `host.test.ts`: 真实 Schemastery Config/路径边界与平台provider分流；默认 Downloads 使用宿主 `homedir()` 与 `path.join` 精确比较，覆盖 POSIX/Windows drive-root/UNC 并拒绝相对、非canonical及device namespace；缺 helper/不支持架构仍保留设置。
 - `localization.test.ts`: 单 Bundle 离线品牌元信息与内部三功能 zh/en 文案；透明底单路径图标。
 - `model.test.ts`: 昵称、头像和旧字段投影验证。
-- `presentation.test.ts`: 账号视觉适配的唯一归属与卸载。
+- `presentation.test.ts`: 视觉身份的唯一归属与卸载。未登录借用官方头像和身份行；收起及停用恢复原样。样式缺失、重复和错属拒绝覆盖。菜单、临时头像和登录恢复独立于配置写入。
+- `plugin-detail-typography.test.ts`: 自身大标题标记、版本胶囊不变、未知结构及外部接管合同。原生 CSS 的实际字形另在浏览器验收。
 - `search-entry.test.ts`: 初拍/重拍CSS阶段保留两入口并隐藏工作台；原生搜索邻接、折叠/展开、实时 SVG strokeWidth 按 viewBox 尺寸匹配、两入口同笔画与不可靠几何退让；保留根透明度/颜色/class/点击和卸载合同。
-- `settings-card.test.ts`: React 字段级写入、取消、冲突和焦点合同，来源标签属于右侧操作组并邻接首个按钮。
+- `settings-card.test.ts`: React 字段写入、取消、冲突与焦点合同。真实 MutationObserver 驱动退出与登录恢复，不写配置。未登录禁用账号来源；默认 SVG 账号仍可选。来源标签归右侧操作组。
 - `sidebar-redaction.test.ts`: 普通/空白会话、搜索与 HoverCard 标记和恢复。
 - `native-style-probe.test.ts`: 原生 Input/Button/Switch/设置字段/Tooltip 几何与动效采样，SVG 笔画比例/透明度/尺寸及主题/DOM/resize 重采；合法零长度保真、无效值或探针节点缺席时撤销旧值，节点重建后重采，root 脱离后清空且卸载恢复原值。
 - `styles.test.ts`: 视觉规则与上游 token 来源；整排页脚紧凑靠右，正文同字号，GitHub 图稿不带内联基线空白。保留间距、主题与焦点。入口只合成根透明度；原生探针独占测量并隐藏绘制。验证来源文本间距和昵称留白，不抢焦点。
@@ -118,12 +120,14 @@
 
 - `capture-runtime-location.test.ts`: 稳定/RC 构建身份只接受同名 manifest；真实 realpath/ESM 换载并拒绝 foreign 包和包根外模块，非 Manager/实机验收。
 
-- `capture-candidates.test.ts`: 通用 DOM 候选的有限几何/最小边、视口/滚动容器裁切、变换祖先退让、隐藏/空内容过滤、嵌套去重、150项几何早停及严格侧栏优先；真实 redactions 解析证明同节点移动重定位、新节点不继承旧选择，不验证原生整窗映射。
+- `capture-candidates.test.ts`: 候选几何、裁切、150项早停与侧栏优先。真实样式排除未登录 More；自有头像与昵称参与检测。节点移动保留 ID，替换不继承选择；不证明原生对位。
 
 - `rc-identity.test.ts`: 以 esbuild 注入 stable/RC 名称验证根配置、locale、编辑偏好键与更新边界；实例化版本化 capture 业务闭包，以 Remote iterable 终态黑盒验证只读自身 accepted Settings、启停和迟挂载恢复，不启动 helper；不验证 Manager 共存或 Desktop UI。
 
 - `rc-packaging.test.ts`: 独立候选身份、双语说明与白名单 staging。核私有路径排除、稳定源不变、权限及拒绝覆盖。不运行 SDK GUI 或真实安装。
-- `system-wallpaper-host.test.ts`: fake-helper本地静图/匹配download-required/旧目录兼容与stream取消/配置/证书固定码、Range预算和真实settle；旧local-only断言已被新需求替代，不执行helper或联网。
+- `system-wallpaper-host-fixtures.ts`: 共用受控子进程、最小 JPEG 和 iterable 夹具。不作为真实原生目录或像素证据。
+- `system-wallpaper-runtime-windows.test.ts`: Windows CaptureRuntime 重读 roster、陈旧 hash ID 拒绝及静图路由合同。不读取系统目录或验收像素。
+- `system-wallpaper-host.test.ts`: Mac 与 Windows helper 路由、固定错误码、预算、取消 close 及下载门合同。不执行真实 helper 或联网。
 - `system-wallpaper-client.test.ts`: 最多四项动态/legacyRemote目录授权、名称/失败码保真、unlisted动态ID拒发媒体、严格JPEG/终态/取消与URL归还；桩不替代Browser/Desktop。
 - `system-wallpaper-selection.test.ts`: 系统媒体返回后的背景解码仍归选择 signal，重选缓存/切类/销毁取消旧工作且不迟到应用或提示；不取系统素材或量RSS。
 

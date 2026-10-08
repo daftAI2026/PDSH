@@ -9,10 +9,12 @@
 
 成员清单
 `window-capture.cpp`: WGC 单窗编排器。归属门先于取像。帧池尺寸仅定容量；按 ContentSize 验纹理边界并编码 PNG。窗口快照独立复核稳定性。
+`system-wallpaper.cpp`: 固定默认图片的句柄边界、reparse/身份/预算校验。BCrypt 内容 ID 绑定来源字节；WIC 输出单帧 JPEG。
+`system-wallpaper.h`: 同一 helper 的 ID-only 壁纸命令分派；不接受用户路径或 URL。
 `window-owner.cpp`: Host→Main 身份链与窗口归属实现；复核 helper/Host/Main 的 PID 创建代际、同路径/同用户、唯一可见普通窗口及窗口状态漂移
 `window-owner.h`: Windows helper 内部状态码、进程/窗口快照与归属校验接口；避免 capture 编排器重复实现 Win32 身份规则
 `window-capture.manifest`: helper使用 `asInvoker` 且 `uiAccess=false`，不请求管理员权限、不声明程序化/无边框取像能力
-`build.ps1`: 通过 `vswhere`/`vcvars64` 发现 VS x64 工具链，以 UTF-8、静态 MSVC CRT、Windows SDK/C++/WinRT 编译两份 C++ 源并嵌入 `asInvoker`；不运行产物
+`build.ps1`: 通过 `vswhere`/`vcvars64` 发现 VS x64 工具链，以 UTF-8、静态 MSVC CRT、Windows SDK/C++/WinRT 编译取像、归属及壁纸 C++ 源并嵌入 `asInvoker`；不运行产物
 `window-capture-x64.exe`: `build.ps1` 生成的 x64 控制台 PE 产物；正式归档由父级构建/发布门复核架构与 manifest，不手写
 
 平台约束：`CreateForWindow` 最低 Windows 10 1903/build 18362；仅支持官方 Harness 当前公开的 Windows x64 target。用户点击才会启动 helper；WGC 系统捕获边框保持默认开启。取消由Host终止一次性helper并等待真实进程关闭，进程退出由Windows释放其WGC/D3D/WIC资源。

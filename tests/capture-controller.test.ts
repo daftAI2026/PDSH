@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 capture/controller.ts 的截图时序、身份与壁纸能力读取端口，以及可注入取像/工作台边界。
- * [OUTPUT]: 验证遮挡偏好、失败归因与停用取消；壁纸能力按工作台重读，不替换已打开工作台。
+ * [OUTPUT]: 验证标题、名称与会话头像遮罩的分离重读、失败归因与停用取消；壁纸能力按工作台重读。
  * [POS]: Client 截图合同测试；真实像素另由 Desktop 实测验证。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -47,6 +47,72 @@ test('每次初拍与重拍读取 Host 身份开关，且与工作台标题预�
     assert.deepEqual(snapshots[1], { title: false, nativeName: false, ownedName: false, avatar: false, redactionClass: false }, '每次重拍都重新读取 Host 接受值');
     await opened[0].onRetake(2, true);
     assert.deepEqual(snapshots[2], { title: true, nativeName: false, ownedName: false, avatar: false, redactionClass: true }, '标题开启不反向打开身份遮挡');
+  } finally { controller.dispose(); dom.window.close(); }
+});
+test('初拍头像跟随 accepted 身份；重拍名称重读 Host，头像由编辑器第三参独立覆盖', async () => {
+  const dom = new JSDOM('<!doctype html><html lang="zh"><body><div data-slot="sidebar.workspaces"><div role="treeitem" data-row-key="session:one"><span></span><span>标题</span></div></div><div data-slot="settings.launcher"><button aria-haspopup="menu" data-collapsed="false" data-signed-out="false"><span><img src="avatar.png"></span><span>原生名称</span><span data-pdsh-name>自有名牌</span></button></div></body></html>', { url: 'https://dsh.test/' });
+  const doc = dom.window.document, snapshots = [], opened = [];
+  doc.defaultView.localStorage.setItem('pdsh-window-capture-prefs', JSON.stringify({ privacyEnabled: false }));
+  let maskIdentity = true;
+  const controller = mountCaptureController(doc, {
+    captureMaskIdentity: () => maskIdentity,
+    capture: async () => {
+      const trigger = doc.querySelector('[data-slot="settings.launcher"] button');
+      const avatar = trigger.children[0];
+      snapshots.push({
+        title: doc.querySelector('[data-row-key="session:one"] span:nth-child(2)').hasAttribute('data-pdsh-capture-redact'),
+        nativeName: trigger.children[1].hasAttribute('data-pdsh-capture-redact'),
+        ownedName: trigger.querySelector(':scope > [data-pdsh-name]').hasAttribute('data-pdsh-capture-redact'),
+        avatar: avatar.hasAttribute('data-pdsh-capture-redact-avatar-only'),
+        redactionClass: doc.documentElement.classList.contains('pdsh-capture-redact'),
+      });
+      return { width: 2560, height: 1640 };
+    },
+    waitFrame: async () => {},
+    openEditor: (_host, options) => { opened.push(options); return { destroy() {} }; },
+  });
+  try {
+    await controller.activate();
+    assert.equal(opened[0].initialAvatarMaskEnabled, true);
+    assert.deepEqual(snapshots[0], { title: false, nativeName: true, ownedName: true, avatar: true, redactionClass: true });
+    await opened[0].onRetake(1, false, false);
+    assert.deepEqual(snapshots[1], { title: false, nativeName: true, ownedName: true, avatar: false, redactionClass: true }, '关闭头像不关闭仍被 Host 接受的名称遮罩');
+    maskIdentity = false;
+    await opened[0].onRetake(2, false, true);
+    assert.deepEqual(snapshots[2], { title: false, nativeName: false, ownedName: false, avatar: true, redactionClass: true }, '本地头像覆盖不重写名称配置');
+    await opened[0].onRetake(3, true, false);
+    assert.deepEqual(snapshots[3], { title: true, nativeName: false, ownedName: false, avatar: false, redactionClass: true }, '标题开关与头像/名称各自独立');
+    await opened[0].onRetake(4, false, false);
+    assert.deepEqual(snapshots[4], { title: false, nativeName: false, ownedName: false, avatar: false, redactionClass: false });
+  } finally { controller.dispose(); dom.window.close(); }
+});
+test('关闭工作台会取消在途重拍并归还临时头像标记', async () => {
+  const dom = new JSDOM('<!doctype html><html lang="zh"><body><div data-slot="settings.launcher"><button aria-haspopup="menu" data-collapsed="false" data-signed-out="false"><span><img src="avatar.png"></span><span>原名</span></button></div></body></html>', { url: 'https://dsh.test/' });
+  const doc = dom.window.document, opened = [];
+  let captureCount = 0, signal, beginRetake;
+  const retakeStarted = new Promise(resolve => { beginRetake = resolve; });
+  const controller = mountCaptureController(doc, {
+    capture: async (_doc, options) => {
+      captureCount++;
+      if (captureCount === 1) return { width: 120, height: 80 };
+      signal = options.signal;
+      return new Promise((_resolve, reject) => {
+        signal.addEventListener('abort', () => reject(new dom.window.DOMException('aborted', 'AbortError')), { once: true });
+        beginRetake();
+      });
+    },
+    waitFrame: async () => {},
+    openEditor: (_host, options) => { opened.push(options); return { destroy() {} }; },
+  });
+  try {
+    await controller.activate();
+    const pending = opened[0].onRetake(1, true, false).then(() => null, error => error);
+    await retakeStarted;
+    opened[0].onClose();
+    assert.equal(signal.aborted, true);
+    assert.notEqual(await pending, null);
+    assert.equal(doc.documentElement.classList.contains('pdsh-capture-redact'), false);
+    assert.equal(doc.querySelector('[data-pdsh-capture-redact-avatar-only]'), null);
   } finally { controller.dispose(); dom.window.close(); }
 });
 test('点击截当前窗口后才打开工作台；拍摄态隐藏自有 UI 并恢复隐私标记', async () => {

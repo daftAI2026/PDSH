@@ -1,12 +1,13 @@
 /**
- * [INPUT]: 依赖 Host 显式授权请求、window-owner 的进程/窗口归属校验，以及 WGC、`::Windows::Graphics::DirectX::Direct3D11` DXGI interop 与 WIC。
- * [OUTPUT]: `--check-api` 返回无GUI能力状态。归属门通过后按帧 ContentSize 输出有界 PNG，stderr 仅固定状态。
- * [POS]: native/windows 的一次性 x64 取像编排器；复用 window-owner 安全门，隔离 WGC/D3D/WIC，不启动 picker、显示器捕获或提权。
+ * [INPUT]: 依赖 Host 显式授权、window-owner 归属校验、WGC/D3D/WIC，以及固定来源的 Windows 系统壁纸后端。
+ * [OUTPUT]: 提供 `--check-api`、`--capture`、`--wallpaper-list` 和 ID-only `--wallpaper` 命令。
+ * [POS]: native/windows 的一次性 x64 媒体编排器；截图与壁纸共享进程，但壁纸仅授权读取系统默认图片。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include "window-owner.h"
+#include "system-wallpaper.h"
 #include <winternl.h>
 #include <d3d11.h>
 #include <dxgi.h>
@@ -474,6 +475,8 @@ int RunCapture(DWORD hostPID, DWORD mainPID) {
 }  // namespace
 
 int wmain(int argc, wchar_t* argv[]) {
+  const int wallpaperCommand = pdsh::windows_wallpaper::RunSystemWallpaperCommand(argc, argv);
+  if (wallpaperCommand >= 0) return wallpaperCommand;
   if (argc == 2 && std::wcscmp(argv[1], L"--check-api") == 0) {
     try { winrt::init_apartment(winrt::apartment_type::multi_threaded); }
     catch (...) { return EmitStatus(Status::ApiUnavailable); }

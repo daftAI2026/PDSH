@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖冻结 PNG/原生比例、编辑器/Tabs、遮挡与导出偏好，以及壁纸能力读取端口。
- * [OUTPUT]: 提供相机→截图→工作台与重拍；固定错误/卸载围栏，并将 Host 壁纸资源所有权交给可释放编辑器。
- * [POS]: capture Client 编排边界；截图和壁纸像素不进入设置或会话持久化，编辑器只持有本地编辑资源。
+ * [OUTPUT]: 提供相机→截图→工作台与重拍；每次重读名称配置，头像由编辑器会话可选覆盖。
+ * [POS]: capture Client 编排边界；标题、名称和头像像素遮罩分别采样，头像覆盖不回写 Host 配置。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { capturePreparedWindow, waitForCaptureFrame } from './capture-lifecycle.ts';
@@ -26,12 +26,13 @@ export function mountCaptureController(doc: Document, { locale = () => doc.docum
   const state = () => ({ busy, disabled: busy || disposed || !!editor });
   function publish() { onState(); }
   function report(message: string, tone?: 'success') { notify(message, tone); }
-  async function snapshot(privacyEnabled: boolean, requestId = doc.defaultView.crypto.randomUUID()) {
+  async function snapshot(privacyEnabled: boolean, requestId = doc.defaultView.crypto.randomUUID(), avatarMaskOverride?: boolean) {
     // +--- 原生 Toast 在下一帧清空，重拍不把自己的通知截进去 ---+
     report('');
     const maskIdentity = captureMaskIdentity() !== false;
-    const hasPrivacyMasks = privacyEnabled || maskIdentity;
-    const restore = hasPrivacyMasks ? markDSHPrivacyPlaceholders(doc, { maskTitles: privacyEnabled, maskIdentity }) : () => {};
+    const maskAvatar = avatarMaskOverride ?? maskIdentity;
+    const hasPrivacyMasks = privacyEnabled || maskIdentity || maskAvatar;
+    const restore = hasPrivacyMasks ? markDSHPrivacyPlaceholders(doc, { maskTitles: privacyEnabled, maskIdentity, maskAvatar }) : () => {};
     abort = new AbortController();
     const request = abort;
     const materialAppearance = doc.querySelector('[data-ds-dark-theme]') ? 'dark' as const : 'light' as const;
@@ -65,7 +66,7 @@ export function mountCaptureController(doc: Document, { locale = () => doc.docum
       } catch {
         // +--- 建议层不是取像前置条件；失去 DOM 几何时保留有效照片与手动编辑。 ---+
       }
-      return { source: result.source, fileMetadata, materialAppearance, sourceScaleFactor, automaticRegions };
+      return { source: result.source, fileMetadata, materialAppearance, sourceScaleFactor, automaticRegions, avatarMaskEnabled: maskAvatar };
     } finally {
       abort = null; restore();
     }
@@ -84,8 +85,9 @@ export function mountCaptureController(doc: Document, { locale = () => doc.docum
       host = doc.createElement('div'); host.setAttribute('data-pdsh-capture-host', ''); doc.body.append(host);
       editor = openEditor(host, {
         mountBackgroundTabs, systemWallpapers: readSystemWallpapers(), source: first.source, fileMetadata: first.fileMetadata, onSave, sourceScaleFactor: first.sourceScaleFactor, materialAppearance: first.materialAppearance, automaticRegions: first.automaticRegions, locale: locale(), exportPreferences: exportPreferences(),
-        onRetake: (_revision, enabled) => snapshot(enabled),
-        onClose: () => { editor = null; host?.remove(); host = null; publish(); },
+        initialAvatarMaskEnabled: first.avatarMaskEnabled,
+        onRetake: (_revision, enabled, avatarMaskEnabled) => snapshot(enabled, undefined, avatarMaskEnabled),
+        onClose: () => { abort?.abort(); editor = null; host?.remove(); host = null; publish(); },
         onNotify: (message, tone) => report(message, tone),
       });
       trace('editor-ready', requestId);

@@ -123,6 +123,7 @@ Git 安装依赖这些已提交产物。不要分别手写它们。
 | `pnpm install --frozen-lockfile` | 安装锁定依赖；不改锁文件。 |
 | `pnpm typecheck` | 生成 Typert 面和声明，再检查类型。 |
 | `pnpm test` | 类型、构建、产物检查和全部 Node 合同。 |
+| `pnpm test:windows-wallpaper` | 验真实固定系统壁纸、JPEG 与中途取消；不访问 profile。 |
 | `pnpm test:windows-capture` | 重建 Windows 助手和自有合成窗口夹具。验证真实 PNG，不访问 Desktop profile。 |
 | `pnpm build` | 重建 Host、Client 和版本化实现。 |
 | `pnpm run bundle` | 构建、验产物、打包并验真实 tgz。 |
@@ -325,7 +326,10 @@ L2/L3 必须带固定 PROTOCOL 行。
 - 身份覆盖只作用于唯一识别的 rc.2 sidebar launcher。
 - 保留 native button、账号节点、菜单及登录语义。
 - 未知或多身份时跳过覆盖。
-- 不遮挡 signed-out More、完整设置或账号数据。
+- 未登录默认保留原生 More。主动开启后只替换头像与文案。
+- 身份替换保留原按钮、菜单、设置与登录语义。
+- 未登录禁用账号头像。已选账号来源临时用生成头像。
+- 登录状态不改头像配置。重新登录恢复账号来源。
 - 账号头像选项不得把真实账户 URL 写入配置。
 - 帽子直接切换 accepted `maskTitles`，不打开菜单。
 - 搜索旁没有受支持的 child slot，不声称存在。
@@ -336,6 +340,9 @@ L2/L3 必须带固定 PROTOCOL 行。
 - 它独立于常驻 `maskIdentity` 和工作台标题遮挡。
 - 只暂遮唯一 launcher 的头像、native name 和自有名牌。
 - 不写常驻偏好，不改变昵称或账号设置。
+- 工作台头像遮罩独立于标题和名称遮挡。
+- 开关重拍成功后才提交来源和状态。
+- 会话头像覆盖不持久化，失败保留原图。
 - 标题 recognizer 保留 workspace、session 与 search 围栏。
 - provisional 两格行须有非空 `session:` key。
 - 其首格须为空，第二格须为纯文本 span。
@@ -375,8 +382,11 @@ L2/L3 必须带固定 PROTOCOL 行。
 
 ### 系统壁纸与本地图库
 
-- 系统壁纸适配器只提供 macOS 官方目录能力。
-- Windows 不提供系统壁纸获取。
+- 系统壁纸按平台分流，不改变统一 Remote 合同。
+- macOS 使用 Apple 官方目录与受控补缺下载。
+- Windows x64 只读固定默认 img0/img19 图片。
+- Windows 不读当前用户壁纸、锁屏或网络来源。
+- Windows 材料 ID 绑定来源字节，加载前重读目录。
 - `system-wallpaper-catalog.ts` 独占活动 roster 来源。
 - 目标为最近两代 macOS 的各两项代表材料。
 - Apple metadata 没有逐材料 OS release 字段。
@@ -400,7 +410,7 @@ L2/L3 必须带固定 PROTOCOL 行。
 - 获取按钮始终可见，获取不自动选择背景。
 - 结算后一次发布新缩略图，保留已存材料。
 - 系统缩略图保留精确无障碍名称，不加冗长媒体 tooltip。
-- 原五张预设、系统图片和我的图片分组独立。
+- 原五张预设、系统壁纸和我的图片分组独立。
 - 个人分组标题行仅一个加号；file input 归个人图库。
 - 本地有效缓存或 root-owned 系统 HEIC 优先。
 - 只有匹配的 local-unavailable 才下载该材料。

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖shared活动材料ID/名称/四项上限、Host stream与固定失败类型。
- * [OUTPUT]: 验证未来动态目录、空/部分合法目录及畸形目录边界；不启动helper、不联网、不读取素材。
- * [POS]: system-wallpaper-stream的活动目录合同；不要求legacy缓存ID进入当前Apple roster。
+ * [OUTPUT]: 验证macOS与Windows x64 stream门、动态目录及畸形目录边界；不启动helper、不联网、不读取素材。
+ * [POS]: system-wallpaper-stream的平台与活动目录合同；不要求legacy缓存ID进入当前roster。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import assert from 'node:assert/strict'
@@ -27,12 +27,16 @@ async function collectCatalog(entries: WallpaperCatalogEntry[]) {
   return collectStream({ list: async () => entries })
 }
 
-async function collectStream(options: { list: () => Promise<WallpaperCatalogEntry[]> }) {
+async function collectStream(options: {
+  list: () => Promise<WallpaperCatalogEntry[]>
+  platform?: string
+  arch?: string
+}) {
   const stream = createSystemWallpaperStream({
     request: { kind: 'list' },
     signal: new AbortController().signal,
     lifetimeSignal: new AbortController().signal,
-    platform: 'darwin', enabled: () => true, disposed: () => false,
+    platform: options.platform ?? 'darwin', arch: options.arch, enabled: () => true, disposed: () => false,
     reserve: () => ({ track: () => {}, release: () => {} }),
     list: options.list,
     load: async () => { throw new Error('list must not load pixels') },
@@ -62,6 +66,24 @@ test('empty and partial valid rosters list successfully; unknown discovery remai
     list: async () => { throw new NativeWallpaperFailure('unavailable') },
   })
   assert.deepEqual(unknown, [{ type: 'terminal', status: 'unavailable' }])
+})
+
+test('Windows x64 uses the same bounded stream while Windows ARM64 and Linux remain unsupported', async () => {
+  const entries = [
+    { id: `system-wallpaper-image-${'a'.repeat(64)}`, name: 'Windows · img0', available: true, downloadable: false },
+    { id: `system-wallpaper-image-${'b'.repeat(64)}`, name: 'Windows · img19', available: true, downloadable: false },
+  ]
+  assert.deepEqual(await collectStream({ platform: 'win32', arch: 'x64', list: async () => entries }), [
+    { type: 'catalog', entries }, { type: 'terminal', status: 'listed' },
+  ])
+
+  let operations = 0
+  for (const [platform, arch] of [['win32', 'arm64'], ['linux', 'x64']] as const) {
+    assert.deepEqual(await collectStream({ platform, arch, list: async () => { operations++; return [] } }), [
+      { type: 'terminal', status: 'unsupported-platform' },
+    ])
+  }
+  assert.equal(operations, 0, 'unsupported targets do not reserve or invoke the helper operation')
 })
 
 test('duplicate, malformed ID, C1 name and more than four entries fail closed', async () => {

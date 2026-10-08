@@ -1,5 +1,5 @@
-# [INPUT]: 依赖 window-capture/window-owner 源、manifest、Visual Studio C++ x64 工具链与 Windows SDK 18362+。
-# [OUTPUT]: 生成本目录 window-capture-x64.exe；验证编译和嵌入 asInvoker manifest，不启动 helper。
+# [INPUT]: 依赖 capture/owner/wallpaper 源、manifest、Visual Studio x64 工具链与 Windows SDK 18362+。
+# [OUTPUT]: 生成 x64 helper；链接 WGC、WIC、BCrypt 并嵌入 asInvoker manifest，不启动 helper。
 # [POS]: Windows x64 的唯一构建入口；VS环境由vswhere+vcvars64自动发现，UTF-8编译并静态链接CRT，不下载额外NuGet。
 # [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 $ErrorActionPreference = 'Stop'
@@ -56,8 +56,9 @@ try {
     "/I$cppwinrt", "/I$(Join-Path $sdk.FullName 'shared')",
     "/Fe$output", $source,
     (Join-Path $module 'window-owner.cpp'),
+    (Join-Path $module 'system-wallpaper.cpp'),
     '/link', '/SUBSYSTEM:CONSOLE', '/MACHINE:X64', 'windowsapp.lib', 'd3d11.lib', 'dxgi.lib',
-    'windowscodecs.lib', 'ole32.lib', 'runtimeobject.lib', 'dwmapi.lib', 'user32.lib', 'advapi32.lib'
+    'windowscodecs.lib', 'bcrypt.lib', 'ole32.lib', 'runtimeobject.lib', 'dwmapi.lib', 'user32.lib', 'advapi32.lib'
   )
   & cl.exe @clArgs
   if ($LASTEXITCODE -ne 0) { throw "cl.exe failed with exit code $LASTEXITCODE." }

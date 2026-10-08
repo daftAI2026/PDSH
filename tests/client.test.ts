@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖生成 Client、Cordis、ReactDOM、Windows 文件 URL 与内存编译组合根。
- * [OUTPUT]: 验证两 Remote、版本围栏及相机会话插槽。
+ * [INPUT]: 依赖生成 Client、Cordis、ReactDOM、平台标识与内存编译组合根。
+ * [OUTPUT]: 验证两 Remote、Windows/unsupported 平台 provider 门、字形适配器清理与相机会话插槽。
  * [POS]: 组合根合同；不冒充 Host、原生像素或 Desktop 验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -262,6 +262,11 @@ async function loadComponentRuntime(assemblies, mutateSource = source => source)
     ['/capture-trace.ts', { createCaptureTrace: () => () => {} }],
     ['/native-style-view.tsx', { NativeStyleProbe: component }],
     ['/presentation.ts', { mountPresentation: () => lifecycle() }],
+    ['/plugin-detail-typography.ts', { mountPluginDetailTypography: () => {
+      const typography = { disposed: false, dispose() { this.disposed = true; } };
+      assemblies.typography.push(typography);
+      return typography;
+    } }],
     ['/sidebar-redaction.ts', { mountSidebarRedaction: () => ({ ...lifecycle(), update() {} }) }],
     ['/title-toggle.ts', { mountTitleToggle: () => ({ state: () => ({ pressed: false, failed: false }), activate: async () => {}, dispose() {} }) }],
     ['/search-entry.ts', { mountSearchEntry: (_doc, options) => {
@@ -331,15 +336,17 @@ async function assertCapabilityHandshakeLifecycle(mutateSource, {
   capabilityFirst = false,
   delayBaseReadiness = false,
   replaceBaseWhilePending = false,
+  platform = 'MacIntel',
 } = {}) {
   const dom = new JSDOM(pageMarkup(), { url: 'dsh-app://desktop/index.html', pretendToBeVisual: true });
-  Object.defineProperty(dom.window.navigator, 'platform', { configurable: true, value: 'MacIntel' });
-  const assemblies = { controllers: [], entries: [], adapters: [] };
+  Object.defineProperty(dom.window.navigator, 'platform', { configurable: true, value: platform });
+  const assemblies = { controllers: [], entries: [], adapters: [], typography: [] };
   const mountComponent = await loadComponentRuntime(assemblies, mutateSource);
   const value = { ...DEFAULTS, ...DEFAULT_CAPTURE_EXPORT, captureEnabled: true, captureMaskIdentity: true };
   const snapshot = { status: 'ready', revision: 0, value };
   const formListeners = new Set(), lifetime = [], providers = [];
   const injectors = new Map();
+  const diagnostics = [];
   const form = {
     getSnapshot: () => snapshot,
     subscribe(listener) { formListeners.add(listener); return () => formListeners.delete(listener); },
@@ -355,7 +362,7 @@ async function assertCapabilityHandshakeLifecycle(mutateSource, {
     },
     slots: { inject(_name, callback) { return callback(); }, register() { return () => {}; } },
     remote: { pluginManager: {} },
-    logger: { info() {}, warn() {}, error() {} },
+    logger: { info() {}, warn(...values) { diagnostics.push(values); }, error(...values) { diagnostics.push(values); } },
     effect(factory) { const cleanup = factory(); if (typeof cleanup === 'function') lifetime.push(cleanup); return cleanup; },
     inject(names, callback) {
       assert.equal(names.length, 1);
@@ -367,6 +374,7 @@ async function assertCapabilityHandshakeLifecycle(mutateSource, {
   };
   const disposeBundle = () => { for (const cleanup of lifetime.reverse()) cleanup(); };
   mountComponent(ctx, dom.window.document);
+  assert.equal(assemblies.typography.length, 1, 'Bundle 生命周期安装一次详情字形适配器');
   const gates = [deferred(), deferred(), deferred()];
   let handshake = 0, nextHandshake = 0, currentHandshake = 0;
   let captureReady = !delayBaseReadiness;
@@ -418,7 +426,7 @@ async function assertCapabilityHandshakeLifecycle(mutateSource, {
     }
     controller = assemblies.controllers.at(-1);
     entry = assemblies.entries.at(-1);
-    assert.ok(controller, '基础 Remote 注入后必须装配截图 controller');
+    assert.ok(controller, `基础 Remote 注入后必须装配截图 controller: ${JSON.stringify(diagnostics)}`);
     assert.ok(entry?.options.capture, '基础截图入口不等待可选 capability');
     assert.equal(controller.options.readSystemWallpapers(), undefined,
       '基础壳即使保留旧 wallpaper 方法也不能授权新增入口');
@@ -490,20 +498,26 @@ async function assertCapabilityHandshakeLifecycle(mutateSource, {
     assert.equal(assemblies.controllers.at(-1), controller, '迟到的正确握手不重建 controller');
     assert.equal(assemblies.entries.at(-1), entry, '迟到的正确握手不重建相机入口');
     const adapter = controller.options.readSystemWallpapers();
-    assert.equal(adapter, assemblies.adapters.at(-1), '当前 capability 版本与握手均成功才开放入口');
-    assert.equal(adapter.remote, capabilityRemote, '壁纸 adapter 必须使用独立 capability Remote');
-    assert.equal(typeof adapter.options.beforeRequest, 'function', '每次壁纸动作必须经过 capability 版本围栏');
+    const wallpaperSupported = platform.startsWith('Mac') || platform.startsWith('Win');
+    if (wallpaperSupported) {
+      assert.equal(adapter, assemblies.adapters.at(-1), '受支持平台仍须等待当前 capability 版本与握手');
+      assert.equal(adapter.remote, capabilityRemote, '壁纸 adapter 必须使用独立 capability Remote');
+      assert.equal(typeof adapter.options.beforeRequest, 'function', '每次壁纸动作必须经过 capability 版本围栏');
+    } else {
+      assert.equal(adapter, undefined, 'Linux 不伪造系统壁纸 provider');
+      assert.equal(assemblies.adapters.length, 0);
+    }
     assert.equal(await assemblies.activateInstalled('0.5.1'), true,
       'Updater activation 同时要求基础和 capability 的实际版本/握手');
-    await adapter.options.beforeRequest();
+    if (adapter) await adapter.options.beforeRequest();
     capabilityVersion = '0.5.0';
-    await assert.rejects(adapter.options.beforeRequest(), /runtime-not-current/,
+    if (adapter) await assert.rejects(adapter.options.beforeRequest(), /runtime-not-current/,
       '每次壁纸动作都重新核对 capability 实际版本');
     capabilityVersion = '0.5.1';
 
     thirdProvider.dispose();
     assert.equal(controller.options.readSystemWallpapers(), undefined, 'dispose 立即撤回本地入口订阅');
-    await assert.rejects(adapter.options.beforeRequest(), /runtime-not-current/,
+    if (adapter) await assert.rejects(adapter.options.beforeRequest(), /runtime-not-current/,
       'dispose 后旧 adapter 不得继续使用 capability proxy');
     assert.equal(assemblies.controllers.at(-1), controller, '扩展 dispose 不重建正在编辑的工作台');
     captureProvider.dispose();
@@ -513,10 +527,12 @@ async function assertCapabilityHandshakeLifecycle(mutateSource, {
   }
   assert.equal(formListeners.size, 0, '卸载解除配置订阅');
   assert.equal(assemblies.controllers.at(-1).disposed, true, '卸载归还当前 controller');
+  assert.equal(assemblies.typography.at(-1).disposed, true, '卸载归还详情字形观察器');
 }
 
 test('真实 component-runtime 分离基础截图与 capability 的迟到握手和世代', async () => {
   await assertCapabilityHandshakeLifecycle();
+  await assertCapabilityHandshakeLifecycle(undefined, { platform: 'Win32' });
   await assertCapabilityHandshakeLifecycle(undefined, { capabilityFirst: true, delayBaseReadiness: true });
   await assertCapabilityHandshakeLifecycle(undefined, { delayBaseReadiness: true, replaceBaseWhilePending: true });
   const removeIncarnationFence = source => replaceExactlyOnce(source,

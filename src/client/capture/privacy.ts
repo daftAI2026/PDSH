@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 sidebar-redaction/presentation 的严格识别、capture 候选层和共享灰条样式。
- * [OUTPUT]: 按独立标题/身份偏好临时标记身份与标题，委托 DOM 候选识别，并保留旧页面路线的等比例映射。
- * [POS]: DSH 截图隐私边界；临时遮挡与自动建议分离，不触碰账户设置编辑，最终像素由 Host 截取。
+ * [OUTPUT]: 按独立状态临时标记标题、名称和头像容器；未登录保留原生更多。
+ * [POS]: DSH 截图隐私边界；头像标记不含名称，所有临时属性由拍摄流程按所有权归还。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { recognizedSidebarTitles } from '../sidebar-redaction.ts';
@@ -11,23 +11,29 @@ import type { CaptureCandidate } from './model.ts';
 
 const REDACT = 'data-pdsh-capture-redact';
 const PROFILE = 'data-pdsh-capture-redact-profile';
+const AVATAR_ONLY = 'data-pdsh-capture-redact-avatar-only';
 
-export function markDSHPrivacyPlaceholders(doc: Document, { maskTitles = true, maskIdentity = true }: { maskTitles?: boolean; maskIdentity?: boolean } = {}): () => void {
+export function markDSHPrivacyPlaceholders(doc: Document, { maskTitles = true, maskIdentity = true, maskAvatar = maskIdentity }: { maskTitles?: boolean; maskIdentity?: boolean; maskAvatar?: boolean } = {}): () => void {
   const snapshots: Array<{ node: Element; key: string; value: string | null; owned: string }> = [];
   function mark(node: Element, key: string, value = '') {
     snapshots.push({ node, key, value: node.getAttribute(key), owned: value });
     node.setAttribute(key, value);
   }
   if (maskTitles) for (const title of recognizedSidebarTitles(doc)) mark(title, REDACT, 'text');
-  if (maskIdentity) {
+  if (maskIdentity || maskAvatar) {
     const identity = recognizeSidebarIdentity(doc);
-    if (identity.status === 'recognized') {
-      const names = new Set<Element>();
-      if (identity.label) names.add(identity.label);
-      const ownedName = identity.trigger.querySelector(':scope > [data-pdsh-name]');
-      if (ownedName) names.add(ownedName);
-      for (const name of names) mark(name, REDACT, 'text');
-      mark(identity.avatar, PROFILE);
+    if (identity.status === 'recognized' && identity.hasIdentity) {
+      if (maskIdentity) {
+        const names = new Set<Element>();
+        if (identity.label && !identity.signedOut) names.add(identity.label);
+        const ownedName = identity.trigger.querySelector(':scope > [data-pdsh-name]');
+        if (ownedName) names.add(ownedName);
+        for (const name of names) mark(name, REDACT, 'text');
+      }
+      if (maskAvatar) {
+        mark(identity.avatar, PROFILE);
+        mark(identity.avatar, AVATAR_ONLY);
+      }
     }
   }
   let restored = false;

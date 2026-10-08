@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 view.ts 输出的 capture-window DOM、DSH 主题/动画 token 与实时原生 Button/Switch/图标/字段样式探针
- * [OUTPUT]: 工作台、画布、检查器与头像拍摄占位；工具选中复用 DSH AppearanceRow 持久选择底色，不被普通 hover/按压覆盖；外壳四边共用左右基准 inset；右侧固定240px，检查器为双层焦点环保留空间。
- * [POS]: capture-window 的视觉契约，和 color-popover.css 分工维护主编辑器与浮层样式
+ * [OUTPUT]: 提供工作台、画布、检查器与标题/头像拍摄占位；头像灰层只盖住严格识别的容器，保留名称区域和原布局尺寸。
+ * [POS]: capture-window 的视觉契约，和 color-popover.css 分工维护主编辑器与浮层样式。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 [data-pdsh-capture],
@@ -78,6 +78,29 @@ html.pdsh-capturing [data-pdsh-capture-hide] * {
 html.pdsh-capture-redact [data-pdsh-capture-redact-profile] > img {
   filter: grayscale(1) contrast(0);
   opacity: .32;
+}
+
+/* +--- 头像遮罩保留容器几何，只覆盖头像内容，不触及名称或按钮。 ---+ */
+html.pdsh-capture-redact [data-pdsh-capture-redact-avatar-only] {
+  background: var(--dsw-alias-bg-skeleton) !important;
+  isolation: isolate;
+  overflow: hidden !important;
+  position: relative !important;
+}
+html.pdsh-capture-redact [data-pdsh-capture-redact-avatar-only] > * {
+  visibility: hidden !important;
+}
+html.pdsh-capture-redact [data-pdsh-capture-redact-avatar-only]::before {
+  visibility: hidden !important;
+}
+html.pdsh-capture-redact [data-pdsh-capture-redact-avatar-only]::after {
+  background: var(--dsw-alias-bg-skeleton);
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
 }
 
 .pdsh-capture-root {
