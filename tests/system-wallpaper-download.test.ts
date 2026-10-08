@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖固定 Apple 下载器、shared 预算、人工 MOV fixture 与 Windows 测试视图。
- * [OUTPUT]: 验证协议/预算/取消；测试视图不证明真实 Windows ACL，POSIX mode 只在 POSIX stat 平台断言。
+ * [OUTPUT]: 验证 Apple 下载协议/预算/取消；POSIX 权限只在支持权限位的平台断言，Windows 测试视图不证明真实 ACL。
  * [POS]: 网络到本地首帧文件的窄合同；不联网或运行 native，不把人工 sample 当作真实解码证据。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -152,7 +152,7 @@ test('large fixed Apple source uses only three bounded ranges and produces a com
 }))
 
 test('POSIX 临时目录与媒体文件权限分别保持0700和0600', {
-  skip: process.platform === 'win32' ? 'Windows 不提供系统壁纸；Win32 stat 无法表达 POSIX 权限门，且此断言不验证 Windows ACL' : false,
+  skip: process.platform === 'win32' ? 'Win32 stat 无法表达 Apple 下载临时文件的 POSIX 权限位；Windows ACL 由独立合同验证' : false,
 }, async () => withRawRoot(async directory => {
   const h = rangeHarness()
   const video = await createAppleWallpaperDownloader({ tempDirectory: directory, fetcher: h.fetcher })(id, new AbortController().signal)
