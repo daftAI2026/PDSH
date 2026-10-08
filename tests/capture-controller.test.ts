@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 capture/controller.ts 的截图时序、身份与壁纸能力读取端口，以及可注入取像/工作台边界。
- * [OUTPUT]: 验证标题、名称与会话头像遮罩的分离重读、失败归因与停用取消；壁纸能力按工作台重读。
+ * [OUTPUT]: 验证标题与会话身份遮罩、失败归因与停用取消；壁纸能力按工作台重读。
  * [POS]: Client 截图合同测试；真实像素另由 Desktop 实测验证。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -17,13 +17,13 @@ function setup(capture, { captureMaskIdentity = () => true } = {}) {
   });
   return { dom, doc, opened, notices, controller };
 }
-test('每次初拍与重拍读取 Host 身份开关，且与工作台标题预遮挡正交', async () => {
+test('身份遮罩在当前工作台统一控制头像和名称，下一次工作台才重读 accepted 值', async () => {
   const dom = new JSDOM('<!doctype html><html lang="zh"><body><div data-slot="sidebar.workspaces"><div role="treeitem" data-row-key="session:one"><span></span><span>标题</span></div></div><div data-slot="settings.launcher"><button aria-haspopup="menu" data-collapsed="false" data-signed-out="false"><span><img src="avatar.png"></span><span>原生名称</span><span data-pdsh-name>自有名牌</span></button></div></body></html>', { url: 'https://dsh.test/' });
   const doc = dom.window.document, snapshots = [], opened = [];
   doc.defaultView.localStorage.setItem('pdsh-window-capture-prefs', JSON.stringify({ privacyEnabled: false }));
-  let maskIdentity = true;
+  let acceptedIdentityMask = true, reads = 0;
   const controller = mountCaptureController(doc, {
-    captureMaskIdentity: () => maskIdentity,
+    captureMaskIdentity: () => { reads++; return acceptedIdentityMask; },
     capture: async () => {
       const trigger = doc.querySelector('[data-slot="settings.launcher"] button');
       const title = doc.querySelector('[data-row-key="session:one"] span:nth-child(2)');
@@ -31,8 +31,7 @@ test('每次初拍与重拍读取 Host 身份开关，且与工作台标题预�
         title: title.hasAttribute('data-pdsh-capture-redact'),
         nativeName: trigger.children[1].hasAttribute('data-pdsh-capture-redact'),
         ownedName: trigger.querySelector(':scope > [data-pdsh-name]').hasAttribute('data-pdsh-capture-redact'),
-        avatar: trigger.children[0].hasAttribute('data-pdsh-capture-redact-profile'),
-        redactionClass: doc.documentElement.classList.contains('pdsh-capture-redact'),
+        avatar: trigger.children[0].hasAttribute('data-pdsh-capture-redact-avatar-only'),
       });
       return { width: 2560, height: 1640 };
     },
@@ -41,49 +40,18 @@ test('每次初拍与重拍读取 Host 身份开关，且与工作台标题预�
   });
   try {
     await controller.activate();
-    assert.deepEqual(snapshots[0], { title: false, nativeName: true, ownedName: true, avatar: true, redactionClass: true }, '身份开启、标题预遮挡关闭');
-    maskIdentity = false;
-    await opened[0].onRetake(1, false);
-    assert.deepEqual(snapshots[1], { title: false, nativeName: false, ownedName: false, avatar: false, redactionClass: false }, '每次重拍都重新读取 Host 接受值');
-    await opened[0].onRetake(2, true);
-    assert.deepEqual(snapshots[2], { title: true, nativeName: false, ownedName: false, avatar: false, redactionClass: true }, '标题开启不反向打开身份遮挡');
-  } finally { controller.dispose(); dom.window.close(); }
-});
-test('初拍头像跟随 accepted 身份；重拍名称重读 Host，头像由编辑器第三参独立覆盖', async () => {
-  const dom = new JSDOM('<!doctype html><html lang="zh"><body><div data-slot="sidebar.workspaces"><div role="treeitem" data-row-key="session:one"><span></span><span>标题</span></div></div><div data-slot="settings.launcher"><button aria-haspopup="menu" data-collapsed="false" data-signed-out="false"><span><img src="avatar.png"></span><span>原生名称</span><span data-pdsh-name>自有名牌</span></button></div></body></html>', { url: 'https://dsh.test/' });
-  const doc = dom.window.document, snapshots = [], opened = [];
-  doc.defaultView.localStorage.setItem('pdsh-window-capture-prefs', JSON.stringify({ privacyEnabled: false }));
-  let maskIdentity = true;
-  const controller = mountCaptureController(doc, {
-    captureMaskIdentity: () => maskIdentity,
-    capture: async () => {
-      const trigger = doc.querySelector('[data-slot="settings.launcher"] button');
-      const avatar = trigger.children[0];
-      snapshots.push({
-        title: doc.querySelector('[data-row-key="session:one"] span:nth-child(2)').hasAttribute('data-pdsh-capture-redact'),
-        nativeName: trigger.children[1].hasAttribute('data-pdsh-capture-redact'),
-        ownedName: trigger.querySelector(':scope > [data-pdsh-name]').hasAttribute('data-pdsh-capture-redact'),
-        avatar: avatar.hasAttribute('data-pdsh-capture-redact-avatar-only'),
-        redactionClass: doc.documentElement.classList.contains('pdsh-capture-redact'),
-      });
-      return { width: 2560, height: 1640 };
-    },
-    waitFrame: async () => {},
-    openEditor: (_host, options) => { opened.push(options); return { destroy() {} }; },
-  });
-  try {
+    assert.deepEqual(snapshots[0], { title: false, nativeName: true, ownedName: true, avatar: true });
+    acceptedIdentityMask = false;
+    await opened[0].onRetake(1, false, true);
+    assert.deepEqual(snapshots[1], { title: false, nativeName: true, ownedName: true, avatar: true }, '当前工作台的身份开关同值控制名称与头像');
+    assert.equal(reads, 1, '重拍使用工作台会话值，不重读常驻 accepted 配置');
+    await opened[0].onRetake(2, true, false);
+    assert.deepEqual(snapshots[2], { title: true, nativeName: false, ownedName: false, avatar: false }, '标题重拍不反向开启身份遮罩');
+    assert.equal(reads, 1);
+    opened[0].onClose();
     await controller.activate();
-    assert.equal(opened[0].initialAvatarMaskEnabled, true);
-    assert.deepEqual(snapshots[0], { title: false, nativeName: true, ownedName: true, avatar: true, redactionClass: true });
-    await opened[0].onRetake(1, false, false);
-    assert.deepEqual(snapshots[1], { title: false, nativeName: true, ownedName: true, avatar: false, redactionClass: true }, '关闭头像不关闭仍被 Host 接受的名称遮罩');
-    maskIdentity = false;
-    await opened[0].onRetake(2, false, true);
-    assert.deepEqual(snapshots[2], { title: false, nativeName: false, ownedName: false, avatar: true, redactionClass: true }, '本地头像覆盖不重写名称配置');
-    await opened[0].onRetake(3, true, false);
-    assert.deepEqual(snapshots[3], { title: true, nativeName: false, ownedName: false, avatar: false, redactionClass: true }, '标题开关与头像/名称各自独立');
-    await opened[0].onRetake(4, false, false);
-    assert.deepEqual(snapshots[4], { title: false, nativeName: false, ownedName: false, avatar: false, redactionClass: false });
+    assert.deepEqual(snapshots[3], { title: false, nativeName: false, ownedName: false, avatar: false }, '新工作台按最新 accepted 值初拍');
+    assert.equal(reads, 2);
   } finally { controller.dispose(); dom.window.close(); }
 });
 test('关闭工作台会取消在途重拍并归还临时头像标记', async () => {

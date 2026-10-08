@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 geometry.ts 的区域归一化能力，接收编辑器命令与背景选择
- * [OUTPUT]: 对外提供截图状态、命令与纯函数状态转移；标题和会话头像遮罩状态只在新像素成功后提交。
- * [POS]: capture-window 的唯一业务状态源，padding 表示内容短边的单边整数百分比；头像覆盖只属于本次编辑器，不进入 Host 配置。
+ * [OUTPUT]: 对外提供截图状态、命令与纯函数状态转移；标题和会话身份遮罩只在新像素成功后提交。
+ * [POS]: capture-window 的唯一业务状态源，padding 表示内容短边的单边整数百分比；身份覆盖只属于本次编辑器，不进入 Host 配置。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { clampCaptureRect } from "./geometry.ts";
@@ -97,8 +97,8 @@ export type CaptureWindowState = {
   history: CaptureRegionHistory;
   lastOpaqueBackground: CaptureOpaqueBackground;
   padding: number;
-  avatarMaskEnabled: boolean;
-  avatarMaskOverride: boolean | null;
+  identityMaskEnabled: boolean;
+  identityMaskOverride: boolean | null;
   privacyEnabled: boolean;
   redactionSource: CaptureRedactionSource;
   redactionStyle: CaptureRedactionStyle;
@@ -117,7 +117,7 @@ export type CaptureWindowCommand =
   | { id: string; kind: "remove-region" }
   | { id: string; kind: "select-automatic-region"; rect: CaptureRect }
   | { background: CaptureBackground; kind: "set-background" }
-  | { enabled: boolean; kind: "set-avatar-mask" }
+  | { enabled: boolean; kind: "set-identity-mask" }
   | { enabled: boolean; kind: "set-privacy" }
   | { kind: "set-padding"; padding: number }
   | { kind: "set-redaction-source"; source: CaptureRedactionSource }
@@ -127,18 +127,18 @@ export type CaptureWindowCommand =
   | { enabled: boolean; kind: "set-transparent-background" }
   | { kind: "set-tool"; tool: CaptureTool }
   | { kind: "set-zoom"; zoom: number }
-  | { avatarMaskEnabled?: boolean; kind: "retake"; source: CaptureSource }
+  | { identityMaskEnabled?: boolean; kind: "retake"; source: CaptureSource }
   | { kind: "redo" }
   | { kind: "undo" };
 
-export function createCaptureWindowState(source: CaptureSource, avatarMaskEnabled = false): CaptureWindowState {
+export function createCaptureWindowState(source: CaptureSource, identityMaskEnabled = false): CaptureWindowState {
   return {
     background: { id: "sea", kind: "preset" },
     history: { future: [], past: [] },
     lastOpaqueBackground: { id: "sea", kind: "preset" },
     padding: CAPTURE_DEFAULT_PADDING,
-    avatarMaskEnabled,
-    avatarMaskOverride: null,
+    identityMaskEnabled,
+    identityMaskOverride: null,
     privacyEnabled: true,
     redactionSource: "auto",
     redactionStyle: "mosaic",
@@ -200,14 +200,14 @@ export function applyCaptureCommand(
     case "retake":
       return {
         ...state,
-        ...(command.avatarMaskEnabled === undefined ? {} : { avatarMaskEnabled: command.avatarMaskEnabled }),
+        ...(command.identityMaskEnabled === undefined ? {} : { identityMaskEnabled: command.identityMaskEnabled }),
         source: command.source,
         sourceRevision: state.sourceRevision + 1,
       };
     case "set-background":
       return setCaptureBackground(state, command.background);
-    case "set-avatar-mask":
-      return { ...state, avatarMaskEnabled: command.enabled, avatarMaskOverride: command.enabled };
+    case "set-identity-mask":
+      return { ...state, identityMaskEnabled: command.enabled, identityMaskOverride: command.enabled };
     case "set-padding":
       return { ...state, padding: normalizePadding(command.padding), zoom: 1 };
     case "set-privacy":

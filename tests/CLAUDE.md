@@ -29,14 +29,14 @@
 - `capture-route.test.ts`: 官方 RPC 控制封套、owner 世代与迟到 release 围栏；Host 自己撤回 consent 即刻取消，不依赖 Renderer 消息；确认归还后的断连不永久缓存；Main/control 关闭未知不随新 owner/排队/release/重装清除。
 - `capture-settings.test.ts`: 完整 accepted capture 字段就绪门、旧 Host ready 只读提示/无写入无 picker且隐藏 fallback 目录文案、loading 不误报与后续完整快照恢复；完整但空目录沿用原目录状态；另验导出 revision/路径围栏，不改变常驻身份开关。
 - `inspector-ownership.test.ts`: 隔离 VM 的 PID/nonce/原调试地址围栏与 watchdog 归还，不打开真实 Main 调试端口。
-- `capture-controller.test.ts`: 初拍/重拍实时读取身份遮挡，标题遮挡独立；工作台重读壁纸能力，迟到握手不重建当前工作台；验证失败与卸载，不臆断系统权限。
+- `capture-controller.test.ts`: 新工作台初拍读取 accepted 身份遮罩，当前重拍沿用会话值并同时遮挡头像与名称；标题独立，下一工作台重读配置。另验壁纸能力重读、失败与卸载，不臆断系统权限。
 - `capture-notice.test.ts`: 官方 Toast 参数和默认生命周期委托、同文重显、旧完成围栏及 React 根回收；不另模拟宿主计时器。
 - `capture-material.test.ts`: 当前 macOS sidebar 配方、仅背景模糊与临时画布释放合同；不冒充原生窗口覆盖证明。
 - `capture-pixels.test.ts`: 宿主/显式 PNG 桥的能力、目标范围与关联 ID；预算/DPR/130% 缩放量化、冻结解码及取消/视口变化；固定 Main 错误和 Electron invoke 包装保持分类，未知通道不冒充、忙碌不误报端口；桩桥不是安装件能力证据。
 - `capture-privacy.test.ts`: 标题与截图身份独立；唯一识别后遮挡自有名牌/原生名称/头像，未知结构及账号编辑退让，属性按所有权归还并守候选比例。
 - `capture-styles.test.ts`: 五列统一圆角色块、固定240px检查器与设置开关等高槽；检查器选中环安全边距与圆形拾色图标局部约束， 工作台Host token来源/实时几何消费及自有色谱28px白环及内层圆形隔离、浮层单一elevation描边；禁Codex主题、数值回退与宿主拾色器样式污染。
 - `capture-editor-keyboard.test.ts`: 背景面板Tab围栏跳过hidden/inert/CSS隐藏、disabled与负tabindex；不替代原生键盘验收。
-- `capture-view.test.ts`: 双语编辑截图标题及操作面板。标题遮罩与身份设置独立；无系统壁纸 adapter 时不伪造入口。
+- `capture-view.test.ts`: 双语编辑截图标题及操作面板。标题遮罩独立于单一身份遮罩；无系统壁纸 adapter 时不伪造入口。
 - `host.test.ts`: 真实 Schemastery Config/路径边界与平台provider分流；默认 Downloads 使用宿主 `homedir()` 与 `path.join` 精确比较，覆盖 POSIX/Windows drive-root/UNC 并拒绝相对、非canonical及device namespace；缺 helper/不支持架构仍保留设置。
 - `localization.test.ts`: 单 Bundle 离线品牌元信息与内部三功能 zh/en 文案；透明底单路径图标。
 - `model.test.ts`: 昵称、头像和旧字段投影验证。
@@ -69,7 +69,7 @@
 - `page-save-file.test.ts`: 独立临时目录的磁盘替换、并发直接保存独占自动编号、取消保护旧文件与临时清理，不访问用户目录。
 - `page-save-main.test.ts`: 面板/直接保存回执、5K默认边距的PNG/JPEG输出预算、真实文件提交前取消/导航/停用及跨装配串行锁；不冒充实机验收。
 
-- `capture-editor-export.test.ts`: 背景 Tabs 派生与最近选择、切类关闭选色浮层、关闭精确释放当前 Tabs；有效 PNG 的延迟 File 读取在切类/关闭后不得解码、入库或通知；在途保存取消、忙碌快捷键与迟到编码/旧后台独立提示；Canvas 桩不证明视觉或本机文件面板。
+- `capture-editor-export.test.ts`: 身份开关失败时保留旧图和旧值，成功重拍统一更新头像与名称且不持久化；标题仍独立。另验背景 Tabs、取消、保存与导出共用新源；Canvas 桩不证明视觉或本机文件面板。
 - `capture-editor-viewport.test.ts`: 初始Image面板仅读本地元数据、不调用Host目录/媒体；真实编辑器滚轮deltaMode/限幅、统一缩放源、无像素重合成、帧合并与忙碌/pointercancel/dispose合同；不冒充Desktop动效实测。
 
 - `host-acceptance.test.ts`: 集成 CLI 安全前置；自有临时目录验证 owner/路径/符号链接/凭据、stable/RC候选身份和精确PNPM版本门，不启动DSH或替代安装件验收。

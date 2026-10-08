@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 shared 包配置身份、编辑器状态机、presets.ts 唯一预设目录与既有浏览器偏好存储。
- * [OUTPUT]: 保存非敏感编辑偏好及闭集图库 ID，不保存像素、Blob、路径或会话头像遮罩覆盖。
- * [POS]: capture-window 的偏好边界；头像覆盖只活在当前工作台，媒体由独立 IndexedDB gallery 恢复，stable/RC 按 root 身份分域。
+ * [OUTPUT]: 保存非敏感编辑偏好及闭集图库 ID，不保存像素、Blob、路径或会话身份遮罩覆盖。
+ * [POS]: capture-window 的偏好边界；身份覆盖只活在当前工作台，媒体由独立 IndexedDB gallery 恢复，stable/RC 按 root 身份分域。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { ROOT_ENTRY_ID } from "../../shared/components.ts";
@@ -108,8 +108,8 @@ export function applyCapturePreferences(
 }
 
 export function isCapturePreferenceCommand(command: CaptureWindowCommand): boolean {
-  // +--- 会话头像覆盖不得落入稳定/RC 浏览器偏好。 ---+
-  if (command.kind === "set-avatar-mask") return false;
+  // +--- 会话身份遮罩不得落入稳定/RC 浏览器偏好。 ---+
+  if (command.kind === "set-identity-mask") return false;
   return command.kind === "set-background" ||
     command.kind === "set-transparent-background" ||
     command.kind === "set-padding" ||

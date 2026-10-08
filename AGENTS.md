@@ -336,13 +336,15 @@ L2/L3 必须带固定 PROTOCOL 行。
 - 旧 `frames` 不改解释为标题遮挡。
 - 临时截图遮挡复用现有 recognizer 和灰条规则。
 - 临时遮挡仅归还仍由自身拥有的属性。
-- 初拍与重拍均重读 `captureMaskIdentity`。
+- 新工作台初拍读取 `captureMaskIdentity`。
+- 当前工作台重拍沿用会话身份遮罩值。
 - 它独立于常驻 `maskIdentity` 和工作台标题遮挡。
 - 只暂遮唯一 launcher 的头像、native name 和自有名牌。
 - 不写常驻偏好，不改变昵称或账号设置。
-- 工作台头像遮罩独立于标题和名称遮挡。
+- 工作台身份遮罩同时控制头像和名称。
+- 身份遮罩独立于标题遮罩。
 - 开关重拍成功后才提交来源和状态。
-- 会话头像覆盖不持久化，失败保留原图。
+- 会话身份覆盖不持久化，失败保留原图。
 - 标题 recognizer 保留 workspace、session 与 search 围栏。
 - provisional 两格行须有非空 `session:` key。
 - 其首格须为空，第二格须为纯文本 span。

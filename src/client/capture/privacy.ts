@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 sidebar-redaction/presentation 的严格识别、capture 候选层和共享灰条样式。
- * [OUTPUT]: 按独立状态临时标记标题、名称和头像容器；未登录保留原生更多。
- * [POS]: DSH 截图隐私边界；头像标记不含名称，所有临时属性由拍摄流程按所有权归还。
+ * [OUTPUT]: 按标题与身份状态临时标记标题、名称和头像容器；未登录保留原生更多。
+ * [POS]: DSH 截图隐私边界；身份调用同时传入名称与头像标记，拍摄流程按所有权归还。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { recognizedSidebarTitles } from '../sidebar-redaction.ts';

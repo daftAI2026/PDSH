@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖模型、受控原生 Tabs、视口/预算/取消、背景与 Client IndexedDB 图库包装、DOM 模板及已接受保存配置
- * [OUTPUT]: 提供工作台编辑/合成/导出生命周期；标题或头像开关只在重拍成功后提交，头像覆盖不持久化。
- * [POS]: capture-window 总协调器；头像与标题共用真实重拍像素，失败保持已有 source/state，媒体与偏好 ID 分离。
+ * [OUTPUT]: 提供工作台编辑/合成/导出生命周期；标题或身份开关只在重拍成功后提交，身份覆盖不持久化。
+ * [POS]: capture-window 总协调器；身份与标题共用真实重拍像素，失败保持已有 source/state，媒体与偏好 ID 分离。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { captureBackgroundMode, createCaptureBackgroundMemory, type CaptureBackgroundMode } from "./background-modes.ts";
@@ -71,7 +71,7 @@ export type CaptureWindowEditorOptions = {
   materialAppearance?: CaptureMaterialAppearance;
   sourceScaleFactor?: number;
   automaticRegions?: CaptureCandidate[];
-  initialAvatarMaskEnabled?: boolean;
+  initialIdentityMaskEnabled?: boolean;
   initialState?: CaptureWindowState;
   locale?: string;
   onClose?: () => void;
@@ -80,7 +80,7 @@ export type CaptureWindowEditorOptions = {
   onRetake?: (
     revision: number,
     privacyEnabled: boolean,
-    avatarMaskEnabled?: boolean,
+    identityMaskEnabled: boolean,
   ) => CaptureWindowRetake | Promise<CaptureWindowRetake>;
   onSave?: (image: Blob, suggestedName: string, directory: string, behavior: CaptureExportPreferences['saveBehavior'], signal: AbortSignal, metadata: { format: CaptureExportPreferences['saveFormat']; width: number; height: number; title: string; capturedAt: string }) => Promise<"cancelled" | "saved">;
   preferenceStorage?: CapturePreferenceStorage | null;
@@ -93,7 +93,7 @@ export type CaptureWindowRetake = {
   materialAppearance?: CaptureMaterialAppearance;
   sourceScaleFactor?: number;
   automaticRegions: CaptureCandidate[];
-  avatarMaskEnabled?: boolean;
+  identityMaskEnabled?: boolean;
   source: HTMLCanvasElement;
 };
 export type CaptureWindowEditorController = {
@@ -117,7 +117,7 @@ export function mountCaptureWindowEditor(
     height: source.height,
     scaleFactor: options.sourceScaleFactor ?? window.devicePixelRatio,
     width: source.width,
-  }, options.initialAvatarMaskEnabled ?? false);
+  }, options.initialIdentityMaskEnabled ?? false);
   const initialPreferences = preferenceStorage ? loadCapturePreferences(preferenceStorage) : null;
   let pendingGalleryPreferenceId = !options.initialState && initialPreferences?.background.kind === 'wallpaper'
     && isGalleryWallpaperId(initialPreferences.background.systemId)
@@ -458,7 +458,7 @@ export function mountCaptureWindowEditor(
         select: id => selectSystemWallpaper(id),
       },
     });
-    wireInputs(root, dispatch, preview, file => galleryActions.import(file), setPrivacy, setAvatarMask);
+    wireInputs(root, dispatch, preview, file => galleryActions.import(file), setPrivacy, setIdentityMask);
     wireKeyboard(root, state, dispatchRegion, close, exportCopy);
     root.querySelector<HTMLElement>("[data-action='retake']")?.addEventListener("click", () => {
       void retake();
@@ -495,22 +495,23 @@ export function mountCaptureWindowEditor(
   }
   async function retake(
     privacyEnabled = state.privacyEnabled,
-    avatarMaskOverride = state.avatarMaskOverride ?? undefined,
+    identityMaskEnabled = state.identityMaskEnabled,
+    commitIdentityOverride = false,
   ): Promise<boolean> {
     setPhase("recapturing");
     const revision = state.sourceRevision + 1;
     try {
-      const snapshot = await options.onRetake?.(revision, privacyEnabled, avatarMaskOverride);
+      const snapshot = await options.onRetake?.(revision, privacyEnabled, identityMaskEnabled);
       if (!snapshot) throw new Error("Screenshot not returned");
       if (destroyed) return false;
-      const committedAvatarMask = snapshot.avatarMaskEnabled ?? avatarMaskOverride ?? state.avatarMaskEnabled;
-      if (avatarMaskOverride !== undefined && snapshot.avatarMaskEnabled !== undefined && snapshot.avatarMaskEnabled !== avatarMaskOverride) {
-        throw new Error("Screenshot avatar mask did not match the requested state");
+      const committedIdentityMask = snapshot.identityMaskEnabled ?? identityMaskEnabled;
+      if (snapshot.identityMaskEnabled !== undefined && snapshot.identityMaskEnabled !== identityMaskEnabled) {
+        throw new Error("Screenshot identity mask did not match the requested state");
       }
       const previousPrivacyEnabled = state.privacyEnabled;
       let nextState = applyCaptureCommand(state, {
         kind: "retake",
-        avatarMaskEnabled: committedAvatarMask,
+        identityMaskEnabled: committedIdentityMask,
         source: {
           height: snapshot.source.height,
           scaleFactor: snapshot.sourceScaleFactor ?? state.source.scaleFactor,
@@ -518,8 +519,8 @@ export function mountCaptureWindowEditor(
         },
       });
       nextState = applyCaptureCommand(nextState, { enabled: privacyEnabled, kind: "set-privacy" });
-      if (avatarMaskOverride !== undefined) {
-        nextState = applyCaptureCommand(nextState, { enabled: avatarMaskOverride, kind: "set-avatar-mask" });
+      if (commitIdentityOverride) {
+        nextState = applyCaptureCommand(nextState, { enabled: committedIdentityMask, kind: "set-identity-mask" });
       }
       nextState = fitRestoredPadding(nextState);
       source = snapshot.source;
@@ -540,8 +541,8 @@ export function mountCaptureWindowEditor(
   async function setPrivacy(enabled: boolean): Promise<void> {
     if (enabled !== state.privacyEnabled) await retake(enabled);
   }
-  async function setAvatarMask(enabled: boolean): Promise<void> {
-    if (enabled !== state.avatarMaskEnabled) await retake(state.privacyEnabled, enabled);
+  async function setIdentityMask(enabled: boolean): Promise<void> {
+    if (enabled !== state.identityMaskEnabled) await retake(state.privacyEnabled, enabled, true);
   }
   async function exportCopy(): Promise<void> {
     if (destroyed || root.getAttribute("data-state") !== "editing") return;
@@ -671,13 +672,13 @@ function wireInputs(
   preview: (command: CaptureWindowCommand) => void,
   loadWallpaper: (file: File) => Promise<void>,
   setPrivacy: (enabled: boolean) => Promise<void>,
-  setAvatarMask: (enabled: boolean) => Promise<void>,
+  setIdentityMask: (enabled: boolean) => Promise<void>,
 ): void {
   root.querySelector<HTMLInputElement>("[data-input='privacy']")?.addEventListener("change", (event) => {
     void setPrivacy((event.currentTarget as HTMLInputElement).checked);
   });
-  root.querySelector<HTMLInputElement>("[data-input='avatar-mask']")?.addEventListener("change", (event) => {
-    void setAvatarMask((event.currentTarget as HTMLInputElement).checked);
+  root.querySelector<HTMLInputElement>("[data-input='identity-mask']")?.addEventListener("change", (event) => {
+    void setIdentityMask((event.currentTarget as HTMLInputElement).checked);
   });
   root.querySelector<HTMLInputElement>("[data-input='shadow']")?.addEventListener("change", (event) => {
     dispatch({ kind: "set-shadow", shadow: (event.currentTarget as HTMLInputElement).checked });
@@ -710,10 +711,10 @@ function syncEditorControls(
 
   const shadow = root.querySelector<HTMLInputElement>("[data-input='shadow']");
   const privacy = root.querySelector<HTMLInputElement>("[data-input='privacy']");
-  const avatarMask = root.querySelector<HTMLInputElement>("[data-input='avatar-mask']");
+  const identityMask = root.querySelector<HTMLInputElement>("[data-input='identity-mask']");
   if (shadow) shadow.checked = state.shadow;
   if (privacy) privacy.checked = state.privacyEnabled;
-  if (avatarMask) avatarMask.checked = state.avatarMaskEnabled;
+  if (identityMask) identityMask.checked = state.identityMaskEnabled;
 
   syncCaptureColorPopover(root, "solid", state.solidColor);
 }

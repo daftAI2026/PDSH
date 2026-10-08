@@ -51,7 +51,7 @@ The unreleased source supports replacing the signed-out “More” display with 
 
 The replacement identity matches the host's signed-in avatar and layout. The detail heading trims font whitespace; the version badge keeps the host's typography. The workbench title is “Edit screenshot”, and the system material group uses “System wallpapers”.
 
-The unreleased source adds Windows x64 system wallpapers. It selects up to five installed default and theme images; if fewer are available, it shows the actual count. It does not read the user's current wallpaper or download from the network. macOS keeps its existing four-image selection rule. The workbench also adds independent “Avatar masking”. Toggling it retakes the image and updates the image and switch only on success; failure keeps the existing image. The avatar override lasts for the current editing session.
+The unreleased source adds Windows x64 system wallpapers. It selects up to five installed default and theme images; if fewer are available, it shows the actual count. It does not read the user's current wallpaper or download from the network. macOS keeps its existing four-image selection rule. The workbench also adds “Identity masking” for both the sidebar avatar and name, independent of title masking. Toggling it retakes the image and updates the image and switch only on success; failure keeps the existing image. The identity override lasts for the current editing session.
 
 ```sh
 pnpm install --frozen-lockfile

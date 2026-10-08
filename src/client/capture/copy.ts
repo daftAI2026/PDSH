@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖调用方传入的 locale、shared 封闭壁纸 ID，并遵循截图编辑器已经确认的产品术语
- * [OUTPUT]: 对外提供 CaptureWindowCopy 双语文案/版本壁纸名称、标题与头像遮罩说明、图库动作和固定失败码提示选择器
- * [POS]: 唯一文案边界；头像说明只描述遮罩范围，不承诺名称显示状态，语言归 Host
+ * [OUTPUT]: 对外提供 CaptureWindowCopy 双语文案/版本壁纸名称、标题与身份遮罩说明、图库动作和固定失败码提示选择器
+ * [POS]: 唯一文案边界；身份说明描述头像与名称遮罩范围，语言归 Host
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { SystemWallpaperId, LegacySystemWallpaperId } from '../../shared/system-wallpaper-protocol.ts';
@@ -28,8 +28,8 @@ export type CaptureWindowCopy = {
   systemWallpaperLoadError: string;
   systemWallpaperNames: Record<LegacySystemWallpaperId, string> & Partial<Record<SystemWallpaperId, string>>;
   addImage: string;
-  avatarMask: string;
-  avatarMaskDescription: string;
+  identityMask: string;
+  identityMaskDescription: string;
   systemImages: string;
   myImages: string;
   myImage: string;
@@ -109,8 +109,8 @@ const ENGLISH: CaptureWindowCopy = {
     'system-wallpaper-tahoe-day': 'macOS 26 · Tahoe Day',
   },
   addImage: "Add image",
-  avatarMask: "Avatar masking",
-  avatarMaskDescription: "Mask the sidebar avatar.",
+  identityMask: "Identity masking",
+  identityMaskDescription: "Mask the sidebar avatar and name.",
   systemImages: "System wallpapers",
   myImages: "My images",
   myImage: "Image",
@@ -128,7 +128,7 @@ const ENGLISH: CaptureWindowCopy = {
   move: "Move",
   padding: "Padding",
   privacy: "Mask titles",
-  privacyDescription: "Mask recognized titles before capture. Name masking remains controlled in plugin settings.",
+  privacyDescription: "Mask recognized titles before capture.",
   preview: "Preview",
   redact: "Redact",
   regionHint: "Click detected areas to redact them",
@@ -190,8 +190,8 @@ const CHINESE: CaptureWindowCopy = {
     'system-wallpaper-tahoe-day': 'macOS 26 · Tahoe Day（太浩湖日间）',
   },
   addImage: "添加图片",
-  avatarMask: "头像遮罩",
-  avatarMaskDescription: "遮挡侧栏头像。",
+  identityMask: "身份遮罩",
+  identityMaskDescription: "遮挡侧栏头像和名称。",
   systemImages: "系统壁纸",
   myImages: "我的图片",
   myImage: "图片",
@@ -209,7 +209,7 @@ const CHINESE: CaptureWindowCopy = {
   move: "移动",
   padding: "边距",
   privacy: "标题遮罩",
-  privacyDescription: "截取前遮挡可识别的标题。名称遮罩仍由插件设置控制。",
+  privacyDescription: "截取前遮挡可识别的标题。",
   preview: "预览",
   redact: "区域打码",
   regionHint: "点击检测到的区域进行打码",

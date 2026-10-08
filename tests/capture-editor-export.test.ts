@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实编辑器、jsdom、Canvas 编码/绘制窄桩、可控保存回执与延迟 Node File.arrayBuffer。
- * [OUTPUT]: 验证导出回执/取消/迟到编码围栏、头像重拍提交与预览/导出共用新源，以及Tabs和选图取消结算。
+ * [OUTPUT]: 验证导出回执/取消/迟到编码围栏、身份重拍提交与预览/导出共用新源，以及Tabs和选图取消结算。
  * [POS]: 编辑器导出、背景 Tabs 与本地导入取消合同；像素与原生保存均为窄桩，不证明图像视觉或 Electron 面板实机行为。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { mountCaptureWindowEditor } from '../src/client/capture/editor.ts';
 import { createCaptureWindowState } from '../src/client/capture/model.ts';
+import { isCapturePreferenceCommand } from '../src/client/capture/preferences.ts';
 import { captureOutputSize } from '../src/client/capture/compositor.ts';
 function fixture(options={}) {
   const dom=new JSDOM('<html lang="zh"><title>live-title</title><body><main/></body></html>',{url:'https://fixture.invalid/',pretendToBeVisual:true});
@@ -167,42 +168,45 @@ test('旧后台阻止保存时保留编辑，提示正常加载而不误报目�
   } finally { h.close() }
 })
 
-test('头像开关失败时恢复原状态；成功重拍后预览和导出都使用新原生像素且不持久化头像覆盖', async () => {
+test('身份开关失败时恢复原状态；成功重拍后预览和导出共用新原生像素且不持久化覆盖', async () => {
   const writes=[];
-  const initialState={...createCaptureWindowState({width:120,height:80}),avatarMaskEnabled:true,background:{kind:'color',color:'#ffffff'}};
+  const initialState={...createCaptureWindowState({width:120,height:80}),identityMaskEnabled:true,background:{kind:'color',color:'#ffffff'}};
   let replacementSource:HTMLCanvasElement|null=null;let fail=true;const retakes=[];
   const storage={getItem:()=>null,setItem:(key,value)=>writes.push([key,JSON.parse(value)])};
-  const h=fixture({initialState,initialAvatarMaskEnabled:true,preferenceStorage:storage,
-    onRetake:async(revision,privacyEnabled,avatarMaskEnabled)=>{retakes.push({revision,privacyEnabled,avatarMaskEnabled});if(fail)throw Error('capture failed');if(!replacementSource)throw Error('missing replacement');return{source:replacementSource,automaticRegions:[],avatarMaskEnabled};}});
+  const h=fixture({initialState,initialIdentityMaskEnabled:true,preferenceStorage:storage,
+    onRetake:async(revision,privacyEnabled,identityMaskEnabled)=>{retakes.push({revision,privacyEnabled,identityMaskEnabled});if(fail)throw Error('capture failed');if(!replacementSource)throw Error('missing replacement');return{source:replacementSource,automaticRegions:[],identityMaskEnabled};}});
   replacementSource=h.dom.window.document.createElement('canvas');replacementSource.width=140;replacementSource.height=90;
   const editor=h.editor;
   try{
     const root=h.dom.window.document.querySelector('[data-pdsh-capture]');
-    const avatar=root.querySelector('[data-input="avatar-mask"]');
-    assert.ok(avatar);
-    assert.equal(avatar.checked,true);
-    avatar.checked=false;avatar.dispatchEvent(new h.dom.window.Event('change',{bubbles:true}));await h.flush();
-    assert.deepEqual(retakes,[{revision:1,privacyEnabled:true,avatarMaskEnabled:false}]);
-    assert.equal(editor.getState().avatarMaskEnabled,true);
+    const identity=root.querySelector('[data-input="identity-mask"]');
+    assert.ok(identity);
+    assert.equal(identity.checked,true);
+    identity.checked=false;identity.dispatchEvent(new h.dom.window.Event('change',{bubbles:true}));await h.flush();
+    assert.deepEqual(retakes,[{revision:1,privacyEnabled:true,identityMaskEnabled:false}]);
+    assert.equal(editor.getState().identityMaskEnabled,true);
+    assert.equal(editor.getState().identityMaskOverride,null,'失败不提交本次身份选择');
     assert.equal(editor.getState().sourceRevision,0);
-    assert.equal(h.dom.window.document.querySelector('[data-input="avatar-mask"]').checked,true,'失败后复原稳定 checkbox');
+    assert.equal(h.dom.window.document.querySelector('[data-input="identity-mask"]').checked,true,'失败后复原稳定 checkbox');
     assert.equal(editor.getState().source.width,120,'失败不替换原 source');
     fail=false;
-    const retryAvatar=h.dom.window.document.querySelector('[data-input="avatar-mask"]');
-    retryAvatar.checked=false;retryAvatar.dispatchEvent(new h.dom.window.Event('change',{bubbles:true}));await h.flush();
-    assert.deepEqual(retakes[1],{revision:1,privacyEnabled:true,avatarMaskEnabled:false});
-    assert.equal(editor.getState().avatarMaskEnabled,false);
+    const retryIdentity=h.dom.window.document.querySelector('[data-input="identity-mask"]');
+    retryIdentity.checked=false;retryIdentity.dispatchEvent(new h.dom.window.Event('change',{bubbles:true}));await h.flush();
+    assert.deepEqual(retakes[1],{revision:1,privacyEnabled:true,identityMaskEnabled:false});
+    assert.equal(editor.getState().identityMaskEnabled,false);
+    assert.equal(editor.getState().identityMaskOverride,false,'成功后提交会话身份覆盖');
     assert.equal(editor.getState().sourceRevision,1);
     assert.equal(editor.getState().source.width,140);
-    assert.equal(h.dom.window.document.querySelector('[data-input="avatar-mask"]').checked,false);
-    assert.equal(writes.length,0,'会话头像覆盖不写入编辑器偏好或 Host 配置');
+    assert.equal(h.dom.window.document.querySelector('[data-input="identity-mask"]').checked,false);
+    assert.equal(writes.length,0,'会话身份覆盖不写入编辑器偏好或 Host 配置');
+    assert.equal(isCapturePreferenceCommand({kind:'set-identity-mask',enabled:false}),false,'身份开关不进入持久化命令白名单');
     const titleMask=h.dom.window.document.querySelector('[data-input="privacy"]');titleMask.checked=false;titleMask.dispatchEvent(new h.dom.window.Event('change',{bubbles:true}));await h.flush();
-    assert.deepEqual(retakes[2],{revision:2,privacyEnabled:false,avatarMaskEnabled:false},'标题重拍保留已明确选择的会话头像值');
+    assert.deepEqual(retakes[2],{revision:2,privacyEnabled:false,identityMaskEnabled:false},'标题重拍保留当前会话身份值');
     assert.equal(editor.getState().privacyEnabled,false);
-    assert.equal(editor.getState().avatarMaskEnabled,false);
+    assert.equal(editor.getState().identityMaskEnabled,false);
     assert.equal(writes.length,1);
-    assert.equal(Object.hasOwn(writes[0][1],'avatarMaskEnabled'),false,'标题偏好保存不携带头像覆盖');
-    assert.equal(Object.hasOwn(writes[0][1],'avatarMaskOverride'),false,'头像覆盖来源也不持久化');
+    assert.equal(Object.hasOwn(writes[0][1],'identityMaskEnabled'),false,'标题偏好保存不携带会话身份值');
+    assert.equal(Object.hasOwn(writes[0][1],'identityMaskOverride'),false,'身份覆盖来源也不持久化');
     const previewDraws=h.drawnSources.filter(source=>source===replacementSource).length;
     assert.ok(previewDraws>=1,'重拍后的工作台预览绘制新原生 canvas');
     h.dom.window.document.querySelector('[data-action="save"]').click();await h.flush();
@@ -210,20 +214,20 @@ test('头像开关失败时恢复原状态；成功重拍后预览和导出都�
   }finally{h.close();}
 });
 
-test('没有本地头像覆盖时，普通重拍跟随返回的 accepted 头像状态', async () => {
+test('没有显式身份覆盖时，普通重拍仍使用本工作台初始身份值', async () => {
   let replacementSource:HTMLCanvasElement|null=null;const requested=[];
-  const initialState={...createCaptureWindowState({width:120,height:80}),avatarMaskEnabled:true,background:{kind:'color',color:'#ffffff'}};
-  const h=fixture({initialState,initialAvatarMaskEnabled:true,onRetake:async(_revision,_privacyEnabled,avatarMaskOverride)=>{
-    requested.push(avatarMaskOverride);
+  const initialState={...createCaptureWindowState({width:120,height:80}),identityMaskEnabled:true,background:{kind:'color',color:'#ffffff'}};
+  const h=fixture({initialState,initialIdentityMaskEnabled:true,onRetake:async(_revision,_privacyEnabled,identityMaskEnabled)=>{
+    requested.push(identityMaskEnabled);
     if(!replacementSource)throw Error('missing replacement');
-    return{source:replacementSource,automaticRegions:[],avatarMaskEnabled:false};
+    return{source:replacementSource,automaticRegions:[],identityMaskEnabled};
   }});
   replacementSource=h.dom.window.document.createElement('canvas');replacementSource.width=130;replacementSource.height=85;
   try{
     h.dom.window.document.querySelector('[data-action="retake"]').click();await h.flush();
-    assert.deepEqual(requested,[undefined],'未显式切换时不把首拍默认值伪装成本地覆盖');
-    assert.equal(h.editor.getState().avatarMaskEnabled,false);
-    assert.equal(h.editor.getState().avatarMaskOverride,null);
-    assert.equal(h.dom.window.document.querySelector('[data-input="avatar-mask"]').checked,false);
+    assert.deepEqual(requested,[true],'重拍显式复用当前工作台的 accepted 初始身份值');
+    assert.equal(h.editor.getState().identityMaskEnabled,true);
+    assert.equal(h.editor.getState().identityMaskOverride,null);
+    assert.equal(h.dom.window.document.querySelector('[data-input="identity-mask"]').checked,true);
   }finally{h.close();}
 });

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 model.ts 的编辑状态、copy.ts 的本地化文案、presets.ts 的背景分层、持久 Gallery 目录、有限系统目录/失败码校验与 icons.ts 图标
- * [OUTPUT]: 提供背景图库与独立标题/头像遮罩开关；持久系统语义名用于离线缩略图无障碍名称。
- * [POS]: DSH 工作台声明式视图边界；遮罩只表达本次拍摄选择，用户像素与图库来源保持独立，系统图不丢语义标签。
+ * [OUTPUT]: 提供背景图库、独立标题遮罩和会话身份遮罩；持久系统语义名用于离线缩略图无障碍名称。
+ * [POS]: DSH 工作台声明式视图边界；身份开关覆盖头像与名称，用户像素与图库来源保持独立，系统图不丢语义标签。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { captureBackgroundPanelAttributes, captureBackgroundMode } from "./background-modes.ts";
@@ -200,10 +200,10 @@ function inspectorTemplate(
       </section>
       <section class="pdsh-capture-section pdsh-capture-row">
         <div class="pdsh-capture-privacy-copy">
-          <h2 class="pdsh-capture-section-title">${copy.avatarMask}</h2>
-          <p class="pdsh-capture-section-description">${copy.avatarMaskDescription}</p>
+          <h2 class="pdsh-capture-section-title">${copy.identityMask}</h2>
+          <p class="pdsh-capture-section-description">${copy.identityMaskDescription}</p>
         </div>
-        <input class="pdsh-capture-switch" data-input="avatar-mask" type="checkbox" aria-label="${copy.avatarMask}" ${checked(state.avatarMaskEnabled)}>
+        <input class="pdsh-capture-switch" data-input="identity-mask" type="checkbox" aria-label="${copy.identityMask}" ${checked(state.identityMaskEnabled)}>
       </section>
       </div>
       </div>

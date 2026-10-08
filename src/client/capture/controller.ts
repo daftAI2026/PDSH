@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖冻结 PNG/原生比例、编辑器/Tabs、遮挡与导出偏好，以及壁纸能力读取端口。
- * [OUTPUT]: 提供相机→截图→工作台与重拍；每次重读名称配置，头像由编辑器会话可选覆盖。
- * [POS]: capture Client 编排边界；标题、名称和头像像素遮罩分别采样，头像覆盖不回写 Host 配置。
+ * [OUTPUT]: 提供相机→截图→工作台与重拍；新工作台读取 accepted 身份配置，当前工作台沿用会话值。
+ * [POS]: capture Client 编排边界；标题独立，身份值同时采样头像与名称且不回写 Host 配置。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { capturePreparedWindow, waitForCaptureFrame } from './capture-lifecycle.ts';
@@ -26,13 +26,12 @@ export function mountCaptureController(doc: Document, { locale = () => doc.docum
   const state = () => ({ busy, disabled: busy || disposed || !!editor });
   function publish() { onState(); }
   function report(message: string, tone?: 'success') { notify(message, tone); }
-  async function snapshot(privacyEnabled: boolean, requestId = doc.defaultView.crypto.randomUUID(), avatarMaskOverride?: boolean) {
+  async function snapshot(privacyEnabled: boolean, requestId = doc.defaultView.crypto.randomUUID(), identityMaskOverride?: boolean) {
     // +--- 原生 Toast 在下一帧清空，重拍不把自己的通知截进去 ---+
     report('');
-    const maskIdentity = captureMaskIdentity() !== false;
-    const maskAvatar = avatarMaskOverride ?? maskIdentity;
-    const hasPrivacyMasks = privacyEnabled || maskIdentity || maskAvatar;
-    const restore = hasPrivacyMasks ? markDSHPrivacyPlaceholders(doc, { maskTitles: privacyEnabled, maskIdentity, maskAvatar }) : () => {};
+    const identityMaskEnabled = identityMaskOverride ?? captureMaskIdentity() !== false;
+    const hasPrivacyMasks = privacyEnabled || identityMaskEnabled;
+    const restore = hasPrivacyMasks ? markDSHPrivacyPlaceholders(doc, { maskTitles: privacyEnabled, maskIdentity: identityMaskEnabled, maskAvatar: identityMaskEnabled }) : () => {};
     abort = new AbortController();
     const request = abort;
     const materialAppearance = doc.querySelector('[data-ds-dark-theme]') ? 'dark' as const : 'light' as const;
@@ -50,7 +49,7 @@ export function mountCaptureController(doc: Document, { locale = () => doc.docum
           return collectDSHCandidates(doc);
         },
         timeoutMs: captureScope === 'owned-window' ? null : undefined,
-        // Lifecycle 的同一灰条类覆盖任一开启的遮挡层，标题与身份配置仍各自独立。
+        // +--- 标题开关独立；身份值同时遮挡侧栏名称与头像。 ---+
         privacyEnabled: hasPrivacyMasks, root: doc.documentElement,
         waitForFrame: waitFrame,
       });
@@ -66,7 +65,7 @@ export function mountCaptureController(doc: Document, { locale = () => doc.docum
       } catch {
         // +--- 建议层不是取像前置条件；失去 DOM 几何时保留有效照片与手动编辑。 ---+
       }
-      return { source: result.source, fileMetadata, materialAppearance, sourceScaleFactor, automaticRegions, avatarMaskEnabled: maskAvatar };
+      return { source: result.source, fileMetadata, materialAppearance, sourceScaleFactor, automaticRegions, identityMaskEnabled };
     } finally {
       abort = null; restore();
     }
@@ -85,8 +84,8 @@ export function mountCaptureController(doc: Document, { locale = () => doc.docum
       host = doc.createElement('div'); host.setAttribute('data-pdsh-capture-host', ''); doc.body.append(host);
       editor = openEditor(host, {
         mountBackgroundTabs, systemWallpapers: readSystemWallpapers(), source: first.source, fileMetadata: first.fileMetadata, onSave, sourceScaleFactor: first.sourceScaleFactor, materialAppearance: first.materialAppearance, automaticRegions: first.automaticRegions, locale: locale(), exportPreferences: exportPreferences(),
-        initialAvatarMaskEnabled: first.avatarMaskEnabled,
-        onRetake: (_revision, enabled, avatarMaskEnabled) => snapshot(enabled, undefined, avatarMaskEnabled),
+        initialIdentityMaskEnabled: first.identityMaskEnabled,
+        onRetake: (_revision, enabled, identityMaskEnabled) => snapshot(enabled, undefined, identityMaskEnabled),
         onClose: () => { abort?.abort(); editor = null; host?.remove(); host = null; publish(); },
         onNotify: (message, tone) => report(message, tone),
       });
