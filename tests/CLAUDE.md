@@ -141,6 +141,6 @@
 
 - `system-wallpaper-stream-catalog.test.ts`: 动态ID活动目录0–5项、Windows x64五项流、重复/非法ID/名称C1与unavailable边界；fake operation不读取系统或联网。
 
-- `public-guides.test.ts`: 验证双语公开入口互链、同源版本和兼容边界。README 写用户动作，PUBLISHING 留技术合同。另核 skill 同步要求、历史原文摘要及头像许可。不运行宿主或联网。
+- `public-guides.test.ts`: 验证双语互链、同源版本和平台边界。Windows 壁纸最多五项且不读当前壁纸、不联网；Mac 保留四项。README 写用户动作，PUBLISHING 留技术合同。另核 skill 同步、历史原文摘要及头像许可。不运行宿主或联网。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

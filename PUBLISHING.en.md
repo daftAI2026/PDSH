@@ -146,8 +146,7 @@ Never copy RC manifests, entries, or generated files back into the stable source
 
 ### System Wallpapers and Local Gallery
 
-Stable 0.5.4 provides system wallpaper retrieval on macOS only; its Windows build has no provider.
-Unreleased source adds local Windows x64 retrieval of system wallpapers.
+Version 0.5.5 adds local Windows x64 retrieval of system wallpapers.
 It selects up to five installed default and theme wallpapers.
 If fewer than five items are available, it shows the actual count. It does not read the user's current wallpaper or download from the network.
 The macOS active catalog remains capped at four items.
@@ -207,6 +206,46 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 1. Run `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm build`, and `pnpm run bundle`. Check the current version's actual tgz members, bytes, permissions, version, and dependency licenses. Do not substitute an older package. Include only the manifest allowlist and npm's fixed package metadata and README files; exclude node_modules, profiles, credentials, logs, and private research.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
+
+## 0.5.5 Release Candidate: Identity and the Windows Workbench
+
+Signed-out users can explicitly replace the sidebar display identity.
+The native menu remains available; account avatars require signing in.
+Signing out temporarily uses a generated avatar without changing the selected source.
+The avatar and identity row use the host's signed-in layout.
+The detail heading trims font whitespace and keeps the version badge typography.
+
+The workbench title is “Edit screenshot”.
+The system group and fetch action both use “System wallpapers”.
+“Private titles” redacts sidebar session titles.
+“Private identity” redacts the sidebar avatar and nickname.
+The switches are independent; failure retains the original image and state.
+The identity override does not write permanent identity settings.
+
+Windows selects up to five installed default and theme wallpapers.
+macOS retains four items; its native inputs and helper bytes are unchanged.
+Windows suggestions reuse the shared sidebar recognizer.
+Native client-area offsets bound to the image determine PNG coordinates.
+Canvas dimensions are read explicitly instead of copying prototype accessors.
+Unknown geometry keeps manual drawing; the client-area origin is never guessed.
+Suggestions, removal buttons, and the editor title retain distinct accessibility semantics.
+The color area and HEX input share a width; endpoints retain hue.
+
+RC11 passed this round's Windows feature acceptance.
+It covers short copy, detected regions, both masks, and retaking.
+Color controls, five wallpapers, PNG copying, and all three save formats also passed.
+Native directory cancellation and stable-package restoration passed.
+Export proportions passed for a representative redaction; complete pixel alignment remains unverified.
+RC results do not replace the stable archive or the same-tag upgrade gate.
+
+The user requested main and a stable tag after physical testing passes.
+The proposed tag is v0.5.5; no GitHub Release or npm publication is planned.
+Every added capability requires verification through the same official tag upgrade.
+Restarting or toggling features cannot fill missing interfaces after upgrade.
+Mac physical testing, high DPI, and cancellation during capture remain unverified.
+Permission withdrawal, Desktop abnormal exit, and restart persistence remain unverified.
+Complete pixel alignment, dark themes, and English Desktop remain unverified.
+Release exceptions for this version are not yet confirmed; 0.5.4 exceptions do not carry forward.
 
 ## 0.5.4 Release Decision: Windows Capture Repair
 

@@ -1,7 +1,7 @@
 /**
  * [INPUT]: src/host/index.ts 与官方 Typert service，由 build.ts 生成。
  * [OUTPUT]: 唯一 pdsh Config/name/apply 与 owned-window capture/save/wallpaper。
- * [POS]: 单包运行产物；PDSH build "0.5.4"，不手工修改。
+ * [POS]: 单包运行产物；PDSH build "0.5.5"，不手工修改。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 var __create = Object.create;

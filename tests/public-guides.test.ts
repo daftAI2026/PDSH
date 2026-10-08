@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖根指南、发布 skill、双语文档、Git链接索引与历史 LF blob。
- * [OUTPUT]: 验证文档互链、换行无关的内容合同、升级边界和致谢。
+ * [OUTPUT]: 验证文档互链、同源版本、双平台壁纸边界、升级限制和致谢。
  * [POS]: tests 的公开文档合同。不运行宿主或联网。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -174,7 +174,11 @@ test('中英文 README 当前版本同源，英文不省略兼容、平台和隐
   }
   assert.match(english, /0\.3\.2[^\n]*normal load/iu);
   assert.match(english, /0\.5\.0[^\n]*does not support a no-restart upgrade/iu);
-  assert.match(english, /Windows[^\n]*does not provide system wallpaper/iu);
+  assert.match(readme, /Windows[^\n]*最多五张/u);
+  assert.match(english, /Windows[^\n]*up to five installed default and theme images/iu);
+  assert.match(english, /macOS[^\n]*four representative wallpapers/iu);
+  assert.match(english, /Windows[^\n]*does not read the user's current wallpaper or download from the network/iu);
+  assert.doesNotMatch(english, /Windows[^\n]*does not provide system wallpaper/iu);
   assert.match(english, /unverified/iu);
   for (const boundary of ['dark', 'Windows', 'English Desktop', 'alignment']) {
     assert.ok(english.includes(boundary), boundary);
