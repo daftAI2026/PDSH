@@ -222,6 +222,7 @@ Other checks cover picker cancellation and duplicate names.
 Plugin disable releases the camera and helper processes.
 Native fixtures cover target closure and startup termination.
 Cancellation during active capture and full pixel alignment remain unverified.
+The user accepted these two gaps for this repair-tag validation.
 Bind formal archive, native and isolated Host results separately.
 Run the stable update test after publishing its tag.
 Do not count RC installation as the stable update test.
