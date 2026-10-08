@@ -1,6 +1,8 @@
 # tests/
 > L2 | 父级: ../CLAUDE.md
 
+- `capture-color-popover.test.ts`: 生产选色浮层的色域回归。白、灰与黑端点保留无色像素无法表达的 HSV 分量；外部同步使用同一状态。不证明 Desktop 绘制。
+
 - `capture-geometry.test.ts`: 闭集 DTO、PNG 内整数矩形、比例与摘要语法。验证查询时限常量；不证明原生对位或 Host 链路。
 
 - `native-baseline.test.ts`: 固定 Mac 原生闭包的复用合同。逐项改动输入和助手，验证 Windows RC 拒绝异源产物。

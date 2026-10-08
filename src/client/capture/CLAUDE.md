@@ -45,12 +45,12 @@ Host 的 Remote 取消终态可能先于 Client 配置撤权；批获取收到�
 - `system-wallpaper-remote.ts`: 同一Remote的最多五项活动目录/媒体边界；校验动态/legacy材料语法与语义名，knownCatalog才授权load；保留available/downloadable，拒路径URL和超预算/错序/迟到JPEG，Gallery持久化。
 - `system-wallpapers.ts`: 显式串行批获取owner；每次读取当前catalog、仅补活动缺项并刷新匹配旧缓存名称，不计旧cache为新进度；内部进度静默、settle后发布持久缩略图，不自动选背景，取消/卸载join真实I/O；选中环不在此分源管理。
 - `preferences.ts`: 稳定/RC 分域的非敏感浏览器偏好。保存既有标题偏好与有效材料 ID，不保存会话身份覆盖。媒体只在独立 IndexedDB，不存截图或路径。
-- `color-popover.ts`: 可显式关闭的选色弹层事件与属性转义，切类/重建不残留浮层；不承担背景状态源。
+- `color-popover.ts`: 选色浮层事件与属性转义。浮层保留白、灰和黑端点丢失的 HSV 分量；只提交 HEX 到背景模型。切类或重建释放浮层，不持久化交互坐标。
 - `padding-slider.ts`: 原生 range 的离散边距交互与刻度同步。
 - `inspector-scroll.ts`: 检查器滚动渐隐表现；不持有编辑业务。
 - `capture-window.css`: 右侧固定240px、左侧剩余宽度，与Host间距解耦；DSH Modal/主题 token 与实时原生 Button/Switch/图标测量驱动的编辑器外壳；控件运动跟随 Provider，编辑合成像素不受主题接管。
 - `background-picker.css`: 原生四模式Tabs窄栏布局、预设与系统/个人图库独立五列；等高标题行右侧承载获取或plus动作，复用实时Host控件高度/图标/焦点参数，选中双环不扩大键盘焦点；缩略图/色板是内容颜色，无统一Host加载周期时使用静态占位。
-- `color-popover.css`: 自有浮层限定的DSH表面/Input与色谱；28px白环指示器及填色内层显式圆形，隔离Host全局曲率；浮层只用含描边的elevation、不叠边，黑白和色相不受主题反转。
+- `color-popover.css`: 色板与 HEX 输入共用内容宽度，输入固有尺寸不撑大浮层。28px 白环及填色内层显式圆形；表面使用 DSH elevation，色谱不受主题反转。
 - `image.d.ts`: JPEG data URL 构建器的 TypeScript 静态声明。
 
 - `export.ts`: 编码前尺寸预算/编码后128MB字节预算约束PNG/JPEG/WebP，JPEG临时白底分配同样受限；下载交接不报告磁盘成功。

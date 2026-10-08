@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖编辑器颜色状态、浏览器 DOM 与浮层定位。
- * [OUTPUT]: 提供可显式关闭的选色浮层生命周期及共享 HTML 属性转义，切换背景模式不残留浮层。
+ * [OUTPUT]: 提供选色浮层生命周期及属性转义。浮层保留无色像素无法表达的 HSV 分量，切换背景模式不残留浮层。
  * [POS]: capture-window 的选色交互边界；view 复用属性转义保护本机缩略图属性。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -11,6 +11,9 @@ export type CaptureHsv = {
   saturation: number;
   value: number;
 };
+
+// +--- HEX 无法表达无色端点的完整坐标；交互状态只随浮层存活。 ---+
+const pickerCoordinates = new WeakMap<HTMLElement, CaptureHsv>();
 
 export type CaptureColorPopoverOptions = {
   label: (target: CaptureColorTarget) => string;
@@ -189,11 +192,11 @@ function wirePicker(
   if (!saturation || !hue || !input) return;
 
   wirePickerSurface(saturation, (x, y) => {
-    const current = captureHsvFromHex(currentColor(popover));
+    const current = pickerCoordinates.get(popover) ?? captureHsvFromHex(currentColor(popover));
     changePicker(popover, target, { ...current, saturation: x * 100, value: (1 - y) * 100 }, onChange);
   });
   wirePickerSurface(hue, (x) => {
-    const current = captureHsvFromHex(currentColor(popover));
+    const current = pickerCoordinates.get(popover) ?? captureHsvFromHex(currentColor(popover));
     changePicker(popover, target, { ...current, hue: x * 360 }, onChange);
   });
   input.addEventListener("input", () => {
@@ -255,13 +258,22 @@ function changePicker(
   onChange: (target: CaptureColorTarget, color: string) => void,
 ): void {
   const color = captureHexFromHsv(hsv);
-  syncPicker(popover, color, true);
-  onChange(target, color);
+  const previousColor = currentColor(popover);
+  syncPicker(popover, color, true, hsv);
+  if (color.toLowerCase() !== previousColor.toLowerCase()) onChange(target, color);
 }
 
-function syncPicker(popover: HTMLElement, color: string, updateInput: boolean): void {
+function syncPicker(popover: HTMLElement, color: string, updateInput: boolean, coordinates?: CaptureHsv): void {
   const target = popover.dataset.colorPopover as CaptureColorTarget;
-  const hsv = captureHsvFromHex(color);
+  const next = captureHsvFromHex(color);
+  const previous = pickerCoordinates.get(popover);
+  const echoed = previous && captureHexFromHsv(previous) === captureHexFromHsv(next);
+  const hsv = coordinates ?? (echoed ? previous : {
+    hue: next.saturation === 0 ? previous?.hue ?? next.hue : next.hue,
+    saturation: next.value === 0 ? previous?.saturation ?? next.saturation : next.saturation,
+    value: next.value,
+  });
+  pickerCoordinates.set(popover, hsv);
   popover.dataset.currentColor = color;
   const saturation = popover.querySelector<HTMLElement>(`[data-color-saturation="${target}"]`);
   const saturationPointer = saturation?.querySelector<HTMLElement>(".react-colorful__pointer");
