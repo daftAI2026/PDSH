@@ -207,7 +207,7 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
 
-## 0.5.5 Release Candidate: Identity and the Windows Workbench
+## 0.5.5 Release Decision: Identity and the Windows Workbench
 
 Signed-out users can explicitly replace the sidebar display identity.
 The native menu remains available; account avatars require signing in.
@@ -239,13 +239,15 @@ Export proportions passed for a representative redaction; complete pixel alignme
 RC results do not replace the stable archive or the same-tag upgrade gate.
 
 The user requested main and a stable tag after physical testing passes.
-The proposed tag is v0.5.5; no GitHub Release or npm publication is planned.
+The tag is v0.5.5; no GitHub Release or npm publication is planned.
 Every added capability requires verification through the same official tag upgrade.
 Restarting or toggling features cannot fill missing interfaces after upgrade.
 Mac physical testing, high DPI, and cancellation during capture remain unverified.
 Permission withdrawal, Desktop abnormal exit, and restart persistence remain unverified.
 Complete pixel alignment, dark themes, and English Desktop remain unverified.
-Release exceptions for this version are not yet confirmed; 0.5.4 exceptions do not carry forward.
+After disclosure of these unverified gates, the user explicitly requested the tag.
+This authorization covers main and v0.5.5 with those limits.
+Unverified gates retain their status; historical 0.5.4 exceptions do not carry forward.
 
 ## 0.5.4 Release Decision: Windows Capture Repair
 
