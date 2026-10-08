@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖截图控制器与串行隐藏生命周期的可注入边界。
- * [OUTPUT]: 验证 Mac 满窗及 Windows 同图客户区的候选映射、重拍与未知几何退让；授权等待不被页面计时器截断。
+ * [OUTPUT]: 验证真实画布的双平台候选映射、重拍与未知几何退让；授权等待不被页面计时器截断。
  * [POS]: RC 原生整窗的 Client 合同；不是实机取像或系统授权证据。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -66,6 +66,34 @@ test('Windows 使用同一识别器，并将原生客户区偏移加入冻结候
     const retake = await opened.onRetake(1, false);
     assert.equal(retake.automaticRegions[0].y, 400);
   } finally { controller.dispose(); dom.window.close(); }
+});
+
+test('真实画布的原型尺寸属性接通双平台候选，而非只支持普通对象桩', async () => {
+  for (const platform of ['MacIntel', 'Win32']) {
+    const { dom } = fullWindowFixture();
+    const windows = platform === 'Win32';
+    Object.defineProperty(dom.window.navigator, 'platform', { value: platform });
+    if (windows) { dom.window.outerWidth = 1296; dom.window.outerHeight = 828; }
+    const source = dom.window.document.createElement('canvas');
+    source.width = windows ? 2562 : 2560;
+    source.height = windows ? 1641 : 1640;
+    assert.equal(Object.hasOwn(source, 'width'), false, '保留生产画布的原型访问器，不以自有字段替代');
+    assert.equal(Object.hasOwn(source, 'height'), false);
+    let opened;
+    const controller = mountCaptureController(dom.window.document, {
+      capture: async () => source, waitFrame: async () => {},
+      captureScope: 'owned-window', sourceScale: () => 2,
+      sourceGeometry: () => windows ? { x: 1, y: 0, width: 2560, height: 1640, pointPixelScale: 2 } : undefined,
+      openEditor: (_host, options) => { opened = options; return { destroy() {} }; },
+    });
+    try {
+      await controller.activate();
+      assert.equal(opened.source, source);
+      assert.equal(opened.automaticRegions.length, 1, `${platform} 的真实画布必须保留候选`);
+      assert.equal(opened.automaticRegions[0].x, windows ? 242 : 241);
+      assert.equal(opened.automaticRegions[0].y, 320.5);
+    } finally { controller.dispose(); dom.window.close(); }
+  }
 });
 
 test('Windows 元数据缺失、错位、比例或视口不符时保留照片但不给候选', async () => {

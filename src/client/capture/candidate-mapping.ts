@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 DOM 候选、Renderer 视口几何与原生 PNG 尺寸/pointPixelScale。
+ * [INPUT]: 依赖 DOM 候选、Renderer 视口几何、画布尺寸访问器与原生 pointPixelScale。
  * [OUTPUT]: Mac 满窗使用零平移；Windows 使用同张 PNG 的原生客户区偏移。未知、缩放或变动布局返回空候选。
  * [POS]: DOM CSS 坐标→冻结整窗像素的窄边界；不以透明像素猜原点，不影响手绘或取像。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -41,7 +41,7 @@ export function mapWindowCandidatesToPng(
   const width = Math.ceil(before.width * nativeScale), height = Math.ceil(before.height * nativeScale);
   let offsetX = 0, offsetY = 0;
   if (before.platform === 'windows') {
-    if (!isCaptureGeometry(geometry, { ...source, pointPixelScale: nativeScale })
+    if (!isCaptureGeometry(geometry, { width: source.width, height: source.height, pointPixelScale: nativeScale })
       || geometry.width !== width || geometry.height !== height) return [];
     offsetX = geometry.x; offsetY = geometry.y;
   } else if (source.width !== width || source.height !== height) return [];

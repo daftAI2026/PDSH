@@ -81,7 +81,7 @@
 - `bundle-artifacts.test.ts`: 双语 README 与内部能力面的真实 tgz 闭包。核 Mac universal、Windows x64/asInvoker、执行位和字节。拒绝子依赖、宽泛 files 与安装 hook，不执行安装。
 - `capture-defaults.test.ts`: 旧导出默认只通过根 pdsh revision 修正；自定义值、已移除子域与迟到卸载不覆盖偏好。
 
-- `window-capture-controller.test.ts`: 共享识别器的 Mac 零偏移与 Windows 客户区映射。拒绝缺失、错尺寸、错比例与移动几何；照片保留手绘。不冒充实机证据。
+- `window-capture-controller.test.ts`: 真实画布的 Mac 零偏移与 Windows 客户区映射。尺寸沿用原型访问器，避免普通对象桩掩盖生产缺陷。拒绝缺失、错尺寸、错比例与移动几何；照片保留手绘。不冒充实机证据。
 
 - `window-capture-client-stream.test.ts`: PNG 帧序、CRC 与解码边界。可选几何绑定同图 SHA；超时保留照片，取消释放资源。不证明实机像素。
 

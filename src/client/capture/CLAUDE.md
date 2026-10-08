@@ -59,7 +59,7 @@ Host 的 Remote 取消终态可能先于 Client 配置撤权；批获取收到�
 
 - `runtime-readiness.ts`: 基础与扩展独立核对实际版本。壁纸和几何各自握手；缺失扩展不撤回截图，不取像或写设置。
 
-- `candidate-mapping.ts`: rc.2 Electron 44 的 DOM 到 PNG 映射。Mac 满窗使用零偏移；Windows 使用同图原生客户区偏移。比例、视口尺寸和前后快照须一致；未知几何退让，不猜边框。
+- `candidate-mapping.ts`: rc.2 Electron 44 的 DOM 到 PNG 映射。显式读取画布尺寸访问器。Mac 满窗使用零偏移；Windows 使用同图原生客户区偏移。比例、视口尺寸和前后快照须一致；未知几何退让，不猜边框。
 
 - `candidates.ts`: 合并侧栏标题、唯一可见身份与语义 DOM 节点。未登录原生 More 不作为身份。检查隐藏、裁切与150项早停；变换祖先退让。WeakMap ID 绑定当前节点，不推断原生整窗原点。
 
