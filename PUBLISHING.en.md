@@ -146,6 +146,12 @@ Never copy RC manifests, entries, or generated files back into the stable source
 
 ### System Wallpapers and Local Gallery
 
+Stable 0.5.4 provides system wallpaper retrieval on macOS only; its Windows build has no provider.
+Unreleased source adds local Windows x64 retrieval of system wallpapers.
+It selects up to five installed default and theme wallpapers.
+If fewer than five items are available, it shows the actual count. It does not read the user's current wallpaper or download from the network.
+The macOS active catalog remains capped at four items.
+
 The macOS adapter chooses representative materials from Apple's local catalog.
 The target is two items from each of the latest two system generations, not four fixed names.
 Apple metadata has no per-material OS release field.
@@ -154,7 +160,6 @@ Use `representativeAssetID` to associate a dynamic subgroup or root-owned extens
 This catalog association is not a general system-version API.
 Reject additions from unknown or ambiguous formats; keep the existing cache.
 UUIDs or source digests identify materials; do not reuse system-generation role slots as IDs.
-Windows does not provide system wallpaper retrieval.
 
 Prefer valid local cache or root-owned HEIC files.
 Only the explicit Fetch System Wallpapers action reads sources and downloads missing media.
@@ -164,7 +169,7 @@ Publish thumbnails once the operation settles; failures retain saved materials a
 Fixed codes do not prove a TLS, proxy, or material-source diagnosis.
 Never expose raw exceptions, paths, or pixels.
 
-Keep five presets, system images, and personal images in separate groups.
+Keep five presets, system wallpapers, and personal images in separate groups.
 The personal group heading contains one plus button.
 The Image tab reuses ready or in-flight inventory instead of rebuilding cached DOM.
 Read failures retain an alert; empty inventory retains feedback.
