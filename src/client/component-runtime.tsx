@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 ConfigForm、两 Remote、只读侧栏状态及插件详情字形适配器。
+ * [INPUT]: 依赖 ConfigForm、基础/能力 Remote、独立几何握手、只读侧栏状态及详情字形适配器。
  * [OUTPUT]: 装配身份、标题、两相机入口、详情字形对齐及设置页脚；macOS/Windows入口仍经独立 capability 握手。
  * [POS]: 单 Bundle 组合根。迟到扩展不重建工作台，不阻断基础截图。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -24,8 +24,8 @@ import { mountCaptureBackgroundTabs } from './capture/background-tabs.tsx';
 import { mountCaptureController } from './capture/controller.ts';
 import { mountCaptureNotices } from './capture-notice.tsx';
 import { readCaptureDirectoryPicker } from './capture/directory.ts';
-import { isCaptureRuntimeCurrent, isWallpaperCapabilityReady, requireCaptureRuntimeCurrent, requireWallpaperCapabilityCurrent } from './capture/runtime-readiness.ts';
-import { captureOwnedWindow, capturedWindowScale } from './capture/window-capture.ts';
+import { isCaptureRuntimeCurrent, isWallpaperCapabilityReady, isCaptureGeometryCapabilityReady, requireCaptureRuntimeCurrent, requireWallpaperCapabilityCurrent } from './capture/runtime-readiness.ts';
+import { captureOwnedWindow, capturedWindowScale, capturedWindowGeometry } from './capture/window-capture.ts';
 import { createSystemWallpaperRemoteAdapter } from './capture/system-wallpaper-remote.ts';
 import { saveWindowImage, prepareWindowSaveDirectory } from './capture/window-save.ts';
 import { SettingsCard } from './settings-card.tsx';
@@ -123,7 +123,8 @@ export function mountComponent(ctx, doc: Document = document) {
         if (!capabilities) return false;
         const capabilitiesGeneration = runtimeCapabilitiesGeneration;
         const ready = await isWallpaperCapabilityReady(capabilities, version);
-        return ready && captureRemote === capture && captureRemoteGeneration === captureGeneration
+        const geometryReady = !doc.defaultView.navigator.platform.startsWith('Win') || await isCaptureGeometryCapabilityReady(capabilities, version);
+        return ready && geometryReady && captureRemote === capture && captureRemoteGeneration === captureGeneration
           && runtimeCapabilitiesGeneration === capabilitiesGeneration && runtimeCapabilitiesRemote === capabilities;
       });
       cleanup.push(() => updater.dispose());
@@ -189,9 +190,20 @@ export function mountComponent(ctx, doc: Document = document) {
           captureController = mountCaptureController(doc, {
             capture: async (document, options) => {
               await requireCaptureRuntimeCurrent(remote, __PDSH_VERSION__, options.signal);
-              return captureOwnedWindow(document, signal => remote.capture(signal), options);
+              const capabilities = runtimeCapabilitiesRemote, generation = runtimeCapabilitiesGeneration;
+              const captureGeneration = captureRemoteGeneration;
+              const current = () => !disposed && !options.signal?.aborted && captureSettingEnabled()
+                && captureRemote === remote && captureRemoteGeneration === captureGeneration
+                && runtimeCapabilitiesRemote === capabilities && runtimeCapabilitiesGeneration === generation;
+              const readGeometry = document.defaultView.navigator.platform.startsWith('Win') && capabilities
+                ? async (sha, signal) => {
+                  if (!current() || signal?.aborted || !await isCaptureGeometryCapabilityReady(capabilities, __PDSH_VERSION__, signal) || !current() || signal?.aborted) return undefined;
+                  const reply = await capabilities.captureGeometry(sha);
+                  return current() && !signal?.aborted && reply?.ok === true ? reply.value : undefined;
+                } : undefined;
+              return captureOwnedWindow(document, signal => remote.capture(signal), { ...options, readGeometry });
             },
-            captureScope: 'owned-window', sourceScale: capturedWindowScale,
+            captureScope: 'owned-window', sourceScale: capturedWindowScale, sourceGeometry: capturedWindowGeometry,
             captureMaskIdentity: () => {
               const current = form.getSnapshot();
               return current.status !== 'ready' || !isCaptureConfigurationReady(current.value) || current.value.captureMaskIdentity !== false;

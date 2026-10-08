@@ -34,7 +34,7 @@ export function artifactFixture() {
     },
   }));
   // +--- 固定 token 只供静态反射门；这些描述符不模拟可执行 Typert 面。 ---+
-  const capabilityFace = `/* SYNTHETIC STATIC FIXTURE; NOT EXECUTABLE */ package: '${capabilityName}' service: 'pdshRuntimeCapabilities' namespace: 'pdshRuntimeCapabilities' method: 'implementationVersion' method: 'wallpaperRegistered' method: 'wallpaper'`;
+  const capabilityFace = `/* SYNTHETIC STATIC FIXTURE; NOT EXECUTABLE */ package: '${capabilityName}' service: 'pdshRuntimeCapabilities' namespace: 'pdshRuntimeCapabilities' method: 'implementationVersion' method: 'wallpaperRegistered' method: 'wallpaper' method: 'captureGeometryRegistered' method: 'captureGeometry'`;
   write('lib/runtime-capabilities/typert.host.js', capabilityFace);
   write('lib/runtime-capabilities/typert.remote-client.js', capabilityFace);
   write('lib/runtime-capabilities/typert.host.d.ts', '/* SYNTHETIC STATIC FIXTURE; NOT EXECUTABLE */ export declare const TYPERT: unknown');
@@ -43,13 +43,15 @@ import type { WallpaperFrame, WallpaperRequest } from '${capabilityName}/types'
 interface CapabilityRemote {
   implementationVersion: () => Promise<RemoteResult<string>>
   wallpaperRegistered: () => Promise<RemoteResult<boolean>>
+  captureGeometryRegistered: () => Promise<RemoteResult<boolean>>
+  captureGeometry: (pngSha256: string) => Promise<RemoteResult<CaptureGeometry | null>>
   wallpaper: (request: WallpaperRequest, signal?: AbortSignal) => RemoteStreamHandle<WallpaperFrame, never>
 }
 interface SyntheticNamespaceMap {
   'pdshRuntimeCapabilities/implementationVersion': () => Promise<RemoteResult<string>>
   'pdshRuntimeCapabilities': CapabilityRemote
 }`);
-  for (const declaration of ['capture-export', 'remote-types', 'window-capture-protocol', 'window-save-protocol', 'system-wallpaper-protocol']) {
+  for (const declaration of ['capture-export', 'capture-geometry', 'remote-types', 'window-capture-protocol', 'window-save-protocol', 'system-wallpaper-protocol']) {
     copyFileSync(join(root, `lib/types/shared/${declaration}.d.ts`), join(root, `lib/runtime-capabilities/types/shared/${declaration}.d.ts`));
   }
   // +--- 只有可解析的头部，没有机器指令；从不作为可运行 helper 使用 ---+

@@ -1,12 +1,16 @@
 /**
  * [INPUT]: 依赖版本实现协调器与内存模块、可控卸载 Promise。
- * [OUTPUT]: 验证基础换载、扩展独立退让、已发布 v2 兼容、真实结算与终态卸载。
+ * [OUTPUT]: 验证基础换载、壁纸能力退让、已发布 v2 兼容、真实结算与终态卸载。
  * [POS]: Host 热更新回归门；不启动 helper、不取像、不操作用户配置。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createCaptureRuntimeLoader, CAPTURE_RUNTIME_CONTRACT, CAPTURE_WALLPAPER_CONTRACT } from '../src/host/capture-runtime-loader.ts'
+import {
+  createCaptureRuntimeLoader,
+  CAPTURE_RUNTIME_CONTRACT,
+  CAPTURE_WALLPAPER_CONTRACT,
+} from '../src/host/capture-runtime-loader.ts'
 
 function fixture() {
   let version = '0.3.6'

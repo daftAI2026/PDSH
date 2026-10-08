@@ -4,15 +4,19 @@ import type {
   RemoteStreamHandle,
   TypertRemoteContribution,
 } from '@deepseek-ai/dsh-typert-protocol'
-import type { WallpaperFrame, WallpaperRequest } from '@daftai/pdsh-capabilities/types'
+import type { CaptureGeometry, WallpaperFrame, WallpaperRequest } from '@daftai/pdsh-capabilities/types'
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface TypertRemoteNamespace$7064736852756e74696d654361706162696c6974696573 {
+    captureGeometry: (pngSha256: string) => Promise<RemoteResult<CaptureGeometry | null>>
+    captureGeometryRegistered: () => Promise<RemoteResult<boolean>>
     implementationVersion: () => Promise<RemoteResult<string>>
     wallpaper: (request: WallpaperRequest, signal?: AbortSignal) => RemoteStreamHandle<WallpaperFrame, never>
     wallpaperRegistered: () => Promise<RemoteResult<boolean>>
   }
   interface TypertRemoteMap {
+    'pdshRuntimeCapabilities/captureGeometry': (pngSha256: string) => Promise<RemoteResult<CaptureGeometry | null>>
+    'pdshRuntimeCapabilities/captureGeometryRegistered': () => Promise<RemoteResult<boolean>>
     'pdshRuntimeCapabilities/implementationVersion': () => Promise<RemoteResult<string>>
     'pdshRuntimeCapabilities/wallpaper': (request: WallpaperRequest, signal?: AbortSignal) => RemoteStreamHandle<WallpaperFrame, never>
     'pdshRuntimeCapabilities/wallpaperRegistered': () => Promise<RemoteResult<boolean>>

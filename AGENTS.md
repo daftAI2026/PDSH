@@ -97,7 +97,7 @@ InCodex 的所有权与路径安全约束应按目标场景保留。
 | `cordis.patch.yml` | 唯一 Cordis 插入层。 |
 | `build.ts` / `tsconfig*.json` | 构建与源码类型边界。 |
 | `bundle-artifacts.ts` | 入口、双语 README、二进制、tgz 字节与权限验真。 |
-| `verify-host.ts` | 临时 profile 的官方安装、业务与生命周期门；Windows 路径须验真实 ACL。 |
+| `verify-host.ts` | 临时 profile 的官方安装、实际业务、独立扩展握手与生命周期门；Windows 路径须验真实 ACL。 |
 | `check-release.ts` | 长期发布章节、双语版本、产物与清洁树门。 |
 | `tools/release-metadata.ts` | 公开简介和 Topics 的唯一声明。 |
 | `tools/pack-rc.ts` | 同源临时 RC 构建；不安装到用户 profile。 |
@@ -377,7 +377,11 @@ L2/L3 必须带固定 PROTOCOL 行。
 - zoom 留在编辑模型，滚轮、工具栏和百分比共用它。
 - 纯视图操作不重合成像素，不增加 easing transition。
 - dispose 取消 RAF 和 pointer 状态。
-- 自动候选只映射已研究的 Mac Electron 44 rc.2 满窗。
+- 自动候选只接受已研究的 Electron 44 rc.2 布局。
+- Mac 满窗使用零偏移；Windows 使用同图原生客户区偏移。
+- Windows 几何通过独立版本化能力查询，不改变基础截图帧。
+- 查询只传 PNG 摘要与相对矩形，不传屏幕坐标或像素。
+- 缺失、超时或不兼容几何只撤回候选，保留有效照片。
 - renderer/native scale 必须相等，前后 bounds 必须稳定。
 - 零原点是研究假设，不是原生 PNG 对位验收。
 - 未知布局返回无候选；保留手绘和尽力的拍前遮挡。

@@ -1,14 +1,16 @@
 /**
  * [INPUT]: 依赖 Client capture consumer、固定 PNG 合成器和 fake RemoteStreamHandle。
- * [OUTPUT]: 验证帧/字节/PNG envelope 与 CRC、注入解码器前不交付、端点只开一次且失败不重试。
+ * [OUTPUT]: 验证 PNG 帧序、CRC 与单次解码；可选几何绑定同图摘要，超时退让且取消阻止迟到查询。
  * [POS]: Client 本地图片边界合同；所有数据留在内存，不连接网络或落盘。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import assert from 'node:assert/strict';
+import { createHash, webcrypto } from 'node:crypto';
 import { crc32, deflateSync } from 'node:zlib';
 import test from 'node:test';
 import { consumeCaptureOnce } from '../src/client/capture/window-capture-stream.ts';
 import { CAPTURE_LIMITS } from '../src/shared/window-capture-protocol.ts';
+import { CAPTURE_GEOMETRY_QUERY_TIMEOUT_MS } from '../src/shared/capture-geometry.ts';
 
 function pngChunk(type, body) {
   const name = Buffer.from(type);
@@ -56,6 +58,53 @@ function successfulFrames(png) {
   frames.push({ type: 'terminal', status: 'captured' });
   return frames;
 }
+
+test('可选几何绑定同张 PNG 摘要，异常扩展不丢基础照片', async () => {
+  const png = onePixelPng();
+  const geometry = { x: 0, y: 0, width: 1, height: 1, pointPixelScale: 2 };
+  for (const value of [geometry, null, { ...geometry, x: 1 }, { ...geometry, screenX: 5 }]) {
+    let reads = 0;
+    const result = await consumeCaptureOnce(() => handleOf(successfulFrames(png)).handle, {
+      crypto: webcrypto,
+      readGeometry: async sha => { reads++; assert.equal(sha, createHash('sha256').update(png).digest('hex')); return value; },
+      createObjectURL: () => 'blob:geometry', revokeObjectURL() {},
+      decode: async (_url, expected) => expected,
+    });
+    assert.equal(reads, 1);
+    assert.deepEqual(result.geometry, value === geometry ? geometry : undefined);
+    result.release();
+  }
+  const result = await consumeCaptureOnce(() => handleOf(successfulFrames(png)).handle, {
+    crypto: webcrypto, readGeometry: async () => { throw Error('private-carrier'); },
+    createObjectURL: () => 'blob:geometry-unavailable', revokeObjectURL() {},
+    decode: async (_url, expected) => expected,
+  });
+  assert.equal(result.geometry, undefined);
+  result.release();
+});
+
+test('几何查询超时回退照片，取消及时归还且阻止迟到结果', async () => {
+  const png = onePixelPng();
+  for (const cancel of [false, true]) {
+    const controller = new AbortController(); let querySignal, startQuery, resolveQuery, revoked = 0;
+    const started = new Promise(resolve => { startQuery = resolve; });
+    const pending = consumeCaptureOnce(() => handleOf(successfulFrames(png)).handle, {
+      crypto: webcrypto, signal: controller.signal,
+      readGeometry: (_sha, signal) => { querySignal = signal; startQuery(); return new Promise(resolve => { resolveQuery = resolve; }); },
+      createObjectURL: () => 'blob:bounded-geometry', revokeObjectURL() { revoked++; },
+      decode: async (_url, expected) => expected,
+    });
+    await started;
+    if (cancel) {
+      controller.abort(); await assert.rejects(pending, /cancelled/); assert.equal(revoked, 1);
+    } else {
+      const result = await Promise.race([pending, new Promise((_, reject) => setTimeout(() => reject(Error('unbounded query')), CAPTURE_GEOMETRY_QUERY_TIMEOUT_MS + 200))]);
+      assert.equal(result.geometry, undefined); result.release();
+    }
+    assert.equal(querySignal.aborted, true);
+    resolveQuery({ x: 0, y: 0, width: 1, height: 1, pointPixelScale: 2 });
+  }
+});
 
 test('exactly one endpoint open; retain local URL only after envelope/CRC checks and decoder acceptance', async () => {
   const png = onePixelPng();

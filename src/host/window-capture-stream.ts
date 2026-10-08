@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖受信 native PNG 结果、shared 硬预算与一次 Remote carrier/lifetime signal。
- * [OUTPUT]: 提供惰性、单航班 capture iterable；真实 helper settle 后才释放服务锁。
+ * [INPUT]: 依赖受信 native PNG/可选 viewport 结果、shared 硬预算与 Remote carrier/lifetime signal。
+ * [OUTPUT]: 提供惰性、单航班 capture iterable；viewport 只留 Host 内部，完整结束后才通知终态。
  * [POS]: Host capture effect 的纯编排边界；不创建 service、不认窗口、不写截图文件。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -13,6 +13,14 @@ export interface NativeCaptureResult {
   readonly height: number
   readonly pointPixelScale: number
   readonly scope: 'owned-window'
+  readonly viewport?: NativeCaptureViewport
+}
+
+export interface NativeCaptureViewport {
+  readonly x: number
+  readonly y: number
+  readonly width: number
+  readonly height: number
 }
 
 export type CaptureOperation = (options: {
@@ -99,6 +107,24 @@ export function createCaptureServiceLifetime(): CaptureServiceLifetime {
 /** 创建不触发采集的 AsyncIterable；权限/像素只在首个 next 后请求。 */
 export function createCaptureFrameStream(options: CaptureFrameStreamOptions): AsyncIterable<CaptureFrame> {
   return { [Symbol.asyncIterator]: () => iterateCaptureFrames(options) }
+}
+
+// +--- 仅自然结束提交终态；return/throw 都撤销待提交候选。 ---+
+export async function* observeCaptureFrameCompletion(
+  frames: AsyncIterable<CaptureFrame>,
+  onSettle: (status: Extract<CaptureFrame, { type: 'terminal' }>['status'] | undefined) => void,
+): AsyncGenerator<CaptureFrame> {
+  let terminalStatus: Extract<CaptureFrame, { type: 'terminal' }>['status'] | undefined
+  let completed = false
+  try {
+    for await (const frame of frames) {
+      if (frame.type === 'terminal') terminalStatus = frame.status
+      yield frame
+    }
+    completed = true
+  } finally {
+    onSettle(completed ? terminalStatus : undefined)
+  }
 }
 
 async function* iterateCaptureFrames({ signal, lifetimeSignal, capture, reserve }: CaptureFrameStreamOptions): AsyncGenerator<CaptureFrame> {

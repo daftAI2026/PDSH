@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 shared/components 的稳定/RC 配置身份与宿主 locale 字典协议；不读取或持久化独立语言偏好。
- * [OUTPUT]: 提供当前配置身份的 NS 与 zh/en 文案，覆盖本地/账号头像可用性、设置、项目链接与安装结果。
+ * [OUTPUT]: 提供当前配置身份的 NS 与 zh/en 文案，覆盖本地/账号头像可用性、设置、项目链接与安装结果；设置摘要按受支持平台描述功能。
  * [POS]: PDSH 文案归属层；界面语言由 Harness 拥有，头像提示随账号状态变化，包元信息由 locale/*.json 离线提供。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -20,7 +20,7 @@ export const dictionaries = {
     avatarLabel: '头像来源', accountAvatar: '账号头像', accountAvatarHint: '使用账号原始头像。', accountAvatarSignedOut: '登录后可用。',
     nicknameSaveFailed: '昵称未能保存，点击勾重试。', nicknameConflict: '昵称已在别处更新，按 Esc 撤回后重新编辑。',
     avatarSaveFailed: '头像未能保存，原头像保持不变。', avatarConflict: '头像已在别处更新，请重新选择。', retryAvatar: '重试',
-    title: 'DSH 私密模式设置', description: '遮挡侧栏标题、自定义本地身份；macOS 可截取并编辑当前窗口。',
+    title: 'DSH 私密模式设置', description: '遮挡侧栏标题、自定义本地身份；在受支持的平台截取并编辑当前窗口。',
     maskTitles: '遮挡侧栏标题', maskIdentity: '替换侧栏身份', nickname: '显示昵称', avatar: '选择图片',
     avatarHint: '支持 PNG、JPEG、WebP，不会上传。',
     generated: '按昵称生成', preview: '显示头像预览',
@@ -59,7 +59,7 @@ export const dictionaries = {
     avatarLabel: 'Avatar source', accountAvatar: 'Account avatar', accountAvatarHint: 'Use your account\'s original avatar.', accountAvatarSignedOut: 'Available after signing in.',
     nicknameSaveFailed: 'Nickname was not saved. Click the check to retry.', nicknameConflict: 'Nickname changed elsewhere. Press Esc, then edit again.',
     avatarSaveFailed: 'Avatar was not saved. Your previous avatar is unchanged.', avatarConflict: 'Avatar changed elsewhere. Choose again.', retryAvatar: 'Retry',
-    title: 'DSH Private Mode settings', description: 'Mask sidebar titles and customize local identity; capture and edit this window on macOS.',
+    title: 'DSH Private Mode settings', description: 'Mask sidebar titles and customize local identity; capture and edit this window on supported platforms.',
     maskTitles: 'Mask sidebar titles', maskIdentity: 'Replace sidebar identity', nickname: 'Display nickname', avatar: 'Choose image',
     avatarHint: 'Supports PNG, JPEG, and WebP. Your image is not uploaded.',
     generated: 'Generate', preview: 'Display avatar preview',

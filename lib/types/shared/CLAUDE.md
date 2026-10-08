@@ -6,6 +6,7 @@
 - `window-save-protocol.d.ts`: 双向 save 请求、uplink/ACK/commit receipt 声明，不允许路径和目标文件名输入。
 - `system-wallpaper-protocol.d.ts`: 活动材料身份、目录与静态 JPEG 流声明。ID 语法不授权来源。不接受 URL 或路径，不传源视频。
 - `capture-export.d.ts`: 保存格式与编辑器导出预算声明，被 save 协议引用；无截图或配置持久化副作用。
+- `capture-geometry.d.ts`: 同图 PNG 相对客户区矩形与比例声明。独立扩展使用；不进入基础截图帧。
 
 以上文件由 TypeScript 从 src/shared 发射，L3 沿源头保留；禁止单独编辑声明。
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

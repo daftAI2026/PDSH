@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖固定旧壳、官方 Cordis/Registry、安装 payload、macOS/Windows x64 壁纸平台能力与 esbuild。
- * [OUTPUT]: 验证跨代真实目录链接和严格能力撤销；状态断言遵循宿主平台能力。
+ * [OUTPUT]: 验证旧壳加载当前 payload、实际能力 Service 注册门控及 digest 记录撤权；状态遵循平台能力。
  * [POS]: 跨版本装配合同。空 Settings 不取像；真实注册不代替 Gateway 或 Desktop。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -20,6 +20,7 @@ const PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const FIXTURE_ROOT = join(PROJECT_ROOT, 'tests/runtime-upgrade-fixtures')
 const CONTRACT_V1 = 'pdsh-capture-runtime-v1'
 const WALLPAPER_CONTRACT_V1 = 'pdsh-wallpaper-runtime-v1'
+const GEOMETRY_CONTRACT_V1 = 'pdsh-capture-geometry-v1'
 const CURRENT_RUNTIME_CONTRACT = CONTRACT_V1
 const NODE_IMPORTS = new Set(['node:fs/promises', 'node:path', 'node:url'])
 
@@ -200,15 +201,21 @@ test('已运行 v0.4.0 v1 壳用真实安装链接换载当前业务 payload', a
     assert.equal(actualRuntimeVersion, candidate.manifest.version, 'Loader must expose the installed payload version')
     assert.notEqual(after, before, 'old implementation instance must be replaced')
     assert.ok((before as { disposal?: Promise<void> }).disposal, 'previous runtime must settle before replacement')
-    for (const method of ['capture', 'save', 'wallpaper', 'refreshCaptureEnabled', 'dispose']) {
+    for (const method of ['capture', 'save', 'wallpaper', 'captureGeometry', 'refreshCaptureEnabled', 'dispose']) {
       assert.equal(typeof after[method], 'function', `current runtime missing ${method}`)
     }
 
     const installed = await legacy.locateCaptureRuntime(packageLink)
-    const module = await import(installed.url) as { version: string; contract: string; wallpaperContract?: string }
+    const module = await import(installed.url) as {
+      version: string
+      contract: string
+      wallpaperContract?: string
+      geometryContract?: string
+    }
     assert.equal(module.version, candidate.manifest.version)
     assert.equal(module.contract, CURRENT_RUNTIME_CONTRACT)
     assert.equal(module.wallpaperContract, WALLPAPER_CONTRACT_V1)
+    assert.equal(module.geometryContract, GEOMETRY_CONTRACT_V1)
     assert.deepEqual(settings.describe(), [], 'upgrade must not create or mutate settings')
     assert.ok(events.some((event) => event.includes('service-mounted') && event.includes('false')),
       'empty Settings must keep the payload disabled')
@@ -297,6 +304,47 @@ test('旧 v1 壳换载时新增能力获得独立官方严格注册，换代与�
     const capabilities = await withDeadline(firstReady, '新增能力实际就绪')
     assert.equal(await capabilities.implementationVersion(), candidate.manifest.version)
     assert.equal(capabilities.wallpaperRegistered(), true)
+    assert.equal(capabilities.captureGeometryRegistered(), true,
+      '旧固定壳应能握手当前版本化几何扩展')
+    const implementation = (capabilities as any).implementation as {
+      geometryContract?: string
+      captureGeometry?: (pngSha256: string) => Promise<unknown>
+    }
+    const savedContract = implementation.geometryContract
+    const savedMethod = implementation.captureGeometry
+    assert.ok(savedMethod)
+    try {
+      for (const marker of [undefined, 'unknown-capture-geometry-contract']) {
+        implementation.geometryContract = marker
+        assert.equal(capabilities.captureGeometryRegistered(), false,
+          '实际 RuntimeCapabilitiesService 必须拒绝缺失或未知 marker')
+        assert.equal(await capabilities.captureGeometry('a'.repeat(64)), null,
+          'marker 无效时不得查询业务实例')
+      }
+      implementation.geometryContract = GEOMETRY_CONTRACT_V1
+      implementation.captureGeometry = undefined
+      assert.equal(capabilities.captureGeometryRegistered(), false,
+        '实际 RuntimeCapabilitiesService 必须要求对应查询方法')
+      assert.equal(await capabilities.captureGeometry('a'.repeat(64)), null,
+        '查询方法缺失时安全返回 null')
+    } finally {
+      implementation.geometryContract = savedContract
+      implementation.captureGeometry = savedMethod
+    }
+    assert.equal(capabilities.captureGeometryRegistered(), true,
+      '恢复业务实例后，实际能力握手重新有效')
+    const geometryEndpoint = 'pdshRuntimeCapabilities/captureGeometry'
+    const geometryRegistered = context.get('typert').local.get(geometryEndpoint)
+    assert.ok(geometryRegistered, '当前 payload 必须经官方 generator 注册几何查询')
+    assert.equal(geometryRegistered.result.mode, 'strict')
+    const geometryCodec = geometryRegistered.parameters.find(parameter => parameter.name === 'pngSha256')?.codec
+    assert.ok(geometryCodec)
+    assert.equal(geometryCodec.mode, 'strict')
+    assert.doesNotThrow(() => geometryCodec.create().parse('a'.repeat(64)))
+    assert.equal(await capabilities.captureGeometry('a'.repeat(64)), null,
+      '关闭配置和未捕获帧不得伪造视口')
+    assert.equal(await capabilities.captureGeometry('A'.repeat(64)), null,
+      'Host 必须拒绝非 canonical digest')
     const endpoint = 'pdshRuntimeCapabilities/wallpaper'
     const registered = context.get('typert').local.get(endpoint)
     assert.ok(registered, '当前 payload 必须注册新增 endpoint')
@@ -348,6 +396,51 @@ test('旧 v1 壳换载时新增能力获得独立官方严格注册，换代与�
     await loader?.dispose().catch(() => undefined)
     await context.fiber.dispose()
     await rm(root, { recursive: true, force: true })
+  }
+})
+
+test('Host keeps one digest-bound geometry record and clears it on disable or disposal', async () => {
+  const context = new Context()
+  let captureEnabled = true
+  let runtime: any
+  try {
+    await context.plugin(TypertRegistry).await()
+    context.provide('settings', { describe: () => [{ ns: 'pdsh', value: { captureEnabled } }] })
+    const shell = context.plugin({ name: 'geometry-record-shell', inject: ['typert', 'settings'], apply() {} })
+    await shell.await()
+    const candidate = await currentCandidate()
+    const module = await import(pathToFileURL(join(PROJECT_ROOT, 'lib/capture-runtime', `${candidate.manifest.version}.js`)).href)
+    runtime = module.create(shell.ctx)
+    assert.equal(await Promise.resolve(runtime), runtime)
+
+    const digest = 'a'.repeat(64)
+    const geometry = { x: 10, y: 12, width: 200, height: 100, pointPixelScale: 2 }
+    runtime.captureGeometryRecord = { pngSha256: digest, geometry }
+    assert.deepEqual(await runtime.captureGeometry(digest), geometry)
+    assert.equal(await runtime.captureGeometry('b'.repeat(64)), null, 'other PNG digest cannot reuse the slot')
+    assert.equal(await runtime.captureGeometry('A'.repeat(64)), null, 'invalid digest fails closed')
+
+    captureEnabled = false
+    runtime.refreshCaptureEnabled()
+    assert.equal(runtime.captureGeometryRecord, undefined)
+    captureEnabled = true
+    assert.equal(await runtime.captureGeometry(digest), null, 're-enable never restores an old slot')
+
+    runtime.captureGeometryRecord = { pngSha256: digest, geometry }
+    const previousLease = runtime.captureGeometryLease = {}
+    runtime.capture(new AbortController().signal)
+    assert.notEqual(runtime.captureGeometryLease, previousLease, 'new request invalidates late completion')
+    assert.equal(runtime.captureGeometryRecord, undefined)
+
+    runtime.captureGeometryRecord = { pngSha256: digest, geometry }
+    const disposal = runtime.dispose()
+    assert.equal(runtime.captureGeometryRecord, undefined, 'disposal revokes synchronously')
+    assert.equal(await runtime.captureGeometry(digest), null)
+    await disposal
+    console.log(`PASS geometry record lifecycle: payload=${sha256(candidate.payload)}`)
+  } finally {
+    await runtime?.dispose().catch(() => undefined)
+    await context.fiber.dispose()
   }
 })
 

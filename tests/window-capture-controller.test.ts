@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖截图控制器与串行隐藏生命周期的可注入边界。
- * [OUTPUT]: 验证已知 Mac 满窗布局的候选映射/重拍与未知布局退让、授权等待不被页面计时器截断。
+ * [OUTPUT]: 验证 Mac 满窗及 Windows 同图客户区的候选映射、重拍与未知几何退让；授权等待不被页面计时器截断。
  * [POS]: RC 原生整窗的 Client 合同；不是实机取像或系统授权证据。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -43,6 +43,47 @@ test('已知 Mac 满窗原点接通真实 DOM 候选，重拍重新采样位置'
     assert.equal(retake.automaticRegions[0].id, first[0].id);
     assert.equal(retake.automaticRegions[0].y, 440, '重拍坐标不复用上一张照片');
   } finally { controller.dispose(); dom.window.close(); }
+});
+
+test('Windows 使用同一识别器，并将原生客户区偏移加入冻结候选', async () => {
+  const { dom, position } = fullWindowFixture();
+  Object.defineProperty(dom.window.navigator, 'platform', { value: 'Win32' });
+  dom.window.outerWidth = 1296;
+  dom.window.outerHeight = 828;
+  const geometry = { x: 1, y: 0, width: 2560, height: 1640, pointPixelScale: 2 };
+  let opened;
+  const controller = mountCaptureController(dom.window.document, {
+    capture: async () => ({ width: 2562, height: 1641 }), waitFrame: async () => {},
+    captureScope: 'owned-window', sourceScale: () => 2, sourceGeometry: () => geometry,
+    openEditor: (_host, options) => { opened = options; return { destroy() {} }; },
+  });
+  try {
+    await controller.activate();
+    assert.equal(opened.automaticRegions.length, 1, 'Windows 不得在共享识别前被 Mac 平台门挡住');
+    const first = opened.automaticRegions[0];
+    assert.deepEqual(first, { id: first.id, x: 242, y: 320.5, width: 480, height: 80 });
+    position.y = 200;
+    const retake = await opened.onRetake(1, false);
+    assert.equal(retake.automaticRegions[0].y, 400);
+  } finally { controller.dispose(); dom.window.close(); }
+});
+
+test('Windows 元数据缺失、错位、比例或视口不符时保留照片但不给候选', async () => {
+  const correct = { x: 1, y: 0, width: 2560, height: 1640, pointPixelScale: 2 };
+  for (const geometry of [undefined, { ...correct, x: 3 }, { ...correct, width: 2559 },
+    { ...correct, height: 1639 }, { ...correct, pointPixelScale: 1 }, { ...correct, screenX: 215 }]) {
+    const { dom } = fullWindowFixture();
+    Object.defineProperty(dom.window.navigator, 'platform', { value: 'Win32' });
+    dom.window.outerWidth = 1296; dom.window.outerHeight = 828;
+    const source = { width: 2562, height: 1641 }; let opened;
+    const controller = mountCaptureController(dom.window.document, {
+      capture: async () => source, waitFrame: async () => {},
+      captureScope: 'owned-window', sourceScale: () => 2, sourceGeometry: () => geometry,
+      openEditor: (_host, options) => { opened = options; return { destroy() {} }; },
+    });
+    try { await controller.activate(); assert.equal(opened.source, source); assert.deepEqual(opened.automaticRegions, []); }
+    finally { controller.dispose(); dom.window.close(); }
+  }
 });
 
 test('原生映射拒绝边框、docked DevTools、未知平台/引擎、缩放和拍摄中几何变化', async () => {

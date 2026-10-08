@@ -14,12 +14,14 @@ const ARCHIVE_FILES = [
   'index.js', 'client.js', 'client.js.map', 'lib/capture-runtime/*.js',
   'lib/typert.host.js', 'lib/typert.host.d.ts', 'lib/typert.remote-client.js', 'lib/typert.remote-client.d.ts',
   'lib/types/shared/capture-export.d.ts', 'lib/types/shared/remote-types.d.ts',
+  'lib/types/shared/capture-geometry.d.ts',
   'lib/types/shared/window-capture-protocol.d.ts', 'lib/types/shared/window-save-protocol.d.ts',
   'lib/types/shared/system-wallpaper-protocol.d.ts',
   'lib/runtime-capabilities/package.json',
   'lib/runtime-capabilities/typert.host.js', 'lib/runtime-capabilities/typert.host.d.ts',
   'lib/runtime-capabilities/typert.remote-client.js', 'lib/runtime-capabilities/typert.remote-client.d.ts',
   'lib/runtime-capabilities/types/shared/capture-export.d.ts', 'lib/runtime-capabilities/types/shared/remote-types.d.ts',
+  'lib/runtime-capabilities/types/shared/capture-geometry.d.ts',
   'lib/runtime-capabilities/types/shared/window-capture-protocol.d.ts',
   'lib/runtime-capabilities/types/shared/window-save-protocol.d.ts',
   'lib/runtime-capabilities/types/shared/system-wallpaper-protocol.d.ts',
@@ -143,7 +145,7 @@ function validateRuntimeCapabilities(root: string, manifest: { name: string; ver
     if (!face.includes(`package: '${expectedOwner}'`) || !sameNamespace(face, 'pdshRuntimeCapabilities')) {
       throw new Error('runtime capability Typert face must have its own package owner and namespace');
     }
-    for (const method of ['implementationVersion', 'wallpaperRegistered', 'wallpaper']) {
+    for (const method of ['implementationVersion', 'wallpaperRegistered', 'wallpaper', 'captureGeometryRegistered', 'captureGeometry']) {
       if (!face.includes(`method: '${method}'`)) throw new Error(`runtime capability Typert face missing ${method}`);
     }
     if (face.includes("namespace: 'pdshNativeWindowCapture'")) throw new Error('runtime capability face must not own the capture namespace');
@@ -156,11 +158,13 @@ function validateRuntimeCapabilities(root: string, manifest: { name: string; ver
     || remoteTypes.includes("'pdshNativeWindowCapture':")
     || !remoteTypes.includes('implementationVersion: () => Promise<RemoteResult<string>>')
     || !remoteTypes.includes('wallpaperRegistered: () => Promise<RemoteResult<boolean>>')
+    || !remoteTypes.includes('captureGeometryRegistered: () => Promise<RemoteResult<boolean>>')
+    || !remoteTypes.includes('captureGeometry: (pngSha256: string) => Promise<RemoteResult<CaptureGeometry | null>>')
     || !remoteTypes.includes('wallpaper: (request: WallpaperRequest, signal?: AbortSignal) => RemoteStreamHandle<WallpaperFrame, never>')) {
     throw new Error('runtime capability handshake or typed wallpaper stream drift');
   }
 
-  const declarations = ['capture-export', 'remote-types', 'window-capture-protocol', 'window-save-protocol', 'system-wallpaper-protocol'];
+  const declarations = ['capture-export', 'capture-geometry', 'remote-types', 'window-capture-protocol', 'window-save-protocol', 'system-wallpaper-protocol'];
   for (const declaration of declarations) {
     const source = readBytes(`lib/types/shared/${declaration}.d.ts`);
     const copy = readBytes(`lib/runtime-capabilities/types/shared/${declaration}.d.ts`);

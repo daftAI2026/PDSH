@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖生成 Client、Cordis、ReactDOM、平台标识与内存编译组合根。
- * [OUTPUT]: 验证两 Remote、Windows/unsupported 平台 provider 门、字形适配器清理与相机会话插槽。
+ * [OUTPUT]: 验证两 Remote、平台 provider 门、几何能力代际围栏、字形清理与相机会话插槽。
  * [POS]: 组合根合同；不冒充 Host、原生像素或 Desktop 验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -22,6 +22,7 @@ import { dictionaries, NS } from '../src/shared/locales.ts';
 import {
   isCaptureRuntimeCurrent,
   isWallpaperCapabilityReady,
+  isCaptureGeometryCapabilityReady,
   requireCaptureRuntimeCurrent,
   requireWallpaperCapabilityCurrent,
 } from '../src/client/capture/runtime-readiness.ts';
@@ -286,10 +287,11 @@ async function loadComponentRuntime(assemblies, mutateSource = source => source)
     ['/capture/runtime-readiness.ts', {
       isCaptureRuntimeCurrent,
       isWallpaperCapabilityReady,
+      isCaptureGeometryCapabilityReady,
       requireCaptureRuntimeCurrent,
       requireWallpaperCapabilityCurrent,
     }],
-    ['/capture/window-capture.ts', { captureOwnedWindow: async (_doc, open, options) => { open(options?.signal); return null; }, capturedWindowScale: 1 }],
+    ['/capture/window-capture.ts', { captureOwnedWindow: async (_doc, open, options) => { open(options?.signal); (assemblies.captures ??= []).push(options); return null; }, capturedWindowScale: () => 1, capturedWindowGeometry: () => undefined }],
     ['/capture/system-wallpaper-remote.ts', { createSystemWallpaperRemoteAdapter: (remote, options) => {
       const adapter = { remote, options, index: assemblies.adapters.length };
       assemblies.adapters.push(adapter); return adapter;
@@ -391,10 +393,13 @@ async function assertCapabilityHandshakeLifecycle(mutateSource, {
   };
   let capabilityVersion = '0.5.1';
   let capabilityVersionReads = 0;
+  let geometryRegistered = true, geometryReads = 0;
   const capabilityRemote = {
     async implementationVersion() { capabilityVersionReads++; return { ok: true, value: capabilityVersion }; },
     wallpaperRegistered() { handshake++; return gates[currentHandshake].promise; },
     wallpaper() { assert.fail('测试只验证 readiness，不消费媒体流') },
+    captureGeometryRegistered: async () => ({ ok: true, value: geometryRegistered }),
+    captureGeometry: async () => { geometryReads++; return { ok: true, value: null }; },
   };
   const inject = (name, remote) => {
     let cleanup, active = true;
@@ -509,6 +514,18 @@ async function assertCapabilityHandshakeLifecycle(mutateSource, {
     }
     assert.equal(await assemblies.activateInstalled('0.5.1'), true,
       'Updater activation 同时要求基础和 capability 的实际版本/握手');
+    if (platform.startsWith('Win')) {
+      geometryRegistered = false;
+      assert.equal(await assemblies.activateInstalled('0.5.1'), false, 'Windows 新几何未注册时不能把新能力升级标为通过');
+      const readGeometry = assemblies.captures.at(-1).readGeometry;
+      assert.equal(typeof readGeometry, 'function', 'Windows 截图须接入独立几何读取');
+      assert.equal(await readGeometry('a'.repeat(64)), undefined, '旧代理世代不借用当前扩展');
+      assert.equal(geometryReads, 0);
+      geometryRegistered = true;
+      await controller.options.capture(dom.window.document, { signal: new AbortController().signal });
+      assert.equal(await assemblies.captures.at(-1).readGeometry('a'.repeat(64)), null);
+      assert.equal(geometryReads, 1);
+    }
     if (adapter) await adapter.options.beforeRequest();
     capabilityVersion = '0.5.0';
     if (adapter) await assert.rejects(adapter.options.beforeRequest(), /runtime-not-current/,

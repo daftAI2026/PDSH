@@ -1,12 +1,13 @@
 /**
- * [INPUT]: 依赖 Host 显式授权、window-owner 归属校验、WGC/D3D/WIC，以及固定来源的 Windows 系统壁纸后端。
- * [OUTPUT]: 提供 `--check-api`、`--capture`、`--wallpaper-list` 和 ID-only `--wallpaper` 命令。
- * [POS]: native/windows 的一次性 x64 媒体编排器；截图与壁纸共享进程，但壁纸仅授权读取系统默认图片。
+ * [INPUT]: 依赖 Host 授权、window-owner 归属、WGC/D3D/WIC、可选窗口几何与系统壁纸后端。
+ * [OUTPUT]: 提供 Windows 截图和壁纸命令；截图几何仅在可证明时附加相对 viewport。
+ * [POS]: Windows x64 原生媒体编排器；几何缺失不改变 PNG 采集，壁纸只读固定系统来源。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include "window-owner.h"
+#include "window-geometry.h"
 #include "system-wallpaper.h"
 #include <winternl.h>
 #include <d3d11.h>
@@ -100,11 +101,19 @@ int StatusExitCode(Status status) {
 }
 
 int EmitStatus(Status status, uint32_t width = 0, uint32_t height = 0,
-               double pointPixelScale = 0.0, uint64_t pngBytes = 0) {
+               double pointPixelScale = 0.0, uint64_t pngBytes = 0,
+               const CaptureViewport* viewport = nullptr) {
   if (status == Status::Captured) {
-    std::fprintf(stderr,
-      "{\"status\":\"%s\",\"width\":%u,\"height\":%u,\"pngBytes\":%llu,\"pointPixelScale\":%.4f}\n",
-      StatusName(status), width, height, static_cast<unsigned long long>(pngBytes), pointPixelScale);
+    if (viewport != nullptr) {
+      std::fprintf(stderr,
+        "{\"status\":\"%s\",\"width\":%u,\"height\":%u,\"pngBytes\":%llu,\"pointPixelScale\":%.4f,\"viewport\":{\"x\":%u,\"y\":%u,\"width\":%u,\"height\":%u}}\n",
+        StatusName(status), width, height, static_cast<unsigned long long>(pngBytes), pointPixelScale,
+        viewport->x, viewport->y, viewport->width, viewport->height);
+    } else {
+      std::fprintf(stderr,
+        "{\"status\":\"%s\",\"width\":%u,\"height\":%u,\"pngBytes\":%llu,\"pointPixelScale\":%.4f}\n",
+        StatusName(status), width, height, static_cast<unsigned long long>(pngBytes), pointPixelScale);
+    }
   } else {
     std::fprintf(stderr, "{\"status\":\"%s\"}\n", StatusName(status));
   }
@@ -449,11 +458,20 @@ int RunCapture(DWORD hostPID, DWORD mainPID) {
   ComPtr<ID3D11DeviceContext> context;
   if (CreateD3DDevice(&device, &context) != Status::Captured) return EmitStatus(Status::CaptureFailed);
   EmitPhase("capture-ready");
+  // +--- DWM 与 WGC 没有通用原点等式；不满足几何条件只省略 viewport ---+
+  CaptureGeometrySnapshot geometryBefore{};
+  const bool geometryBeforeValid = ReadCaptureGeometry(selected.hwnd, &geometryBefore);
   uint32_t width = 0;
   uint32_t height = 0;
   std::vector<BYTE> pixels;
   Status status = WaitForSingleFrame(item, device, context, &width, &height, &pixels);
   if (status != Status::Captured) return EmitStatus(status);
+  CaptureGeometrySnapshot geometryAfterFrame{};
+  CaptureViewport viewportAfterFrame{};
+  const bool geometryAfterFrameValid = geometryBeforeValid &&
+      ReadCaptureGeometry(selected.hwnd, &geometryAfterFrame) &&
+      SameCaptureGeometry(geometryBefore, geometryAfterFrame) &&
+      MakeCaptureViewport(geometryAfterFrame, width, height, &viewportAfterFrame);
   // +--- 帧池尺寸表示容量，ContentSize 表示有效内容；纹理边界由 CopyFramePixels 校验 ---+
   // +--- 窗口是否变化由归属快照证明，不以容量与内容尺寸相等代替 ---+
   if (!ValidatePairSnapshot(hostPID, mainPID, expectedMain, expectedHost)) return EmitStatus(Status::ProcessChanged);
@@ -464,13 +482,26 @@ int RunCapture(DWORD hostPID, DWORD mainPID) {
   pixels.clear();
   std::vector<BYTE>().swap(pixels);
   if (status != Status::Captured) return EmitStatus(status);
+  CaptureGeometrySnapshot geometryAfterEncode{};
+  CaptureViewport viewportAfterEncode{};
+  const bool viewportValid = geometryAfterFrameValid &&
+      ReadCaptureGeometry(selected.hwnd, &geometryAfterEncode) &&
+      SameCaptureGeometry(geometryAfterFrame, geometryAfterEncode) &&
+      MakeCaptureViewport(geometryAfterEncode, width, height, &viewportAfterEncode);
   if (!ValidatePairSnapshot(hostPID, mainPID, expectedMain, expectedHost)) return EmitStatus(Status::ProcessChanged);
   if (!RevalidateWindow(mainPID, selected)) return EmitStatus(Status::WindowChanged);
+  CaptureGeometrySnapshot geometryBeforeWrite{};
+  CaptureViewport viewportBeforeWrite{};
+  const bool viewportReady = viewportValid &&
+      ReadCaptureGeometry(selected.hwnd, &geometryBeforeWrite) &&
+      SameCaptureGeometry(geometryAfterEncode, geometryBeforeWrite) &&
+      MakeCaptureViewport(geometryBeforeWrite, width, height, &viewportBeforeWrite);
   status = WritePNG(png);
   if (status != Status::Captured) return EmitStatus(status);
 
   const double pointPixelScale = static_cast<double>(selected.dpi) / static_cast<double>(kDpiBase);
-  return EmitStatus(Status::Captured, width, height, pointPixelScale, png.size());
+  return EmitStatus(Status::Captured, width, height, pointPixelScale, png.size(),
+      viewportReady ? &viewportBeforeWrite : nullptr);
 }
 }  // namespace
 

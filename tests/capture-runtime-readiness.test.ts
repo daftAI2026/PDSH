@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖两种 Remote 封套与可控取消信号。
- * [OUTPUT]: 验证基础版本、扩展版本和壁纸注册握手。
- * [POS]: 两个能力独立验收；不访问 Host、像素或设置。
+ * [OUTPUT]: 验证基础版本、壁纸与几何独立握手；取消阻止后续查询。
+ * [POS]: 能力就绪合同；不访问 Host、像素或设置。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import assert from 'node:assert/strict'
@@ -9,12 +9,37 @@ import test from 'node:test'
 import {
   isCaptureRuntimeCurrent,
   isWallpaperCapabilityReady,
+  isCaptureGeometryCapabilityReady,
   requireCaptureRuntimeCurrent,
   requireWallpaperCapabilityCurrent,
 } from '../src/client/capture/runtime-readiness.ts'
 
 const VERSION = '0.5.1'
 const currentCapture = { implementationVersion: async () => ({ ok: true, value: VERSION }) }
+
+test('几何能力独立握手，不以壁纸或基础版本冒充注册', async () => {
+  const capability = { ...currentCapture, captureGeometryRegistered: async () => ({ ok: true, value: true }), captureGeometry: async () => ({ ok: true, value: null }) }
+  assert.equal(await isCaptureGeometryCapabilityReady(capability, VERSION), true)
+  for (const remote of [currentCapture, { ...capability, captureGeometry: undefined },
+    { ...capability, implementationVersion: async () => ({ ok: true, value: 'old' }) },
+    { ...capability, captureGeometryRegistered: async () => ({ ok: true, value: false }) },
+    { ...capability, captureGeometryRegistered: async () => ({ ok: false }) },
+    { ...capability, captureGeometryRegistered: async () => { throw Error('private') } }]) {
+    assert.equal(await isCaptureGeometryCapabilityReady(remote, VERSION), false)
+    assert.equal(await isCaptureRuntimeCurrent(remote, VERSION), remote.implementationVersion === currentCapture.implementationVersion)
+  }
+})
+
+test('几何等待版本时取消，不得继续注册握手', async () => {
+  const controller = new AbortController(); let release, reads = 0;
+  const pending = isCaptureGeometryCapabilityReady({
+    implementationVersion: () => new Promise(resolve => { release = resolve; }),
+    captureGeometryRegistered: async () => { reads++; return { ok: true, value: true }; },
+    captureGeometry: async () => ({ ok: true, value: null }),
+  }, VERSION, controller.signal);
+  controller.abort(); release({ ok: true, value: VERSION });
+  assert.equal(await pending, false); assert.equal(reads, 0);
+})
 
 test('基础截图版本不授予 capability 壁纸扩展', async () => {
   const base = {

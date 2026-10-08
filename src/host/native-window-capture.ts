@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖显式 Host Remote 点击、Node 子进程与 native/window-capture.mm 输出的 PNG/固定状态文本。
- * [OUTPUT]: 提供有类型的 helper 启动/取消生命周期、PNG封套校验、fixed Failure code 与供服务诊断复用的运行时白名单；构造不授权、不取像、不写文件。
+ * [OUTPUT]: 提供有类型的 helper 启动/取消、PNG封套与可选视口元数据校验及 fixed Failure code；坏几何不丢弃有效 PNG。
  * [POS]: src/host 的原生采集适配器，被唯一 window-capture-service.ts 调用；不启动 Main/Inspector/HTTP。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -10,7 +10,7 @@ import { crc32 } from 'node:zlib';
 import type { Readable } from 'node:stream';
 import { CAPTURE_LIMITS } from '../shared/window-capture-protocol.ts';
 import type { CaptureFailureCode, CapturePhase } from '../shared/window-capture-protocol.ts';
-import type { NativeCaptureResult } from './window-capture-stream.ts';
+import type { NativeCaptureResult, NativeCaptureViewport } from './window-capture-stream.ts';
 
 const MAX_BYTES = CAPTURE_LIMITS.maxBytes;
 const MAX_PIXELS = CAPTURE_LIMITS.maxPixels;
@@ -123,6 +123,7 @@ interface CapturedMetadata {
   readonly height: unknown;
   readonly pointPixelScale: unknown;
   readonly pngBytes: unknown;
+  readonly viewport?: unknown;
 }
 
 type HelperMetadata = CapturedMetadata | { readonly status: NativeCaptureFailureCode };
@@ -343,6 +344,7 @@ export function runNativeCapture(options: RunNativeCaptureOptions = {}): Promise
           height: value.height,
           pointPixelScale: value.pointPixelScale,
           pngBytes: value.pngBytes,
+          viewport: value.viewport,
         };
       } else if (isNativeCaptureFailureCode(value.status)) {
         metadata = { status: value.status };
@@ -408,12 +410,15 @@ export function runNativeCapture(options: RunNativeCaptureOptions = {}): Promise
           || metadata.pointPixelScale <= 0) {
           throw new CaptureFailure('metadata-mismatch');
         }
-        resolve({
+        const viewport = nativeViewport(metadata.viewport, size);
+        const result: NativeCaptureResult = {
           png,
           ...size,
           scope: 'owned-window',
           pointPixelScale: metadata.pointPixelScale,
-        });
+          ...(viewport ? { viewport } : {}),
+        };
+        resolve(result);
       } catch (problem: unknown) {
         reject(problem);
       } finally {
@@ -476,6 +481,24 @@ export function createClickCapture({ runner = runNativeCapture }: CreateClickCap
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function nativeViewport(value: unknown, source: PngSize): NativeCaptureViewport | undefined {
+  if (!isRecord(value) || Object.getPrototypeOf(value) !== Object.prototype) return undefined;
+  const keys = Reflect.ownKeys(value);
+  if (keys.length !== 4 || keys.some(key => !['x', 'y', 'width', 'height'].includes(String(key)))) return undefined;
+  if (keys.some(key => {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    return !descriptor?.enumerable || !('value' in descriptor);
+  })) return undefined;
+  const { x, y, width, height } = value;
+  if (!Number.isSafeInteger(x) || (x as number) < 0
+    || !Number.isSafeInteger(y) || (y as number) < 0
+    || !Number.isSafeInteger(width) || (width as number) <= 0
+    || !Number.isSafeInteger(height) || (height as number) <= 0
+    || (x as number) > source.width || (width as number) > source.width - (x as number)
+    || (y as number) > source.height || (height as number) > source.height - (y as number)) return undefined;
+  return { x: x as number, y: y as number, width: width as number, height: height as number };
 }
 
 export function isNativeCaptureFailureCode(value: unknown): value is NativeCaptureFailureCode {

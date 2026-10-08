@@ -1,11 +1,12 @@
 /**
  * [INPUT]: 依赖稳定壳、accepted Settings、原生后端与官方生成的内部能力面。
- * [OUTPUT]: 提供稳定 v1 截图/保存与可更新能力。壁纸按Host平台分流：macOS读取Apple目录，Windows x64读取native动态roster。
+ * [OUTPUT]: 提供稳定 v1 截图/保存与可更新能力。壁纸分平台读取；几何仅在完整 capture 成功后按 PNG digest 暂存。
  * [POS]: 同包版本化业务闭包。根 Config 拥有权限；旧操作结算后撤销本代能力。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { ROOT_ENTRY_ID } from '../shared/components.ts'
-import { CAPTURE_RUNTIME_CONTRACT, CAPTURE_WALLPAPER_CONTRACT } from '../shared/capture-runtime-contract.ts'
+import { CAPTURE_GEOMETRY_CONTRACT, CAPTURE_RUNTIME_CONTRACT, CAPTURE_WALLPAPER_CONTRACT } from '../shared/capture-runtime-contract.ts'
+import { createHash } from 'node:crypto'
 import { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-typert-registry'
 import type { RemoteStream } from '@deepseek-ai/dsh-typert-protocol'
@@ -17,8 +18,10 @@ import type { WindowSaveFrame, WindowSaveInputFrame, WindowSaveRequest } from '.
 import type { SystemWallpaperId, WallpaperFrame, WallpaperRequest } from '../shared/system-wallpaper-protocol.ts'
 import { CAPTURE_FAILURE_CODES } from '../shared/window-capture-protocol.ts'
 import type { CaptureFrame } from '../shared/window-capture-protocol.ts'
-import { createCaptureFrameStream, createCaptureServiceLifetime } from './window-capture-stream.ts'
-import type { CaptureServiceLifetime } from './window-capture-stream.ts'
+import { isCaptureGeometry, isCapturePngSha256 } from '../shared/capture-geometry.ts'
+import type { CaptureGeometry } from '../shared/capture-geometry.ts'
+import { createCaptureFrameStream, createCaptureServiceLifetime, observeCaptureFrameCompletion } from './window-capture-stream.ts'
+import type { CaptureServiceLifetime, NativeCaptureResult } from './window-capture-stream.ts'
 import { createSystemWallpaperStream } from './system-wallpaper-stream.ts'
 import {
   resolveSystemWallpaperHelperPath,
@@ -83,15 +86,19 @@ function nativeFailureCode(error: unknown): NativeCaptureFailureCode {
 }
 
 /** 包装不提前迭代的 AsyncIterable；for-await return 仍透传并等待原 capture settle。 */
-async function* observeCaptureFrames(
+function observeCaptureFrames(
   frames: AsyncIterable<CaptureFrame>,
   ctx: Context,
-): AsyncGenerator<CaptureFrame> {
-  for await (const frame of frames) {
-    if (frame.type === 'phase') logCaptureObservation(ctx, 'phase', frame.phase)
-    else if (frame.type === 'terminal') logCaptureObservation(ctx, 'terminal', frame.status)
-    yield frame
+  onSettle?: (status: Extract<CaptureFrame, { type: 'terminal' }>['status'] | undefined) => void,
+): AsyncIterable<CaptureFrame> {
+  async function* logFrames(): AsyncGenerator<CaptureFrame> {
+    for await (const frame of frames) {
+      if (frame.type === 'phase') logCaptureObservation(ctx, 'phase', frame.phase)
+      else if (frame.type === 'terminal') logCaptureObservation(ctx, 'terminal', frame.status)
+      yield frame
+    }
   }
+  return observeCaptureFrameCompletion(logFrames(), status => onSettle?.(status))
 }
 
 /** 基础壳和内部能力共用业务实例、权限与操作结算。 */
@@ -99,6 +106,7 @@ declare const __PDSH_VERSION__: string
 export const version = __PDSH_VERSION__
 export const contract = CAPTURE_RUNTIME_CONTRACT
 export const wallpaperContract = CAPTURE_WALLPAPER_CONTRACT
+export const geometryContract = CAPTURE_GEOMETRY_CONTRACT
 export function create(ctx: Context): CaptureRuntime {
   const runtime = new CaptureRuntime(ctx)
   // +--- 旧壳的 async return 自动等待 thenable；保持同步工厂与原实例身份。 ---+
@@ -115,6 +123,7 @@ export function create(ctx: Context): CaptureRuntime {
 
 export class CaptureRuntime {
   readonly version = version
+  readonly geometryContract = geometryContract
   readonly ready: Promise<void>
 
   private readonly lifetime: CaptureServiceLifetime = createCaptureServiceLifetime()
@@ -122,6 +131,8 @@ export class CaptureRuntime {
     preferences: () => acceptedWindowSavePreferences(this.ctx as HostServiceContext),
   })
   private disposal: Promise<void> | undefined
+  private captureGeometryLease: object | undefined
+  private captureGeometryRecord: { readonly pngSha256: string; readonly geometry: CaptureGeometry } | undefined
   private readonly capabilities: ReturnType<Context['plugin']> | undefined
 
   constructor(private readonly ctx: Context) {
@@ -154,11 +165,16 @@ export class CaptureRuntime {
     if (this.version !== version) throw new Error('capture-runtime-version-mismatch')
     // +--- 子 Service 可先于 Config owner ACTIVE；挂载时的空投影不是永久撤权 ---+
     this.refreshCaptureEnabled()
+    const geometryLease = {}
+    this.captureGeometryLease = geometryLease
+    this.captureGeometryRecord = undefined
+    let pendingGeometry: ReturnType<typeof storedCaptureGeometry> = undefined
+    const captureGeneration = this.lifetime.signal
     const serviceContext = this.ctx
     logCaptureObservation(serviceContext, 'invocation')
     const frames = createCaptureFrameStream({
       signal,
-      lifetimeSignal: this.lifetime.signal,
+      lifetimeSignal: captureGeneration,
       reserve: () => this.lifetime.reserve(),
       capture: ({ signal: operationSignal, onPhase }) => {
         const clickCapture = createClickCapture({
@@ -170,13 +186,26 @@ export class CaptureRuntime {
             onPhase,
           }),
         })
-        return clickCapture.capture(operationSignal).catch(error => {
+        return clickCapture.capture(operationSignal).then(image => {
+          pendingGeometry = storedCaptureGeometry(image)
+          return image
+        }).catch(error => {
           logCaptureObservation(serviceContext, 'native-result', error)
           throw error
         }).finally(() => clickCapture.dispose())
       },
     })
-    return observeCaptureFrames(frames, serviceContext)
+    return observeCaptureFrames(frames, serviceContext, status => {
+      let canCommit = false
+      try {
+        canCommit = status === 'captured' && !signal.aborted && !captureGeneration.aborted
+          && this.lifetime.signal === captureGeneration && !this.disposal
+          && this.captureGeometryLease === geometryLease
+          && acceptedWindowSavePreferences(this.ctx as HostServiceContext).captureEnabled === true
+      } catch { /* 配置读取失败时仅撤回可选几何。 */ }
+      if (this.captureGeometryLease !== geometryLease) return
+      this.captureGeometryRecord = canCommit ? pendingGeometry : undefined
+    })
   }
 
   /** 保存仅接受当前 Config 目录与模板；wire 不含 path/name，像素走有界 uplink。 */
@@ -219,6 +248,14 @@ export class CaptureRuntime {
       },
       load: (id, operationSignal, onPhase) => this.loadWallpaperImage(id, operationSignal, onPhase, helperPath, platform, arch),
     })
+  }
+
+  async captureGeometry(pngSha256: string): Promise<CaptureGeometry | null> {
+    this.refreshCaptureEnabled()
+    if (this.disposal || !isCapturePngSha256(pngSha256)
+      || acceptedWindowSavePreferences(this.ctx as HostServiceContext).captureEnabled !== true) return null
+    const record = this.captureGeometryRecord
+    return record?.pngSha256 === pngSha256 ? record.geometry : null
   }
 
   private async loadWallpaperImage(
@@ -270,12 +307,18 @@ export class CaptureRuntime {
     if (this.disposal) return
     const preferences = acceptedWindowSavePreferences(this.ctx as HostServiceContext)
     const enabled = preferences.captureEnabled === true
+    if (!enabled) {
+      this.captureGeometryLease = undefined
+      this.captureGeometryRecord = undefined
+    }
     this.lifetime.setEnabled(enabled)
     logCaptureObservation(this.ctx, 'enabled', enabled)
   }
 
   dispose(): Promise<void> {
     if (!this.disposal) {
+      this.captureGeometryLease = undefined
+      this.captureGeometryRecord = undefined
       // +--- capture/save/wallpaper在同一个 synchronous turn撤权；关闭等待真实helper/write settle ---+
       this.disposal = Promise.all([this.lifetime.dispose(), this.saveBackend.dispose()])
         .then(async () => { await this.capabilities?.dispose() })
@@ -297,6 +340,13 @@ function acceptedWindowSavePreferences(ctx: HostServiceContext): WindowSavePrefe
     saveFormat: read(accepted?.saveFormat),
     fileNamePattern: read(accepted?.fileNamePattern),
   } as WindowSavePreferences
+}
+
+function storedCaptureGeometry(image: NativeCaptureResult): { readonly pngSha256: string; readonly geometry: CaptureGeometry } | undefined {
+  if (!image.viewport) return undefined
+  const geometry = { ...image.viewport, pointPixelScale: image.pointPixelScale }
+  if (!isCaptureGeometry(geometry, image)) return undefined
+  return { pngSha256: createHash('sha256').update(image.png).digest('hex'), geometry }
 }
 
 export type { CaptureFrame }

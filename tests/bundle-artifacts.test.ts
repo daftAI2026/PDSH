@@ -74,6 +74,10 @@ test('能力面身份、版本、私有边界、独立 namespace 与 DTO 副本�
       h.write('lib/runtime-capabilities/typert.remote-client.js', readFileSync(join(h.root, 'lib/typert.remote-client.js'), 'utf8'));
     },
     dtoDrift: h => h.write('lib/runtime-capabilities/types/shared/system-wallpaper-protocol.d.ts', 'different DTO copy'),
+    geometryDtoDrift: h => h.write('lib/runtime-capabilities/types/shared/capture-geometry.d.ts', 'different geometry DTO'),
+    missingGeometryDto: h => unlinkSync(join(h.root, 'lib/runtime-capabilities/types/shared/capture-geometry.d.ts')),
+    missingGeometryMethod: h => h.write('lib/runtime-capabilities/typert.host.js',
+      readFileSync(join(h.root, 'lib/runtime-capabilities/typert.host.js'), 'utf8').replace("method: 'captureGeometry'", '')),
   };
   for (const [name, defect] of Object.entries(defects)) {
     const h = artifactFixture();

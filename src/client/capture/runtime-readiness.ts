@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖基础 Capture 与独立 capability 的 Remote 封套。
- * [OUTPUT]: 分别核对版本、注册握手与取消。
- * [POS]: 基础围栏保护截图/保存；扩展围栏保护壁纸请求。
+ * [OUTPUT]: 分别核对版本、壁纸及几何注册握手与取消。
+ * [POS]: 基础围栏保护截图/保存；独立扩展缺失不撤回基础能力。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { CaptureClientError } from './window-capture-stream.ts'
@@ -18,6 +18,16 @@ async function isWallpaperRemoteRegistered(remote: any): Promise<boolean> {
 export async function isWallpaperCapabilityReady(remote: any, version: string): Promise<boolean> {
   if (await runtimeStatus(remote, version) !== 'current') return false
   return isWallpaperRemoteRegistered(remote)
+}
+
+/** 只验证独立元数据能力；不请求图像或读取系统窗口。 */
+export async function isCaptureGeometryCapabilityReady(remote: any, version: string, signal?: AbortSignal): Promise<boolean> {
+  if (signal?.aborted || await runtimeStatus(remote, version) !== 'current' || signal?.aborted
+    || typeof remote?.captureGeometryRegistered !== 'function') return false
+  try {
+    const reply = await remote.captureGeometryRegistered()
+    return !signal?.aborted && reply?.ok === true && reply.value === true && typeof remote.captureGeometry === 'function'
+  } catch { return false }
 }
 
 async function runtimeStatus(remote: any, version: string): Promise<'current' | 'outdated' | 'unavailable'> {

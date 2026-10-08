@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 Node 测试、路径/URL、fake 子进程/时钟与 Host native capture 适配器；只读 Mach-O 头，不触发真实 helper。
- * [OUTPUT]: 固定显式取像门、PNG/CRC封套、平台路由及取消/close结算合同；验证Win x64启动参数/隐藏窗口和ARM64拒绝。
+ * [OUTPUT]: 固定显式取像门、PNG/CRC封套、可选 viewport 与取消/close结算；验证Win路由/隐藏窗口和ARM64拒绝。
  * [POS]: 原生整窗 Host 适配器的纯合同测试；不请求系统权限、不取像、不操作用户应用。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -110,11 +110,12 @@ function harness() {
   };
   const options = { helperPath: '/fake/native/window-capture', requestPermission: true, spawnProcess, scheduler };
   const phase = (value: string) => child.stderr.emit('data', Buffer.from(`phase=${value}\n`));
-  const success = (png = fakePng()) => {
+  const success = (png = fakePng(), viewport?: unknown) => {
     const { width, height } = readPngSize(png);
     child.stdout.emit('data', png);
     child.stderr.emit('data', Buffer.from(`${JSON.stringify({
       status: 'captured', width, height, pngBytes: png.length, pointPixelScale: 2,
+      ...(viewport === undefined ? {} : { viewport }),
     })}\n`));
     child.emit('close', 0, null);
   };
@@ -230,6 +231,35 @@ test('helper 仅以真实 Host pid/ppid 和显式授权参数启动，无 shell 
   assert.deepEqual(image.png, fakePng());
   assert.equal(h.scheduler.timers.size, 0);
 });
+
+test('有效 viewport 随 Host 结果保留；坏几何只撤回扩展元数据并交付 PNG', async () => {
+  const validViewport = { x: 8, y: 6, width: 70, height: 60 }
+  const accepted = harness()
+  const acceptedWork = runNativeCapture(accepted.options)
+  accepted.phase('capture-ready')
+  accepted.success(fakePng(), validViewport)
+  const image = await acceptedWork
+  assert.deepEqual(image.viewport, validViewport)
+  assert.deepEqual(image.png, fakePng())
+
+  const invalidViewports = [
+    { ...validViewport, screenX: 5 },
+    { ...validViewport, x: -1 },
+    { ...validViewport, x: 99 },
+    { ...validViewport, width: 0 },
+    null,
+    [],
+  ]
+  for (const viewport of invalidViewports) {
+    const h = harness()
+    const work = runNativeCapture(h.options)
+    h.phase('capture-ready')
+    h.success(fakePng(), viewport)
+    const result = await work
+    assert.equal(result.viewport, undefined, 'malformed viewport must not reject otherwise-valid PNG')
+    assert.deepEqual(result.png, fakePng())
+  }
+})
 
 test('原生 helper 路由只支持 universal macOS 与包内 Windows x64，不猜测 ARM64', () => {
   assert.deepEqual(nativeCaptureTarget('darwin', 'arm64'), {

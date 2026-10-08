@@ -10,8 +10,8 @@
 Host 的 Remote 取消终态可能先于 Client 配置撤权；批获取收到取消立即停止后续 ID，保留已入库项并回到可操作状态，不把普通取消显示成下载错误。
 
 - `controller.ts`: 新工作台初拍读取 accepted 身份遮罩；当前工作台重拍沿用会话值，不再重读配置。标题独立，身份值同时标记头像、原生名称与自有名牌；未知整窗几何不给候选，迟到壁纸握手不重建工作台。
-- `window-capture.ts`: 冻结 PNG 等尺寸解码至编辑器画布；WeakMap 留存原生比例，不猜 renderer 原点或页面 DPR，不重绘 DOM。
-- `window-capture-stream.ts`: 官方 Remote 的一次性 PNG 流消费；严格帧序/CRC/预算/解码与本地 URL 释放，保留整窗原生比例，无重连、路径或持久化。
+- `window-capture.ts`: 冻结 PNG 等尺寸解码至画布。WeakMap 留存原生比例与同图几何；不猜页面原点，不重绘 DOM。
+- `window-capture-stream.ts`: 单次校验 PNG 帧序、CRC、预算与解码。可选几何绑定同图摘要且有界；扩展失败保留照片，取消释放 URL。
 - `viewport.ts`: 已退出装配的旧 current-page PNG 桥消费者与错误分类；旧合同回归仍使用它，当前 controller 从 window-capture 获取原生整窗，不回退此路线。
 - `window-save.ts`: 仅完整有效且 `captureEnabled` 明确为 true 的 Host accepted 配置可进入目录保存；picker 前、等待后与 mutate 回执后均重新围栏，避免旧 Host 投影默认值成为可写目录；保存仍用同一 Remote uplink/ACK/Host 独占回执。
 - `save-port.ts`: 已退出装配的 Main 固定接收器导出实验；保留历史回执/取消回归，现行保存仅用 window-save 的官方 Remote uplink。
@@ -27,7 +27,7 @@ Host 的 Remote 取消终态可能先于 Client 配置撤权；批获取收到�
 - `editor-viewport.ts`: 独立视口控制器；按模型工具/来源区分检测点击与手绘，模式或阶段切换可取消旧手势；模型是 zoom 唯一真源、控制器独占 pan，归一化并限幅滚轮输入，按帧合并 transform 且 dispose 取消待办，不触发像素合成。
 - `model.ts`: 编辑器唯一状态及命令演算；身份遮罩状态与会话覆盖共用一个值，标题独立。图片、背景和视口不另设并行状态，渐变目录始终展开，不保留折叠命令。
 - `view.ts`: 四模式/三来源DOM；Get动作完整缓存后仍可刷新，当前材料至多五项、旧缓存可离线；持久系统语义名驱动精确缩略图ARIA名称，无长tooltip。
-- `copy.ts`: Host 语言的双语动作、错误与 legacy 名称。标题遮罩与身份遮罩分开说明，身份遮罩描述侧栏头像和名称。窗口标题使用编辑截图；系统分组与获取动作统一为系统壁纸。本机优先，缺失时下载。未知素材不编造版本，后台读取静默，失败保留。
+- `copy.ts`: Host 语言的双语动作、错误与 legacy 名称。标题遮罩与身份遮罩分开说明，身份遮罩描述侧栏头像和名称。窗口标题使用编辑截图；系统分组与获取动作统一为系统壁纸，获取提示只描述当前平台可用性，不宣称统一读取或下载路径。未知素材不编造版本，后台读取静默，失败保留。
 - `icons.ts`: 锁定Lucide 1.51.0的29个官方SVG图形源；只贡献路径与24单位坐标，运行尺寸、描边与根透明度由实时 Host 图标探针提供。
 - `geometry.ts`: 缩放、平移及区域换算的纯几何；与 DOM 生命周期分离。
 - `regions.ts`: 画框与候选区域交互；手绘隐藏未选候选，保留已打码区域/候选数据，切回检测恢复；只作用于截图编辑状态，提示文案交给统一的 DSH 参数提示层。
@@ -57,9 +57,9 @@ Host 的 Remote 取消终态可能先于 Client 配置撤权；批获取收到�
 
 - `directory.ts`: DSH 原生目录选择窄端口；复用 shared POSIX/Windows 绝对目录语法，取消保持 null，不引入路径输入或第二偏好仓。
 
-- `runtime-readiness.ts`: 基础/内部能力分别核实际版本。壁纸注册握手不代替版本；旧版与连接未知分账，扩展失败不阻断基础。不取像、不写设置。
+- `runtime-readiness.ts`: 基础与扩展独立核对实际版本。壁纸和几何各自握手；缺失扩展不撤回截图，不取像或写设置。
 
-- `candidate-mapping.ts`: Mac Electron 44 的 rc.2 hiddenInset 满窗零原点条件映射，原生 PNG 内容原点仍待实机验收；内/外尺寸、页面/原生比例、PNG 尺寸和拍摄前后几何一致才做 CSS→像素缩放；未知、窗口变动、页面缩放或移动候选退让，不用 alpha bbox 猜偏移。
+- `candidate-mapping.ts`: rc.2 Electron 44 的 DOM 到 PNG 映射。Mac 满窗使用零偏移；Windows 使用同图原生客户区偏移。比例、视口尺寸和前后快照须一致；未知几何退让，不猜边框。
 
 - `candidates.ts`: 合并侧栏标题、唯一可见身份与语义 DOM 节点。未登录原生 More 不作为身份。检查隐藏、裁切与150项早停；变换祖先退让。WeakMap ID 绑定当前节点，不推断原生整窗原点。
 

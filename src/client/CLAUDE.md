@@ -2,7 +2,7 @@
 > L2 | 父级: ../CLAUDE.md
 
 - `client-entry.tsx`: 唯一 `@daftai/pdsh` Client 入口；顺序挂载真实基础/内部能力 Remote 面，不触发取像/权限；必需 Cordis 服务只声明一次，身份/标题/拍照为共享 Bundle 内的独立设置而非运行时子入口。
-- `component-runtime.tsx`: 唯一 Bundle 装配、设置页脚与语言订阅。两相机入口共用一个截图控制器。会话入口追加官方 utilities。完整 accepted 配置与 Remote provider 才装相机；业务调用复核实现版本。基础版本先等 Host 就绪，内部能力再独立核版本/注册；双代理世代隔离，迟到握手不重建工作台。
+- `component-runtime.tsx`: 唯一 Bundle 装配、设置与语言订阅。两相机共用截图控制器。基础版本与壁纸、几何分别握手；几何读取绑定捕获时的两个代理世代。迟到扩展不重建工作台。
 - `sidebar-state.ts`: 只读 rc.2 AppFrame 语义属性。root/main/sidebar 唯一归属成立才返回收起态；未知或歧义布局退让。观察器先过滤边界变化，聊天增删不触发全局查询。订阅跟随 Bundle 释放，不读取搜索展开态。
 - `header-camera.tsx`: 官方 utilities 会话相机视图。仅侧栏收起且截图控制器存在时呈现。复用 Host Button/Tooltip，点击重读当前控制器，不创建取像链路。
 - `native-style-view.tsx`: 唯一真实原生控件探针视图；布局测量与 React 生命周期绑定，不持有功能配置。

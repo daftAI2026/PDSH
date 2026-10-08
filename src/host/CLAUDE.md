@@ -5,10 +5,10 @@
 - `capture.ts`: 声明 `captureEnabled`、独立身份遮挡与导出设置，引用 shared POSIX/Windows 绝对目录语法；保留历史默认迁移和 root owner-scoped listener，实际写入仍受 Host native path 校验。默认目录沿用本机用户home下Downloads，不探测重定向known folder。
 - `context.ts`: 以类型扩充 Cordis Context，描述唯一已注册 capture service；不制造 runtime binding 或 Typert descriptor。
 - `window-capture-service.ts`: 固定基础 Remote 壳，提供截图/保存及历史壁纸兼容面。只依赖 Loader 的稳定接口；新能力不进入根生成面。
-- `runtime-capabilities-service.ts`: 官方内部能力 service；子 Fiber 拥有版本/壁纸接口，权限与业务仍归根实例。
-- `capture-runtime.ts`: 稳定基础与内部能力闭包。初始 thenable 等官方子 Fiber。壁纸按平台分流；Windows 加载前重读 native roster，Mac 保留 Apple 目录。换代先结算旧操作并撤销能力。
-- `window-capture-stream.ts`: 纯异步 capture 编排；惰性首拉、单航班、固定阶段/终态和≤32KiB PNG chunk，取消不微任务自旋且在锁释放前等待 helper Promise settle。
-- `native-window-capture.ts`: Node adapter 只选择已支持的 macOS/Windows x64 包内 helper，Windows 隐藏子进程窗口；校验固定状态与 PNG envelope，取消后 SIGTERM/强制结束仍等待 close；不持久化图像、不挂 Main 或网络路由。
+- `runtime-capabilities-service.ts`: 官方内部能力 service；子 Fiber 拥有版本、壁纸与 digest 查询的视口几何接口，权限与业务仍归根实例。
+- `capture-runtime.ts`: 稳定基础与内部能力闭包。初始 thenable 等官方子 Fiber。壁纸按平台分流；Windows 加载前重读 native roster，Mac 保留 Apple 目录。截图只暂存一份 digest 绑定几何，停用/卸载/换代撤销。
+- `window-capture-stream.ts`: 纯异步 capture 编排；惰性首拉、单航班、固定阶段/终态和≤32KiB PNG chunk。内部 viewport 不进基础帧；几何只随完整终态提交，取消等待 helper settle。
+- `native-window-capture.ts`: Node adapter 只选择已支持的 macOS/Windows x64 包内 helper，Windows 隐藏子进程窗口；校验固定状态/PNG envelope，附带的视口矩形失效只禁用几何；取消后等待 close，不持久化图像。
 - `system-wallpaper-native.ts`: 同包 helper 的有界 JPEG 适配。Mac 接受 Host 授权 HEIC/MOV；Windows x64 只接收当次最多五项 hash roster 的 ID，保留严格闭集 schema。固定码映射不反射 stderr；取消等待真实 close。
 - `system-wallpaper-download.ts`: 共享受控URL与三次严格206/强ETag Range，累计≤18MiB+64B；重建完整首sample MOV，唯一本地临时媒体owner；生产复用系统transport，fake-fetch只供合同，不整段GET/改TLS。
 - `system-wallpaper-mov.ts`: 纯64B固定头/尾moov解析与首sync sample定位；仅接受单hvc1视频描述、单自包含alis引用及已知索引，保留tapt/hdlr/hvcC/nclc/matrix并重建完整单sample MOV；独立限制逻辑length/metadata/sample。
@@ -24,7 +24,7 @@
 - `page-capture-main.ts`: **已退役**的旧 Electron Main pixel route；不挂载、不注入、不供本次 camera 触发。
 - `page-save-main.ts`: **已退役**的旧 Main 保存实现；`page-save-file.ts` 的原子 writer仍被新 Host backend复用，Main/dialog 代码本身不挂载。
 
-- `capture-runtime-loader.ts`: 标准 realpath/import 的单实例协调器。基础接受稳定 v1 与已发布 v2 兼容面；壁纸独立校验。只读自身包，旧操作结算后换载，不碰私有缓存或设置。
+- `capture-runtime-loader.ts`: 标准 realpath/import 的单实例协调器。严格验证稳定 v1 与已发布 v2 基础面，壁纸按独立合同判定；旧操作结算后换载。
 
 - `system-wallpaper-catalog.ts`: 只读有界Apple metadata选择器；前两Landscape subgroup的preferredOrder/代表UUID对应dynamic子组或root-owned扩展，Mac目录固定四项且不把排序当OS版本；旧ID缓存桥/未来材料身份，未知关联拒绝，路径URL留Host。
 

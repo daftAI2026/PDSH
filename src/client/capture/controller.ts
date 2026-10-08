@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖冻结 PNG/原生比例、编辑器/Tabs、遮挡与导出偏好，以及壁纸能力读取端口。
+ * [INPUT]: 依赖冻结 PNG/原生比例及可选客户区几何、编辑器/Tabs、遮挡与导出偏好，以及壁纸能力读取端口。
  * [OUTPUT]: 提供相机→截图→工作台与重拍；新工作台读取 accepted 身份配置，当前工作台沿用会话值。
  * [POS]: capture Client 编排边界；标题独立，身份值同时采样头像与名称且不回写 Host 配置。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -12,6 +12,7 @@ import { markDSHPrivacyPlaceholders, collectDSHCandidates, mapCandidatesToPng } 
 import { readCandidateWindowViewport, mapWindowCandidatesToPng } from './candidate-mapping.ts';
 import { configureCapturePresetAssets } from './presets.ts';
 import type { SystemWallpaperAdapter } from './system-wallpapers.ts';
+import type { CaptureGeometry } from '../../shared/capture-geometry.ts';
 
 import { CaptureViewportError } from './viewport.ts';
 import { captureFailureMessage } from './copy.ts';
@@ -20,7 +21,7 @@ import { DEFAULT_CAPTURE_EXPORT } from '../../shared/capture-export.ts';
 import type { CaptureTrace } from '../../shared/capture-trace.ts';
 import { captureTraceFailureCode } from '../../shared/capture-trace.ts';
 
-export function mountCaptureController(doc: Document, { locale = () => doc.documentElement.lang || doc.defaultView.navigator.language, onState = () => {}, notify = (_message: string, _tone?: 'success') => {}, capture = async (_doc, _options): Promise<HTMLCanvasElement> => { throw new CaptureViewportError('host-unavailable'); }, openEditor = mountCaptureWindowEditor, waitFrame = waitForCaptureFrame, presetAssets = {}, onSave = undefined, exportPreferences = () => DEFAULT_CAPTURE_EXPORT, captureMaskIdentity = (): boolean => true, trace = (() => {}) as CaptureTrace, captureScope = 'current-page', sourceScale = (_source) => doc.defaultView.devicePixelRatio, mountBackgroundTabs = undefined as CaptureBackgroundTabsMount | undefined, systemWallpapers = undefined as SystemWallpaperAdapter | undefined, readSystemWallpapers = () => systemWallpapers } = {}) {
+export function mountCaptureController(doc: Document, { locale = () => doc.documentElement.lang || doc.defaultView.navigator.language, onState = () => {}, notify = (_message: string, _tone?: 'success') => {}, capture = async (_doc, _options): Promise<HTMLCanvasElement> => { throw new CaptureViewportError('host-unavailable'); }, openEditor = mountCaptureWindowEditor, waitFrame = waitForCaptureFrame, presetAssets = {}, onSave = undefined, exportPreferences = () => DEFAULT_CAPTURE_EXPORT, captureMaskIdentity = (): boolean => true, trace = (() => {}) as CaptureTrace, captureScope = 'current-page', sourceScale = (_source) => doc.defaultView.devicePixelRatio, sourceGeometry = (_source): CaptureGeometry | undefined => undefined, mountBackgroundTabs = undefined as CaptureBackgroundTabsMount | undefined, systemWallpapers = undefined as SystemWallpaperAdapter | undefined, readSystemWallpapers = () => systemWallpapers } = {}) {
   configureCapturePresetAssets(presetAssets);
   let busy = false, disposed = false, editor = null, host: HTMLElement | null = null, abort: AbortController | null = null;
   const state = () => ({ busy, disabled: busy || disposed || !!editor });
@@ -60,7 +61,7 @@ export function mountCaptureController(doc: Document, { locale = () => doc.docum
       let automaticRegions = [];
       try {
         automaticRegions = captureScope === 'owned-window'
-          ? mapWindowCandidatesToPng(result.candidates, candidateViewport ? collectDSHCandidates(doc) : [], result.source, sourceScaleFactor, candidateViewport, readCandidateWindowViewport(doc))
+          ? mapWindowCandidatesToPng(result.candidates, candidateViewport ? collectDSHCandidates(doc) : [], result.source, sourceScaleFactor, candidateViewport, readCandidateWindowViewport(doc), sourceGeometry(result.source))
           : mapCandidatesToPng(result.candidates, result.source, { width: doc.defaultView.innerWidth, height: doc.defaultView.innerHeight });
       } catch {
         // +--- 建议层不是取像前置条件；失去 DOM 几何时保留有效照片与手动编辑。 ---+

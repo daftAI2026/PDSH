@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 Win32 自有窗口、真实助手、WGC 帧元数据、WIC 和 window-owner 句柄。
- * [OUTPUT]: 验真实帧尺寸差异与 PNG 像素；验证目标关闭拒绝、真实助手终止及 Job 结算。
- * [POS]: Windows 原生合同夹具。自有 Main→Host→helper 进程链不访问 Desktop profile。
+ * [INPUT]: 依赖 Win32 PMv2 合成窗口、真实 WGC helper 与 WIC PNG 解码。
+ * [OUTPUT]: 验证 DWM 相对 viewport、四角标记、客户区边线及真实 PNG 像素对位。
+ * [POS]: Windows 原生几何合同夹具；只捕获自身窗口并结算自有进程树。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 #define WIN32_LEAN_AND_MEAN
@@ -19,14 +19,23 @@
 #include <winrt/Windows.Graphics.DirectX.h>
 #include <winrt/Windows.Graphics.DirectX.Direct3D11.h>
 #include <cstdio>
+#include <climits>
 #include <cwchar>
+#include <initializer_list>
 #include <string>
 #include <vector>
 
 using Microsoft::WRL::ComPtr;
 using pdsh::windows_capture::UniqueHandle;
 using namespace winrt::Windows::Graphics::Capture;
-constexpr COLORREF kFixtureColor = RGB(39, 84, 126);
+constexpr COLORREF kBackgroundColor = RGB(25, 37, 49);
+constexpr COLORREF kTopLeftColor = RGB(241, 49, 74);
+constexpr COLORREF kTopRightColor = RGB(38, 211, 106);
+constexpr COLORREF kBottomLeftColor = RGB(54, 121, 244);
+constexpr COLORREF kBottomRightColor = RGB(244, 196, 42);
+constexpr COLORREF kEdgeColor = RGB(250, 250, 250);
+constexpr LONG kMarkerInset = 12;
+constexpr LONG kMarkerSize = 8;
 constexpr DWORD kFixtureDeadline = 30000;
 constexpr DWORD kAbortExitCode = 0xE00000A5;
 
@@ -57,13 +66,76 @@ void PumpMessages() {
 }
 
 struct FixtureWindow {
-  HBRUSH brush = CreateSolidBrush(kFixtureColor);
+  HBRUSH background = CreateSolidBrush(kBackgroundColor);
+  HBRUSH topLeft = CreateSolidBrush(kTopLeftColor);
+  HBRUSH topRight = CreateSolidBrush(kTopRightColor);
+  HBRUSH bottomLeft = CreateSolidBrush(kBottomLeftColor);
+  HBRUSH bottomRight = CreateSolidBrush(kBottomRightColor);
+  HBRUSH edge = CreateSolidBrush(kEdgeColor);
   HWND window = nullptr;
+  bool ready() const {
+    return background && topLeft && topRight && bottomLeft && bottomRight && edge;
+  }
   ~FixtureWindow() {
     if (window) DestroyWindow(window);
-    if (brush) DeleteObject(brush);
+    for (HBRUSH brush : {background, topLeft, topRight, bottomLeft, bottomRight, edge}) {
+      if (brush) DeleteObject(brush);
+    }
   }
 };
+
+struct FixtureGeometry {
+  UINT pngWidth = 0;
+  UINT pngHeight = 0;
+  UINT dpi = 0;
+  UINT x = 0;
+  UINT y = 0;
+  UINT width = 0;
+  UINT height = 0;
+};
+
+LRESULT CALLBACK FixtureWindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
+  auto* fixture = reinterpret_cast<FixtureWindow*>(GetWindowLongPtrW(window, GWLP_USERDATA));
+  if (message == WM_NCCREATE) {
+    const auto* create = reinterpret_cast<const CREATESTRUCTW*>(lParam);
+    fixture = static_cast<FixtureWindow*>(create->lpCreateParams);
+    SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(fixture));
+  }
+  if (message == WM_ERASEBKGND) return 1;
+  if (message == WM_PAINT) {
+    PAINTSTRUCT paint{};
+    HDC dc = BeginPaint(window, &paint);
+    RECT client{};
+    GetClientRect(window, &client);
+    if (fixture && fixture->ready() && client.right > 2 * kMarkerInset + kMarkerSize &&
+        client.bottom > 2 * kMarkerInset + kMarkerSize) {
+      FillRect(dc, &client, fixture->background);
+      RECT topEdge{0, 0, client.right, 1};
+      RECT rightEdge{client.right - 1, 0, client.right, client.bottom};
+      RECT bottomEdge{0, client.bottom - 1, client.right, client.bottom};
+      RECT leftEdge{0, 0, 1, client.bottom};
+      FillRect(dc, &topEdge, fixture->edge);
+      FillRect(dc, &rightEdge, fixture->edge);
+      FillRect(dc, &bottomEdge, fixture->edge);
+      FillRect(dc, &leftEdge, fixture->edge);
+      RECT tl{kMarkerInset, kMarkerInset, kMarkerInset + kMarkerSize, kMarkerInset + kMarkerSize};
+      RECT tr{client.right - kMarkerInset - kMarkerSize, kMarkerInset,
+          client.right - kMarkerInset, kMarkerInset + kMarkerSize};
+      RECT bl{kMarkerInset, client.bottom - kMarkerInset - kMarkerSize,
+          kMarkerInset + kMarkerSize, client.bottom - kMarkerInset};
+      RECT br{client.right - kMarkerInset - kMarkerSize,
+          client.bottom - kMarkerInset - kMarkerSize,
+          client.right - kMarkerInset, client.bottom - kMarkerInset};
+      FillRect(dc, &tl, fixture->topLeft);
+      FillRect(dc, &tr, fixture->topRight);
+      FillRect(dc, &bl, fixture->bottomLeft);
+      FillRect(dc, &br, fixture->bottomRight);
+    }
+    EndPaint(window, &paint);
+    return 0;
+  }
+  return DefWindowProcW(window, message, wParam, lParam);
+}
 
 struct MetadataCapture {
   Direct3D11CaptureFramePool pool{nullptr};
@@ -121,6 +193,51 @@ bool ReadContentSize(HWND window, UINT* width, UINT* height) {
   return false;
 }
 
+bool ReadFixtureGeometry(HWND window, UINT pngWidth, UINT pngHeight, FixtureGeometry* output) {
+  if (window == nullptr || output == nullptr || pngWidth == 0 || pngHeight == 0) return false;
+  const DPI_AWARENESS_CONTEXT targetContext = GetWindowDpiAwarenessContext(window);
+  if (targetContext == nullptr || GetAwarenessFromDpiAwarenessContext(targetContext) !=
+      DPI_AWARENESS_PER_MONITOR_AWARE) return false;
+  RECT visible{}, client{};
+  if (FAILED(DwmGetWindowAttribute(window, DWMWA_EXTENDED_FRAME_BOUNDS,
+          &visible, sizeof(visible))) || !GetClientRect(window, &client) ||
+      visible.right <= visible.left || visible.bottom <= visible.top ||
+      client.right <= 0 || client.bottom <= 0) return false;
+  const int64_t visibleWidth = static_cast<int64_t>(visible.right) - visible.left;
+  const int64_t visibleHeight = static_cast<int64_t>(visible.bottom) - visible.top;
+  if (visibleWidth != pngWidth || visibleHeight != pngHeight) return false;
+
+  POINT origin{0, 0};
+  POINT end{client.right, client.bottom};
+  if (!ClientToScreen(window, &origin) || !ClientToScreen(window, &end) ||
+      end.x <= origin.x || end.y <= origin.y) return false;
+  const int64_t x = static_cast<int64_t>(origin.x) - visible.left;
+  const int64_t y = static_cast<int64_t>(origin.y) - visible.top;
+  const int64_t width = static_cast<int64_t>(end.x) - origin.x;
+  const int64_t height = static_cast<int64_t>(end.y) - origin.y;
+  if (x < 0 || y < 0 || width <= 0 || height <= 0 || x + width > visibleWidth ||
+      y + height > visibleHeight || x > UINT_MAX || y > UINT_MAX ||
+      width > UINT_MAX || height > UINT_MAX) return false;
+
+  FixtureGeometry current;
+  current.pngWidth = pngWidth;
+  current.pngHeight = pngHeight;
+  current.dpi = GetDpiForWindow(window);
+  current.x = static_cast<UINT>(x);
+  current.y = static_cast<UINT>(y);
+  current.width = static_cast<UINT>(width);
+  current.height = static_cast<UINT>(height);
+  if (current.dpi == 0) return false;
+  *output = current;
+  return true;
+}
+
+bool SameFixtureGeometry(const FixtureGeometry& left, const FixtureGeometry& right) {
+  return left.pngWidth == right.pngWidth && left.pngHeight == right.pngHeight &&
+      left.dpi == right.dpi && left.x == right.x && left.y == right.y &&
+      left.width == right.width && left.height == right.height;
+}
+
 // +--- 参数只传给 CreateProcess，不进入 shell ---+
 std::wstring Quote(const std::wstring& value) {
   std::wstring result = L"\"";
@@ -152,7 +269,7 @@ bool ReadPipe(HANDLE pipe, std::vector<BYTE>* bytes) {
   }
 }
 
-bool VerifyPNG(const std::vector<BYTE>& png, UINT expectedWidth, UINT expectedHeight) {
+bool VerifyPNG(const std::vector<BYTE>& png, const FixtureGeometry& expected) {
   if (png.empty()) return false;
   ComPtr<IWICImagingFactory> factory;
   ComPtr<IWICStream> stream;
@@ -166,19 +283,55 @@ bool VerifyPNG(const std::vector<BYTE>& png, UINT expectedWidth, UINT expectedHe
       FAILED(decoder->GetFrame(0, &frame))) return false;
   UINT width = 0, height = 0;
   if (FAILED(frame->GetSize(&width, &height))) return false;
-  std::printf("png=%ux%u expected=%ux%u\n", width, height, expectedWidth, expectedHeight);
-  if (width != expectedWidth || height != expectedHeight ||
+  std::printf("png=%ux%u expected=%ux%u\n", width, height,
+      expected.pngWidth, expected.pngHeight);
+  if (width != expected.pngWidth || height != expected.pngHeight ||
       FAILED(factory->CreateFormatConverter(&converter)) ||
       FAILED(converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppBGRA,
           WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom))) return false;
-  WICRect center{static_cast<INT>(width / 2), static_cast<INT>(height / 2), 1, 1};
-  BYTE bgra[4]{};
-  return SUCCEEDED(converter->CopyPixels(&center, 4, 4, bgra)) &&
-      bgra[0] == GetBValue(kFixtureColor) && bgra[1] == GetGValue(kFixtureColor) &&
-      bgra[2] == GetRValue(kFixtureColor) && bgra[3] == 255;
+  const uint64_t stride64 = static_cast<uint64_t>(width) * 4;
+  const uint64_t byteCount = stride64 * height;
+  if (stride64 > UINT_MAX || byteCount > UINT_MAX || byteCount == 0) return false;
+  std::vector<BYTE> pixels(static_cast<size_t>(byteCount));
+  if (FAILED(converter->CopyPixels(nullptr, static_cast<UINT>(stride64),
+          static_cast<UINT>(pixels.size()), pixels.data())) ||
+      expected.x + expected.width > width || expected.y + expected.height > height) return false;
+
+  const auto pixelEquals = [&pixels, width, height](UINT x, UINT y, COLORREF color) {
+    if (x >= width || y >= height) return false;
+    const size_t offset = (static_cast<size_t>(y) * width + x) * 4;
+    return offset + 3 < pixels.size() && pixels[offset] == GetBValue(color) &&
+        pixels[offset + 1] == GetGValue(color) && pixels[offset + 2] == GetRValue(color) &&
+        pixels[offset + 3] == 255;
+  };
+  const auto regionEquals = [&pixelEquals](UINT x, UINT y, COLORREF color) {
+    for (UINT row = 0; row < kMarkerSize; ++row) {
+      for (UINT column = 0; column < kMarkerSize; ++column) {
+        if (!pixelEquals(x + column, y + row, color)) return false;
+      }
+    }
+    return true;
+  };
+  const UINT rightMarkerX = expected.x + expected.width - kMarkerInset - kMarkerSize;
+  const UINT bottomMarkerY = expected.y + expected.height - kMarkerInset - kMarkerSize;
+  const bool corners = regionEquals(expected.x + kMarkerInset, expected.y + kMarkerInset, kTopLeftColor) &&
+      regionEquals(rightMarkerX, expected.y + kMarkerInset, kTopRightColor) &&
+      regionEquals(expected.x + kMarkerInset, bottomMarkerY, kBottomLeftColor) &&
+      regionEquals(rightMarkerX, bottomMarkerY, kBottomRightColor);
+  const bool edges = pixelEquals(expected.x + expected.width / 2, expected.y, kEdgeColor) &&
+      pixelEquals(expected.x + expected.width - 1, expected.y + expected.height / 2, kEdgeColor) &&
+      pixelEquals(expected.x + expected.width / 2, expected.y + expected.height - 1, kEdgeColor) &&
+      pixelEquals(expected.x, expected.y + expected.height / 2, kEdgeColor);
+  const bool center = pixelEquals(expected.x + expected.width / 2,
+      expected.y + expected.height / 2, kBackgroundColor);
+  std::printf("fixture-pixel-origin=%s fixture-four-corners=%s fixture-client-edges=%s\n",
+      corners && edges && center ? "matched" : "mismatch",
+      corners ? "matched" : "mismatch", edges ? "matched" : "mismatch");
+  return corners && edges && center;
 }
 
-int RunHost(const wchar_t* helper, DWORD mainPID, UINT width, UINT height, FixtureMode mode) {
+int RunHost(const wchar_t* helper, DWORD mainPID, const FixtureGeometry& expected,
+            FixtureMode mode) {
   SECURITY_ATTRIBUTES security{sizeof(security), nullptr, TRUE};
   HANDLE stdoutRead = nullptr, stdoutWrite = nullptr, stderrRead = nullptr, stderrWrite = nullptr;
   if (!CreatePipe(&stdoutRead, &stdoutWrite, &security, 0)) return 10;
@@ -238,24 +391,48 @@ int RunHost(const wchar_t* helper, DWORD mainPID, UINT width, UINT height, Fixtu
     return 12;
   }
   if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED))) return 13;
-  const bool valid = VerifyPNG(png, width, height);
+  const bool valid = VerifyPNG(png, expected);
   CoUninitialize();
-  std::puts(valid ? "native-contract=passed" : "native-contract=failed");
-  return valid ? 0 : 14;
+  if (!valid) {
+    std::puts("capture-png-valid=false viewport-required=true");
+    return 14;
+  }
+
+  const std::string status(diagnostic.begin(), diagnostic.end());
+  const std::string expectedViewport = "\"viewport\":{\"x\":" + std::to_string(expected.x) +
+      ",\"y\":" + std::to_string(expected.y) + ",\"width\":" +
+      std::to_string(expected.width) + ",\"height\":" + std::to_string(expected.height) + "}";
+  if (status.find("\"status\":\"captured\"") == std::string::npos) return 14;
+  if (status.find("\"viewport\":") == std::string::npos) {
+    std::puts("capture-png-valid=true viewport-missing=true");
+    return 19;
+  }
+  if (status.find(expectedViewport) == std::string::npos ||
+      status.find("screenX") != std::string::npos || status.find("screenY") != std::string::npos) {
+    std::puts("capture-png-valid=true viewport-json=mismatch");
+    return 20;
+  }
+  std::printf("fixture-dpi=%u viewport=%u,%u %ux%u\n", expected.dpi,
+      expected.x, expected.y, expected.width, expected.height);
+  std::puts(expected.dpi > USER_DEFAULT_SCREEN_DPI
+      ? "high-dpi-boundary=observed" : "high-dpi-boundary=not-verified");
+  std::puts("capture-png-valid=true viewport-png-alignment=passed");
+  return 0;
 }
 
 int RunMain(const wchar_t* helper, FixtureMode mode) {
+  if (!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)) return 30;
   const HINSTANCE instance = GetModuleHandleW(nullptr);
   FixtureWindow fixture;
+  if (!fixture.ready()) return 21;
   WNDCLASSW windowClass{};
-  windowClass.lpfnWndProc = DefWindowProcW;
+  windowClass.lpfnWndProc = FixtureWindowProc;
   windowClass.hInstance = instance;
-  windowClass.hbrBackground = fixture.brush;
   windowClass.lpszClassName = L"PDSHNativeContract";
   if (!RegisterClassW(&windowClass)) return 20;
   HWND window = CreateWindowExW(WS_EX_WINDOWEDGE, windowClass.lpszClassName,
       L"PDSH native contract fixture", WS_OVERLAPPEDWINDOW, 32, 32, 400, 300,
-      nullptr, nullptr, instance, nullptr);
+      nullptr, nullptr, instance, &fixture);
   fixture.window = window;
   if (!window) return 21;
   ShowWindow(window, SW_SHOWNOACTIVATE);
@@ -267,17 +444,25 @@ int RunMain(const wchar_t* helper, FixtureMode mode) {
   std::printf("fixture-outer=%ldx%ld visible=%ldx%ld\n", outer.right - outer.left,
       outer.bottom - outer.top, visible.right - visible.left, visible.bottom - visible.top);
   UINT width = 0, height = 0;
+  FixtureGeometry geometry{};
   if (mode == FixtureMode::ClosedTarget) {
     SendMessageW(window, WM_CLOSE, 0, 0);
     if (IsWindow(window)) return 25;
     fixture.window = nullptr;
     std::puts("target-close=settled");
-  } else if (!ReadContentSize(window, &width, &height)) return 26;
+  } else if (!ReadContentSize(window, &width, &height) ||
+      !ReadFixtureGeometry(window, width, height, &geometry)) return 26;
+  if (mode != FixtureMode::ClosedTarget) {
+    std::printf("fixture-awareness=per-monitor dpi=%u client=%ux%u relative=%u,%u\n",
+        geometry.dpi, geometry.width, geometry.height, geometry.x, geometry.y);
+  }
   wchar_t executable[32768]{};
   if (!GetModuleFileNameW(nullptr, executable, static_cast<DWORD>(std::size(executable)))) return 23;
   std::wstring command = Quote(executable) + L" --host " + Quote(helper) + L" " +
       std::to_wstring(GetCurrentProcessId()) + L" " + std::to_wstring(width) + L" " +
-      std::to_wstring(height) + L" " + ModeName(mode);
+      std::to_wstring(height) + L" " + std::to_wstring(geometry.x) + L" " +
+      std::to_wstring(geometry.y) + L" " + std::to_wstring(geometry.width) + L" " +
+      std::to_wstring(geometry.height) + L" " + std::to_wstring(geometry.dpi) + L" " + ModeName(mode);
   UniqueHandle job(CreateJobObjectW(nullptr, nullptr));
   JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
   limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
@@ -319,14 +504,28 @@ int RunMain(const wchar_t* helper, FixtureMode mode) {
     if (GetTickCount64() - settlementStart >= 5000) return 28;
     Sleep(5);
   }
+  if (mode == FixtureMode::Capture && exitCode == 0) {
+    FixtureGeometry after{};
+    if (!ReadFixtureGeometry(window, width, height, &after) ||
+        !SameFixtureGeometry(geometry, after)) return 31;
+    std::puts("fixture-geometry-stable=true");
+  }
   return static_cast<int>(exitCode);
 }
 
 int wmain(int argc, wchar_t** argv) {
   FixtureMode mode = FixtureMode::Capture;
-  if (argc == 7 && std::wcscmp(argv[1], L"--host") == 0 && ParseMode(argv[6], &mode)) {
-    return RunHost(argv[2], std::wcstoul(argv[3], nullptr, 10),
-        std::wcstoul(argv[4], nullptr, 10), std::wcstoul(argv[5], nullptr, 10), mode);
+  if (argc == 12 && std::wcscmp(argv[1], L"--host") == 0 && ParseMode(argv[11], &mode)) {
+    FixtureGeometry expected{};
+    const DWORD mainPID = std::wcstoul(argv[3], nullptr, 10);
+    expected.pngWidth = std::wcstoul(argv[4], nullptr, 10);
+    expected.pngHeight = std::wcstoul(argv[5], nullptr, 10);
+    expected.x = std::wcstoul(argv[6], nullptr, 10);
+    expected.y = std::wcstoul(argv[7], nullptr, 10);
+    expected.width = std::wcstoul(argv[8], nullptr, 10);
+    expected.height = std::wcstoul(argv[9], nullptr, 10);
+    expected.dpi = std::wcstoul(argv[10], nullptr, 10);
+    return RunHost(argv[2], mainPID, expected, mode);
   }
   if ((argc != 2 && argc != 3) || (argc == 3 &&
       (std::wcscmp(argv[2], L"--closed-target") != 0 && std::wcscmp(argv[2], L"--abort-helper") != 0))) return 2;

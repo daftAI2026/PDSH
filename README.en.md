@@ -53,6 +53,8 @@ The replacement identity matches the host's signed-in avatar and layout. The det
 
 The unreleased source adds Windows x64 system wallpapers. It selects up to five installed default and theme images; if fewer are available, it shows the actual count. It does not read the user's current wallpaper or download from the network. macOS keeps its existing four-image selection rule. The workbench also adds “Identity masking” for both the sidebar avatar and name, independent of title masking. Toggling it retakes the image and updates the image and switch only on success; failure keeps the existing image. The identity override lasts for the current editing session.
 
+Windows suggestions use the same recognizer and map to the PNG using native client-area offsets bound to that image. Unknown or inconsistent geometry keeps manual drawing available. This source capability has not passed final RC Desktop acceptance.
+
 ```sh
 pnpm install --frozen-lockfile
 pnpm test

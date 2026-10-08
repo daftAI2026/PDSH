@@ -72,7 +72,7 @@ export async function generateTypertArtifacts(root = fileURLToPath(new URL('../'
       [join(root, 'node_modules/typescript/bin/tsc'), '-p', 'tsconfig.remote-types.json'],
       { cwd: root, stdio: 'inherit' },
     )
-    const declarationNames = ['capture-export', 'remote-types', 'window-capture-protocol', 'window-save-protocol', 'system-wallpaper-protocol']
+    const declarationNames = ['capture-export', 'capture-geometry', 'remote-types', 'window-capture-protocol', 'window-save-protocol', 'system-wallpaper-protocol']
     await mkdir(join(root, 'lib/runtime-capabilities/types/shared'), { recursive: true })
     for (const name of declarationNames) await cp(join(root, `lib/types/shared/${name}.d.ts`), join(root, `lib/runtime-capabilities/types/shared/${name}.d.ts`))
     const protocol = '[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n'
@@ -178,11 +178,13 @@ async function writeWorkspaceFiles(workspace: string, packageRoot: string, packa
 function assertCapabilityContract(dts: string, host: string, remote: string): void {
   if (!dts.includes('wallpaper: (request: WallpaperRequest, signal?: AbortSignal) => RemoteStreamHandle<WallpaperFrame, never>')
     || !dts.includes('implementationVersion: () => Promise<RemoteResult<string>>')
+    || !dts.includes('captureGeometryRegistered: () => Promise<RemoteResult<boolean>>')
+    || !dts.includes('captureGeometry: (pngSha256: string) => Promise<RemoteResult<CaptureGeometry | null>>')
     || !dts.includes('wallpaperRegistered: () => Promise<RemoteResult<boolean>>')) throw new Error('official runtime capability declarations drifted')
   for (const source of [host, remote]) {
     const namespaces = [...new Set([...source.matchAll(/namespace: '([^']+)'/g)].map(match => match[1]))]
     if (namespaces.length !== 1 || namespaces[0] !== 'pdshRuntimeCapabilities') throw new Error('runtime capabilities must use their own namespace')
-    for (const method of ['implementationVersion', 'wallpaperRegistered', 'wallpaper']) {
+    for (const method of ['implementationVersion', 'wallpaperRegistered', 'wallpaper', 'captureGeometryRegistered', 'captureGeometry']) {
       if (!source.includes(`method: '${method}'`)) throw new Error(`official runtime capability missing ${method}`)
     }
   }

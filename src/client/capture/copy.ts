@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖调用方传入的 locale、shared 封闭壁纸 ID，并遵循截图编辑器已经确认的产品术语
- * [OUTPUT]: 对外提供 CaptureWindowCopy 双语文案/版本壁纸名称、标题与身份遮罩说明、图库动作和固定失败码提示选择器
+ * [OUTPUT]: 对外提供 CaptureWindowCopy 双语文案/版本壁纸名称、标题与身份遮罩说明、图库动作和固定失败码提示选择器；系统壁纸提示不暗示各平台使用同一获取路径
  * [POS]: 唯一文案边界；身份说明描述头像与名称遮罩范围，语言归 Host
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -122,7 +122,7 @@ const ENGLISH: CaptureWindowCopy = {
   loadWallpapers: "Get system wallpapers",
   retryWallpapers: "Retry missing wallpapers",
   retryWallpaper: "Click to retry",
-  wallpaperDownloadHint: "Uses local wallpapers first; downloads missing ones.",
+  wallpaperDownloadHint: "Get the system wallpapers available on this platform.",
   maskColor: "Mask color",
   mosaic: "Mosaic",
   move: "Move",
@@ -203,7 +203,7 @@ const CHINESE: CaptureWindowCopy = {
   loadWallpapers: "获取系统壁纸",
   retryWallpapers: "补取缺失壁纸",
   retryWallpaper: "点击重试",
-  wallpaperDownloadHint: "优先使用本机素材，缺失时自动下载。",
+  wallpaperDownloadHint: "获取当前平台可用的系统壁纸。",
   maskColor: "遮罩颜色",
   mosaic: "马赛克",
   move: "移动",

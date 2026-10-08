@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 精确 DSH Host、候选归档与官方 PNPM。Windows 用真实 ACL 验临时路径所有权。
- * [OUTPUT]: 验官方安装、基础/内部能力版本、严格注册与生命周期。不取像或下载媒体。
+ * [OUTPUT]: 验官方安装、基础与壁纸/几何能力版本、严格注册与生命周期。不取像或下载媒体。
  * [POS]: 仓库根目录的集成验收入口；只操作调用方指定且 owner/权限验证的临时 profile，不改写 DSH 用户 profile 或替代官方解析器。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -191,7 +191,7 @@ async function waitWindowCapability(ctx: any, present: boolean, identity: Accept
       ...['capture', 'save', 'wallpaper'].map(method => Boolean(ctx.typert.local.get(`pdshNativeWindowCapture/${method}`)))]
     if (!present) states.push(Boolean(ctx.get('pdshRuntimeCapabilities')),
       Boolean(ctx.typert.getPackage(`${identity.name}-capabilities`, 'host')),
-      ...['implementationVersion', 'wallpaperRegistered', 'wallpaper'].map(method => Boolean(ctx.typert.local.get(`pdshRuntimeCapabilities/${method}`))))
+      ...['implementationVersion', 'wallpaperRegistered', 'wallpaper', 'captureGeometryRegistered', 'captureGeometry'].map(method => Boolean(ctx.typert.local.get(`pdshRuntimeCapabilities/${method}`))))
     if (states.every(value => value === present)) return
     await new Promise(resolve => setTimeout(resolve, 10))
   }
@@ -204,16 +204,18 @@ async function assertRuntimeCapabilities(ctx: any, identity: AcceptanceIdentity,
   assert.ok(service, '当前业务未装配内部能力 service')
   assert.equal(await service.implementationVersion(), version, '内部能力不是当前安装版本')
   assert.equal(service.wallpaperRegistered(), true, '内部能力未授权壁纸接口')
+  assert.equal(service.captureGeometryRegistered(), true, '内部能力未注册当前几何接口')
+  assert.equal(await service.captureGeometry('0'.repeat(64)), null, '未取像时不得伪造几何记录')
   const owner = `${identity.name}-capabilities`
   assert.ok(ctx.typert.getPackage(owner, 'host'), '缺少真实内部包反射 owner')
-  for (const method of ['implementationVersion', 'wallpaperRegistered', 'wallpaper']) {
+  for (const method of ['implementationVersion', 'wallpaperRegistered', 'wallpaper', 'captureGeometryRegistered', 'captureGeometry']) {
     const descriptor = ctx.typert.local.get(`pdshRuntimeCapabilities/${method}`)
     assert.ok(descriptor, `内部能力缺少 ${method} descriptor`)
     assert.equal(descriptor.service, 'pdshRuntimeCapabilities')
     assert.ok(descriptor.id.startsWith(`${owner}#`))
     assert.equal(descriptor.result.mode, 'strict', '禁止退化为 SRC JSON')
   }
-  console.log(`PASS runtime-capabilities: implementationVersion=${version}; real owner, strict descriptors, pure wallpaper handshake (no media requested)`)
+  console.log(`PASS runtime-capabilities: implementationVersion=${version}; real owner, strict descriptors, wallpaper/geometry handshakes and empty record (no media requested)`)
 }
 
 function assertPnpm11(manager: PackageManagerCommand, profile: string): void {

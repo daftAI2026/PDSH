@@ -1,12 +1,13 @@
 /**
  * [INPUT]: 依赖一个生成的 RemoteStreamHandle、fixed CaptureFrame 与浏览器 Image/Blob URL。
- * [OUTPUT]: 单次消费且界限检查整条流，校验 PNG envelope/CRC 并由浏览器 decoder 接受后交付一个本地 URL。
+ * [OUTPUT]: 单次校验 PNG 后交付本地 URL；可选几何查询绑定同张 PNG 摘要，扩展失败保留照片。
  * [POS]: Client 数据边界；载荷只驻留内存，失败/取消撤销临时 URL，不做重连或再次采集。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { RemoteStreamHandle } from '@deepseek-ai/dsh-typert-protocol'
 import { CAPTURE_LIMITS, CAPTURE_FAILURE_CODES } from '../../shared/window-capture-protocol.ts'
 import type { CaptureFailureCode, CaptureFrame, CapturePhase } from '../../shared/window-capture-protocol.ts'
+import { isCaptureGeometry, CAPTURE_GEOMETRY_QUERY_TIMEOUT_MS, type CaptureGeometry } from '../../shared/capture-geometry.ts'
 
 /** 经净化的固定 Client 结果码；原始 carrier error 不越过此边界。 */
 export type CaptureClientErrorCode = CaptureFailureCode | 'invalid-capture' | 'stream-failed' | 'runtime-not-current'
@@ -29,6 +30,7 @@ export interface LocalCapture {
   readonly height: number
   readonly pointPixelScale: number
   readonly scope: 'owned-window'
+  readonly geometry?: CaptureGeometry
   release(): void
 }
 
@@ -39,6 +41,8 @@ export interface ConsumeCaptureOptions {
   readonly revokeObjectURL?: (url: string) => void
   readonly decode?: (url: string, expected: { width: number; height: number }, signal?: AbortSignal) => Promise<{ width: number; height: number }>
   readonly onProgress?: (phase: CapturePhase) => void
+  readonly crypto?: Pick<Crypto, 'subtle'>
+  readonly readGeometry?: (pngSha256: string, signal?: AbortSignal) => Promise<unknown>
 }
 
 interface CaptureRemoteMethod {
@@ -76,6 +80,8 @@ export async function consumeCaptureOnce(
     if (decoded.width !== png.width || decoded.height !== png.height) {
       throw new CaptureClientError('invalid-capture')
     }
+    const geometry = await readOptionalGeometry(png, options)
+    if (signal?.aborted) throw new CaptureClientError('cancelled')
     succeeded = true
     let released = false
     return {
@@ -84,6 +90,7 @@ export async function consumeCaptureOnce(
       height: png.height,
       scope: 'owned-window',
       pointPixelScale: png.pointPixelScale,
+      ...(geometry ? { geometry } : {}),
       release() {
         if (released) return
         released = true
@@ -109,6 +116,36 @@ export async function consumeCaptureOnce(
 }
 
 interface ReceivedPng { readonly bytes: Uint8Array; readonly width: number; readonly height: number; readonly pointPixelScale: number }
+
+/** 元数据超时只撤回候选；取消仍归还 carrier 和 Blob URL。 */
+async function readOptionalGeometry(png: ReceivedPng, options: ConsumeCaptureOptions): Promise<CaptureGeometry | undefined> {
+  if (!options.readGeometry) return undefined
+  const crypto = options.crypto ?? globalThis.crypto
+  if (!crypto?.subtle || options.signal?.aborted) return undefined
+  const controller = new AbortController()
+  let timer: ReturnType<typeof setTimeout>, onAbort: (() => void) | undefined, active = true
+  const stopped = new Promise<undefined>(resolve => {
+    onAbort = () => { controller.abort(); resolve(undefined) }
+    timer = setTimeout(onAbort, CAPTURE_GEOMETRY_QUERY_TIMEOUT_MS)
+    options.signal?.addEventListener('abort', onAbort, { once: true })
+    if (options.signal?.aborted) onAbort()
+  })
+  try {
+    const pending = (async () => {
+      const digest = await crypto.subtle.digest('SHA-256', png.bytes as Uint8Array<ArrayBuffer>)
+      if (!active || options.signal?.aborted) return undefined
+      const sha = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
+      const value = await options.readGeometry(sha, controller.signal)
+      return isCaptureGeometry(value, png) ? { ...value } : undefined
+    })().catch(() => undefined)
+    return await Promise.race([pending, stopped])
+  } finally {
+    active = false
+    controller.abort()
+    clearTimeout(timer)
+    if (onAbort) options.signal?.removeEventListener('abort', onAbort)
+  }
+}
 
 async function receiveFrames(
   handle: RemoteStreamHandle<CaptureFrame, never>,

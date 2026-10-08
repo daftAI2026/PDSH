@@ -1,13 +1,15 @@
 # tests/
 > L2 | 父级: ../CLAUDE.md
 
+- `capture-geometry.test.ts`: 闭集 DTO、PNG 内整数矩形、比例与摘要语法。验证查询时限常量；不证明原生对位或 Host 链路。
+
 - `native-baseline.test.ts`: 固定 Mac 原生闭包的复用合同。逐项改动输入和助手，验证 Windows RC 拒绝异源产物。
 - `windows-temp-ownership.test.ts`: 真实文件和目录 ACL 合同。拒绝叶写权限、继承写权限和祖先 Delete/DeleteChild；非空目录拒绝后 ACL 不变。
 - `windows-rc-archive.test.ts`: 真实 Windows npm/tar 的权限红绿合同。验实际归档 0755，拒绝模式漂移并保留成员和字节门。
 - `typert-generator-platform.test.ts`: 在临时副本运行真实官方生成器。Windows junction 与 Node 驱动 tsc；LF/CRLF 同源通过，内容漂移和裸 CR 拒绝。
-- `windows-capture-fixture.cpp`: 自有 Main→Host→helper 链。WGC/WIC 验内容与容量差异、PNG 尺寸和像素；启动前目标关闭与助手异常终止必须无 PNG。真实 EOF 和 Job 归零证明结算。
+- `windows-capture-fixture.cpp`: 自有 PMv2 Main→Host→helper 链。WGC/WIC 验 DWM 相对 viewport JSON、四角标记、客户区边线与 PNG 像素对位；保持尺寸差异、关闭和异常终止合同。真实 EOF 和 Job 归零证明结算。
 - `windows-wallpaper-contract.ps1`: 固定 Windows/img0,img19、ThemeA-D代表材料及Theme1/Theme2代表材料序，最多五项；核内容 ID、顺序、真实 JPEG 解码与字节边界。输出中途取消等待 helper 实际退出；不枚举目录或访问 Desktop profile。
-- `windows-capture-contract.ps1`: 默认重建助手，运行正常取像、目标关闭和启动取消三项合同。指定 HelperPath 时验该产物；不冒充 WGC 中途撤权。
+- `windows-capture-contract.ps1`: 将助手重建到带所有权标记的自有临时 staging；运行 viewport/像素、目标关闭和启动取消合同。可对 SHA 固定 RC5 产物验证缺 viewport 红结果；不冒充 WGC 中途撤权。
 
 - `capture-failure-observation.test.ts`: 公开失败码双语提示与旧后台/连接未知分账，从控制器到通知/logger的红绿回归，拒绝未知code泄漏；不替代实机链路验收。
 
@@ -77,16 +79,16 @@
 - `bundle-artifacts.test.ts`: 双语 README 与内部能力面的真实 tgz 闭包。核 Mac universal、Windows x64/asInvoker、执行位和字节。拒绝子依赖、宽泛 files 与安装 hook，不执行安装。
 - `capture-defaults.test.ts`: 旧导出默认只通过根 pdsh revision 修正；自定义值、已移除子域与迟到卸载不覆盖偏好。
 
-- `window-capture-controller.test.ts`: 整窗元数据比例、禁猜页面坐标和人工授权等待的 Client 合同，不冒充实机证据。
+- `window-capture-controller.test.ts`: 共享识别器的 Mac 零偏移与 Windows 客户区映射。拒绝缺失、错尺寸、错比例与移动几何；照片保留手绘。不冒充实机证据。
 
-- `window-capture-client-stream.test.ts`: 整窗元数据、帧序/PNG envelope/CRC/浏览器解码接缝及取消释放；不是实机像素证据。
+- `window-capture-client-stream.test.ts`: PNG 帧序、CRC 与解码边界。可选几何绑定同图 SHA；超时保留照片，取消释放资源。不证明实机像素。
 
 - `window-save-client.test.ts`: ACK 背压、finish 半关闭、真实保存回执和完整截图配置的目录 revision 围栏；旧 Host 不开 picker/不 mutate，等待期间 schema 回退不接受 fallback，不冒充实机保存。
 
 - `window-save-backend.test.ts`: 纯 Host 有界 uplink、真实 Chromium Canvas sRGB ICC字节保留/未知metadata拒绝、accepted POSIX/Windows native-path双边界、UNC share-root规范化、配置/生命周期围栏与临时目录真实独占提交/不覆盖合同；仅非Windows断言 POSIX 0600 mode，Windows 文件 mode 不代表 ACL，Windows专项路径用例须在Windows runner运行。
 - `window-save-roundtrip.test.ts`: 实际 Client↔Host 双向状态机和两块PNG落盘/重复basename编号；内存carrier不是DSH实机Gateway。
 
-- `window-capture-stream.test.ts`: Host 惰性取像、整窗帧、单航班真实结算与取消时事件循环不自旋的定时器合同，不执行 helper。
+- `window-capture-stream.test.ts`: Host 惰性取像、固定基础帧与单航班结算。几何不进入基础帧；自然完成才提交记录，晚错和提前归还拒绝。不执行 helper。
 
 - `window-capture-typert.test.ts`: 官方基础/内部能力面分域、真实内部 owner、自引用 DTO、流与纯握手。静态证据不冒充实际 Host。
 - `native-window-capture.test.ts`: fake子进程/时钟的原生包装器、CRC/PNG封套、真实close/单航班结算合同；覆盖Mac universal 与 Win x64 路由、包内 exe provider gate、hidden/non-shell argv、ARM64 拒绝及取消强杀等待；只读Mach-O验证Mac双架构，不运行真实helper。
@@ -112,11 +114,11 @@
 
 - `capture-background-tabs.test.ts`: 原生 SegmentedControl 参数/受控更新/忙碌与卸载围栏，根桩不模拟 Host 键盘或视觉。
 
-- `capture-runtime-loader.test.ts`: v1/v2基础合同和wallpaper扩展独立验收；旧实例真实结算，不取像。
-- `capture-runtime-legacy-upgrade.test.ts`: 固定历史壳/反射面，v1 换载新增严格能力并撤销；v2 拒绝 v1。真实 Cordis/Registry 和空 Settings 不证明 Gateway 或实机。
+- `capture-runtime-loader.test.ts`: 基础换载与壁纸可选合同。缺失壁纸不阻断基础；旧实例结算后换代，不取像。
+- `capture-runtime-legacy-upgrade.test.ts`: 固定历史壳换载真实 payload。真实能力服务检查几何 marker 与方法，严格注册独立接口；摘要记录撤权时清空。不证明 Gateway 或实机。
 - `runtime-upgrade-fixtures/CLAUDE.md`: 固定Loader、身份、manifest和payload字节；测试不调用Git。
 
-- `capture-runtime-readiness.test.ts`: 固定实际版本封套、独立壁纸握手与取消围栏；扩展未知不阻断基础版本，旧后台与连接未知分账。不取像。
+- `capture-runtime-readiness.test.ts`: 基础版本与壁纸、几何握手独立校验。扩展缺失不撤回基础；取消拒绝继续。封套桩不证明 Host 或像素。
 
 - `capture-runtime-location.test.ts`: 稳定/RC 构建身份只接受同名 manifest；真实 realpath/ESM 换载并拒绝 foreign 包和包根外模块，非 Manager/实机验收。
 
