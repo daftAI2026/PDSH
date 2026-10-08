@@ -1,5 +1,5 @@
 # [INPUT]: 依赖本机 Windows 系统壁纸、已构建的 x64 helper、系统真实图像解码器。
-# [OUTPUT]: 验证固定内置壁纸、ID 授权、WIC JPEG、输出边界与真实 helper 取消结算。
+# [OUTPUT]: 验证最多五项固定内置壁纸、ID 授权、WIC JPEG、输出边界与真实 helper 取消结算。
 # [POS]: Windows 壁纸 helper 的真实系统资源回归入口；只在内存处理图像，不访问用户 profile。
 # [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 [CmdletBinding()]
@@ -286,17 +286,25 @@ function Test-JpegInMemory([byte[]]$Jpeg, [int]$ExpectedWidth, [int]$ExpectedHei
   }
 }
 
-function Get-ExpectedContentId([string]$Token) {
-  Assert-Contract ($Token -in @('img0', 'img19')) 'source-token-invalid'
+function Get-ExpectedContentId($Source) {
   $windowsDirectory = [PdshWallpaperContractRunner]::WindowsDirectory()
   Assert-Contract ($windowsDirectory -is [string] -and $windowsDirectory.Length -gt 0) 'system-root-unavailable'
-  $sourcePath = Join-Path (Join-Path (Join-Path $windowsDirectory 'Web') 'Wallpaper\Windows') ($Token + '.jpg')
+  $wallpaperRoot = Join-Path (Join-Path $windowsDirectory 'Web') 'Wallpaper'
+  $directoryPath = Join-Path $wallpaperRoot $Source.Directory
+  if (-not (Test-Path -LiteralPath $directoryPath -PathType Container)) { return $null }
+  $directory = Get-Item -LiteralPath $directoryPath -Force
+  Assert-Contract (($directory.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -eq 0) 'source-directory-reparse'
+  $sourcePath = Join-Path $directoryPath $Source.File
+  if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) { return $null }
+  $sourceFile = Get-Item -LiteralPath $sourcePath -Force
+  Assert-Contract (($sourceFile.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -eq 0) 'source-file-reparse'
+  if ($sourceFile.Length -gt 67108864) { return $null }
   $sourceBytes = [System.IO.File]::ReadAllBytes($sourcePath)
   Assert-Contract ($sourceBytes.Length -gt 0 -and $sourceBytes.Length -le 67108864) 'source-size-invalid'
   $hash = [System.Security.Cryptography.IncrementalHash]::CreateHash([System.Security.Cryptography.HashAlgorithmName]::SHA256)
   try {
     $domain = [System.Text.Encoding]::ASCII.GetBytes('PDSH/windows-system-wallpaper/v1' + [char]0)
-    $tokenBytes = [System.Text.Encoding]::ASCII.GetBytes($Token)
+    $tokenBytes = [System.Text.Encoding]::ASCII.GetBytes($Source.Token)
     $separator = [byte[]]@(0)
     $hash.AppendData($domain)
     $hash.AppendData($tokenBytes)
@@ -307,6 +315,31 @@ function Get-ExpectedContentId([string]$Token) {
     [Array]::Clear($sourceBytes, 0, $sourceBytes.Length)
     $hash.Dispose()
   }
+}
+
+function New-ExpectedSources {
+  $separator = [char]0x00B7
+  $candidates = @(
+    @{ Directory = 'Windows'; File = 'img0.jpg'; Token = 'img0'; Name = [string]::Concat('Windows ', $separator, ' img0') },
+    @{ Directory = 'Windows'; File = 'img19.jpg'; Token = 'img19'; Name = [string]::Concat('Windows ', $separator, ' img19') },
+    @{ Directory = 'ThemeA'; File = 'img20.jpg'; Token = 'ThemeA/img20'; Name = [string]::Concat('ThemeA ', $separator, ' img20') },
+    @{ Directory = 'ThemeB'; File = 'img24.jpg'; Token = 'ThemeB/img24'; Name = [string]::Concat('ThemeB ', $separator, ' img24') },
+    @{ Directory = 'ThemeC'; File = 'img28.jpg'; Token = 'ThemeC/img28'; Name = [string]::Concat('ThemeC ', $separator, ' img28') },
+    @{ Directory = 'ThemeD'; File = 'img32.jpg'; Token = 'ThemeD/img32'; Name = [string]::Concat('ThemeD ', $separator, ' img32') },
+    @{ Directory = 'Theme1'; File = 'img1.jpg'; Token = 'Theme1/img1'; Name = [string]::Concat('Theme1 ', $separator, ' img1') },
+    @{ Directory = 'Theme2'; File = 'img7.jpg'; Token = 'Theme2/img7'; Name = [string]::Concat('Theme2 ', $separator, ' img7') },
+    @{ Directory = 'Theme1'; File = 'img2.jpg'; Token = 'Theme1/img2'; Name = [string]::Concat('Theme1 ', $separator, ' img2') },
+    @{ Directory = 'Theme2'; File = 'img8.jpg'; Token = 'Theme2/img8'; Name = [string]::Concat('Theme2 ', $separator, ' img8') }
+  )
+  $expected = [System.Collections.Generic.List[object]]::new()
+  foreach ($candidate in $candidates) {
+    $id = Get-ExpectedContentId $candidate
+    if ($id) {
+      $expected.Add([pscustomobject]@{ id = $id; name = $candidate.Name })
+      if ($expected.Count -eq 5) { break }
+    }
+  }
+  return $expected.ToArray()
 }
 
 try {
@@ -326,8 +359,25 @@ try {
     $script:step = 'baseline'
     $baseline = (Resolve-Path -LiteralPath $BaselineHelperPath).Path
     $old = [PdshWallpaperContractRunner]::Run($baseline, '--wallpaper-list', 10000, 4096, 1024)
-    Assert-Contract (-not $old.TimedOut -and -not $old.Oversized) 'baseline-helper-timeout'
-    Assert-Contract ($old.ExitCode -ne 0 -and $old.Stdout.Length -eq 0) 'baseline-wallpaper-command-unexpectedly-passed'
+    Assert-Contract (-not $old.TimedOut -and -not $old.Oversized -and $old.ExitCode -eq 0 -and $old.Stderr.Length -eq 0) 'baseline-list-failed'
+    $baselineCatalog = Get-SingleJsonLine $old.Stdout 'baseline-catalog-invalid'
+    Assert-Contract ($baselineCatalog.status -eq 'listed' -and $baselineCatalog.PSObject.Properties.Name.Count -eq 2) 'baseline-status-invalid'
+    $baselineEntries = @($baselineCatalog.entries)
+    Assert-Contract ($baselineEntries.Count -le 5) 'baseline-count-invalid'
+    $separator = [char]0x00B7
+    $legacyNames = @([string]::Concat('Windows ', $separator, ' img0'), [string]::Concat('Windows ', $separator, ' img19'))
+    $knownNames = @((New-ExpectedSources) | ForEach-Object { $_.name })
+    foreach ($baselineEntry in $baselineEntries) {
+      Assert-Contract ($baselineEntry.PSObject.Properties.Name.Count -eq 4 -and
+        $baselineEntry.name -in $knownNames -and
+        $baselineEntry.available -eq $true -and $baselineEntry.downloadable -eq $false -and
+        $baselineEntry.id -match '^system-wallpaper-image-[a-f0-9]{64}$') 'baseline-entry-invalid'
+    }
+    $legacyEntries = @($baselineEntries | Where-Object { $_.name -in $legacyNames })
+    foreach ($legacy in $legacyEntries) {
+      Assert-Contract ($legacy.name -in $legacyNames -and
+        $legacy.id -match '^system-wallpaper-image-[a-f0-9]{64}$') 'baseline-entry-invalid'
+    }
   }
 
   $script:step = 'decoder'
@@ -338,21 +388,28 @@ try {
   $catalog = Get-SingleJsonLine $listed.Stdout 'catalog-envelope-invalid'
   Assert-Contract ($catalog.status -eq 'listed' -and $catalog.PSObject.Properties.Name.Count -eq 2) 'catalog-status-invalid'
   $entries = @($catalog.entries)
-  Assert-Contract ($entries.Count -ge 1 -and $entries.Count -le 2) 'catalog-count-invalid'
-  $separator = [char]0x00B7
-  $expectedNames = @([string]::Concat('Windows ', $separator, ' img0'), [string]::Concat('Windows ', $separator, ' img19'))
+  $expectedEntries = @(New-ExpectedSources)
+  Assert-Contract ($expectedEntries.Count -ge 1 -and $expectedEntries.Count -le 5) 'expected-source-count-invalid'
+  Assert-Contract ($entries.Count -eq $expectedEntries.Count) 'catalog-count-invalid'
   $seen = @{}
-  foreach ($entry in $entries) {
+  for ($index = 0; $index -lt $entries.Count; $index++) {
+    $entry = $entries[$index]
     $script:step = 'load'
     Assert-Contract ($entry.PSObject.Properties.Name.Count -eq 4) 'catalog-entry-shape-invalid'
     Assert-Contract ($entry.id -match '^system-wallpaper-image-[a-f0-9]{64}$') 'catalog-id-invalid'
-    Assert-Contract ($entry.name -in $expectedNames) 'catalog-name-invalid'
+    Assert-Contract ($entry.id -eq $expectedEntries[$index].id -and $entry.name -eq $expectedEntries[$index].name) 'catalog-order-invalid'
     Assert-Contract ($entry.available -eq $true -and $entry.downloadable -eq $false) 'catalog-availability-invalid'
-    $token = $entry.name.Substring($entry.name.LastIndexOf(' ') + 1)
-    Assert-Contract ($entry.id -eq (Get-ExpectedContentId $token)) 'catalog-content-id-invalid'
     Assert-Contract (-not $seen.ContainsKey($entry.id) -and -not $seen.ContainsKey($entry.name)) 'catalog-duplicate'
     $seen[$entry.id] = $true
     $seen[$entry.name] = $true
+  }
+  if ($BaselineHelperPath) {
+    foreach ($legacy in $legacyEntries) {
+      $current = @($entries | Where-Object { $_.name -eq $legacy.name })
+      Assert-Contract ($current.Count -eq 1 -and $current[0].id -eq $legacy.id) 'legacy-windows-id-changed'
+    }
+    [Array]::Clear($old.Stdout, 0, $old.Stdout.Length)
+    [Array]::Clear($old.Stderr, 0, $old.Stderr.Length)
   }
 
   foreach ($entry in $entries) {
@@ -406,7 +463,7 @@ try {
 
   [Array]::Clear($listed.Stdout, 0, $listed.Stdout.Length)
   [Array]::Clear($listed.Stderr, 0, $listed.Stderr.Length)
-  [Console]::WriteLine('windows-wallpaper-contract=passed')
+  [Console]::WriteLine('windows-wallpaper-contract=passed entries=' + $entries.Count)
   exit 0
 } catch {
   $failureCode = 'unexpected-' + $_.Exception.GetType().Name.ToLowerInvariant()

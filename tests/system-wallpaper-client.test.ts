@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 Client 系统壁纸 Remote adapter、封闭共享 DTO 与系统壁纸选择控制器。
- * [OUTPUT]: 验证动态ID活动目录顺序/资格、显式媒体加载、固定Host失败码保真且未知码不泄露、JPEG预算/终态/解码取消、销毁settlement，以及单批入口取代未缓存占位。
+ * [OUTPUT]: 验证最多五项动态ID活动目录顺序/资格、显式媒体加载、固定Host失败码保真且未知码不泄露、JPEG预算/终态/解码取消、销毁settlement，以及单批入口取代未缓存占位。
  * [POS]: 系统壁纸 Client 专项合同；不连接网络、不触及本机桌面素材或真实 DSH。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -91,6 +91,24 @@ test('listing accepts available or downloadable IDs in Host order, keeps legacy 
   ]);
   assert.deepEqual(entries.map(entry => entry.id), [futureStillId, SYSTEM_WALLPAPER_IDS[0], futureVideoId],
     'the Client preserves the current Host catalog order rather than imposing a historical order');
+});
+
+test('listing accepts five Windows image candidates and preserves their native order', async () => {
+  const windowsEntries = [
+    ['a', 'Windows · img0'],
+    ['b', 'Windows · img19'],
+    ['c', 'Windows · ThemeA20'],
+    ['d', 'Windows · ThemeB24'],
+    ['e', 'Windows · ThemeC28'],
+  ].map(([hash, name]) => catalogEntry(`system-wallpaper-image-${hash!.repeat(64)}`, {
+    name: name!, available: true, downloadable: false,
+  }));
+  const source = handleOf(catalogFrames(windowsEntries));
+  const adapter = createSystemWallpaperRemoteAdapter({ wallpaper: () => source.handle });
+  const listed = await adapter.list();
+  assert.equal(listed.length, 5);
+  assert.deepEqual(listed.map(({ id, name }) => ({ id, name })), windowsEntries.map(({ id, name }) => ({ id, name })));
+  assert.equal(source.disposed, 1);
 });
 
 test('downloadable-only rows become loadable only after the current explicit catalog response', async () => {

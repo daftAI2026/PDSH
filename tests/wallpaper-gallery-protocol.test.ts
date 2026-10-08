@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖shared本地图库身份、记录校验与容量预算，不访问浏览器/网络/用户文件。
- * [OUTPUT]: 验证稳定/RC隔离、封闭ID、媒体预算、缩略图安全与路径/文件名字段拒绝。
+ * [INPUT]: 依赖shared本地图库身份、可选系统语义名校验与容量预算，不访问浏览器/网络/用户文件。
+ * [OUTPUT]: 验证稳定/RC隔离、封闭ID、固定36项总预算、旧无名记录兼容及用户语义名字段拒绝。
  * [POS]: 持久图库的纯合同；真实IDB事务、重开与Desktop验收分别记证。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -31,7 +31,21 @@ test('系统只缓存有界JPEG静帧，用户图片可保留PNG/WebP透明但�
   assert.equal(isWallpaperGalleryAsset({ ...asset(), width: 2601 }), false);
   assert.equal(isWallpaperGalleryAsset({ ...asset(), id: userId, sourceType: 'image', width: 100_000, height: 100_000 }), false);
   assert.equal(isWallpaperGalleryAsset({ ...asset(), id: userId, blob: new Blob(['svg'], { type: 'image/svg+xml' }) }), false);
-  assert.equal(WALLPAPER_GALLERY_LIMITS.maxEntries, WALLPAPER_GALLERY_LIMITS.maxUserEntries + 4);
+  assert.equal(WALLPAPER_GALLERY_LIMITS.maxEntries, 36,
+    'gallery capacity remains fixed when the active system catalog grows');
+});
+
+test('系统图库可选保存已校验语义名，旧记录兼容且用户图不得携带该字段', () => {
+  const dynamicSystemId = `system-wallpaper-image-${'b'.repeat(64)}`;
+  assert.equal(isWallpaperGalleryAsset({ ...asset(), id: dynamicSystemId, systemName: 'Windows · img0' }), true);
+  assert.equal(isWallpaperGalleryAsset(asset()), true, 'v1 records without a semantic name remain valid');
+  assert.equal(isWallpaperGalleryAsset({ ...asset(), id: userId, sourceType: 'image',
+    blob: new Blob(['png'], { type: 'image/png' }), systemName: 'Windows · img0' }), false);
+  const inheritedName = Object.assign(Object.create({ systemName: 'Windows · img0' }), {
+    ...asset(), id: userId, sourceType: 'image', blob: new Blob(['png'], { type: 'image/png' }),
+  });
+  assert.equal(isWallpaperGalleryAsset(inheritedName), false, 'prototype metadata is not an accepted system name field');
+  assert.equal(isWallpaperGalleryAsset({ ...asset(), systemName: 'x'.repeat(97) }), false);
 });
 
 test('记录不得混入原路径/文件名/外部缩略URL或截图字段', () => {

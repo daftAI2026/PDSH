@@ -9,7 +9,7 @@
 
 成员清单
 `window-capture.cpp`: WGC 单窗编排器。归属门先于取像。帧池尺寸仅定容量；按 ContentSize 验纹理边界并编码 PNG。窗口快照独立复核稳定性。
-`system-wallpaper.cpp`: 固定默认图片的句柄边界、reparse/身份/预算校验。BCrypt 内容 ID 绑定来源字节；WIC 输出单帧 JPEG。
+`system-wallpaper.cpp`: 固定序列 Windows/img0,img19、ThemeA/img20、ThemeB/img24、ThemeC/img28、ThemeD/img32、Theme1/img1、Theme2/img7、Theme1/img2、Theme2/img8，最多取五项且不枚举。保留旧 Windows ID；主题 ID 绑定目录与来源字节。句柄拒 reparse 并复核目录/文件身份，WIC 输出有界 JPEG。
 `system-wallpaper.h`: 同一 helper 的 ID-only 壁纸命令分派；不接受用户路径或 URL。
 `window-owner.cpp`: Host→Main 身份链与窗口归属实现；复核 helper/Host/Main 的 PID 创建代际、同路径/同用户、唯一可见普通窗口及窗口状态漂移
 `window-owner.h`: Windows helper 内部状态码、进程/窗口快照与归属校验接口；避免 capture 编排器重复实现 Win32 身份规则

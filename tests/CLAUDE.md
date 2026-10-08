@@ -6,14 +6,14 @@
 - `windows-rc-archive.test.ts`: 真实 Windows npm/tar 的权限红绿合同。验实际归档 0755，拒绝模式漂移并保留成员和字节门。
 - `typert-generator-platform.test.ts`: 在临时副本运行真实官方生成器。Windows junction 与 Node 驱动 tsc；LF/CRLF 同源通过，内容漂移和裸 CR 拒绝。
 - `windows-capture-fixture.cpp`: 自有 Main→Host→helper 链。WGC/WIC 验内容与容量差异、PNG 尺寸和像素；启动前目标关闭与助手异常终止必须无 PNG。真实 EOF 和 Job 归零证明结算。
-- `windows-wallpaper-contract.ps1`: 当前 helper 的真实系统壁纸列表、内容 ID、JPEG 解码和字节合同。中途取消等待实际退出；不访问 Desktop profile。
+- `windows-wallpaper-contract.ps1`: 固定 Windows/img0,img19、ThemeA-D代表材料及Theme1/Theme2代表材料序，最多五项；核内容 ID、顺序、真实 JPEG 解码与字节边界。输出中途取消等待 helper 实际退出；不枚举目录或访问 Desktop profile。
 - `windows-capture-contract.ps1`: 默认重建助手，运行正常取像、目标关闭和启动取消三项合同。指定 HelperPath 时验该产物；不冒充 WGC 中途撤权。
 
 - `capture-failure-observation.test.ts`: 公开失败码双语提示与旧后台/连接未知分账，从控制器到通知/logger的红绿回归，拒绝未知code泄漏；不替代实机链路验收。
 
 这些 TypeScript 合同运行在 Node/jsdom；只能证明源码和生成产物，不替代 Desktop 实窗验收。
 
-- `system-wallpaper-acquisition-view.test.ts`: 双语Get/静默后台/来源分组与个人plus；完整缓存仍可显式刷新、动态素材顺序最多四项、无长tooltip，失败alert/固定码仍保留；不冒充Desktop绘制。
+- `system-wallpaper-acquisition-view.test.ts`: 双语Get/静默后台/来源分组与个人plus；使用四项Mac legacy样本验完整缓存仍可显式刷新，持久名称保留精确ARIA标签且无长tooltip，失败alert/固定码仍保留；不把样本数当共享上限或冒充Desktop绘制。
 - `system-wallpaper-download.test.ts`: 三Range/强ETag、预算/单sample重建和body取消；仅结构化证书码分类，未知码/异常正文不能伪造诊断，不自动重试或换信任；人工fixture不代表native或Desktop网络。
 - `system-wallpaper-acquisition.test.ts`: 活动catalog串行批次、available或downloadable缺项、完整旧缓存也可发现未来roster、真实完成数与缓存保留；内部loading进度静默，错误/取消/销毁join真实结算。
 - `system-wallpaper-acquisition-editor.test.ts`: 生产Editor真实点击个人图后往返none/color/gradient，核背景ID、个人/系统唯一选中ARIA、四面板hidden/inert/label关系与DOM/Tabs/本地读取稳定；另验首开个人ID异步恢复；生命周期取消仍join真实I/O，无迟到Host媒体/通知；jsdom不冒充Desktop绘制。
@@ -93,10 +93,10 @@
 - `system-wallpaper-native.test.ts`: 源码锁定缓存桥/动态UUID和root-owned系统HEIC命令；macOS临时ObjC++ harness只开私有fixture fd，验证Aerial路径拒绝符号链接；不触用户缓存、解码或代替SDK/媒体/Desktop。
 - `system-wallpaper-mov-fixture.ts`: 共用人工单轨QuickTime Range源，模拟tapt/双hdlr/自包含alis/hvc1+nclc与已知辅助表，暴露64B头、moov、首sample和逻辑总长；可表示大源而不分配整片媒体，不代表Apple素材/native证据。
 - `system-wallpaper-mov.test.ts`: 固定MOV边界、单描述与自包含引用、codec/辅助atom拒绝、两种已确认csgm长度、首sync sample索引重建及v0/v1时长；人工fixture仅证明合同，不代表固定Apple源/native首帧验收。
-- `system-wallpaper-protocol.test.ts`: 旧缓存与未来材料语法、四活动项预算/名称控制字符与终态；不把语法当来源授权，不读系统或网络。
-- `wallpaper-gallery-protocol.test.ts`: 本地持久素材的稳定/RC身份、closed ID、Blob/缩略图/像素预算与额外私有字段拒绝；不访问浏览器或文件系统。
-- `wallpaper-gallery-store.test.ts`: IndexedDB仓的原子容量/去重/删除、File去名、有界重读、versionchange换连接与close中止在途写入合同；FakeIDB不替代真实浏览器或Desktop持久化验收。
-- `wallpaper-gallery-client.test.ts`: 真实Gallery包装验证活动目录与旧仓分账、未来ID入库/旧图保留、strict失败保真与离线回退、原PNG/去重/配额及取消settle；实际IDB/Desktop重启另验。
+- `system-wallpaper-protocol.test.ts`: 旧缓存与未来材料语法、五项共享活动目录预算/名称控制字符与终态；不把语法当来源授权，不读系统或网络。
+- `wallpaper-gallery-protocol.test.ts`: 本地持久素材的稳定/RC身份、closed ID、固定36项总预算、Blob/缩略图/像素预算、系统语义名闭集与用户/额外私有字段拒绝；不访问浏览器或文件系统。
+- `wallpaper-gallery-store.test.ts`: IndexedDB仓的原子容量/去重/删除、系统名v1往返与旧记录读取、File去名、有界重读、versionchange换连接与close中止在途写入合同；FakeIDB不替代真实浏览器或Desktop持久化验收。
+- `wallpaper-gallery-client.test.ts`: 真实Gallery包装验证活动目录与旧仓分账、动态系统名新存/旧缓存补写和纯本地重开、未来ID入库/旧图保留、失败保真、原PNG/去重/配额及取消settle；实际IDB/Desktop重启另验。
 - `capture-background-image-store.test.ts`: 完成图LRU/current pin、共享消费者独立取消/最后退出中止、同URL重试拒绝旧回填、dispose及时settle及hydrate换图取消/同图去重；不取系统素材或测RSS。
 - `capture-image-loader.test.ts`: 可控Image验证预取消、load/error/abort监听归还、移除src及无需load事件的取消结算；成功保留渲染源，不测真实浏览器解码线程或RSS。
 
@@ -127,15 +127,15 @@
 - `rc-packaging.test.ts`: 独立候选身份、双语说明与白名单 staging。核私有路径排除、稳定源不变、权限及拒绝覆盖。不运行 SDK GUI 或真实安装。
 - `system-wallpaper-host-fixtures.ts`: 共用受控子进程、最小 JPEG 和 iterable 夹具。不作为真实原生目录或像素证据。
 - `system-wallpaper-runtime-windows.test.ts`: Windows CaptureRuntime 重读 roster、陈旧 hash ID 拒绝及静图路由合同。不读取系统目录或验收像素。
-- `system-wallpaper-host.test.ts`: Mac 与 Windows helper 路由、固定错误码、预算、取消 close 及下载门合同。不执行真实 helper 或联网。
-- `system-wallpaper-client.test.ts`: 最多四项动态/legacyRemote目录授权、名称/失败码保真、unlisted动态ID拒发媒体、严格JPEG/终态/取消与URL归还；桩不替代Browser/Desktop。
+- `system-wallpaper-host.test.ts`: Mac 与 Windows helper 路由、Windows五项hash roster接受/六项拒绝、固定错误码、预算、取消 close 及下载门合同。不执行真实 helper 或联网。
+- `system-wallpaper-client.test.ts`: 最多五项动态/legacyRemote目录授权、名称/失败码保真、unlisted动态ID拒发媒体、严格JPEG/终态/取消与URL归还；桩不替代Browser/Desktop。
 - `system-wallpaper-selection.test.ts`: 系统媒体返回后的背景解码仍归选择 signal，重选缓存/切类/销毁取消旧工作且不迟到应用或提示；不取系统素材或量RSS。
 
-- `system-wallpaper-catalog.test.ts`: 人工当前/未来Apple schema验证官方排序/代表关联、无OS字段伪装、稳定材料身份与未知/歧义/URL拒绝；纯parser不读取真实媒体，compiled/实机另验。
+- `system-wallpaper-catalog.test.ts`: 人工当前/未来Apple schema验证Mac四项官方排序/代表关联、无OS字段伪装、稳定材料身份与未知/歧义/URL拒绝；纯parser不读取真实媒体，compiled/实机另验。
 
 - `system-wallpaper-transport.test.ts`: fake-child验证系统curl参数/URL域、206/ETag/头体预算/退出码、单字节碎片与分配失败真实close结算；不联网或代替native/Desktop。
 
-- `system-wallpaper-stream-catalog.test.ts`: 动态ID活动目录0–4项、重复/非法ID/名称C1与unavailable边界；fake operation不读取系统或联网。
+- `system-wallpaper-stream-catalog.test.ts`: 动态ID活动目录0–5项、Windows x64五项流、重复/非法ID/名称C1与unavailable边界；fake operation不读取系统或联网。
 
 - `public-guides.test.ts`: 验证双语公开入口互链、同源版本和兼容边界。README 写用户动作，PUBLISHING 留技术合同。另核 skill 同步要求、历史原文摘要及头像许可。不运行宿主或联网。
 

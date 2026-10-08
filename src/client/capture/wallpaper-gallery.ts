@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 IndexedDB 媒体仓、材料身份/容量契约、可取消解码与 Host 当前系统目录 adapter。
- * [OUTPUT]: 提供显式获取系统静帧、纯本地系统/用户素材选择与恢复、静态图片导入/移除及连接释放；显式目录失败保真，选择缓存缺失不偷跑Host获取。
- * [POS]: capture-window 本地媒体语义层；用户原始图与显式获取的系统JPEG进入 IndexedDB，批获取成功以持久小缩略图证明；五个固定预设不是图库增长源，偏好只存 opaque ID。
+ * [INPUT]: 依赖 IndexedDB 媒体仓、材料身份/容量契约、校验后的系统语义名、可取消解码与 Host 当前目录 adapter。
+ * [OUTPUT]: 提供显式获取系统静帧、名称持久恢复、本地素材选择/导入/移除及连接释放；旧缓存补名只写元数据，不重复请求媒体。
+ * [POS]: capture-window 本地媒体语义层；系统项保存当前目录名称，用户图不带名称字段；五个固定预设不是图库增长源，偏好只存 opaque ID。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import {
@@ -12,7 +12,7 @@ import {
   WALLPAPER_GALLERY_LIMITS,
   type WallpaperGalleryAsset,
 } from '../../shared/wallpaper-gallery.ts';
-import { WALLPAPER_LIMITS, isSystemWallpaperId, type SystemWallpaperId } from '../../shared/system-wallpaper-protocol.ts';
+import { WALLPAPER_LIMITS, isSystemWallpaperId, isSystemWallpaperName, type SystemWallpaperId } from '../../shared/system-wallpaper-protocol.ts';
 import { captureWindowCopy } from './copy.ts';
 import type { SystemWallpaperAdapter, SystemWallpaperEntry } from './system-wallpapers.ts';
 import { loadCaptureImage } from './wallpaper.ts';
@@ -53,6 +53,8 @@ export function createWallpaperGallery(options: WallpaperGalleryOptions): Wallpa
   const { store } = options;
   let disposed = false;
   let closeCalled = false;
+  const catalogNames = new Map<SystemWallpaperId, string>();
+  const cachedSourceTypes = new Map<string, 'image' | 'video'>();
 
   function ensureOpen(signal?: AbortSignal): void {
     if (disposed) throw new WallpaperGalleryError('disposed');
@@ -113,7 +115,13 @@ export function createWallpaperGallery(options: WallpaperGalleryOptions): Wallpa
     return { asset, dataUrl };
   }
 
-  async function saveSystemImage(id: string, dataUrl: string, sourceType: 'image' | 'video', signal?: AbortSignal): Promise<WallpaperGallerySelection> {
+  async function saveSystemImage(
+    id: string,
+    dataUrl: string,
+    sourceType: 'image' | 'video',
+    signal?: AbortSignal,
+    systemName?: string,
+  ): Promise<WallpaperGallerySelection> {
     ensureOpen(signal);
     const blob = jpegDataUrlToBlob(dataUrl);
     if (blob.size > WALLPAPER_LIMITS.maxBytes) throw new WallpaperGalleryError('invalid-asset');
@@ -124,6 +132,7 @@ export function createWallpaperGallery(options: WallpaperGalleryOptions): Wallpa
       width: decoded.width,
       height: decoded.height,
       sourceType,
+      ...(isSystemWallpaperName(systemName) ? { systemName } : {}),
       thumbnail: await thumbnail(decoded, signal),
       createdAt: (options.now ?? Date.now)(),
     };
@@ -147,7 +156,7 @@ export function createWallpaperGallery(options: WallpaperGalleryOptions): Wallpa
     return cached;
   }
 
-  async function acquireSystemImage(id: string, signal?: AbortSignal): Promise<WallpaperGallerySelection> {
+  async function acquireSystemImage(id: string, signal?: AbortSignal, systemName?: string): Promise<WallpaperGallerySelection> {
     const cached = await cachedSelection(id, signal);
     if (cached) return cached;
     if (!isSystemWallpaperId(id) || !options.systemAdapter) throw new WallpaperGalleryError('storage-unavailable');
@@ -155,7 +164,7 @@ export function createWallpaperGallery(options: WallpaperGalleryOptions): Wallpa
     ensureOpen(signal);
     const sourceType = options.systemAdapter.getSourceType?.(id) ?? 'image';
     if (sourceType !== 'image' && sourceType !== 'video') throw new WallpaperGalleryError('invalid-asset');
-    return saveSystemImage(id, dataUrl, sourceType, signal);
+    return saveSystemImage(id, dataUrl, sourceType, signal, systemName);
   }
 
   async function list(): Promise<WallpaperGalleryAsset[]> {
@@ -215,6 +224,8 @@ export function createWallpaperGallery(options: WallpaperGalleryOptions): Wallpa
   function close(): void {
     if (disposed) return;
     disposed = true;
+    catalogNames.clear();
+    cachedSourceTypes.clear();
     if (!closeCalled) {
       closeCalled = true;
       store.close();
@@ -224,7 +235,6 @@ export function createWallpaperGallery(options: WallpaperGalleryOptions): Wallpa
   const systemAdapter = options.systemAdapter ? createCachedSystemAdapter(options.systemAdapter) : undefined;
 
   function createCachedSystemAdapter(adapter: SystemWallpaperAdapter): SystemWallpaperAdapter {
-    const cachedSourceTypes = new Map<string, 'image' | 'video'>();
     return {
       list: async (signal, catalogOptions) => {
         ensureOpen(signal);
@@ -240,6 +250,23 @@ export function createWallpaperGallery(options: WallpaperGalleryOptions): Wallpa
           catalog = [];
         }
         ensureOpen(signal);
+        catalogNames.clear();
+        for (const entry of catalog) {
+          if (isSystemWallpaperId(entry.id) && isSystemWallpaperName(entry.name)) {
+            catalogNames.set(entry.id, entry.name);
+          }
+        }
+        if (catalogOptions?.requireSource) {
+          const sourceNames = new Map(catalogNames);
+          for (const [id, asset] of cached) {
+            const systemName = sourceNames.get(id as SystemWallpaperId);
+            if (!systemName || asset.systemName === systemName) continue;
+            const enriched = { ...asset, systemName };
+            await store.put(enriched);
+            ensureOpen(signal);
+            cached.set(id, enriched);
+          }
+        }
         const entries = new Map(catalog.map(entry => [entry.id, entry]));
         for (const [id, asset] of cached) {
           if (catalogOptions?.requireSource && !entries.has(id)) continue;
@@ -247,7 +274,7 @@ export function createWallpaperGallery(options: WallpaperGalleryOptions): Wallpa
           const existing = entries.get(id);
           entries.set(id, {
             id,
-            name: existing?.name ?? systemName(id),
+            name: existing?.name ?? asset.systemName ?? systemName(id),
             available: true,
             downloadable: false,
             sourceType: asset.sourceType,
@@ -267,7 +294,7 @@ export function createWallpaperGallery(options: WallpaperGalleryOptions): Wallpa
           cachedSourceTypes.set(id, asset.sourceType);
           entries.push({
             id,
-            name: systemName(id),
+            name: asset.systemName ?? systemName(id),
             available: true,
             downloadable: false,
             sourceType: asset.sourceType,
@@ -277,7 +304,8 @@ export function createWallpaperGallery(options: WallpaperGalleryOptions): Wallpa
         }
         return entries;
       },
-      load: async (id, signal) => (await acquireSystemImage(id, signal)).dataUrl,
+      load: async (id, signal) => (await acquireSystemImage(id, signal,
+        isSystemWallpaperId(id) ? catalogNames.get(id) : undefined)).dataUrl,
       getSourceType: id => {
         return cachedSourceTypes.get(id) ?? adapter.getSourceType?.(id);
       },

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖壁纸Host helper/stream、macOS旧ID与Windows hash roster、可控子进程和平台架构合同。
- * [OUTPUT]: 验证目录分流、下载门控、Windows静图协议及预算/取消；不冒充原生目录或像素验收。
+ * [OUTPUT]: 验证目录分流、下载门控、Windows五项hash roster/六项拒绝、静图协议及预算/取消；不冒充原生目录或像素验收。
  * [POS]: Native wallpaper Remote 的Host回归合同；独立于原生源码静态检查和Desktop验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -143,11 +143,20 @@ test('Windows x64 catalog accepts only the current bounded hash roster and hides
   assert.match(helperPath ?? '', /[\\/]native[\\/]windows[\\/]window-capture-x64\.exe$/u)
   assert.equal(resolveSystemWallpaperHelperPath('win32', 'arm64', new URL('../index.js', import.meta.url)), undefined)
   const entries = [
-    { id: `system-wallpaper-image-${'a'.repeat(64)}`, name: 'Windows · img0', available: true, downloadable: false },
-    { id: `system-wallpaper-image-${'b'.repeat(64)}`, name: 'Windows · img19', available: true, downloadable: false },
-  ]
+    ['a', 'Windows · img0'],
+    ['b', 'Windows · img19'],
+    ['c', 'Windows · ThemeA20'],
+    ['d', 'Windows · ThemeB24'],
+    ['e', 'Windows · ThemeC28'],
+  ].map(([hash, name]) => ({
+    id: `system-wallpaper-image-${hash!.repeat(64)}`,
+    name: name!,
+    available: true,
+    downloadable: false,
+  }))
   const harness = nativeHarness(catalogJson(entries))
   const result = await runNativeWallpaperCatalog({ ...harness.options, platform: 'win32', arch: 'x64' })
+  assert.equal(result.length, 5, 'Windows accepts the first five available trusted candidates')
   assert.deepEqual(result, entries)
   assert.deepEqual(harness.calls[0]?.args, ['--wallpaper-list'])
   assert.equal(harness.calls[0]?.options.windowsHide, true)
@@ -158,7 +167,7 @@ test('Windows x64 catalog accepts only the current bounded hash roster and hides
     [{ ...entries[0]!, id: SYSTEM_WALLPAPER_IDS[0]! }],
     [{ ...entries[0]!, downloadable: true }],
     [entries[0]!, { ...entries[1]!, id: entries[0]!.id }],
-    [...entries, { ...entries[0]!, id: `system-wallpaper-image-${'c'.repeat(64)}` }],
+    [...entries, { ...entries[0]!, id: `system-wallpaper-image-${'f'.repeat(64)}` }],
   ]) {
     await assert.rejects(runNativeWallpaperCatalog({
       ...nativeHarness(catalogJson(invalid)).options, platform: 'win32', arch: 'x64',

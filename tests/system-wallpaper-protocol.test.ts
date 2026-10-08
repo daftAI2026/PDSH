@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 Host/Client 共用的壁纸目录、终态白名单与硬预算。
- * [OUTPUT]: 锁定旧缓存 ID 与动态材料 ID 的语法、四项活动目录预算；语法通过不代表 Host 已授权该素材，拒绝路径/URL。
+ * [OUTPUT]: 锁定旧缓存 ID 与动态材料 ID 的语法、五项共享活动目录预算；语法通过不代表 Host 已授权该素材，拒绝路径/URL。
  * [POS]: shared 壁纸协议回归；纯合同，不访问系统资源、网络或 DSH。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -22,7 +22,7 @@ test('历史四 ID 保留缓存兼容，但不再充当活动目录或系统版�
   }
 });
 
-test('未来素材使用稳定 UUID/摘要身份，目录最多四项且不能接受任意名称/地址', () => {
+test('未来素材使用稳定 UUID/摘要身份，共享目录最多五项且不能接受任意名称/地址', () => {
   for (const id of ['system-wallpaper-video-11111111-2222-4333-8444-555555555555',
     `system-wallpaper-image-${'a'.repeat(64)}`]) assert.equal(protocol.isSystemWallpaperId(id), true);
   for (const id of ['system-wallpaper-video-newest', 'system-wallpaper-video-../x',
@@ -30,7 +30,7 @@ test('未来素材使用稳定 UUID/摘要身份，目录最多四项且不能�
     `system-wallpaper-image-${'a'.repeat(63)}`, `system-wallpaper-image-${'G'.repeat(64)}`]) {
     assert.equal(protocol.isSystemWallpaperId(id), false);
   }
-  assert.equal(protocol.WALLPAPER_LIMITS.maxCatalogEntries, 4);
+  assert.equal(protocol.WALLPAPER_LIMITS.maxCatalogEntries, 5);
 });
 
 test('系统语义名称有界且拒绝所有控制字符，不用名字决定版本', () => {

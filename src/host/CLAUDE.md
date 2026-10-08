@@ -9,11 +9,11 @@
 - `capture-runtime.ts`: 稳定基础与内部能力闭包。初始 thenable 等官方子 Fiber。壁纸按平台分流；Windows 加载前重读 native roster，Mac 保留 Apple 目录。换代先结算旧操作并撤销能力。
 - `window-capture-stream.ts`: 纯异步 capture 编排；惰性首拉、单航班、固定阶段/终态和≤32KiB PNG chunk，取消不微任务自旋且在锁释放前等待 helper Promise settle。
 - `native-window-capture.ts`: Node adapter 只选择已支持的 macOS/Windows x64 包内 helper，Windows 隐藏子进程窗口；校验固定状态与 PNG envelope，取消后 SIGTERM/强制结束仍等待 close；不持久化图像、不挂 Main 或网络路由。
-- `system-wallpaper-native.ts`: 同包 helper 的有界 JPEG 适配。Mac 接受 Host 授权 HEIC/MOV；Windows x64 只接收当次 hash roster 的 ID。固定码映射不反射 stderr；取消等待真实 close。
+- `system-wallpaper-native.ts`: 同包 helper 的有界 JPEG 适配。Mac 接受 Host 授权 HEIC/MOV；Windows x64 只接收当次最多五项 hash roster 的 ID，保留严格闭集 schema。固定码映射不反射 stderr；取消等待真实 close。
 - `system-wallpaper-download.ts`: 共享受控URL与三次严格206/强ETag Range，累计≤18MiB+64B；重建完整首sample MOV，唯一本地临时媒体owner；生产复用系统transport，fake-fetch只供合同，不整段GET/改TLS。
 - `system-wallpaper-mov.ts`: 纯64B固定头/尾moov解析与首sync sample定位；仅接受单hvc1视频描述、单自包含alis引用及已知索引，保留tapt/hdlr/hvcC/nclc/matrix并重建完整单sample MOV；独立限制逻辑length/metadata/sample。
 - `system-wallpaper-mov-aux.ts`: 严格验证固定Apple tapt、media/data handler、HEVC sample-entry尾零及已知sgpd/csgm/cslg/sdtp布局；拒绝未知/外部必要结构，旧sample辅助索引只验证后丢弃。
-- `system-wallpaper-stream.ts`: Mac 与 Windows x64 共用的惰性目录/JPEG 状态机。最多四项，ID/name 经共享校验；accepted 配置、单航班与取消 return 等待真实结算。未知平台不启动 helper。
+- `system-wallpaper-stream.ts`: Mac 与 Windows x64 共用的惰性目录/JPEG 状态机。共享目录最多五项；Mac selector 仍固定四项。ID/name 经共享校验；accepted 配置、单航班与取消 return 等待真实结算。未知平台不启动 helper。
 - `window-save-backend.ts`: 单 service 调用的 Host save backend；复核 shared 绝对目录语法与本机 path.isAbsolute/normalize，规范化 UNC share root 后从 accepted Config 取目录/模板，验证有序 uplink/hash/图像后委托既有安全 writer，真实提交后才回 receipt。
 - `window-save-image.ts`: 只验证 PNG/JPEG/静态 WebP envelope 与尺寸；仅保留固定指纹的Canvas默认sRGB ICC原字节，拒绝其他metadata/动画且不做通用解码或文件写入。
 - `page-save-file.ts`: 同目录独占临时文件、同步、取消围栏与原子提交的 Host writer；新 save backend 复用其 direct 不覆盖边界。
@@ -26,7 +26,7 @@
 
 - `capture-runtime-loader.ts`: 标准 realpath/import 的单实例协调器。基础接受稳定 v1 与已发布 v2 兼容面；壁纸独立校验。只读自身包，旧操作结算后换载，不碰私有缓存或设置。
 
-- `system-wallpaper-catalog.ts`: 只读有界Apple metadata选择器；前两Landscape subgroup的preferredOrder/代表UUID对应dynamic子组或root-owned扩展，不把排序当OS版本；旧ID缓存桥/未来材料身份，未知关联拒绝，路径URL留Host。
+- `system-wallpaper-catalog.ts`: 只读有界Apple metadata选择器；前两Landscape subgroup的preferredOrder/代表UUID对应dynamic子组或root-owned扩展，Mac目录固定四项且不把排序当OS版本；旧ID缓存桥/未来材料身份，未知关联拒绝，路径URL留Host。
 
 - `system-wallpaper-transport.ts`: 固定/usr/bin/curl窄Range；--disable忽略curlrc、shell:false、默认系统TLS/Apple URL、头体stderr硬预算；验头后按Range预分配单Buffer、分片顺拷；分配失败释放并等真实close，不是DSH应用内fetch/proxy dispatcher。
 

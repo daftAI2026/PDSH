@@ -384,7 +384,9 @@ L2/L3 必须带固定 PROTOCOL 行。
 
 - 系统壁纸按平台分流，不改变统一 Remote 合同。
 - macOS 使用 Apple 官方目录与受控补缺下载。
-- Windows x64 只读固定默认 img0/img19 图片。
+- Windows x64 从固定系统目录候选中选至多五张。
+- Windows 只读取当前已安装图片，不联网补图。
+- 文件与分组名称不证明材料所属系统版本。
 - Windows 不读当前用户壁纸、锁屏或网络来源。
 - Windows 材料 ID 绑定来源字节，加载前重读目录。
 - `system-wallpaper-catalog.ts` 独占活动 roster 来源。

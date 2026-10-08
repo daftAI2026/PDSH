@@ -1,18 +1,20 @@
 /**
- * [INPUT]: 依赖动态/旧系统材料身份、JPEG 预算与截图像素预算；只描述显式获取或主动导入的背景素材。
- * [OUTPUT]: 提供本地媒体记录、稳定/RC分域与36项容量硬界；身份语法不是Host来源授权，不保存原始文件名/路径。
- * [POS]: Client IndexedDB媒体仓与编辑器的共同契约；不属于Host Config或Remote，不自动保存拍摄源，也不保存路径或原文件名。
+ * [INPUT]: 依赖动态/旧系统材料身份、校验后的语义名称、JPEG预算与截图像素预算；只描述显式获取或主动导入的背景素材。
+ * [OUTPUT]: 提供本地媒体记录、稳定/RC分域与固定36项总容量；总仓上限独立于活动目录，系统语义名可选且旧v1兼容。
+ * [POS]: Client IndexedDB媒体仓与编辑器的共同契约；不属于Host Config或Remote，不保存截图、路径或原始文件名。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { CAPTURE_EXPORT_MAX_PIXELS } from './capture-export.ts';
-import { WALLPAPER_LIMITS, isSystemWallpaperId } from './system-wallpaper-protocol.ts';
+import { WALLPAPER_LIMITS, isSystemWallpaperId, isSystemWallpaperName } from './system-wallpaper-protocol.ts';
+
+const MAX_GALLERY_ENTRIES = 36;
 
 export const WALLPAPER_GALLERY_LIMITS = Object.freeze({
+  maxEntries: MAX_GALLERY_ENTRIES,
   maxBytes: 256 * 1024 * 1024,
   maxUserBytes: 32 * 1024 * 1024,
   maxUserPixels: CAPTURE_EXPORT_MAX_PIXELS,
   maxUserEntries: 32,
-  maxEntries: WALLPAPER_LIMITS.maxCatalogEntries + 32,
   maxThumbnailChars: 64 * 1024,
 });
 
@@ -22,6 +24,7 @@ export interface WallpaperGalleryAsset {
   readonly width: number;
   readonly height: number;
   readonly sourceType: 'image' | 'video';
+  readonly systemName?: string;
   readonly thumbnail: string;
   readonly createdAt: number;
 }
@@ -52,7 +55,13 @@ export function isGalleryWallpaperId(value: unknown): value is string {
 export function isWallpaperGalleryAsset(value: unknown): value is WallpaperGalleryAsset {
   if (!value || typeof value !== 'object') return false;
   const asset = value as Record<string, unknown>;
-  if (Object.keys(asset).sort().join(',') !== 'blob,createdAt,height,id,sourceType,thumbnail,width') return false;
+  const keys = Object.keys(asset).sort().join(',');
+  const legacyKeys = 'blob,createdAt,height,id,sourceType,thumbnail,width';
+  const namedKeys = 'blob,createdAt,height,id,sourceType,systemName,thumbnail,width';
+  const hasSystemName = Object.prototype.hasOwnProperty.call(asset, 'systemName');
+  if ('systemName' in asset && !hasSystemName) return false;
+  if (keys !== legacyKeys && keys !== namedKeys) return false;
+  if (hasSystemName && (!isSystemWallpaperId(asset.id) || !isSystemWallpaperName(asset.systemName))) return false;
   if (!isGalleryWallpaperId(asset.id) || !(asset.blob instanceof Blob) || asset.blob.size < 1
     || !Number.isSafeInteger(asset.width) || !Number.isSafeInteger(asset.height)
     || (asset.width as number) < 1 || (asset.height as number) < 1

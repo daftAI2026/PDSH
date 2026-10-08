@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖shared活动材料ID/名称/四项上限、Host stream与固定失败类型。
+ * [INPUT]: 依赖shared活动材料ID/名称/五项上限、Host stream与固定失败类型。
  * [OUTPUT]: 验证macOS与Windows x64 stream门、动态目录及畸形目录边界；不启动helper、不联网、不读取素材。
  * [POS]: system-wallpaper-stream的平台与活动目录合同；不要求legacy缓存ID进入当前roster。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -46,8 +46,9 @@ async function collectStream(options: {
   return frames
 }
 
-test('future active roster lists four dynamic IDs without legacy cache IDs', async () => {
-  assert.equal(dynamicEntries.length, WALLPAPER_LIMITS.maxCatalogEntries)
+test('four source entries remain valid below the shared five-item ceiling', async () => {
+  assert.equal(dynamicEntries.length, 4)
+  assert.ok(dynamicEntries.length < WALLPAPER_LIMITS.maxCatalogEntries)
   const frames = await collectCatalog(dynamicEntries)
   assert.deepEqual(frames, [
     { type: 'catalog', entries: dynamicEntries },
@@ -70,9 +71,18 @@ test('empty and partial valid rosters list successfully; unknown discovery remai
 
 test('Windows x64 uses the same bounded stream while Windows ARM64 and Linux remain unsupported', async () => {
   const entries = [
-    { id: `system-wallpaper-image-${'a'.repeat(64)}`, name: 'Windows · img0', available: true, downloadable: false },
-    { id: `system-wallpaper-image-${'b'.repeat(64)}`, name: 'Windows · img19', available: true, downloadable: false },
-  ]
+    ['a', 'Windows · img0'],
+    ['b', 'Windows · img19'],
+    ['c', 'Windows · ThemeA20'],
+    ['d', 'Windows · ThemeB24'],
+    ['e', 'Windows · ThemeC28'],
+  ].map(([hash, name]) => ({
+    id: `system-wallpaper-image-${hash!.repeat(64)}`,
+    name: name!,
+    available: true,
+    downloadable: false,
+  }))
+  assert.equal(entries.length, WALLPAPER_LIMITS.maxCatalogEntries)
   assert.deepEqual(await collectStream({ platform: 'win32', arch: 'x64', list: async () => entries }), [
     { type: 'catalog', entries }, { type: 'terminal', status: 'listed' },
   ])
@@ -86,12 +96,16 @@ test('Windows x64 uses the same bounded stream while Windows ARM64 and Linux rem
   assert.equal(operations, 0, 'unsupported targets do not reserve or invoke the helper operation')
 })
 
-test('duplicate, malformed ID, C1 name and more than four entries fail closed', async () => {
+test('duplicate, malformed ID, C1 name and more than five entries fail closed', async () => {
   const badCatalogs: Array<[string, WallpaperCatalogEntry[]]> = [
     ['duplicate ID', [dynamicEntries[0]!, { ...dynamicEntries[1]!, id: dynamicEntries[0]!.id }]],
     ['malformed ID', [{ ...dynamicEntries[0]!, id: 'system-wallpaper-video-not-a-uuid' }]],
     ['C1 control name', [{ ...dynamicEntries[0]!, name: 'Aurora\u0085Evening' }]],
-    ['more than the active roster budget', [...dynamicEntries, entry('system-wallpaper-video-c3c3c3c3-3333-4333-8333-333333333333', 'Extra')]],
+    ['more than the active roster budget', [
+      ...dynamicEntries,
+      entry('system-wallpaper-video-c3c3c3c3-3333-4333-8333-333333333333', 'Extra'),
+      entry('system-wallpaper-video-d4d4d4d4-4444-4444-8444-444444444444', 'Extra two'),
+    ]],
   ]
   for (const [label, entries] of badCatalogs) {
     await assert.rejects(collectCatalog(entries), { code: 'protocol-invalid' }, label)

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 读取Apple本地Aerial entries.json、root-owned Wallpaper ExtensionKit manifest和官方固定视频URL校验器。
- * [OUTPUT]: 按landscape官方preferredOrder选择两组动态/景观代表；暴露只含Host源信息的目录，并仅stat本地媒体。
+ * [OUTPUT]: 按landscape官方preferredOrder选择两组动态/景观代表，Mac目录固定4项；暴露只含Host源信息的目录，并仅stat本地媒体。
  * [POS]: Host素材发现边界；不联网、不读像素、不接收Renderer路径/URL，未知schema失败时保留既有缓存。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -17,6 +17,7 @@ import { isAppleWallpaperVideoUrl } from './system-wallpaper-transport.ts'
 const EXTENSION_ROOT = '/System/Library/ExtensionKit/Extensions'
 const MAX_MANIFEST_BYTES = 4 * 1024 * 1024, MAX_EXTENSION_MANIFEST_BYTES = 64 * 1024
 const MAX_ASSETS = 512, MAX_CATEGORIES = 32, MAX_SUBCATEGORIES = 128, MAX_EXTENSION_BUNDLES = 512
+const MAC_SYSTEM_WALLPAPER_COUNT = 4
 const UUID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/iu
 const IDENTIFIER = /^[A-Za-z0-9 -]{1,64}$/u
 const THEME = /^[A-Z][A-Za-z0-9]*$/u
@@ -148,7 +149,7 @@ export function selectSystemWallpaperSources(
   }
   const ids = result.map(item => item.id)
   const urls = result.map(item => item.url).filter((item): item is string => item !== undefined)
-  if (result.length !== WALLPAPER_LIMITS.maxCatalogEntries || new Set(ids).size !== ids.length
+  if (result.length !== MAC_SYSTEM_WALLPAPER_COUNT || new Set(ids).size !== ids.length
     || new Set(urls).size !== urls.length) invalidCatalog()
   return result
 }

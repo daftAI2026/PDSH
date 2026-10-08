@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 Win32 固定系统目录/文件句柄、BCrypt SHA-256 与 Windows Imaging Component。
- * [OUTPUT]: 提供有界列表与单图 JPEG；stdout 承载协议，stderr 仅承载闭集错误 JSON。
- * [POS]: Windows x64 helper 的系统壁纸后端；源仅为本机 img0/img19，不触碰用户壁纸、锁屏或网络。
+ * [INPUT]: 依赖 Win32 固定候选目录/文件句柄、BCrypt SHA-256 与 Windows Imaging Component。
+ * [OUTPUT]: 提供最多五项候选列表与 ID-only 单图 JPEG；stderr 仅承载闭集错误 JSON。
+ * [POS]: Windows x64 helper 的固定系统壁纸后端；不枚举目录，不读取用户壁纸、锁屏或网络素材。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 #define WIN32_LEAN_AND_MEAN
@@ -36,6 +36,7 @@ constexpr uint64_t kMaxRawBytes = 128ULL * 1024ULL * 1024ULL;
 constexpr uint32_t kMaxDimension = 2600;
 constexpr uint64_t kMaxJpegBytes = 8ULL * 1024ULL * 1024ULL;
 constexpr size_t kSha256Bytes = 32;
+constexpr size_t kMaxCatalogEntries = 5;
 
 enum class Failure {
   InvalidRequest,
@@ -49,14 +50,23 @@ enum class Failure {
 };
 
 struct Source {
+  const wchar_t* directory;
   const wchar_t* filename;
   const char* token;
   const char* name;
 };
 
 constexpr Source kSources[] = {
-  {L"img0.jpg", "img0", "Windows \xC2\xB7 img0"},
-  {L"img19.jpg", "img19", "Windows \xC2\xB7 img19"},
+  {L"Windows", L"img0.jpg", "img0", "Windows \xC2\xB7 img0"},
+  {L"Windows", L"img19.jpg", "img19", "Windows \xC2\xB7 img19"},
+  {L"ThemeA", L"img20.jpg", "ThemeA/img20", "ThemeA \xC2\xB7 img20"},
+  {L"ThemeB", L"img24.jpg", "ThemeB/img24", "ThemeB \xC2\xB7 img24"},
+  {L"ThemeC", L"img28.jpg", "ThemeC/img28", "ThemeC \xC2\xB7 img28"},
+  {L"ThemeD", L"img32.jpg", "ThemeD/img32", "ThemeD \xC2\xB7 img32"},
+  {L"Theme1", L"img1.jpg", "Theme1/img1", "Theme1 \xC2\xB7 img1"},
+  {L"Theme2", L"img7.jpg", "Theme2/img7", "Theme2 \xC2\xB7 img7"},
+  {L"Theme1", L"img2.jpg", "Theme1/img2", "Theme1 \xC2\xB7 img2"},
+  {L"Theme2", L"img8.jpg", "Theme2/img8", "Theme2 \xC2\xB7 img8"},
 };
 
 const char* FailureName(Failure failure) {
@@ -206,7 +216,7 @@ class DirectoryLayout {
       if (AppendDirectory(current) != DirectoryStatus::Ready) return DirectoryStatus::Failed;
       start = end == std::wstring::npos ? root.size() : end + 1;
     }
-    for (const wchar_t* component : {L"Web", L"Wallpaper", L"Windows"}) {
+    for (const wchar_t* component : {L"Web", L"Wallpaper"}) {
       current = Join(current, component);
       const DirectoryStatus status = AppendDirectory(current);
       if (status != DirectoryStatus::Ready) return status;
@@ -225,6 +235,19 @@ class DirectoryLayout {
           !SameIdentity(entry.identity, identity)) return false;
     }
     return true;
+  }
+
+  DirectoryStatus OpenSourceDirectory(const wchar_t* component, UniqueHandle* handle,
+                                     FileIdentity* identity) const {
+    if (component == nullptr) return DirectoryStatus::Failed;
+    return OpenCheckedDirectory(Join(root_, component), handle, identity);
+  }
+
+  bool SameSourceDirectory(const wchar_t* component, const FileIdentity& expected) const {
+    UniqueHandle reopened;
+    FileIdentity current{};
+    return OpenSourceDirectory(component, &reopened, &current) == DirectoryStatus::Ready &&
+        SameIdentity(expected, current);
   }
 
  private:
@@ -294,7 +317,14 @@ enum class ReadResult { Loaded, Missing, Invalid, Failed, OverBudget, Changed };
 
 ReadResult ReadSource(const DirectoryLayout& layout, const Source& source, std::vector<BYTE>* bytes) {
   if (bytes == nullptr) return ReadResult::Failed;
-  const std::wstring path = Join(layout.root(), source.filename);
+  UniqueHandle sourceDirectory;
+  FileIdentity sourceDirectoryIdentity{};
+  const DirectoryStatus directoryStatus = layout.OpenSourceDirectory(
+      source.directory, &sourceDirectory, &sourceDirectoryIdentity);
+  if (directoryStatus == DirectoryStatus::Missing) return ReadResult::Missing;
+  if (directoryStatus != DirectoryStatus::Ready) return ReadResult::Invalid;
+  const std::wstring sourceRoot = Join(layout.root(), source.directory);
+  const std::wstring path = Join(sourceRoot, source.filename);
   HANDLE raw = CreateFileW(path.c_str(), GENERIC_READ | FILE_READ_ATTRIBUTES,
       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
       FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
@@ -325,7 +355,8 @@ ReadResult ReadSource(const DirectoryLayout& layout, const Source& source, std::
     return ReadResult::Changed;
   }
   FileSnapshot after{};
-  if (!ReadFileSnapshot(file.get(), &after) || !SameSnapshot(before, after) || !layout.StillSame()) {
+  if (!ReadFileSnapshot(file.get(), &after) || !SameSnapshot(before, after) || !layout.StillSame() ||
+      !layout.SameSourceDirectory(source.directory, sourceDirectoryIdentity)) {
     bytes->clear();
     return ReadResult::Changed;
   }
@@ -387,6 +418,7 @@ bool WriteCatalog(const DirectoryLayout& layout) {
     if (count++ != 0) json.push_back(',');
     json += "{\"id\":\"" + id + "\",\"name\":\"" + source.name +
         "\",\"available\":true,\"downloadable\":false}";
+    if (count == kMaxCatalogEntries) break;
   }
   json += "],\"status\":\"listed\"}\n";
   return WriteAll(GetStdHandle(STD_OUTPUT_HANDLE), json.data(), json.size());
@@ -565,6 +597,7 @@ bool LoadCommand(const wchar_t* requestedId) {
   if (!IsValidId(requestedId)) { EmitError(Failure::InvalidRequest); return false; }
   DirectoryLayout layout;
   if (layout.Open() != DirectoryStatus::Ready) { EmitError(Failure::Unavailable); return false; }
+  size_t authorized = 0;
   for (const auto& source : kSources) {
     std::vector<BYTE> bytes;
     if (ReadSource(layout, source, &bytes) != ReadResult::Loaded) continue;
@@ -576,7 +609,9 @@ bool LoadCommand(const wchar_t* requestedId) {
     std::wstring wideId(static_cast<size_t>(required), L'\0');
     if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, id.data(), static_cast<int>(id.size()),
         wideId.data(), required) != required) { EmitError(Failure::HelperFailed); return false; }
+    ++authorized;
     if (wideId == requestedId) return WriteImage(id, bytes);
+    if (authorized == kMaxCatalogEntries) break;
   }
   EmitError(Failure::Unavailable);
   return false;

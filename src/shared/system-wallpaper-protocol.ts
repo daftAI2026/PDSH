@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 Host 的平台活动目录、历史缓存 ID 和同一官方 Remote 的有界传输。
- * [OUTPUT]: 提供材料 ID 语法、四项目录预算及请求/帧 DTO；语法不是来源授权，Host 必须再核对当前目录，不接收路径/URL。
+ * [OUTPUT]: 提供材料 ID 语法、最多五项活动目录预算及请求/帧 DTO；语法不是来源授权，Host 必须再核对当前目录，不接收路径/URL。
  * [POS]: shared 的壁纸能力合同；不接受路径或 URL，不改变已有 capture/save 协议。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -17,7 +17,7 @@ export type SystemWallpaperId = LegacySystemWallpaperId
 
 /** 远端电影 length 仅用于 Range 地址；实际下载与原生本地文件是独立预算，Remote 只传 JPEG。 */
 export const WALLPAPER_LIMITS = {
-  maxCatalogEntries: 4,
+  maxCatalogEntries: 5,
   maxBytes: 8 * 1024 * 1024,
   maxDimension: 2600,
   chunkBytes: 32 * 1024,

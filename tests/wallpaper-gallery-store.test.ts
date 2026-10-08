@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖共享图库DTO/预算与注入的最小IndexedDB双；不连接Host、Remote或真实浏览器数据库。
- * [OUTPUT]: 验证图库媒体/ID边界、同事务预算、用户项不驱逐、关闭再开持久及固定错误码。
+ * [INPUT]: 依赖共享图库DTO/语义名预算与注入的最小IndexedDB双；不连接Host、Remote或真实浏览器数据库。
+ * [OUTPUT]: 验证系统名v1往返、旧无名记录兼容、用户项拒名、同事务预算、关闭再开持久及固定错误码。
  * [POS]: Client IndexedDB媒体仓的TDD合同；共享文档仍由上级地图维护。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -309,6 +309,29 @@ test('IndexedDB gallery is root-scoped, persists across close, returns canonical
   assert.equal((await reopened.get('system-wallpaper-tahoe'))?.id, 'system-wallpaper-tahoe')
   await reopened.remove('system-wallpaper-tahoe')
   assert.equal(await reopened.get('system-wallpaper-tahoe'), undefined)
+  reopened.close()
+})
+
+test('semantic system names round-trip in v1 while legacy rows without names remain readable', async () => {
+  const indexedDB = new FakeIDBFactory()
+  const name = wallpaperGalleryDatabaseName('pdsh-rc')
+  const dynamicId = `system-wallpaper-image-${'b'.repeat(64)}`
+  const store = createWallpaperGalleryStore({ name, indexedDB: indexedDB as unknown as IDBFactory })
+  await store.put({ ...validSystemAsset(dynamicId), systemName: 'Windows · img0' } as WallpaperGalleryAsset)
+  await store.put(validSystemAsset(SYSTEM_WALLPAPER_IDS[0]))
+  assert.equal((await store.get(dynamicId) as (WallpaperGalleryAsset & { systemName?: string }) | undefined)?.systemName,
+    'Windows · img0')
+  assert.equal((await store.get(SYSTEM_WALLPAPER_IDS[0]))?.systemName, undefined,
+    'legacy v1 assets do not need an upgrade or a synthetic name field')
+  assert.equal(indexedDB.states.get(name)?.version, 1, 'the additive metadata field does not change the database schema')
+  store.close()
+
+  const reopened = createWallpaperGalleryStore({ name, indexedDB: indexedDB as unknown as IDBFactory })
+  assert.equal((await reopened.get(dynamicId) as (WallpaperGalleryAsset & { systemName?: string }) | undefined)?.systemName,
+    'Windows · img0')
+  assert.equal((await reopened.get(SYSTEM_WALLPAPER_IDS[0]))?.id, SYSTEM_WALLPAPER_IDS[0])
+  await assert.rejects(reopened.put({ ...validUserAsset(1), systemName: 'Windows · img0' } as WallpaperGalleryAsset),
+    error => (error as WallpaperGalleryError).code === 'invalid-asset')
   reopened.close()
 })
 

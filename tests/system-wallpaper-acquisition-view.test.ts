@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖工作台模板、闭集系统壁纸 ID、双语文案与背景按钮事件适配。
- * [OUTPUT]: 验证来源分组/个人plus接线与焦点、系统图不弹冗长媒体提示、图库读取静默且失败可见、批获取白名单失败码及状态边界。
+ * [OUTPUT]: 验证来源分组/个人plus接线与焦点、动态系统语义名精确ARIA标签、静默图库/固定失败码及批获取状态边界。
  * [POS]: 图片来源分组与一键获取交互合同；保留五张随包预设，不以 DOM 桩证明媒体获取或 Desktop 视觉。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -259,6 +259,20 @@ test('无 provider 不伪造批获取，但仍显示本地已缓存素材', () =
     assert.equal(h.panel.querySelectorAll('[data-system-wallpaper]').length, 1);
     assert.equal(systemGroup.querySelectorAll('[data-system-wallpaper]').length, 1);
   } finally { h.dom.window.close(); }
+});
+
+test('离线动态系统缩略图从持久语义名恢复精确无障碍名称', () => {
+  const id = `system-wallpaper-image-${'b'.repeat(64)}`;
+  const copy = captureWindowCopy('zh');
+  const dom = new JSDOM(captureWindowTemplate(state, copy, {
+    galleryAssets: [{ id, systemName: 'Windows · img0', blob: new Blob(['jpeg'], { type: 'image/jpeg' }),
+      width: 1, height: 1, sourceType: 'image', thumbnail, createdAt: 1 }],
+  }));
+  try {
+    const button = dom.window.document.querySelector<HTMLButtonElement>('[data-system-wallpaper]');
+    assert.equal(button?.getAttribute('aria-label'), 'Windows · img0');
+    assert.equal(button?.getAttribute('data-pdsh-tooltip'), null);
+  } finally { dom.window.close(); }
 });
 
 test('获取按钮只调用一次批获取，不调用选择或旧目录读取动作', async () => {

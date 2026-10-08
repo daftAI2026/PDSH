@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 shared WallpaperGalleryAsset 的闭集ID/Blob/缩略图合同与浏览器 IndexedDB；不读Host、Settings或用户文件名。
- * [OUTPUT]: 提供稳定/RC隔离的异步本地媒体仓；有界重读并在同一读写事务检验容量/项数再原子写入。
- * [POS]: capture 的持久背景素材仓；只保留静态派生Blob与最小显示元数据，关闭会中止在途事务但不清除图库。
+ * [INPUT]: 依赖 shared WallpaperGalleryAsset 的闭集ID/Blob/语义名/缩略图合同与浏览器 IndexedDB；不读Host、Settings或用户文件名。
+ * [OUTPUT]: 提供稳定/RC隔离的异步本地媒体仓；有界重读并在同一读写事务检验容量/项数再原子写入，兼容无名v1记录。
+ * [POS]: capture 的持久背景素材仓；仅系统项保留校验后的语义名称，关闭会中止在途事务但不清除图库。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import {
@@ -242,6 +242,7 @@ function normalizeInputAsset(value: unknown): WallpaperGalleryAsset {
       width: asset.width,
       height: asset.height,
       sourceType: asset.sourceType,
+      ...(asset.systemName !== undefined ? { systemName: asset.systemName } : {}),
       thumbnail: asset.thumbnail,
       createdAt: asset.createdAt,
     })
@@ -260,6 +261,7 @@ function normalizeStoredAsset(value: unknown): WallpaperGalleryAsset {
       width: asset.width,
       height: asset.height,
       sourceType: asset.sourceType,
+      ...(asset.systemName !== undefined ? { systemName: asset.systemName } : {}),
       thumbnail: asset.thumbnail,
       createdAt: asset.createdAt,
     })

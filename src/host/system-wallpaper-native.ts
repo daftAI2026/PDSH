@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖Host当前roster授权ID、同包helper、macOS固定HEIC/Host临时MOV与取消信号；Windows只接收hash ID。
- * [OUTPUT]: 提供有界helper调用/JPEG校验与Host固定失败类型；stderr上限1KiB，Windows解析单行JSON固定码，不接收Renderer URL/path或暴露stderr。
+ * [OUTPUT]: 提供有界helper调用/JPEG校验与Host固定失败类型；Windows x64闭集 roster 最多5项，stderr上限1KiB，失败码固定，不接收Renderer URL/path或暴露stderr。
  * [POS]: 系统素材Host与原生helper之间的窄适配；macOS沿Apple目录，Windows x64按native roster/hash ID取静图，等待真实child close后才结算。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -16,7 +16,7 @@ const START_TIMEOUT = WALLPAPER_LIMITS.helperStartMs
 const HELPER_TIMEOUT = WALLPAPER_LIMITS.helperMs
 const FORCE_TIMEOUT = 2_000
 const MAX_ERROR_BYTES = 1_024
-const MAX_WINDOWS_WALLPAPER_ENTRIES = 2
+const MAX_WINDOWS_WALLPAPER_ENTRIES = 5
 const JPEG_MARKERS = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf])
 
 export type NativeWallpaperFailureCode =

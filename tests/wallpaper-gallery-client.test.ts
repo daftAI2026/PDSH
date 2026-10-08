@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 Client 壁纸图库包装、共享资产契约与 fake store/adapter。
- * [OUTPUT]: 验证动态活动目录与旧缓存分账、系统/用户持久媒体边界、目录失败码保真、纯本地选择与销毁结算。
- * [POS]: 壁纸图库 Client 专项回归；以可控 Image/Store 验证取消和持久语义，不连接网络、实际 IndexedDB、Host 或系统素材。
+ * [OUTPUT]: 验证动态活动目录与旧缓存分账、系统语义名称持久恢复、用户媒体边界、目录失败码与销毁结算。
+ * [POS]: 壁纸图库 Client 专项回归；以可控 Image/Store 验证取消和语义元数据持久性，不连接网络、实际 IndexedDB、Host 或系统素材。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import assert from 'node:assert/strict';
@@ -18,6 +18,8 @@ import { SystemWallpaperClientError } from '../src/client/capture/system-wallpap
 import { createSystemWallpaperController } from '../src/client/capture/system-wallpapers.ts';
 
 const systemId = 'system-wallpaper-golden-gate';
+const windowsImageId = `system-wallpaper-image-${'b'.repeat(64)}`;
+const windowsImageName = 'Windows · img0';
 const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/WQAAAABJRU5ErkJggg==', 'base64');
 const tinyJpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xc0, 0x00, 0x0b, 0x08, 0x00, 0x01, 0x00, 0x01, 0x03, 0x01, 0x11, 0x00, 0xff, 0xd9]);
 const thumb = 'data:image/jpeg;base64,YQ==';
@@ -179,6 +181,76 @@ test('explicit system load is saved before it is returned, then restoration is l
   const restored = await gallery.restore(systemId);
   assert.equal(restored.asset.id, systemId);
   assert.equal(remoteLoads, 1, 'restore only reads IndexedDB and never re-enters the helper');
+});
+
+test('dynamic system names survive Gallery persistence and local restart restoration', async () => {
+  const fake = fakeStore();
+  let catalogReads = 0;
+  let mediaLoads = 0;
+  const { gallery } = setup({ store: fake, systemAdapter: {
+    async list() {
+      catalogReads++;
+      return [{ id: windowsImageId, name: windowsImageName, available: true, downloadable: false }];
+    },
+    async load() {
+      mediaLoads++;
+      return `data:image/jpeg;base64,${Buffer.from(tinyJpeg).toString('base64')}`;
+    },
+    getSourceType() { return 'image'; },
+  } });
+
+  await gallery.systemAdapter!.list(undefined, { requireSource: true });
+  await gallery.systemAdapter!.load(windowsImageId);
+  assert.equal((fake.records.get(windowsImageId) as Record<string, unknown>)?.systemName, windowsImageName,
+    'the accepted catalog label is stored with the durable system image');
+  gallery.close();
+
+  const reopened = setup({ store: fake, systemAdapter: {
+    async list() { catalogReads++; assert.fail('local restoration must not request a catalog'); },
+    async load() { mediaLoads++; assert.fail('local restoration must not request media'); },
+  } });
+  try {
+    const restored = await reopened.gallery.systemAdapter!.restore!();
+    assert.equal(restored[0]?.name, windowsImageName);
+    assert.equal(catalogReads, 1);
+    assert.equal(mediaLoads, 1);
+  } finally { reopened.gallery.close(); }
+});
+
+test('explicit Get backfills names on cached system media without another media request', async () => {
+  const legacyCachedAsset = { ...systemAsset(), id: windowsImageId };
+  const fake = fakeStore([legacyCachedAsset]);
+  let catalogReads = 0;
+  let mediaLoads = 0;
+  const { gallery } = setup({ store: fake, systemAdapter: {
+    async list() {
+      catalogReads++;
+      return [{ id: windowsImageId, name: windowsImageName, available: true, downloadable: false }];
+    },
+    async load() { mediaLoads++; assert.fail('the complete cache must skip helper media acquisition'); },
+  } });
+  const controller = createSystemWallpaperController(gallery.systemAdapter);
+  try {
+    await controller.acquireAll();
+    assert.equal((fake.records.get(windowsImageId) as Record<string, unknown>)?.systemName, windowsImageName,
+      'the current catalog enriches an RC3 record that has no saved name');
+    assert.equal(controller.getState().entries[0]?.name, windowsImageName);
+    assert.equal(catalogReads, 1);
+    assert.equal(mediaLoads, 0);
+  } finally {
+    await controller.destroy();
+    gallery.close();
+  }
+
+  const reopened = setup({ store: fake, systemAdapter: {
+    async list() { assert.fail('reopened cached metadata is local-only'); },
+    async load() { assert.fail('reopened cached metadata is local-only'); },
+  } });
+  try {
+    const restored = await reopened.gallery.systemAdapter!.restore!();
+    assert.equal(restored[0]?.name, windowsImageName);
+    assert.equal(mediaLoads, 0, 'name backfill never repeats the Host media request');
+  } finally { reopened.gallery.close(); }
 });
 
 test('user import verifies static image magic, hashes bytes, preserves PNG bytes and stores no filename', async () => {

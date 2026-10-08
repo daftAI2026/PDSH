@@ -22,11 +22,11 @@ Host 的 Remote 取消终态可能先于 Client 配置撤权；批获取收到�
 - `editor-keyboard.ts`: 工作台可见tab stop焦点/Escape/导出/历史快捷键输入适配，隐藏/inert面板与负tabindex不入循环；忙碌阶段只允许取消与焦点移动，不绕过串行导出。
 - `editor.ts`: 工作台编辑、重拍与导出协调。标题与头像开关仅在重拍成功后提交来源及状态；头像覆盖只属当前工作台。Gallery 的导入/删除/获取独立刷新，获取不选图。关闭撤权并等待自有 I/O；保存须有效回执。
 - `wallpaper-gallery-actions.ts`: 单一Gallery UI action/revision/signal owner；目录与媒体分离，选择/恢复/导入信号传到背景解码，迟到不启下一步；destroy先撤权再等待自己拥有的仓储/媒体Promise，防止编辑器关仓早于读写结算，不访问DOM/Host。
-- `wallpaper-gallery.ts`: 媒体仓语义层；显式requireSource目录只覆合同ID缓存，不把旧缓存扩为当前目标；纯local恢复保留动态/legacy/user素材；无缓存选择不偷发Host媒体，原PNG/持久JPEG/取消结算与配额独立。
-- `wallpaper-gallery-store.ts`: root身份隔离的 IndexedDB 媒体仓；只实现 list/get/put/remove/close 与共享容量/契约验证，事务错误以固定 Gallery error映射；关闭连接保留资产，不写 Settings或Host路径。
+- `wallpaper-gallery.ts`: 媒体仓语义层；显式requireSource目录只覆合同ID缓存并为匹配旧系统缓存补当前语义名，不发重复媒体请求；纯local恢复保留系统名及动态/legacy/user素材，用户图无名字段。
+- `wallpaper-gallery-store.ts`: root身份隔离的 IndexedDB 媒体仓；只实现 list/get/put/remove/close 与共享容量/契约验证，保留系统语义名并兼容无名v1记录；关闭连接保留资产，不写 Settings或Host路径。
 - `editor-viewport.ts`: 独立视口控制器；按模型工具/来源区分检测点击与手绘，模式或阶段切换可取消旧手势；模型是 zoom 唯一真源、控制器独占 pan，归一化并限幅滚轮输入，按帧合并 transform 且 dispose 取消待办，不触发像素合成。
 - `model.ts`: 编辑器唯一状态及命令演算；图片、背景、遮挡和视口不另设并行状态，渐变目录始终展开，不保留折叠命令。
-- `view.ts`: 四模式/三来源DOM；Get动作完整缓存后仍可刷新，当前材料至多四项、旧缓存可离线；后台/库存不插加载进度行，按钮busy、失败固定码与个人plus焦点仍保留，系统缩略图无长提示。
+- `view.ts`: 四模式/三来源DOM；Get动作完整缓存后仍可刷新，当前材料至多五项、旧缓存可离线；持久系统语义名驱动精确缩略图ARIA名称，无长tooltip。
 - `copy.ts`: Host 语言的双语动作、错误与 legacy 名称。窗口标题使用编辑截图；系统分组与获取动作统一为系统壁纸。本机优先，缺失时下载，不要求证书设置。未知素材不编造版本。后台读取静默，失败保留。
 - `icons.ts`: 锁定Lucide 1.51.0的29个官方SVG图形源；只贡献路径与24单位坐标，运行尺寸、描边与根透明度由实时 Host 图标探针提供。
 - `geometry.ts`: 缩放、平移及区域换算的纯几何；与 DOM 生命周期分离。
@@ -42,8 +42,8 @@ Host 的 Remote 取消终态可能先于 Client 配置撤权；批获取收到�
 - `assets.ts`: 五张离线壁纸的构建期 data URL 映射。
 - `assets/`: 壁纸原图与独立资产清单；不请求外网。
 - `wallpaper.ts`: 五张预设/data URL/图库 Blob 共用的可取消 Image loader；成功归还监听并保留渲染源，取消/错误移除 src 与监听；签名、预算和持久化归 wallpaper-gallery，不把浏览器 GC 时机当产品回执。
-- `system-wallpaper-remote.ts`: 同一Remote的最多四项活动目录/媒体边界；校验动态/legacy材料语法与语义名，knownCatalog才授权load；保留available/downloadable，拒路径URL和超预算/错序/迟到JPEG，Gallery持久化。
-- `system-wallpapers.ts`: 显式串行批获取owner；每次读取当前catalog、仅补活动缺项，不计旧cache为新进度；内部进度静默、settle后发布持久缩略图，不自动选背景，取消/卸载join真实I/O；选中环不在此分源管理。
+- `system-wallpaper-remote.ts`: 同一Remote的最多五项活动目录/媒体边界；校验动态/legacy材料语法与语义名，knownCatalog才授权load；保留available/downloadable，拒路径URL和超预算/错序/迟到JPEG，Gallery持久化。
+- `system-wallpapers.ts`: 显式串行批获取owner；每次读取当前catalog、仅补活动缺项并刷新匹配旧缓存名称，不计旧cache为新进度；内部进度静默、settle后发布持久缩略图，不自动选背景，取消/卸载join真实I/O；选中环不在此分源管理。
 - `preferences.ts`: 稳定/RC 分域的非敏感浏览器偏好。保存既有标题偏好与有效材料 ID，不保存会话头像覆盖。媒体只在独立 IndexedDB，不存截图或路径。
 - `color-popover.ts`: 可显式关闭的选色弹层事件与属性转义，切类/重建不残留浮层；不承担背景状态源。
 - `padding-slider.ts`: 原生 range 的离散边距交互与刻度同步。

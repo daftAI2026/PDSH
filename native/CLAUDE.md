@@ -13,7 +13,7 @@
 `system-wallpaper.h`: 同一helper的旧目录/UUID缓存/系统HEIC/Host临时MOV窄分派；材料选择在Host，不引入第二helper或IPC
 `build.sh`: 编译 macOS capture/壁纸源为一个 helper 的双架构确定性脚本，最低 macOS 14，lipo 核 arm64/x86_64 且不运行产物；归档门独立验证 0755 执行权限
 `window-capture`: `build.sh` 输出的 macOS universal 归档 helper；由 root `index.js` 相对解析，构建时生成、不手写
-`windows/`: Windows x64 `CreateForWindow` 与固定默认壁纸后端、身份/窗口归属门、`asInvoker` manifest 与 VS/SDK 构建入口；成员及边界见 `windows/CLAUDE.md`
+`windows/`: Windows x64 `CreateForWindow` 与固定系统壁纸候选后端、身份/窗口归属门、`asInvoker` manifest 与 VS/SDK 构建入口；成员及边界见 `windows/CLAUDE.md`
 
 编译仅生成捆包 helper，不调用 helper、不联网、不打开授权 UI；合法用户触发的实机授权/采集和素材 JPEG 输出是独立验证门。
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
