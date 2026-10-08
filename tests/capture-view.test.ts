@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖工作台的纯状态、双语文案与 DOM 模板。
- * [OUTPUT]: 验证双语操作面板、独立标题关联与检测区域语义；无 adapter 不伪造系统壁纸。
+ * [OUTPUT]: 验证私密标题/私密身份短文案、独立标题关联与检测区域语义；无 adapter 不伪造系统壁纸。
  * [POS]: DSH 工作台 UI 合同；不以模板测试冒充 Desktop 像素验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -32,15 +32,15 @@ for (const locale of ['zh', 'en']) {
   });
 }
 
-test('工作台标题遮罩保持独立，身份遮罩文案只描述实际范围', () => {
-  assert.equal(captureWindowCopy('zh').privacy, '标题遮罩');
-  assert.equal(captureWindowCopy('zh').privacyDescription, '截取前遮挡可识别的标题。');
-  assert.equal(captureWindowCopy('en').privacy, 'Mask titles');
-  assert.equal(captureWindowCopy('en').privacyDescription, 'Mask recognized titles before capture.');
-  assert.equal(captureWindowCopy('zh').identityMask, '身份遮罩');
-  assert.equal(captureWindowCopy('zh').identityMaskDescription, '遮挡侧栏头像和名称。');
-  assert.equal(captureWindowCopy('en').identityMask, 'Identity masking');
-  assert.equal(captureWindowCopy('en').identityMaskDescription, 'Mask the sidebar avatar and name.');
+test('私密标题与私密身份使用已确认的短文案，分别说明打码范围', () => {
+  assert.equal(captureWindowCopy('zh').privacy, '私密标题');
+  assert.equal(captureWindowCopy('zh').privacyDescription, '对侧边栏会话标题打码。');
+  assert.equal(captureWindowCopy('en').privacy, 'Private titles');
+  assert.equal(captureWindowCopy('en').privacyDescription, 'Redact sidebar session titles.');
+  assert.equal(captureWindowCopy('zh').identityMask, '私密身份');
+  assert.equal(captureWindowCopy('zh').identityMaskDescription, '对侧边栏头像和昵称打码。');
+  assert.equal(captureWindowCopy('en').identityMask, 'Private identity');
+  assert.equal(captureWindowCopy('en').identityMaskDescription, 'Redact the sidebar avatar and nickname.');
 });
 
 test('身份遮罩是唯一工作台身份开关，标题遮罩保持独立', () => {

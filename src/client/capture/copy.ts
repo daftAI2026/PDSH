@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖调用方传入的 locale、shared 封闭壁纸 ID，并遵循截图编辑器已经确认的产品术语
- * [OUTPUT]: 对外提供 CaptureWindowCopy 双语文案/版本壁纸名称、标题与身份遮罩说明、图库动作和固定失败码提示选择器；系统壁纸提示不暗示各平台使用同一获取路径
- * [POS]: 唯一文案边界；身份说明描述头像与名称遮罩范围，语言归 Host
+ * [OUTPUT]: 对外提供 CaptureWindowCopy 双语文案/版本壁纸名称、私密标题/私密身份短说明、图库动作和固定失败码提示选择器；系统壁纸提示不暗示各平台使用同一获取路径
+ * [POS]: 唯一文案边界；私密标题描述会话标题，私密身份描述头像与昵称，语言归 Host
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { SystemWallpaperId, LegacySystemWallpaperId } from '../../shared/system-wallpaper-protocol.ts';
@@ -109,8 +109,8 @@ const ENGLISH: CaptureWindowCopy = {
     'system-wallpaper-tahoe-day': 'macOS 26 · Tahoe Day',
   },
   addImage: "Add image",
-  identityMask: "Identity masking",
-  identityMaskDescription: "Mask the sidebar avatar and name.",
+  identityMask: "Private identity",
+  identityMaskDescription: "Redact the sidebar avatar and nickname.",
   systemImages: "System wallpapers",
   myImages: "My images",
   myImage: "Image",
@@ -127,8 +127,8 @@ const ENGLISH: CaptureWindowCopy = {
   mosaic: "Mosaic",
   move: "Move",
   padding: "Padding",
-  privacy: "Mask titles",
-  privacyDescription: "Mask recognized titles before capture.",
+  privacy: "Private titles",
+  privacyDescription: "Redact sidebar session titles.",
   preview: "Preview",
   redact: "Redact",
   regionHint: "Click detected areas to redact them",
@@ -190,8 +190,8 @@ const CHINESE: CaptureWindowCopy = {
     'system-wallpaper-tahoe-day': 'macOS 26 · Tahoe Day（太浩湖日间）',
   },
   addImage: "添加图片",
-  identityMask: "身份遮罩",
-  identityMaskDescription: "遮挡侧栏头像和名称。",
+  identityMask: "私密身份",
+  identityMaskDescription: "对侧边栏头像和昵称打码。",
   systemImages: "系统壁纸",
   myImages: "我的图片",
   myImage: "图片",
@@ -208,8 +208,8 @@ const CHINESE: CaptureWindowCopy = {
   mosaic: "马赛克",
   move: "移动",
   padding: "边距",
-  privacy: "标题遮罩",
-  privacyDescription: "截取前遮挡可识别的标题。",
+  privacy: "私密标题",
+  privacyDescription: "对侧边栏会话标题打码。",
   preview: "预览",
   redact: "区域打码",
   regionHint: "点击检测到的区域进行打码",
