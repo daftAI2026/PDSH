@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 model.ts 的编辑状态、copy.ts 的本地化文案、presets.ts 的背景分层、持久 Gallery 目录、有限系统目录/失败码校验与 icons.ts 图标
- * [OUTPUT]: 提供背景图库、独立标题遮罩和会话身份遮罩；持久系统语义名用于离线缩略图无障碍名称。
+ * [OUTPUT]: 提供背景图库、独立标题关联与身份遮罩；检测区域保留可访问语义。
  * [POS]: DSH 工作台声明式视图边界；身份开关覆盖头像与名称，用户像素与图库来源保持独立，系统图不丢语义标签。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -88,11 +88,11 @@ export function captureWindowTemplate(
   const systemWallpapers = options.systemWallpapers ?? { entries: [], status: "unavailable" as const };
   return `
     <div class="pdsh-capture-backdrop" aria-hidden="true"></div>
-    <section class="pdsh-capture-dialog" role="dialog" aria-modal="true" aria-labelledby="pdsh-capture-title">
+    <section class="pdsh-capture-dialog" role="dialog" aria-modal="true" aria-labelledby="pdsh-capture-editor-title">
       <header class="pdsh-capture-header">
         <div class="pdsh-capture-heading">
           ${captureIcon("camera")}
-          <h1 class="pdsh-capture-title" id="pdsh-capture-title">${copy.title}</h1>
+          <h1 class="pdsh-capture-title" id="pdsh-capture-editor-title">${copy.title}</h1>
         </div>
         ${iconButton("close", "x", copy.close)}
       </header>
@@ -101,7 +101,7 @@ export function captureWindowTemplate(
           ${captureToolbarTemplate(state, copy)}
           <div class="pdsh-capture-stage" data-tool="${state.tool}">
             <div class="pdsh-capture-canvas-frame">
-              <div class="pdsh-capture-region-layer" aria-hidden="true"></div>
+              <div class="pdsh-capture-region-layer"></div>
             </div>
           </div>
         </section>

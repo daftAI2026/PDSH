@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖编辑状态、画布 padding 换算和 DOM 交互。
- * [OUTPUT]: 提供检测模式候选/已确认区域覆盖层；手绘隐藏未选候选，保留已打码区域并交还指针。
+ * [OUTPUT]: 提供有名称的候选与已确认区域；手绘隐藏未选候选，保留已打码区域并交还指针。
  * [POS]: capture 的区域交互层；仅在工作台中编辑，不反写宿主页面。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -60,6 +60,8 @@ function regionElement(
   element.dataset.source = source;
   element.dataset.interactive = String(state.redactionSource === "auto");
   element.setAttribute("role", "button");
+  element.setAttribute("aria-label", copy.regionRemove);
+  element.setAttribute("aria-disabled", String(state.redactionSource !== "auto"));
   element.setAttribute("data-pdsh-tooltip", copy.regionRemove);
   positionRegionElement(element, region, canvas, padding);
 
@@ -90,6 +92,7 @@ function candidateElement(
   element.dataset.region = "";
   element.dataset.interactive = String(state.redactionSource === "auto");
   element.setAttribute("role", "button");
+  element.setAttribute("aria-label", copy.regionSuggestion);
   element.setAttribute("data-pdsh-tooltip", copy.regionSuggestion);
   positionRegionElement(element, candidate, canvas, padding);
   if (state.redactionSource === "auto") {
