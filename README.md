@@ -16,7 +16,7 @@ DeepSeek Harness Desktop 插件 · **0.5.6 版本** · [`v0.5.6`](https://github
 
 支持 macOS 和 Windows，截图助手随插件提供，无需单独安装。
 
-![插件设置与侧栏效果示例](https://raw.githubusercontent.com/daftAI2026/PDSH/main/docs/preview.jpg)
+![插件设置与侧栏效果示例](https://raw.githubusercontent.com/daftAI2026/PDSH/main/docs/preview-zh.png)
 
 ## 功能
 
