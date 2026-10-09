@@ -1,6 +1,6 @@
 <!--
 [INPUT]: 依赖唯一版本、元信息、发布门和官方管理器。依赖中文发布合同的现行事实。
-[OUTPUT]: 提供完整英文交付、升级兼容与验收说明。历史原文指向中文权威归档。
+[OUTPUT]: 提供英文使用边界、交付、升级兼容与验收说明。历史原文指向中文权威归档。
 [POS]: 根发布契约的英文入口；与中文版共享边界，不翻译或复制不可改写的原文区块
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 -->
@@ -142,6 +142,19 @@ Commit the shared feature source and packaging tools, not `output/rc/` archives.
 `pnpm test` checks stable identity compatibility; `pnpm build` still generates stable runtime artifacts.
 Never copy RC manifests, entries, or generated files back into the stable source tree.
 
+## Usage Details
+
+- The screenshot helper ships with the plugin. Do not launch it separately or double-click its EXE.
+- Account avatars require signing in. Signing out temporarily shows a generated avatar; signing in restores the selected source without changing its setting.
+- Switching to manual drawing hides detected regions but keeps existing redactions. Drawing beyond the image commits only the intersection. Losing focus or cancelling does not add an unfinished redaction.
+- macOS detection uses the studied full-window layout. Windows uses native client-area offsets bound to the screenshot. Manual drawing remains available when geometry is unknown or inconsistent.
+
+Windows preview/export proportions were verified for a representative region.
+Complete pixel alignment and cancellation during active capture remain unverified.
+Physical testing of this version on macOS and native candidate-to-final-PNG alignment remain unverified.
+Pixel consistency across warm switches, dark and opposite Host/OS themes, and English Desktop remain unverified.
+See [this version's acceptance status](#056-release-decision-workbench-settlement-and-gallery) for the other unverified gates.
+
 ## Separate Verification Gates
 
 ### System Wallpapers and Local Gallery
@@ -149,6 +162,7 @@ Never copy RC manifests, entries, or generated files back into the stable source
 Version 0.5.5 adds local Windows x64 retrieval of system wallpapers.
 It selects up to five installed default and theme wallpapers.
 If fewer than five items are available, it shows the actual count. It does not read the user's current wallpaper or download from the network.
+It does not download historical XP or Windows 7 materials.
 The released `v0.5.5` macOS catalog is capped at four items.
 Version 0.5.6 keeps the complete original four and takes the first five candidates.
 If later groups are absent, return only the original four; ambiguous selected associations reject additions.

@@ -41,19 +41,13 @@ Choose the fixed version `v0.5.6`. Existing users can confirm an upgrade on the 
 
 ## Environment and Limits
 
-- Target host: **DeepSeek Harness Desktop 0.2.0-rc.2**. Screenshots are supported on macOS 14+ (Apple Silicon or Intel) and Windows 10 1903+ x64. No separate helper installation is needed. Do not launch the helper or double-click its EXE.
-- Choosing an account avatar requires signing in. Signing out temporarily shows a generated avatar; signing in restores the selected avatar source without changing the source setting.
-- Switching to manual drawing hides detected regions but keeps existing redactions. Drawing beyond the image keeps only the part inside it. Losing focus or cancelling does not add an unfinished redaction.
-- Save as PNG, JPEG, or WebP; copy as PNG. The default directory is `Downloads` under the user's home directory, and you can choose another directory. Duplicate names receive a number; existing files are never overwritten. If the save result is unknown, inspect the directory before retrying.
-- macOS fetches up to five representative wallpapers in Apple's local catalog order, without assigning fixed groups to OS versions. Unknown catalog formats or ambiguous material associations do not add materials; saved images remain available. Only an explicit fetch or refresh reads the system source or downloads missing media. Normal browsing can use the cache.
-  Windows selects up to five installed default and theme images. It does not read the user's current wallpaper or download from the network. If fewer than five images are available, it shows the actual count. It does not download historical XP or Windows 7 materials.
-- Use the plus at the end of “My images” to import an image. Background images and editing preferences use local browser storage. It does not store screenshots, source videos, or original filenames. A full store rejects imports instead of automatically deleting saved images to make room.
-- Detected regions reuse the sidebar recognition rules; they do not detect sensitive content. macOS uses the studied full-window layout, while Windows uses native client-area offsets bound to the screenshot. Manual drawing remains available when geometry is unknown or inconsistent.
-  Windows preview/export proportions were verified for a representative region; complete pixel alignment and cancellation during active capture remain unverified.
-  Physical testing of this version on macOS and native candidate-to-final-PNG alignment remain unverified.
-  Pixel consistency across warm switches, dark and opposite Host/OS themes, the English Desktop UI, high DPI, normal Desktop restart persistence, permission revocation, and abnormal exit remain unverified.
-  Desktop installation of this version's final stable archive and the fixed-SHA upgrade remain unverified. See the [distribution and acceptance notes](PUBLISHING.en.md#056-release-decision-workbench-settlement-and-gallery). Check the image before copying or saving.
-- Visual masking does not change account data, original text, history, logs, or model requests. PDSH does not provide session isolation, credential migration, or forensic privacy guarantees.
+- Target host: **DeepSeek Harness Desktop 0.2.0-rc.2**, on macOS 14+ (Apple Silicon or Intel) or Windows 10 1903+ x64.
+- Save as PNG, JPEG, or WebP; copy as PNG. The default folder is `Downloads` under your home directory. You can choose another folder. Duplicate filenames receive a number; existing files are not overwritten. If the save result is unknown, check the folder before retrying.
+- macOS fetches up to five representative wallpapers. Windows selects up to five installed default and theme images; it does not read the user's current wallpaper or download from the network.
+- The gallery and editing preferences stay on your device. The gallery stores no screenshots, source videos, or original filenames. A full store rejects imports rather than deleting images.
+- Masking changes only the display, not account data, original text, history, logs, or model requests. PDSH does not provide session isolation, credential migration, or forensic privacy guarantees.
+
+Detected regions do not identify sensitive content. Check redactions before copying or saving. Pixel alignment, dark themes, English Desktop, and other checks remain unverified. See [usage details](PUBLISHING.en.md#usage-details) and the [full acceptance status](PUBLISHING.en.md#056-release-decision-workbench-settlement-and-gallery).
 
 ## Development
 
