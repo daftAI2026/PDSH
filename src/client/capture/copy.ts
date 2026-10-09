@@ -1,12 +1,13 @@
 /**
- * [INPUT]: 依赖调用方传入的 locale、shared 封闭壁纸 ID，并遵循截图编辑器已经确认的产品术语
- * [OUTPUT]: 对外提供 CaptureWindowCopy 双语文案/版本壁纸名称、私密标题/私密身份短说明、图库动作和固定失败码提示选择器；系统壁纸提示不暗示各平台使用同一获取路径
- * [POS]: 唯一文案边界；私密标题描述会话标题，私密身份描述头像与昵称，语言归 Host
+ * [INPUT]: 依赖调用方 locale 和 shared 壁纸 ID。文案遵循截图编辑器术语。
+ * [OUTPUT]: 提供 CaptureWindowCopy 和标准化 zh/en lang。双语动作、系统名和失败码来自此处。
+ * [POS]: 唯一文案边界。标题与身份文案归 Host 语言。提示不声明统一来源路径。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import type { SystemWallpaperId, LegacySystemWallpaperId } from '../../shared/system-wallpaper-protocol.ts';
 
 export type CaptureWindowCopy = {
+  lang: 'en' | 'zh';
   backgroundTabs: { none: string; color: string; gradient: string; image: string };
   background: string;
   backgroundGradients: string;
@@ -34,11 +35,11 @@ export type CaptureWindowCopy = {
   myImages: string;
   myImage: string;
   removeImage: string;
-  galleryEmpty: string;
   galleryError: string;
   galleryFull: string;
   galleryUnavailable: string;
   loadWallpapers: string;
+  refreshWallpapers: string;
   retryWallpapers: string;
   retryWallpaper: string;
   wallpaperDownloadHint: string;
@@ -83,6 +84,7 @@ export type CaptureWindowCopy = {
 };
 
 const ENGLISH: CaptureWindowCopy = {
+  lang: 'en',
   backgroundTabs: { none: "None", color: "Color", gradient: "Gradient", image: "Image" },
   background: "Background",
   backgroundGradients: "Gradients",
@@ -115,11 +117,11 @@ const ENGLISH: CaptureWindowCopy = {
   myImages: "My images",
   myImage: "Image",
   removeImage: "Remove",
-  galleryEmpty: "No saved images yet.",
   galleryError: "Unable to read the saved image library",
   galleryFull: "The image library is full. Remove an image before adding another.",
   galleryUnavailable: "The image library is unavailable. This image was not applied or saved.",
   loadWallpapers: "Get system wallpapers",
+  refreshWallpapers: "Refresh system wallpapers",
   retryWallpapers: "Retry missing wallpapers",
   retryWallpaper: "Click to retry",
   wallpaperDownloadHint: "Get the system wallpapers available on this platform.",
@@ -164,6 +166,7 @@ const ENGLISH: CaptureWindowCopy = {
 };
 
 const CHINESE: CaptureWindowCopy = {
+  lang: 'zh',
   backgroundTabs: { none: "无背景", color: "纯色", gradient: "渐变", image: "图片" },
   background: "背景",
   backgroundGradients: "渐变",
@@ -196,11 +199,11 @@ const CHINESE: CaptureWindowCopy = {
   myImages: "我的图片",
   myImage: "图片",
   removeImage: "移除",
-  galleryEmpty: "还没有保存的图片。",
   galleryError: "无法读取本地图片图库",
   galleryFull: "图片图库已满。请先移除一张图片，再添加新图片。",
   galleryUnavailable: "本地图片图库不可用；这张图片未应用或保存。",
   loadWallpapers: "获取系统壁纸",
+  refreshWallpapers: "刷新系统壁纸",
   retryWallpapers: "补取缺失壁纸",
   retryWallpaper: "点击重试",
   wallpaperDownloadHint: "获取当前平台可用的系统壁纸。",

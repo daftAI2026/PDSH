@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 system-wallpapers controller、Gallery 缓存 wrapper、动态当前目录与可控 adapter/AbortSignal。
- * [OUTPUT]: 验证显式批次按当前available/downloadable目标串行持久化、旧缓存保留不计新进度，以及重试/固定错误码/取消和真实销毁结算。
- * [POS]: 批量系统壁纸 Client 专项合同；不读本机素材、执行真实 Host/Remote、真实 IndexedDB 或 Desktop。
+ * [OUTPUT]: 验证批获取目标、持久化、旧缓存、错误码、取消、销毁和多入口接线。
+ * [POS]: 批量壁纸 Client 合同。标题和空态共用批动作。不访问本机素材或 Desktop。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import assert from 'node:assert/strict';
@@ -471,14 +471,19 @@ test('editor acquisition wrapper reports one error for coalesced requests and ke
   assert.equal(errors, 1, 'normal cancellation on close never becomes an error notice');
 });
 
-test('system acquisition button invokes the batch once and no longer wires per-item or retry catalog actions', async () => {
+test('system acquisition buttons each invoke the shared batch action, not per-item catalog actions', async () => {
   let clicks = 0;
   const selectors: string[] = [];
-  let clickHandler: (() => void) | undefined;
-  const button = { addEventListener(type: string, listener: () => void) { if (type === 'click') clickHandler = listener; } };
+  const clickHandlers: Array<() => void> = [];
+  const buttons = [0, 1].map(() => ({
+    addEventListener(type: string, listener: () => void) { if (type === 'click') clickHandlers.push(listener); },
+  }));
   const root = {
-    querySelectorAll() { return []; },
-    querySelector(selector: string) { selectors.push(selector); return selector === "[data-action='acquire-system-wallpapers']" ? button : null; },
+    querySelectorAll(selector: string) {
+      selectors.push(selector);
+      return selector === "[data-action='acquire-system-wallpapers']" ? buttons : [];
+    },
+    querySelector(selector: string) { selectors.push(selector); return selector === "[data-action='acquire-system-wallpapers']" ? buttons[0] : null; },
   } as unknown as HTMLElement;
   wireSystemWallpaperActions(root, {
     acquireAll: async () => { clicks++; },
@@ -487,11 +492,11 @@ test('system acquisition button invokes the batch once and no longer wires per-i
     restoreCurrent: async () => {},
     select: async () => {},
   });
-  assert.deepEqual(selectors, ["[data-action='acquire-system-wallpapers']"]);
-  assert.ok(clickHandler);
-  clickHandler();
+  assert.equal(clickHandlers.length, 2, '标题和空态tile都绑定同一批获取回调');
+  assert.deepEqual(selectors, ["[data-system-wallpaper]", "[data-action='acquire-system-wallpapers']"]);
+  clickHandlers.forEach(handler => handler());
   await tick();
-  assert.equal(clicks, 1);
+  assert.equal(clicks, 2, '每个入口各调用一次现有批动作');
 });
 
 test('Gallery restore reads only local system metadata and thumbnails without listing or loading remote media', async () => {

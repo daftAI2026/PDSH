@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 view.ts 输出的 capture-window DOM、DSH 主题/动画 token 与实时原生 Button/Switch/图标/字段样式探针
- * [OUTPUT]: 提供工作台、画布、检查器与标题/头像拍摄占位；头像灰层只盖住严格识别的容器，保留名称区域和原布局尺寸。
- * [POS]: capture-window 的视觉契约，和 color-popover.css 分工维护主编辑器与浮层样式。
+ * [OUTPUT]: 提供工作台、画布和拍摄占位；压缩标题留白，用图标笔画及字形指标校准标题顶沿。边距刻度叠在原生滑轨。
+ * [POS]: capture-window 主界面样式，与 color-popover.css 分工；不改舞台尺寸和按钮命中区，刻度不截获 range 输入。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 [data-pdsh-capture],
@@ -47,6 +47,11 @@
   --pdsh-capture-shadow: var(--dsw-elevation-prominent);
   --pdsh-capture-control-height: var(--pdsh-action-size);
   --pdsh-capture-toolbar-height: calc(var(--pdsh-action-size) + var(--pdsh-field-gap));
+  /* maximize 顶边为 viewBox 3/24；扣除笔触半宽后映射到 CSS 像素。 */
+  --pdsh-capture-toolbar-icon-ink-top: calc(
+    (var(--pdsh-capture-control-height) - var(--pdsh-capture-icon-sm)) / 2 +
+    (3 / 24 - var(--pdsh-native-icon-stroke-ratio) / 2) * var(--pdsh-capture-icon-sm)
+  );
   --pdsh-capture-duration: var(--ds-transition-duration-fast);
   --pdsh-capture-ease: var(--ds-ease-in-out);
   color: var(--pdsh-capture-text);
@@ -145,7 +150,7 @@ html.pdsh-capture-redact [data-pdsh-capture-redact-avatar-only]::after {
 
 .pdsh-capture-header {
   min-width: 0;
-  padding: var(--pdsh-capture-shell-inset) var(--pdsh-capture-shell-inset) calc(var(--pdsh-capture-space) * 3);
+  padding: var(--pdsh-capture-shell-inset) var(--pdsh-capture-shell-inset) calc(var(--pdsh-capture-space) * 1);
 }
 
 .pdsh-capture-heading {
@@ -201,6 +206,7 @@ html.pdsh-capture-redact [data-pdsh-capture-redact-avatar-only]::after {
 
 .pdsh-capture-toolbar-controls {
   align-items: center;
+  align-self: flex-start;
   display: flex;
   flex: none;
   gap: calc(var(--pdsh-capture-space) * .5);
@@ -261,6 +267,7 @@ html.pdsh-capture-redact [data-pdsh-capture-redact-avatar-only]::after {
 }
 
 .pdsh-capture-icon-button > svg {
+  display: block;
   height: var(--pdsh-capture-icon-sm);
   width: var(--pdsh-capture-icon-sm);
 }
@@ -421,9 +428,20 @@ html.pdsh-capture-redact [data-pdsh-capture-redact-avatar-only]::after {
   min-height: 0;
   overflow: hidden;
   padding-block: var(--pdsh-capture-space);
+  padding-block-start: var(--pdsh-capture-toolbar-icon-ink-top);
 }
 
-.pdsh-capture-inspector > .pdsh-capture-section-title { flex-shrink: 0; }
+.pdsh-capture-inspector > .pdsh-capture-section-title {
+  flex-shrink: 0;
+  text-box-edge: cap alphabetic;
+  text-box-trim: trim-start;
+}
+
+/* +--- 中文按标题字体的 em-cap 差校准；该指标不测量字形墨迹。 ---+ */
+.pdsh-capture-inspector > .pdsh-capture-section-title:lang(zh) {
+  inset-block-start: calc((1em - 1cap) / 2);
+  position: relative;
+}
 
 .pdsh-capture-inspector-scroll {
   min-height: 0;
@@ -554,17 +572,25 @@ html.pdsh-capture-redact [data-pdsh-capture-redact-avatar-only]::after {
 .pdsh-capture-range {
   accent-color: var(--pdsh-capture-primary);
   cursor: pointer;
+  display: block;
   width: 100%;
 }
 
-/* 十等分视觉参照不参与命中或量化，数值输入继续交给原生 range。 */
+/* 十等分参照覆盖原生滑轨，不进入布局或命中；原生 range 保留输入语义。 */
+.pdsh-capture-range-field {
+  position: relative;
+}
 .pdsh-capture-range-field .pdsh-capture-range { margin: 0; }
 .pdsh-capture-range-ticks {
   color: var(--pdsh-capture-text-tertiary);
   height: var(--pdsh-capture-space);
-  margin-inline: calc(var(--pdsh-capture-space) * 2);
+  left: calc(var(--pdsh-capture-space) * 2);
+  margin: 0;
   pointer-events: none;
-  position: relative;
+  position: absolute;
+  right: calc(var(--pdsh-capture-space) * 2);
+  top: 50%;
+  transform: translateY(-50%);
 }
 .pdsh-capture-range-ticks > i {
   background: currentColor;
@@ -572,7 +598,8 @@ html.pdsh-capture-redact [data-pdsh-capture-redact-avatar-only]::after {
   height: calc(var(--pdsh-capture-space) * .5);
   left: var(--capture-tick-position);
   position: absolute;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
   width: calc(var(--pdsh-capture-space) * .5);
 }
 

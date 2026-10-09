@@ -149,19 +149,23 @@ Never copy RC manifests, entries, or generated files back into the stable source
 Version 0.5.5 adds local Windows x64 retrieval of system wallpapers.
 It selects up to five installed default and theme wallpapers.
 If fewer than five items are available, it shows the actual count. It does not read the user's current wallpaper or download from the network.
-The macOS active catalog remains capped at four items.
+The released `v0.5.5` macOS catalog is capped at four items.
+Version 0.5.6 keeps the complete original four and takes the first five candidates.
+If later groups are absent, return only the original four; ambiguous selected associations reject additions.
 
 The macOS adapter chooses representative materials from Apple's local catalog.
-The target is two items from each of the latest two system generations, not four fixed names.
+The active catalog holds at most five items, not a fixed set of names.
 Apple metadata has no per-material OS release field.
-Choose two Landscape subgroups by unique `preferredOrder`.
+Traverse Landscape groups by unique `preferredOrder`.
+For each group, choose its unique dynamic or extension material before its Landscape representative.
+Stop at five items; the first two groups must remain complete.
 Use `representativeAssetID` to associate a dynamic subgroup or root-owned extension.
 This catalog association is not a general system-version API.
 Reject additions from unknown or ambiguous formats; keep the existing cache.
 UUIDs or source digests identify materials; do not reuse system-generation role slots as IDs.
 
 Prefer valid local cache or root-owned HEIC files.
-Only the explicit Fetch System Wallpapers action reads sources and downloads missing media.
+Only explicit fetch or refresh actions read sources and download missing media.
 Mounting, tab re-entry, and ordinary selection read only the local gallery.
 Fetching does not select a background or show download placeholders or progress rows.
 Publish thumbnails once the operation settles; failures retain saved materials and fixed codes.
@@ -169,7 +173,11 @@ Fixed codes do not prove a TLS, proxy, or material-source diagnosis.
 Never expose raw exceptions, paths, or pixels.
 
 Keep five presets, system wallpapers, and personal images in separate groups.
-The personal group heading contains one plus button.
+The personal gallery keeps a thumbnail-sized plus at its end.
+An empty personal gallery contains only that plus, without a duplicate heading action.
+The system empty tile and heading action share one batch-fetch command.
+Existing system materials remove the empty tile and show Refresh System Wallpapers.
+Refreshing does not delete cached images or the current background.
 The Image tab reuses ready or in-flight inventory instead of rebuilding cached DOM.
 Read failures retain an alert; empty inventory retains feedback.
 Store selected system stills and uploaded images in IndexedDB.
@@ -206,6 +214,36 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 1. Run `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm build`, and `pnpm run bundle`. Check the current version's actual tgz members, bytes, permissions, version, and dependency licenses. Do not substitute an older package. Include only the manifest allowlist and npm's fixed package metadata and README files; exclude node_modules, profiles, credentials, logs, and private research.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
+
+## 0.5.6 Release Decision: Workbench Settlement and Gallery
+
+Fix drawing settlement after pointer capture or focus is lost.
+Clear gesture and draft ownership before releasing capture or committing.
+Cancellation does not commit a partial stroke; out-of-bounds drawing commits only the image intersection.
+Update editor spacing, themed icons and padding ticks.
+macOS takes up to five items in the existing candidate order.
+The personal gallery uses a trailing plus; the system gallery supports refresh.
+
+Local independent source review found no confirmed merge blocker.
+The GitHub review bot reached its usage limit; do not claim external review approval.
+After the unverified gates were disclosed, the user again requested merge and tagging.
+This authorization publishes main and v0.5.6 with those disclosed limits.
+Do not create a GitHub Release, publish to npm, or automatically upgrade Desktop.
+
+Windows RC23 verified native capture, retake and detected regions.
+It verified out-of-bounds drawing, Alt+Tab, PNG copy/save and directory cancellation.
+Five wallpapers, personal import, editor close/reopen and stable restoration passed.
+Those results do not substitute for the final stable archive or Mac physical testing.
+Final source, archive, native and exact isolated Host gates remain required.
+
+Keep these gates unverified for this release:
+current Mac Desktop, high DPI, inverse themes and English Desktop;
+direct visual glyph/icon acceptance and visible draft removal;
+tool switching or pan cancellation during a held gesture and full-image pixel alignment;
+normal Desktop restart persistence, live permission revocation and abnormal exit;
+v0.5.6 Desktop JPEG/WebP saves and active-capture cancellation;
+live installation of the final stable archive and the official fixed-SHA upgrade.
+This authorization neither reuses older exceptions nor authorizes later versions.
 
 ## 0.5.5 Release Decision: Identity and the Windows Workbench
 

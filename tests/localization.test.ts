@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖发布清单、官方 locale 资源入口与 Client 的语言字典。
- * [OUTPUT]: 验证包文本可离线发现、zh/en 键齐全，并约束插件图标为单 path 可调前景线稿且透明背景。
+ * [OUTPUT]: 验证包文本可离线发现、zh/en 键齐全，并约束插件图标按宿主色彩方案切换前景。
  * [POS]: PDSH 本地化与清单图标合同；实际宿主热切换/草稿保留由独立 runtime 另验。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -34,7 +34,7 @@ test('运行文案两种语言键一致，语言提示使用宿主设置而非�
   assert.doesNotMatch(card, /localStorage|setLocale|localePreference/);
 });
 
-test('插件清单图标复用单 path 帽子图形；包图固化前景色但保持透明背景', () => {
+test('插件清单图标复用单 path 并随宿主色彩方案切换 token 前景', () => {
   assert.equal(manifest.icon, './plugin-icon.svg');
   assert.ok(manifest.files.includes('plugin-icon.svg'));
   const glyph = readFileSync(new URL('../src/client/entry-icon.svg', import.meta.url), 'utf8');
@@ -56,6 +56,8 @@ test('插件清单图标复用单 path 帽子图形；包图固化前景色但�
   const root = icon.match(/<svg\b[^>]*>/)?.[0] ?? '';
   assert.match(root, /fill="none"[^>]*stroke-width="1\.5"/, '包图保留透明填充和统一线宽');
   assert.ok(root.includes(`stroke="${palette.foreground.value}"`), '元信息图标将 currentColor 固化为来源账中的原前景色');
+  assert.ok(icon.includes(`@media (prefers-color-scheme: dark) { path { stroke: ${palette.darkForeground.value}; } }`),
+    '包图用宿主 color-scheme 选择深色标签主色 token 快照');
   assert.ok(Buffer.byteLength(icon) < 256 * 1024);
 });
 

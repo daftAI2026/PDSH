@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖真实编辑器、jsdom 与可控 requestAnimationFrame；不读取用户截图或启动 Desktop。
- * [OUTPUT]: 验证视口/工具/区域状态与帧合并、模式及忙碌围栏、卸载清理；系统获取入口挂载只读本地目录，不调用 Host catalog或媒体。
- * [POS]: capture 编辑器视口交互合同；Canvas 绘制桩只证明控制流，不证明桌面视觉表现。
+ * [OUTPUT]: 验证视口合帧、越界提交与指针终态。覆盖失捕获、失焦、重复事件及卸载清理。
+ * [POS]: capture 视口交互合同。Canvas 桩不证明 Desktop 绘制。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
@@ -526,7 +526,7 @@ test('默认图片面板挂载时读取持久图库目录元数据，但不读�
   } finally { h.close(); }
 });
 
-test('有系统 provider 的首次图片面板仅读本地库存，单一获取入口不会自行触发 Host', async () => {
+test('有系统 provider 的首次图片面板仅读本地库存，标题与空态入口都不自动触发 Host', async () => {
   let catalogCalls = 0;
   let mediaCalls = 0;
   let localLists = 0;
@@ -552,6 +552,147 @@ test('有系统 provider 的首次图片面板仅读本地库存，单一获取�
     assert.equal(catalogCalls, 0, '打开工作台不读取系统目录');
     assert.equal(mediaCalls, 0, '打开工作台不读取或下载系统图片');
     assert.equal(h.root.querySelectorAll('[data-system-wallpaper]').length, 0);
-    assert.equal(h.root.querySelectorAll('[data-action="acquire-system-wallpapers"]').length, 1);
+    assert.equal(h.root.querySelectorAll('[data-action="acquire-system-wallpapers"]').length, 2);
+    assert.equal(h.root.querySelectorAll('[data-system-wallpaper-empty]').length, 1,
+      '空目录显示一个可执行获取动作的缩略图加号');
+  } finally { h.close(); }
+});
+
+// +--- 越界与捕获中断必须汇合到唯一终态 ---+
+test('手绘越出原图后松开仅提交交集，预览与捕获清空，下一笔仍可绘制', () => {
+  const h = fixture();
+  try {
+    const p = prepareRegionPointer(h);
+    p.choose('tool-redact'); p.choose('source-draw');
+    h.pointer('pointerdown', 80, 20, 20);
+    h.pointer('pointermove', 80, 250, 180);
+    assert.equal(h.root.querySelectorAll('.pdsh-capture-draft-region').length, 1);
+    h.pointer('pointerup', 80, 250, 180);
+    const [region] = h.editor.getState().regions;
+    assert.equal(region.rect.x + region.rect.width, 120);
+    assert.equal(region.rect.y + region.rect.height, 80);
+    assert.equal(h.root.querySelector('.pdsh-capture-draft-region'), null);
+    assert.equal(p.captured.size, 0);
+    p.draw(81);
+    assert.equal(h.editor.getState().regions.length, 2);
+  } finally { h.close(); }
+});
+
+test('捕获丢失立即取消越界草稿，迟到松开不提交，重画不会留下孤儿框', () => {
+  const h = fixture();
+  try {
+    const p = prepareRegionPointer(h);
+    p.choose('tool-redact'); p.choose('source-draw');
+    h.pointer('pointerdown', 82, 20, 20);
+    h.pointer('pointermove', 82, 250, 180);
+    p.captured.delete(82); // 浏览器先撤销捕获，再发送 lostpointercapture。
+    h.pointer('lostpointercapture', 82, 250, 180);
+    assert.equal(h.root.querySelector('.pdsh-capture-draft-region'), null);
+    h.pointer('pointerup', 82, 250, 180);
+    assert.equal(h.editor.getState().regions.length, 0);
+    p.draw(83);
+    assert.equal(h.editor.getState().regions.length, 1);
+    assert.equal(h.root.querySelectorAll('.pdsh-capture-draft-region').length, 0);
+  } finally { h.close(); }
+});
+
+test('无关指针的结束事件不得结束当前手绘，同一手势不接受第二次 pointerdown', () => {
+  const h = fixture();
+  try {
+    const p = prepareRegionPointer(h);
+    p.choose('tool-redact'); p.choose('source-draw');
+    h.pointer('pointerdown', 84, 20, 20);
+    const draft = h.root.querySelector('.pdsh-capture-draft-region');
+    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+      h.pointer(type, 85, 40, 40);
+      assert.equal(h.root.querySelector('.pdsh-capture-draft-region'), draft, type);
+      assert.equal(h.editor.getState().regions.length, 0, type);
+    }
+    h.pointer('pointerdown', 84, 30, 30);
+    h.pointer('pointerdown', 85, 30, 30);
+    assert.equal(h.root.querySelectorAll('.pdsh-capture-draft-region').length, 1);
+    assert.deepEqual([...p.captured], [84]);
+    h.pointer('pointerup', 84, 60, 50);
+    assert.equal(h.editor.getState().regions.length, 1);
+    assert.equal(h.root.querySelector('.pdsh-capture-draft-region'), null);
+  } finally { h.close(); }
+});
+
+test('窗口失焦取消当前手绘与平移，迟到松开不提交', () => {
+  for (const draw of [false, true]) {
+    const h = fixture();
+    try {
+      const p = prepareRegionPointer(h);
+      if (draw) { p.choose('tool-redact'); p.choose('source-draw'); }
+      h.pointer('pointerdown', 86, 20, 20);
+      h.pointer('pointermove', 86, 250, 180);
+      h.dom.window.dispatchEvent(new h.dom.window.Event('blur'));
+      assert.equal(h.root.querySelector('.pdsh-capture-draft-region'), null);
+      assert.equal(h.stage.hasAttribute('data-panning'), false);
+      assert.equal(p.captured.size, 0);
+      h.pointer('pointerup', 86, 250, 180);
+      assert.equal(h.editor.getState().regions.length, 0);
+    } finally { h.close(); }
+  }
+});
+
+test('提交前先清空手势，releasePointerCapture 的同步失捕获事件不能重入或重复提交', () => {
+  const h = fixture();
+  try {
+    const p = prepareRegionPointer(h);
+    p.choose('tool-redact'); p.choose('source-draw');
+    let releases = 0;
+    h.stage.releasePointerCapture = id => {
+      releases++;
+      assert.equal(h.root.querySelector('.pdsh-capture-draft-region'), null);
+      assert.equal(h.editor.getState().regions.length, 0, '外部提交前归还捕获');
+      p.captured.delete(id);
+      h.pointer('lostpointercapture', id, 250, 180);
+    };
+    h.pointer('pointerdown', 87, 20, 20);
+    h.pointer('pointerup', 87, 250, 180);
+    h.pointer('pointerup', 87, 250, 180);
+    assert.equal(releases, 1);
+    assert.equal(h.editor.getState().regions.length, 1);
+    assert.equal(h.editor.getState().history.past.length, 1);
+  } finally { h.close(); }
+});
+
+
+test('重复 pointerdown 不覆盖当前草稿，也不额外获取其他指针', () => {
+  const h = fixture();
+  try {
+    const p = prepareRegionPointer(h);
+    p.choose('tool-redact'); p.choose('source-draw');
+    h.pointer('pointerdown', 88, 20, 20);
+    const original = h.root.querySelector('.pdsh-capture-draft-region');
+    h.pointer('pointerdown', 88, 30, 30);
+    h.pointer('pointerdown', 89, 30, 30, 1);
+    assert.equal(h.root.querySelectorAll('.pdsh-capture-draft-region').length, 1);
+    assert.equal(h.root.querySelector('.pdsh-capture-draft-region'), original);
+    assert.deepEqual([...p.captured], [88]);
+    h.pointer('pointerup', 88, 60, 50);
+    assert.equal(h.editor.getState().regions.length, 1);
+    assert.equal(h.root.querySelector('.pdsh-capture-draft-region'), null);
+  } finally { h.close(); }
+});
+
+test('平移失去捕获即退出 panning；捕获被浏览器拒绝时不创建半成品手势', () => {
+  const h = fixture();
+  try {
+    const p = prepareRegionPointer(h);
+    h.pointer('pointerdown', 90, 20, 20);
+    p.captured.delete(90);
+    h.pointer('lostpointercapture', 90, 250, 180);
+    assert.equal(h.stage.hasAttribute('data-panning'), false);
+    p.choose('tool-redact'); p.choose('source-draw');
+    h.stage.setPointerCapture = () => { throw new h.dom.window.DOMException('inactive pointer', 'NotFoundError'); };
+    h.pointer('pointerdown', 91, 20, 20);
+    assert.equal(h.root.querySelector('.pdsh-capture-draft-region'), null);
+    h.pointer('pointerup', 91, 60, 50);
+    assert.equal(h.editor.getState().regions.length, 0);
+    h.stage.setPointerCapture = id => { p.captured.add(id); };
+    p.draw(92);
+    assert.equal(h.editor.getState().regions.length, 1);
   } finally { h.close(); }
 });

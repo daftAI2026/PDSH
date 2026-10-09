@@ -176,7 +176,10 @@ test('中英文 README 当前版本同源，英文不省略兼容、平台和隐
   assert.match(english, /0\.5\.0[^\n]*does not support a no-restart upgrade/iu);
   assert.match(readme, /Windows[^\n]*最多五张/u);
   assert.match(english, /Windows[^\n]*up to five installed default and theme images/iu);
-  assert.match(english, /macOS[^\n]*four representative wallpapers/iu);
+  assert.match(english, /macOS[^\n]*up to five representative wallpapers/iu);
+  assert.match(readme, /macOS[^\n]*最多五张代表壁纸/u);
+  assert.doesNotMatch(readme, /未发布的开发候选/u);
+  assert.doesNotMatch(english, /unreleased development candidate/iu);
   assert.match(english, /Windows[^\n]*does not read the user's current wallpaper or download from the network/iu);
   assert.doesNotMatch(english, /Windows[^\n]*does not provide system wallpaper/iu);
   assert.match(english, /unverified/iu);

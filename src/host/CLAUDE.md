@@ -13,7 +13,7 @@
 - `system-wallpaper-download.ts`: 共享受控URL与三次严格206/强ETag Range，累计≤18MiB+64B；重建完整首sample MOV，唯一本地临时媒体owner；生产复用系统transport，fake-fetch只供合同，不整段GET/改TLS。
 - `system-wallpaper-mov.ts`: 纯64B固定头/尾moov解析与首sync sample定位；仅接受单hvc1视频描述、单自包含alis引用及已知索引，保留tapt/hdlr/hvcC/nclc/matrix并重建完整单sample MOV；独立限制逻辑length/metadata/sample。
 - `system-wallpaper-mov-aux.ts`: 严格验证固定Apple tapt、media/data handler、HEVC sample-entry尾零及已知sgpd/csgm/cslg/sdtp布局；拒绝未知/外部必要结构，旧sample辅助索引只验证后丢弃。
-- `system-wallpaper-stream.ts`: Mac 与 Windows x64 共用的惰性目录/JPEG 状态机。共享目录最多五项；Mac selector 仍固定四项。ID/name 经共享校验；accepted 配置、单航班与取消 return 等待真实结算。未知平台不启动 helper。
+- `system-wallpaper-stream.ts`: Mac 与 Windows x64 共用的惰性目录/JPEG 状态机。共享目录最多五项；Mac 保留完整原四项，按候选流截取前五项。ID/name 经共享校验；accepted 配置、单航班与取消 return 等待真实结算。未知平台不启动 helper。
 - `window-save-backend.ts`: 单 service 调用的 Host save backend；复核 shared 绝对目录语法与本机 path.isAbsolute/normalize，规范化 UNC share root 后从 accepted Config 取目录/模板，验证有序 uplink/hash/图像后委托既有安全 writer，真实提交后才回 receipt。
 - `window-save-image.ts`: 只验证 PNG/JPEG/静态 WebP envelope 与尺寸；仅保留固定指纹的Canvas默认sRGB ICC原字节，拒绝其他metadata/动画且不做通用解码或文件写入。
 - `page-save-file.ts`: 同目录独占临时文件、同步、取消围栏与原子提交的 Host writer；新 save backend 复用其 direct 不覆盖边界。
@@ -26,7 +26,7 @@
 
 - `capture-runtime-loader.ts`: 标准 realpath/import 的单实例协调器。严格验证稳定 v1 与已发布 v2 基础面，壁纸按独立合同判定；旧操作结算后换载。
 
-- `system-wallpaper-catalog.ts`: 只读有界Apple metadata选择器；前两Landscape subgroup的preferredOrder/代表UUID对应dynamic子组或root-owned扩展，Mac目录固定四项且不把排序当OS版本；旧ID缓存桥/未来材料身份，未知关联拒绝，路径URL留Host。
+- `system-wallpaper-catalog.ts`: 只读有界Apple metadata选择器；按唯一preferredOrder遍历Landscape组，先取唯一dynamic或root-owned扩展再取景观代表，候选流截取前五项；前两组须完整，不把排序当OS版本；旧ID缓存桥/未来材料身份，未知关联拒绝，路径URL留Host。
 
 - `system-wallpaper-transport.ts`: 固定/usr/bin/curl窄Range；--disable忽略curlrc、shell:false、默认系统TLS/Apple URL、头体stderr硬预算；验头后按Range预分配单Buffer、分片顺拷；分配失败释放并等真实close，不是DSH应用内fetch/proxy dispatcher。
 

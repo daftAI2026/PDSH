@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 pack-rc 的显式公开源白名单、隔离 staging 与候选命名规则。
- * [OUTPUT]: 验证 RC 副本含双语说明且不改稳定源。保留权限、私有哨兵与拒绝覆盖门。
+ * [INPUT]: 依赖 pack-rc 的显式公开源白名单、主题图标生成器与隔离 staging。
+ * [OUTPUT]: 验证 RC 副本含双语说明、主题图标构建闭包且不改稳定源。
  * [POS]: 独立测试分发合同；不运行 SDK GUI、不改用户 profile，也不冒充 Manager/Desktop 验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -32,6 +32,7 @@ function sourceFixture() {
     'tsconfig.remote-types.json': '{}\n',
     'tools/generate-typert.ts': 'generator source\n',
     'tools/native-baseline.ts': 'baseline source\n',
+    'tools/plugin-icon.ts': 'export function createThemeAwarePluginIcon() {}\n',
     'tools/typert-protocol-reference/package.json': '{"name":"fixture"}\n',
     'tools/typert-protocol-reference/src/index.ts': 'export {}\n',
     'src/host/index.ts': 'export {}\n',
@@ -131,6 +132,22 @@ test('stage 只复制公开白名单，在私有副本派生包/patch/locale，�
     assert.equal(typeof stage.source.dirty === 'boolean' || stage.source.dirty === null, true);
     for (const path of stableFiles) assert.deepEqual(readFileSync(join(h.rootDir, path)), before.get(path), `${path} unchanged`);
     assert.equal(readFileSync(join(h.stageParent, 'caller-owned.txt'), 'utf8'), 'must survive cleanup');
+  } finally {
+    await stage?.dispose();
+    h.dispose();
+  }
+});
+
+test('RC 白名单闭合主题图标生成器的 build import', async () => {
+  const h = sourceFixture();
+  const build = readFileSync(new URL('../build.ts', import.meta.url), 'utf8');
+  let stage;
+  try {
+    assert.match(build, /from ['"]\.\/tools\/plugin-icon\.ts['"]/);
+    assert.ok(RC_SOURCE_ALLOWLIST.includes('tools/plugin-icon.ts'), 'RC 必须复制 build.ts 的主题图标依赖');
+    stage = await createRcStage({ rootDir: h.rootDir, candidate: 1, stageParent: h.stageParent });
+    assert.deepEqual(readFileSync(join(stage.stageDir, 'tools/plugin-icon.ts')),
+      readFileSync(join(h.rootDir, 'tools/plugin-icon.ts')));
   } finally {
     await stage?.dispose();
     h.dispose();

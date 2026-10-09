@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖生产 CaptureWindowEditor、Gallery store port、jsdom、可控图像解码与 Canvas/ResizeObserver。
- * [OUTPUT]: 验证Gallery取消/重入、真实个人图选择与none/color/gradient往返、首开ID恢复后的选中ARIA及DOM稳定；关闭等待真实结算。
- * [POS]: Editor→Tabs→Gallery 的生产交互与生命周期合同；检查唯一背景ID向图片环/面板的投影，不运行 Host、原生助手或 Desktop。
+ * [OUTPUT]: 验证图库取消/重入、背景往返、选中ARIA/DOM和加号状态。
+ * [POS]: Editor→Tabs→Gallery 生产交互合同。加号不是素材。不运行 Host 或 Desktop。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import assert from 'node:assert/strict';
@@ -586,9 +586,11 @@ test('背景恢复后的增量同步立即更新个人和系统选中环，不�
     const root = dom.window.document.querySelector<HTMLElement>('main')!;
     root.innerHTML = `<button data-gallery-user-image="${userId}" data-selected="false" aria-pressed="false"></button>
       <button data-system-wallpaper="${systemId}" data-gallery-wallpaper="${systemId}" data-selected="false" aria-pressed="false"></button>
+      <button data-background-wallpaper data-gallery-add-image></button>
       <button data-background="sea" aria-pressed="true"></button>`;
     const userTile = root.querySelector<HTMLElement>('[data-gallery-user-image]')!;
     const systemTile = root.querySelector<HTMLElement>('[data-gallery-wallpaper]')!;
+    const addImage = root.querySelector<HTMLButtonElement>('[data-gallery-add-image]')!;
     const state = createCaptureWindowState({ width: 120, height: 80, scaleFactor: 1 });
     userTile.focus();
     for (const id of [userId, systemId, userId]) {
@@ -601,10 +603,17 @@ test('背景恢复后的增量同步立即更新个人和系统选中环，不�
         assert.equal(tile.isConnected, true, '同步不能重建缩略图');
       }
       assert.equal(dom.window.document.activeElement, userTile, '同步不能借焦点伪造选中状态');
+      assert.equal(addImage.hasAttribute('data-selected'), false, '同步不把背景状态投影到加号动作');
     }
+    syncCaptureBackgroundControls(root, {
+      ...state, background: { kind: 'wallpaper', dataUrl: 'data:image/jpeg;base64,YQ==' },
+    }, '#ffffff');
+    assert.equal(addImage.hasAttribute('data-selected'), false, '无素材ID的壁纸状态也不能选中加号');
+    assert.equal(addImage.hasAttribute('aria-pressed'), false, '动作按钮不声明背景选择状态');
     syncCaptureBackgroundControls(root, { ...state, background: { kind: 'preset', id: 'sea' } }, '#ffffff');
     assert.equal(userTile.dataset.selected, 'false');
     assert.equal(systemTile.dataset.selected, 'false');
+    assert.equal(addImage.hasAttribute('data-selected'), false);
   } finally {
     dom.window.close(); restoreGlobals();
   }

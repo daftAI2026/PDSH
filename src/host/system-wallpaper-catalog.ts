@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 读取Apple本地Aerial entries.json、root-owned Wallpaper ExtensionKit manifest和官方固定视频URL校验器。
- * [OUTPUT]: 按landscape官方preferredOrder选择两组动态/景观代表，Mac目录固定4项；暴露只含Host源信息的目录，并仅stat本地媒体。
+ * [OUTPUT]: 按Landscape preferredOrder展平dynamic/provider与代表，保留原四项并截前五；只暴露Host源信息并stat本地媒体。
  * [POS]: Host素材发现边界；不联网、不读像素、不接收Renderer路径/URL，未知schema失败时保留既有缓存。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -17,7 +17,9 @@ import { isAppleWallpaperVideoUrl } from './system-wallpaper-transport.ts'
 const EXTENSION_ROOT = '/System/Library/ExtensionKit/Extensions'
 const MAX_MANIFEST_BYTES = 4 * 1024 * 1024, MAX_EXTENSION_MANIFEST_BYTES = 64 * 1024
 const MAX_ASSETS = 512, MAX_CATEGORIES = 32, MAX_SUBCATEGORIES = 128, MAX_EXTENSION_BUNDLES = 512
-const MAC_SYSTEM_WALLPAPER_COUNT = 4
+const MAC_BASE_WALLPAPER_COUNT = 4
+const MAC_SYSTEM_WALLPAPER_COUNT = 5
+const MAC_BASE_LANDSCAPE_GROUPS = 2
 const UUID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/iu
 const IDENTIFIER = /^[A-Za-z0-9 -]{1,64}$/u
 const THEME = /^[A-Z][A-Za-z0-9]*$/u
@@ -81,7 +83,7 @@ export async function discoverSystemWallpaperSources(signal?: AbortSignal): Prom
   return result
 }
 
-/** 纯选择器：只按Apple显式display order取两组，不推断OS版本或用位置充当缓存ID。 */
+/** 按Apple目录顺序展平候选并截前五；排序不代表系统版本。 */
 export function selectSystemWallpaperSources(
   manifest: unknown,
   providers: readonly { identifier: string; imagePath: string; url?: string }[],
@@ -97,8 +99,6 @@ export function selectSystemWallpaperSources(
     matches.push(value as unknown as WallpaperProvider)
     providersByTheme.set(value.identifier, matches)
   }
-  if ([...providersByTheme.values()].some(matches => matches.length > 1)) invalidCatalog()
-
   const landscapeCategories = catalog.categories.filter(item => item.localizedNameKey === 'AerialCategoryLandscapes')
   if (landscapeCategories.length !== 1) invalidCatalog()
   const landscape = landscapeCategories[0]!
@@ -129,27 +129,20 @@ export function selectSystemWallpaperSources(
 
   const assets = new Map(catalog.assets.map(asset => [requireUuid(asset.id), asset] as const))
   const result: SystemWallpaperSource[] = []
-  for (const group of groups.slice(0, 2)) {
-    const dynamicMatches = dynamicGroups.get(group.theme) ?? []
-    const providerMatches = providersByTheme.get(group.theme) ?? []
-    if (dynamicMatches.length > 1 || providerMatches.length > 1
-      || (dynamicMatches.length && providerMatches.length)) invalidCatalog()
-    if (dynamicMatches.length) {
-      const dynamic = dynamicMatches[0]!
-      const uuid = requireUuid(dynamic.representativeAssetID)
-      const asset = requireMemberAsset(assets, uuid, requireString(dynamicCategory!.id, 128), requireString(dynamic.id, 128))
-      result.push(videoSource(uuid, displayName(group.theme), videoUrl(asset)))
-    } else if (providerMatches.length) {
-      result.push(imageSource(providerMatches[0]!))
-    } else unavailable()
-
-    const landscapeAsset = requireMemberAsset(assets, group.representativeAssetID, requireString(landscape.id, 128), group.id)
-    if (!isSystemWallpaperName(landscapeAsset.accessibilityLabel)) invalidCatalog()
-    result.push(videoSource(group.representativeAssetID, landscapeAsset.accessibilityLabel, videoUrl(landscapeAsset)))
+  for (let index = 0; index < groups.length && result.length < MAC_SYSTEM_WALLPAPER_COUNT; index += 1) {
+    const group = groups[index]!
+    const preferred = preferredLandscapeSource(assets, dynamicCategory, dynamicGroups, providersByTheme, group)
+    if (index < MAC_BASE_LANDSCAPE_GROUPS && !preferred) unavailable()
+    if (preferred) result.push(preferred)
+    if (result.length >= MAC_SYSTEM_WALLPAPER_COUNT) break
+    result.push(landscapeRepresentativeSource(assets, landscape.id, group))
   }
   const ids = result.map(item => item.id)
   const urls = result.map(item => item.url).filter((item): item is string => item !== undefined)
-  if (result.length !== MAC_SYSTEM_WALLPAPER_COUNT || new Set(ids).size !== ids.length
+  const expectedCount = groups.length > MAC_BASE_LANDSCAPE_GROUPS
+    ? MAC_SYSTEM_WALLPAPER_COUNT : MAC_BASE_WALLPAPER_COUNT
+  if (result.length !== expectedCount || result.length > WALLPAPER_LIMITS.maxCatalogEntries
+    || new Set(ids).size !== ids.length
     || new Set(urls).size !== urls.length) invalidCatalog()
   return result
 }
@@ -202,6 +195,38 @@ function requireMemberAsset(
   const asset = assets.get(id)
   if (!asset || !hasId(asset.categories, category) || !hasId(asset.subcategories, subcategory)) invalidCatalog()
   return asset
+}
+
+function landscapeRepresentativeSource(
+  assets: ReadonlyMap<string, JsonRecord>, category: unknown, group: LandscapeGroup,
+): SystemWallpaperSource {
+  const asset = requireMemberAsset(assets, group.representativeAssetID, requireString(category, 128), group.id)
+  if (!isSystemWallpaperName(asset.accessibilityLabel)) invalidCatalog()
+  return videoSource(group.representativeAssetID, asset.accessibilityLabel, videoUrl(asset))
+}
+
+function preferredLandscapeSource(
+  assets: ReadonlyMap<string, JsonRecord>,
+  dynamicCategory: JsonRecord | undefined,
+  dynamicGroups: ReadonlyMap<string, JsonRecord[]>,
+  providersByTheme: ReadonlyMap<string, WallpaperProvider[]>,
+  group: LandscapeGroup,
+): SystemWallpaperSource | undefined {
+  const dynamicMatches = dynamicGroups.get(group.theme) ?? []
+  const providerMatches = providersByTheme.get(group.theme) ?? []
+  if (dynamicMatches.length > 1 || providerMatches.length > 1
+    || (dynamicMatches.length && providerMatches.length)) invalidCatalog()
+  if (dynamicMatches.length) {
+    if (!dynamicCategory) invalidCatalog()
+    const dynamic = dynamicMatches[0]!
+    const uuid = requireUuid(dynamic.representativeAssetID)
+    const category = requireString(dynamicCategory.id, 128)
+    const subcategory = requireString(dynamic.id, 128)
+    const asset = requireMemberAsset(assets, uuid, category, subcategory)
+    return videoSource(uuid, displayName(group.theme), videoUrl(asset))
+  }
+  if (providerMatches.length) return imageSource(providerMatches[0]!)
+  return undefined
 }
 
 function videoSource(uuid: string, name: string, url: string | undefined): SystemWallpaperSource {

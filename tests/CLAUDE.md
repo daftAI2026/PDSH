@@ -17,9 +17,9 @@
 
 这些 TypeScript 合同运行在 Node/jsdom；只能证明源码和生成产物，不替代 Desktop 实窗验收。
 
-- `system-wallpaper-acquisition-view.test.ts`: 双语Get/静默后台/来源分组与个人plus；使用四项Mac legacy样本验完整缓存仍可显式刷新，持久名称保留精确ARIA标签且无长tooltip，失败alert/固定码仍保留；不把样本数当共享上限或冒充Desktop绘制。
+- `system-wallpaper-acquisition-view.test.ts`: 双语获取/刷新与静默后台；系统空态和个人末尾plus不参与选择，空库存不重复正文；使用四项Mac legacy样本验完整缓存仍可显式刷新，持久名称保留精确ARIA标签且无长tooltip，失败alert/固定码仍保留；不把样本数当共享上限或冒充Desktop绘制。
 - `system-wallpaper-download.test.ts`: 三Range/强ETag、预算/单sample重建和body取消；仅结构化证书码分类，未知码/异常正文不能伪造诊断，不自动重试或换信任；人工fixture不代表native或Desktop网络。
-- `system-wallpaper-acquisition.test.ts`: 活动catalog串行批次、available或downloadable缺项、完整旧缓存也可发现未来roster、真实完成数与缓存保留；内部loading进度静默，错误/取消/销毁join真实结算。
+- `system-wallpaper-acquisition.test.ts`: 双入口共用真实wiring与活动catalog串行批次、available或downloadable缺项、完整旧缓存也可发现未来roster、真实完成数与缓存保留；内部loading进度静默，错误/取消/销毁join真实结算。
 - `system-wallpaper-acquisition-editor.test.ts`: 生产Editor真实点击个人图后往返none/color/gradient，核背景ID、个人/系统唯一选中ARIA、四面板hidden/inert/label关系与DOM/Tabs/本地读取稳定；另验首开个人ID异步恢复；生命周期取消仍join真实I/O，无迟到Host媒体/通知；jsdom不冒充Desktop绘制。
 
 - `host-compatibility-assessment.test.ts`: 临时源码仓的只读触点/imports、原生几何与历史路径提示、遍历预算及敏感路径/CLI/导入副作用合同；始终未验证兼容，不联网、不启动宿主或原生助手。
@@ -40,9 +40,9 @@
 - `capture-privacy.test.ts`: 标题与截图身份独立；唯一识别后遮挡自有名牌/原生名称/头像，未知结构及账号编辑退让，属性按所有权归还并守候选比例。
 - `capture-styles.test.ts`: 五列统一圆角色块、固定240px检查器与设置开关等高槽；检查器选中环安全边距与圆形拾色图标局部约束， 工作台Host token来源/实时几何消费及自有色谱28px白环及内层圆形隔离、浮层单一elevation描边；禁Codex主题、数值回退与宿主拾色器样式污染。
 - `capture-editor-keyboard.test.ts`: 背景面板Tab围栏跳过hidden/inert/CSS隐藏、disabled与负tabindex；不替代原生键盘验收。
-- `capture-view.test.ts`: 私密标题/私密身份的双语短文案与编辑器独立标题关联。检测区域保留可访问名称与共享点击命令。标题遮罩独立于单一身份遮罩；无系统壁纸 adapter 时不伪造入口。
+- `capture-view.test.ts`: 生产布局锁住标题下留白、图标顶沿与滑轨刻度。私密标题/私密身份使用双语短文案，编辑器独立关联标题。检测区域保留可访问名称与共享点击命令。标题遮罩独立于单一身份遮罩；无系统壁纸 adapter 时不伪造入口。
 - `host.test.ts`: 真实 Schemastery Config/路径边界与平台provider分流；默认 Downloads 使用宿主 `homedir()` 与 `path.join` 精确比较，覆盖 POSIX/Windows drive-root/UNC 并拒绝相对、非canonical及device namespace；缺 helper/不支持架构仍保留设置。
-- `localization.test.ts`: 单 Bundle 离线品牌元信息与内部三功能 zh/en 文案；透明底单路径图标。
+- `localization.test.ts`: 单 Bundle 离线品牌元信息与内部三功能 zh/en 文案；透明底单路径图标响应 Host color-scheme。
 - `model.test.ts`: 昵称、头像和旧字段投影验证。
 - `presentation.test.ts`: 视觉身份的唯一归属与卸载。未登录借用官方头像和身份行；收起及停用恢复原样。样式缺失、重复和错属拒绝覆盖。菜单、临时头像和登录恢复独立于配置写入。
 - `plugin-detail-typography.test.ts`: 自身大标题标记、版本胶囊不变、未知结构及外部接管合同。原生 CSS 的实际字形另在浏览器验收。
@@ -74,11 +74,11 @@
 - `page-save-main.test.ts`: 面板/直接保存回执、5K默认边距的PNG/JPEG输出预算、真实文件提交前取消/导航/停用及跨装配串行锁；不冒充实机验收。
 
 - `capture-editor-export.test.ts`: 身份开关失败时保留旧图和旧值，成功重拍统一更新头像与名称且不持久化；标题仍独立。另验背景 Tabs、取消、保存与导出共用新源；Canvas 桩不证明视觉或本机文件面板。
-- `capture-editor-viewport.test.ts`: 初始Image面板仅读本地元数据、不调用Host目录/媒体；真实编辑器滚轮deltaMode/限幅、统一缩放源、无像素重合成、帧合并与忙碌/pointercancel/dispose合同；不冒充Desktop动效实测。
+- `capture-editor-viewport.test.ts`: 初始Image面板仅读本地元数据、不调用Host目录/媒体；真实编辑器滚轮deltaMode/限幅、统一缩放源、无像素重合成、帧合并、越界裁剪及忙碌/失捕获/失焦/重复指针/终态重入/dispose合同；不冒充Desktop动效实测。
 
 - `host-acceptance.test.ts`: 集成 CLI 安全前置；自有临时目录验证 owner/路径/符号链接/凭据、stable/RC候选身份和精确PNPM版本门，不启动DSH或替代安装件验收。
 
-- `bundle-artifacts.test.ts`: 双语 README 与内部能力面的真实 tgz 闭包。核 Mac universal、Windows x64/asInvoker、执行位和字节。拒绝子依赖、宽泛 files 与安装 hook，不执行安装。
+- `bundle-artifacts.test.ts`: 双语 README 与内部能力面的真实 tgz 闭包。核 Mac universal、Windows x64/asInvoker、执行位和字节。POSIX先改隔离文件模式，Windows改归档mode，确保坏权限样本真实变坏。拒绝子依赖、宽泛 files 与安装 hook，不执行安装。
 - `capture-defaults.test.ts`: 旧导出默认只通过根 pdsh revision 修正；自定义值、已移除子域与迟到卸载不覆盖偏好。
 
 - `window-capture-controller.test.ts`: 真实画布的 Mac 零偏移与 Windows 客户区映射。尺寸沿用原型访问器，避免普通对象桩掩盖生产缺陷。拒绝缺失、错尺寸、错比例与移动几何；照片保留手绘。不冒充实机证据。
@@ -128,19 +128,21 @@
 
 - `rc-identity.test.ts`: 以 esbuild 注入 stable/RC 名称验证根配置、locale、编辑偏好键与更新边界；实例化版本化 capture 业务闭包，以 Remote iterable 终态黑盒验证只读自身 accepted Settings、启停和迟挂载恢复，不启动 helper；不验证 Manager 共存或 Desktop UI。
 
-- `rc-packaging.test.ts`: 独立候选身份、双语说明与白名单 staging。核私有路径排除、稳定源不变、权限及拒绝覆盖。不运行 SDK GUI 或真实安装。
+- `rc-packaging.test.ts`: 独立候选身份、双语说明与含包图生成器的白名单 staging。核私有路径排除、稳定源不变、权限及拒绝覆盖。不运行 SDK GUI 或真实安装。
 - `system-wallpaper-host-fixtures.ts`: 共用受控子进程、最小 JPEG 和 iterable 夹具。不作为真实原生目录或像素证据。
 - `system-wallpaper-runtime-windows.test.ts`: Windows CaptureRuntime 重读 roster、陈旧 hash ID 拒绝及静图路由合同。不读取系统目录或验收像素。
 - `system-wallpaper-host.test.ts`: Mac 与 Windows helper 路由、Windows五项hash roster接受/六项拒绝、固定错误码、预算、取消 close 及下载门合同。不执行真实 helper 或联网。
 - `system-wallpaper-client.test.ts`: 最多五项动态/legacyRemote目录授权、名称/失败码保真、unlisted动态ID拒发媒体、严格JPEG/终态/取消与URL归还；桩不替代Browser/Desktop。
 - `system-wallpaper-selection.test.ts`: 系统媒体返回后的背景解码仍归选择 signal，重选缓存/切类/销毁取消旧工作且不迟到应用或提示；不取系统素材或量RSS。
 
-- `system-wallpaper-catalog.test.ts`: 人工当前/未来Apple schema验证Mac四项官方排序/代表关联、无OS字段伪装、稳定材料身份与未知/歧义/URL拒绝；纯parser不读取真实媒体，compiled/实机另验。
+- `system-wallpaper-catalog.test.ts`: 人工当前/未来Apple schema验证原四项保留、统一候选流前五项与缺组退让、无OS字段伪装、稳定材料身份与未知/歧义/URL拒绝；纯parser不读取真实媒体，compiled/实机另验。
 
 - `system-wallpaper-transport.test.ts`: fake-child验证系统curl参数/URL域、206/ETag/头体预算/退出码、单字节碎片与分配失败真实close结算；不联网或代替native/Desktop。
 
 - `system-wallpaper-stream-catalog.test.ts`: 动态ID活动目录0–5项、Windows x64五项流、重复/非法ID/名称C1与unavailable边界；fake operation不读取系统或联网。
 
-- `public-guides.test.ts`: 验证双语互链、同源版本和平台边界。Windows 壁纸最多五项且不读当前壁纸、不联网；Mac 保留四项。README 写用户动作，PUBLISHING 留技术合同。另核 skill 同步、历史原文摘要及头像许可。不运行宿主或联网。
+- `public-guides.test.ts`: 验证双语互链、同源版本和平台边界。Windows 壁纸最多五项且不读当前壁纸、不联网；Mac 稳定四项与未发布五项候选分开声明。README 写用户动作，PUBLISHING 留技术合同。另核 skill 同步、历史原文摘要及头像许可。不运行宿主或联网。
+
+- `plugin-icon-theme.test.ts`: 官方标签主色快照与单路径 SVG 生成合同。深色媒体查询由 Host color-scheme 驱动；不冒充浏览器主题验收。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
