@@ -16,7 +16,7 @@ DeepSeek Harness Desktop plugin · **Version 0.5.6** · [`v0.5.6`](https://githu
 
 Supports macOS and Windows. The screenshot helper ships with the plugin and needs no separate installation.
 
-![Plugin settings and sidebar preview](https://raw.githubusercontent.com/daftAI2026/PDSH/main/docs/preview.jpg)
+![Plugin settings and sidebar preview](https://raw.githubusercontent.com/daftAI2026/PDSH/main/docs/preview-en.png)
 
 ## Features
 
