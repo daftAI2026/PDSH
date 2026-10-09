@@ -1,7 +1,7 @@
 {
   "name": "@daftai/pdsh",
   "description": "DeepSeek Harness plugin for sidebar masking, display aliases, and local screenshot editing. No session isolation.",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "private": true,
   "type": "module",
   "main": "./index.js",

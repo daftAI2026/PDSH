@@ -12,7 +12,7 @@ English · [简体中文](README.md)
 Mask sidebar titles, customize display aliases, and capture and redact this window. No session isolation.
 <!-- pdsh:description:end -->
 
-DeepSeek Harness Desktop plugin · **Version 0.5.5** · [`v0.5.5`](https://github.com/daftAI2026/PDSH/tree/v0.5.5)
+DeepSeek Harness Desktop plugin · **Version 0.5.6** · [`v0.5.6`](https://github.com/daftAI2026/PDSH/tree/v0.5.6)
 
 ![Plugin settings and sidebar preview](https://raw.githubusercontent.com/daftAI2026/PDSH/main/docs/preview.jpg)
 
@@ -20,9 +20,9 @@ DeepSeek Harness Desktop plugin · **Version 0.5.5** · [`v0.5.5`](https://githu
 
 - **Title masking:** Toggle gray bars over workspace and session titles with the hat button.
 - **Local identity:** Set a display name, generate or upload an avatar, or keep the account avatar. Replacement is off by default. While signed out, you can replace the “More” display with a local identity while keeping its native menu. The account avatar requires signing in. Signing out temporarily shows a generated avatar; signing in restores the selected account source.
-- **Screenshot editing:** Capture the current DSH window. Redact suggested regions or draw manually, adjust the background and margins, then copy or save the image. Switching to manual drawing hides suggestions but keeps existing redactions. When the sidebar is collapsed, use the camera in the top-right corner of the session to open the workbench.
+- **Screenshot editing:** Capture the current DSH window. Redact suggested regions or draw manually, adjust the background and margins, then copy or save the image. Switching to manual drawing hides suggestions but keeps existing redactions. Drawing beyond the image commits only the image intersection; focus loss or cancellation does not commit a partial stroke. When the sidebar is collapsed, use the camera in the top-right corner of the session to open the workbench.
 - **Screenshot privacy:** “Private titles” redacts sidebar session titles. “Private identity” redacts the sidebar avatar and nickname. The switches are independent. Toggling either retakes the image and updates the image and switch only on success; failure keeps the existing image. The identity override lasts for the current editing session.
-- **Background gallery:** Keep five presets, cached system stills, and uploaded images. macOS can explicitly fetch four representative wallpapers. Windows selects up to five installed default and theme images.
+- **Background gallery:** Keep five presets, cached system stills, and uploaded images. macOS fetches up to five representative wallpapers in local catalog order. Windows selects up to five installed default and theme images. A trailing plus adds personal images. Fetching or refreshing system wallpapers preserves saved images.
 - **Plugin updates:** Check for stable versions on the plugin details page. Confirm installation through the official manager. PDSH does not install silently or restart Desktop itself.
 
 ## Installation
@@ -33,7 +33,7 @@ In Harness, open **Plugins → Add Plugin → GitHub repository URL** and enter:
 https://github.com/daftAI2026/PDSH
 ```
 
-Choose the fixed version `v0.5.5`. Existing users can confirm an upgrade on the plugin details page.
+Choose the fixed version `v0.5.6`. Existing users can confirm an upgrade on the plugin details page.
 
 **Upgrade note:** Versions `0.3.2` and earlier need one normal load during their first upgrade. A running `0.5.0` installation does not support a no-restart upgrade to the repaired payload. See [Upgrade Compatibility](PUBLISHING.en.md#upgrade-compatibility).
 
@@ -45,16 +45,9 @@ Choose the fixed version `v0.5.5`. Existing users can confirm an upgrade on the 
 - Background media and editing preferences use a local browser store. It does not store screenshots, source videos, or original filenames. A full store rejects imports instead of silently evicting user images.
 - Suggestions share one sidebar recognizer. Mac uses the studied full-window layout; Windows uses native client-area offsets bound to the captured image. Unknown or inconsistent geometry keeps manual drawing available. Suggestions do not detect sensitive content. Windows preview/export proportions were verified for a representative region; complete pixel alignment remains unverified. Mac native candidate-to-final-PNG alignment and this round's physical testing remain unverified. Warm-switch pixel consistency, dark themes, and the English Desktop UI also remain unverified. Windows cancellation during active capture and complete pixel alignment remain unverified. Check the image before copying or saving.
 - Visual masking does not change account data, original text, history, logs, or model requests. PDSH does not provide session isolation, credential migration, or forensic privacy guarantees.
+- High DPI, normal Desktop restart persistence, permission revocation, and abnormal exit remain unverified. Desktop installation of this version's final stable archive and the fixed-SHA upgrade remain unverified.
 
 ## Development
-
-The unreleased development candidate expands macOS retrieval to five representative wallpapers.
-It takes the first five candidates in the local catalog order without naming a fifth material.
-The development candidate uses thumbnail-sized plus tiles for gallery additions.
-The personal gallery keeps a trailing plus; an empty system gallery keeps its fetch action.
-Existing system materials show a refresh action that does not clear saved images.
-The `v0.5.5` installation entry above still provides four and does not include this change.
-
 
 ```sh
 pnpm install --frozen-lockfile
