@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 esbuild、官方 Typert generator 与平台 SDK。Windows 依赖固定 Mac 原生闭包。
- * [OUTPUT]: 生成唯一 Host/Client、版本化业务、基础/内部能力 Typert 面、DTO 和助手。
+ * [OUTPUT]: 生成 Host/Client、版本化能力、DTO、原生助手与主题包图。
  * [POS]: 单 Bundle 构建边界。内部能力面随业务闭包装配，根 Config/Client 身份不变。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { generateTypertArtifacts } from './tools/generate-typert.ts';
 import { assertReusableMacBaseline } from './tools/native-baseline.ts';
+import { createThemeAwarePluginIcon } from './tools/plugin-icon.ts';
 const root = fileURLToPath(new URL('.', import.meta.url));
 const { name: packageName, version } = JSON.parse(await readFile(new URL('./package.json', import.meta.url), 'utf8'));
 if (!['@daftai/pdsh', '@daftai/pdsh-rc'].includes(packageName) ||
@@ -28,8 +29,9 @@ if (process.platform === 'darwin') {
   throw new Error('Build requires macOS SDK or Windows SDK with verified unchanged Mac inputs.');
 }
 const glyph = (await readFile(new URL('./src/client/entry-icon.svg', import.meta.url), 'utf8')).replace(/<!--[\s\S]*?-->\s*/, '');
-// +--- 官方 img 不继承宿主变量：只固化标识前景，不添加背景 ---+
-await writeFile(join(root, 'plugin-icon.svg'), `<!--\n[INPUT]: src/client/entry-icon.svg 与 style-sources.json，由 build.ts 生成。\n[OUTPUT]: 透明底帽子图稿。\n[POS]: 单 Bundle 标识，不手工修改。\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n-->\n${glyph.replace('stroke="currentColor"', `stroke="${artwork.foreground.value}"`)}`);
+// +--- 外部 img 不继承 CSS 变量；Host root color-scheme 驱动内嵌 SVG 媒体查询。 ---+
+const pluginIcon = createThemeAwarePluginIcon(glyph, artwork.foreground.value, artwork.darkForeground.value);
+await writeFile(join(root, 'plugin-icon.svg'), `<!--\n[INPUT]: src/client/entry-icon.svg 与 style-sources.json，由 build.ts 生成。\n[OUTPUT]: 按宿主 color-scheme 选择前景的透明帽子图稿。\n[POS]: 单 Bundle 标识，不手工修改。\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n-->\n${pluginIcon}`);
 const banner = (source: string, output: string) => `/**\n * [INPUT]: ${source}，由 build.ts 生成。\n * [OUTPUT]: ${output}。\n * [POS]: 单包运行产物；PDSH build ${JSON.stringify(version)}，不手工修改。\n * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n */`;
 await build({ absWorkingDir: root, entryPoints: ['src/host/index.ts'], outfile: 'index.js', bundle: true, format: 'esm', define: identityDefine, platform: 'node', target: 'es2022',
   external: ['@deepseek-ai/cordis', '@deepseek-ai/dsh-typert-protocol', '@deepseek-ai/schemastery', 'blobatar/uri'], banner: { js: banner('src/host/index.ts 与官方 Typert service', '唯一 pdsh Config/name/apply 与 owned-window capture/save/wallpaper') } });

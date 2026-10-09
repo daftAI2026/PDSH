@@ -357,6 +357,8 @@ L2/L3 必须带固定 PROTOCOL 行。
 - 使用 DSH `--dsw-*` 语义色、字体、圆角和动效。
 - 不复制 CSS Modules hash 或 Codex theme class。
 - 不添加数值主题回退、Base UI 或 Tailwind runtime。
+- 包图用主题前景快照和 Host color-scheme 跟随明暗。
+- 独立 img 不继承页面 CSS 变量，不增加 DOM 换色器。
 - 内容像素、渐变、色谱和透明棋盘不是主题 chrome。
 - React 设置和更新入口使用 Host Tooltip。
 - DOM 控件共用一个可卸载 Tooltip adapter。
@@ -396,9 +398,12 @@ L2/L3 必须带固定 PROTOCOL 行。
 - Windows 不读当前用户壁纸、锁屏或网络来源。
 - Windows 材料 ID 绑定来源字节，加载前重读目录。
 - `system-wallpaper-catalog.ts` 独占活动 roster 来源。
-- 目标为最近两代 macOS 的各两项代表材料。
+- 活动目录最多五项，材料身份不按系统版本分槽。
 - Apple metadata 没有逐材料 OS release 字段。
-- 当前规则选两个 Landscape subgroup 的 unique preferredOrder。
+- 按唯一 preferredOrder 遍历 Landscape 子组。
+- 每组先取唯一动态或扩展，再取景观代表。
+- 候选流取前五项，不指定第五项名称或类别。
+- 前两组须完整；后续组缺失时保留原四项。
 - 用 representativeAssetID 关联 dynamic subgroup 或 root-owned 扩展。
 - 陈列关联不是通用系统版本 API。
 - 未知或歧义 schema 拒绝新增，保留已有缓存。
@@ -408,18 +413,22 @@ L2/L3 必须带固定 PROTOCOL 行。
 - 源 MOV 不跨 Remote；只传有界静帧。
 - 每次显式获取都重读真实目录。
 - 获取失败不得由旧缓存吞掉；离线浏览仍可用缓存。
-- 仅唯一“获取系统壁纸”动作触发补缺下载。
+- 系统标题按钮与空态加号共用显式批获取动作。
 - mount、Tab 重入和普通选择不发 Host 媒体请求。
 - 图片面板复用就绪或在途本地库存。
 - 首次读取或失败重试只读本地元数据。
 - 导入、删除和显式获取后刷新库存。
 - 不渲染读取提示、下载占位或额外进度行。
 - 保留非视觉 busy、错误 alert 与空库存反馈。
-- 获取按钮始终可见，获取不自动选择背景。
+- 系统标题动作始终可见，不自动选择背景。
+- 有系统素材时显示“刷新系统壁纸”，不清库。
+- 系统空库存显示缩略图加号，有素材后移除。
 - 结算后一次发布新缩略图，保留已存材料。
 - 系统缩略图保留精确无障碍名称，不加冗长媒体 tooltip。
 - 原五张预设、系统壁纸和我的图片分组独立。
-- 个人分组标题行仅一个加号；file input 归个人图库。
+- 个人图库末尾保留一个缩略图加号。
+- 空个人图库只显示加号，不重复标题行入口。
+- file input 归个人图库；加号不参与背景选择。
 - 本地有效缓存或 root-owned 系统 HEIC 优先。
 - 只有匹配的 local-unavailable 才下载该材料。
 - 失败只携共享闭集码，不推断 TLS、代理或素材根因。

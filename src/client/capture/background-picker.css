@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖 capture-window.css 定义的 DSH 语义令牌、实时原生边框/禁用态与检查器底纹
- * [OUTPUT]: 为原生四模式 Tabs 提供窄栏布局与独立系统/个人图库；标题行归属获取/加图动作，素材共用五列方框与收细双层选中环
- * [POS]: capture-window 的背景选择器样式边界，与编辑器壳层及颜色弹层样式按职责分离
+ * [INPUT]: 依赖 capture-window.css 的 DSH token、原生边框/禁用态和检查器底纹。
+ * [OUTPUT]: 提供四模式窄栏与系统/个人图库样式。空态动作占缩略图方框。图库固定五列。
+ * [POS]: capture-window 的背景样式边界。编辑器壳层和颜色弹层使用各自样式。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 .pdsh-capture-background-sections {
@@ -170,10 +170,6 @@
   gap: calc(var(--pdsh-capture-space) * 2);
   justify-content: space-between;
   min-height: var(--pdsh-capture-control-height);
-}
-
-.pdsh-capture-gallery-heading [data-wallpaper-placeholder] {
-  display: inline-flex;
 }
 
 [data-gallery-import-focus]:focus {

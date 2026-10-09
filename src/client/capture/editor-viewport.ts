@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖编辑器当前 CaptureWindowState、舞台/画布 DOM 与模型命令入口；缩放单位按 WheelEvent.deltaMode 归一。
- * [OUTPUT]: 提供独立视口控制器，协调 fit/zoom/pan/区域指针手势、模式/阶段切换取消，并按帧提交 transform，不合成像素。
+ * [OUTPUT]: 提供视口控制器；指针松开提交交集，失捕获、失焦及模式切换取消。先清空手势再提交，按帧写 transform。
  * [POS]: capture 编辑器的高频交互边界；zoom 仍由模型持有，pan 仅由该控制器持有，二者不从 DOM 文本回读。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -111,8 +111,21 @@ export function createCaptureEditorViewport(
     const activeStage = stage;
     const activeCanvas = canvas;
     const activeGesture = gesture;
-    if (!activeGesture) return;
-    if (draft && commit && event && activeCanvas) {
+    if (!activeGesture || (event && event.pointerId !== activeGesture.pointerId)) return;
+    const activeDraft = draft;
+    // +--- 先进入空闲态，再归还捕获和调用外部提交，阻止终态重入。 ---+
+    gesture = null;
+    draft = null;
+    activeDraft?.remove();
+    activeStage?.removeAttribute('data-panning');
+    try {
+      if (activeStage?.hasPointerCapture(activeGesture.pointerId)) {
+        activeStage.releasePointerCapture(activeGesture.pointerId);
+      }
+    } catch {
+      // 浏览器已撤销指针时不恢复旧手势；本地终态已完成。
+    }
+    if (activeDraft && commit && event && activeCanvas && isInteractive()) {
       // 先同步最新 transform，确保快速连续的拖动/绘框读取同一视觉几何。
       cancelTransform();
       applyTransform();
@@ -135,13 +148,6 @@ export function createCaptureEditorViewport(
       );
       options.dispatchRegion({ id: options.createManualRegionId(), kind: 'add-region', rect });
     }
-    draft?.remove();
-    draft = null;
-    activeStage?.removeAttribute('data-panning');
-    if (activeStage?.hasPointerCapture(activeGesture.pointerId)) {
-      activeStage.releasePointerCapture(activeGesture.pointerId);
-    }
-    gesture = null;
   }
 
   function bind(nextStage: HTMLElement, nextFrame: HTMLElement, nextCanvas: HTMLCanvasElement): void {
@@ -193,7 +199,7 @@ export function createCaptureEditorViewport(
     }, { passive: false });
 
     listen('pointerdown', (event) => {
-      if (!isInteractive()) return;
+      if (!isInteractive() || gesture) return;
       const state = options.readState();
       const targetElement = event.target instanceof Element ? event.target : null;
       const intent = capturePointerIntent(
@@ -202,6 +208,11 @@ export function createCaptureEditorViewport(
         Boolean(targetElement?.closest('[data-region]')),
       );
       if (intent === 'ignore' || intent === 'region') return;
+      try {
+        target.setPointerCapture(event.pointerId);
+      } catch {
+        return;
+      }
       const pan = readPan();
       gesture = {
         pointerId: event.pointerId,
@@ -210,7 +221,6 @@ export function createCaptureEditorViewport(
         startPanX: pan.x,
         startPanY: pan.y,
       };
-      target.setPointerCapture(event.pointerId);
       if (intent === 'draw') {
         draft = target.ownerDocument.createElement('div');
         draft.className = 'pdsh-capture-draft-region';
@@ -239,6 +249,10 @@ export function createCaptureEditorViewport(
 
     listen('pointerup', (event) => detachGesture(isInteractive(), event));
     listen('pointercancel', (event) => detachGesture(false, event));
+    listen('lostpointercapture', (event) => detachGesture(false, event));
+    const cancelOnBlur = () => detachGesture(false);
+    view?.addEventListener('blur', cancelOnBlur);
+    removers.push(() => view?.removeEventListener('blur', cancelOnBlur));
     unbind = () => {
       for (const remove of removers) remove();
       removers.length = 0;

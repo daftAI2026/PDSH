@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖单包产物门、隔离归档目录和 Windows packer 的真实 tar 元数据适配。
- * [OUTPUT]: 验证能力面、成员字节与真实0755归档；无链接权限时只跳过链接子合同。
+ * [OUTPUT]: 验证能力面、成员字节与真实0755归档；POSIX 用文件模式构造突变，Windows 用归档元数据构造突变。
  * [POS]: 分发拓扑回归门；不读取用户配置、联网或运行安装脚本。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -161,17 +161,18 @@ test('真实 tgz 的成员、类型、字节与当前候选一致才通过；不
         if (defect === 'stale') writeFileSync(join(staging,'package/index.js'), 'old candidate');
         if (defect === 'extra') { writeFileSync(join(staging,'package/unexpected'), 'x'); files.push('unexpected'); }
         if (defect === 'link') { unlinkSync(join(staging,'package/index.js')); symlinkSync('client.js',join(staging,'package/index.js')); }
+        const helperMode = wrongHelperModes[defect];
+        if (process.platform !== 'win32' && helperMode) chmodSync(join(staging, 'package/native/window-capture'), helperMode);
         const archive = join(h.root,'candidate.tgz');
         if (process.platform === 'win32' && (defect === 'none' || wrongHelperModes[defect])) {
           const manifest = JSON.parse(readFileSync(join(staging, 'package/package.json'), 'utf8'));
           const generated = join(h.root, `daftai-pdsh-${manifest.version}.tgz`);
           await packWindowsArchive(join(staging, 'package'), h.root, generated);
-          if (wrongHelperModes[defect]) rewriteArchiveHelperMode(generated, wrongHelperModes[defect]);
           renameSync(generated, archive);
         } else {
           execFileSync('tar',['-czf',archive,'-C',staging,...files.map(file=>`package/${file}`)]);
-          if (process.platform === 'win32') rewriteArchiveHelperMode(archive, wrongHelperModes[defect] ?? 0o755);
         }
+        if (process.platform === 'win32') rewriteArchiveHelperMode(archive, helperMode ?? 0o755);
         if (defect === 'none') { const proof=validatePackedBundle(h.root,archive); assert.equal(proof.members,h.files.length); assert.equal(proof.version,'0.3.0'); assert.match(proof.sha256,/^[a-f0-9]{64}$/); }
         else assert.throws(()=>validatePackedBundle(h.root,archive), /bundle archive/, defect);
       } finally { h.dispose(); }

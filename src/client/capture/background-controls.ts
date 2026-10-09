@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 model.ts 的背景命令与状态、color-popover.ts 颜色同步、presets.ts 分组语义及本地图库/可选系统壁纸动作
- * [OUTPUT]: 提供背景动作及模式/选中态投影；个人与系统图库缩略图共用唯一背景模型的增量选中环同步
- * [POS]: capture-window 背景交互边界；异步恢复只更新现有控件，不靠重新读取库存、焦点事件或整树重建补选中状态
+ * [OUTPUT]: 提供背景事件和增量投影。只选中图库素材，不选中加号动作。
+ * [POS]: capture-window 背景交互边界。异步恢复不重读库存或重绘整树。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { syncCaptureColorPopover } from "./color-popover.ts";
@@ -86,7 +86,7 @@ export function syncCaptureBackgroundControls(
   }
   syncCaptureBackgroundPanels(root, captureBackgroundMode(state.background));
   syncCaptureColorPopover(root, "background", lastBackgroundColor);
-  const wallpaper = root.querySelector<HTMLElement>("[data-background-wallpaper]");
+  const wallpaper = root.querySelector<HTMLElement>("[data-background-wallpaper]:not([data-gallery-add-image])");
   if (wallpaper) {
     wallpaper.dataset.selected = String(state.background.kind === "wallpaper" && !state.background.systemId);
   }

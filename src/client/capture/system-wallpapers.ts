@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖 Host 注入的 SystemWallpaperAdapter、shared 动态/legacy ID 语法与固定 Remote 取消码；仅显式按钮启动批获取。
- * [OUTPUT]: 提供 Gallery 恢复、当前目录目标的串行显式获取、持久完成数与固定失败码状态；保留旧缓存、不自动应用背景；销毁 join 自有目录/媒体 Promise。
- * [POS]: capture-window 的系统壁纸目录/获取/选择 owner；完整 JPEG 按项交由 Gallery 持久化，终态发布持久项；全部图库选中环由 background-controls 投影。
+ * [OUTPUT]: 提供 Gallery 恢复、串行显式获取和固定失败状态。销毁等待自有目录/媒体 Promise。
+ * [POS]: 系统壁纸目录与获取 owner。Gallery 保存 JPEG。标题和空态共用获取动作。background-controls 投影选中环。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { isSystemWallpaperId, type SystemWallpaperId } from '../../shared/system-wallpaper-protocol.ts';
@@ -547,8 +547,10 @@ export function wireSystemWallpaperActions(root: HTMLElement, actions: SystemWal
       if (id && tile.dataset.loadStatus !== "loading") void actions.select(id);
     });
   });
-  root.querySelector<HTMLButtonElement>("[data-action='acquire-system-wallpapers']")?.addEventListener("click", () => {
-    void actions.acquireAll();
+  root.querySelectorAll<HTMLButtonElement>("[data-action='acquire-system-wallpapers']").forEach((button) => {
+    button.addEventListener("click", () => {
+      void actions.acquireAll();
+    });
   });
 }
 

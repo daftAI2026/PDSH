@@ -48,6 +48,14 @@ Choose the fixed version `v0.5.5`. Existing users can confirm an upgrade on the 
 
 ## Development
 
+The unreleased development candidate expands macOS retrieval to five representative wallpapers.
+It takes the first five candidates in the local catalog order without naming a fifth material.
+The development candidate uses thumbnail-sized plus tiles for gallery additions.
+The personal gallery keeps a trailing plus; an empty system gallery keeps its fetch action.
+Existing system materials show a refresh action that does not clear saved images.
+The `v0.5.5` installation entry above still provides four and does not include this change.
+
+
 ```sh
 pnpm install --frozen-lockfile
 pnpm test

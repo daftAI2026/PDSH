@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖截图工作台三份 CSS 与 style-sources 的 Host 来源账。
- * [OUTPUT]: 阻止外部主题/fallback 混入 DSH，验证工具选中复用浅/深主题有对比的宿主持久选择配方、不被 hover/按压覆盖、外壳四边统一留白、token 可追溯、原生几何/动画与色谱内容隔离。
+ * [OUTPUT]: 阻止外部主题/fallback 混入 DSH，验证宿主选择配方、标题底边收紧、token 来源、原生几何/动画与内容隔离。
  * [POS]: 工作台视觉移植合同；色谱、透明棋盘格属于编辑内容而非宿主主题。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -125,7 +125,7 @@ test('工作台外壳以上下对齐左右的同一 inset，内部段落间隔�
   const header = css.match(/\.pdsh-capture-header\s*\{([^}]*)\}/)?.[1] ?? '';
   const workspace = css.match(/\.pdsh-capture-workspace\s*\{([^}]*)\}/)?.[1] ?? '';
   const footer = css.match(/\.pdsh-capture-footer\s*\{(\s*justify-content:[^}]*)\}/)?.[1] ?? '';
-  assert.match(header, /padding:\s*var\(--pdsh-capture-shell-inset\) var\(--pdsh-capture-shell-inset\) calc\(var\(--pdsh-capture-space\) \* 3\)/);
+  assert.match(header, /padding:\s*var\(--pdsh-capture-shell-inset\) var\(--pdsh-capture-shell-inset\) calc\(var\(--pdsh-capture-space\) \* 1\)/);
   assert.match(workspace, /padding:\s*0 var\(--pdsh-capture-shell-inset\) calc\(var\(--pdsh-capture-space\) \* 4\)/);
   assert.match(footer, /padding:\s*var\(--pdsh-capture-space\) var\(--pdsh-capture-shell-inset\) var\(--pdsh-capture-shell-inset\)/);
   assert.match(css, /--pdsh-capture-chrome-height:\s*calc\(var\(--pdsh-capture-space\) \* \(15 \+ 15 \+ 13\)\)/);
