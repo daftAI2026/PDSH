@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖根指南、发布 skill、双语文档、Git链接索引与历史 LF blob。
- * [OUTPUT]: 验证文档互链、同源版本、双平台壁纸边界、升级限制和致谢。
- * [POS]: tests 的公开文档合同。不运行宿主或联网。
+ * [OUTPUT]: 验证文档互链、同源版本、双平台壁纸边界、验收状态入口、升级限制和致谢。
+ * [POS]: tests 的公开文档合同。README 守产品事实，PUBLISHING 守未验门；不运行宿主或联网。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
@@ -182,9 +182,14 @@ test('中英文 README 当前版本同源，英文不省略兼容、平台和隐
   assert.doesNotMatch(english, /unreleased development candidate/iu);
   assert.match(english, /Windows[^\n]*does not read the user's current wallpaper or download from the network/iu);
   assert.doesNotMatch(english, /Windows[^\n]*does not provide system wallpaper/iu);
-  assert.match(english, /unverified/iu);
+  assert.match(readme, /\[完整验收状态\]\(PUBLISHING\.md#[^)]+\)/u);
+  assert.match(english, /\[full acceptance status\]\(PUBLISHING\.en\.md#[^)]+\)/u);
+  const publishing = await read('PUBLISHING.en.md');
+  const acceptance = publishing.split('## Usage Details\n')[1]?.split('\n## ')[0];
+  assert.ok(acceptance, '使用细节保留验收边界，README 通过链接访问');
+  assert.match(acceptance, /unverified/iu);
   for (const boundary of ['dark', 'Windows', 'English Desktop', 'alignment']) {
-    assert.ok(english.includes(boundary), boundary);
+    assert.ok(acceptance.includes(boundary), boundary);
   }
   assert.match(english, /does not provide session isolation, credential migration, or forensic privacy guarantees/iu);
   assert.match(english, /\[blobatar\]\(https:\/\/github\.com\/Alain00\/blobatar\)/u);

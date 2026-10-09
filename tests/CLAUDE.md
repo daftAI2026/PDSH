@@ -141,7 +141,7 @@
 
 - `system-wallpaper-stream-catalog.test.ts`: 动态ID活动目录0–5项、Windows x64五项流、重复/非法ID/名称C1与unavailable边界；fake operation不读取系统或联网。
 
-- `public-guides.test.ts`: 验证双语互链、同源版本和平台边界。Windows 壁纸最多五项且不读当前壁纸、不联网；Mac 稳定四项与未发布五项候选分开声明。README 写用户动作，PUBLISHING 留技术合同。另核 skill 同步、历史原文摘要及头像许可。不运行宿主或联网。
+- `public-guides.test.ts`: 验证双语互链、同源版本和平台边界。两平台壁纸最多五项；Windows 不读当前壁纸、不联网。README 写产品事实并链接验收状态，PUBLISHING 保留未验门。另核 skill 同步、历史原文摘要及头像许可。不运行宿主或联网。
 
 - `plugin-icon-theme.test.ts`: 官方标签主色快照与单路径 SVG 生成合同。深色媒体查询由 Host color-scheme 驱动；不冒充浏览器主题验收。
 

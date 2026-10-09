@@ -47,7 +47,7 @@ Choose the fixed version `v0.5.6`. Existing users can confirm an upgrade on the 
 - The gallery and editing preferences stay on your device. The gallery stores no screenshots, source videos, or original filenames. A full store rejects imports rather than deleting images.
 - Masking changes only the display, not account data, original text, history, logs, or model requests. PDSH does not provide session isolation, credential migration, or forensic privacy guarantees.
 
-Detected regions do not identify sensitive content. Check redactions before copying or saving. Pixel alignment, dark themes, English Desktop, and other checks remain unverified. See [usage details](PUBLISHING.en.md#usage-details) and the [full acceptance status](PUBLISHING.en.md#056-release-decision-workbench-settlement-and-gallery).
+Detected regions do not identify sensitive content. Check redactions before copying or saving. See [usage details](PUBLISHING.en.md#usage-details) and the [full acceptance status](PUBLISHING.en.md#056-release-decision-workbench-settlement-and-gallery).
 
 ## Development
 
