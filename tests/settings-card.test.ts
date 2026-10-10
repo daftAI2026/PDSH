@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖真实 SettingsCard JSX、React/jsdom 与只替代原生控件外观的 primitives 桩。
- * [OUTPUT]: 验证设置即时提交、局部草稿/异步冲突，以及真实 MutationObserver 驱动的账号头像登出/恢复。
+ * [INPUT]: 依赖真实 SettingsCard/历史面板 JSX 与 React/jsdom；primitives 桩替代外观、定位和外点 hook。
+ * [OUTPUT]: 验证设置即时提交、局部草稿/异步冲突，历史原子提交、迟到清除围栏与焦点边界、真实 MutationObserver 驱动的账号头像登出/恢复。
  * [POS]: PDSH 设置交互回归；真实 presentation 驱动 JSX，宿主 token 与布局由 runtime 截图另验。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -12,6 +12,7 @@ import { transformSync } from 'esbuild';
 import React, { act } from 'react';
 import { JSDOM } from 'jsdom';
 import * as model from '../src/shared/model.ts';
+import * as avatarHistory from '../src/shared/avatar-history.ts';
 import { dictionaries } from '../src/shared/locales.ts';
 import { mountPresentation } from '../src/client/presentation.ts';
 
@@ -19,9 +20,22 @@ async function mountSettings({ fileReader, imageDecode, value, presentation: ini
   const dom = new JSDOM('<body><main></main></body>', { url: 'http://localhost' });
   const previous = new Map(['window', 'document', 'IS_REACT_ACT_ENVIRONMENT'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
+  const { createPortal } = await import('react-dom');
+  const buttonHandlers = new Map();
   const primitives = {
     Input: props => React.createElement('span', {}, React.createElement('input', props)),
-    Button: ({ children, variant, size, ...props }) => React.createElement('button', { type: 'button', 'data-variant': variant, 'data-size': size, ...props }, children),
+    Button: ({ children, variant, size, ...props }) => {
+      buttonHandlers.set(props['aria-label'] ?? children, props.onClick);
+      return React.createElement('button', { type: 'button', 'data-variant': variant, 'data-size': size, ...props }, children);
+    },
+    MenuSurface: React.forwardRef((props, ref) => React.createElement('div', { ...props, ref })),
+    useAnchoredPosition: ({ open }) => open ? { left: 0, top: 0 } : null,
+    useDismissOnOutsidePointer: (root, open, dismiss, panel) => React.useEffect(() => {
+      if (!open) return;
+      const outside = event => { if (!root.current?.contains(event.target) && !panel.current?.contains(event.target)) dismiss(false); };
+      dom.window.document.addEventListener('pointerdown', outside);
+      return () => dom.window.document.removeEventListener('pointerdown', outside);
+    }, [open, root, panel, dismiss]),
     IconUserOutlineMedium: () => React.createElement('svg'),
     IconEditOutlineRegular: () => React.createElement('svg'),
     IconCheckOutlineRegular: () => React.createElement('svg'),
@@ -29,18 +43,33 @@ async function mountSettings({ fileReader, imageDecode, value, presentation: ini
     Switch: ({ label, checked, onChange, disabled, title }) => React.createElement('input', { type: 'checkbox', role: 'switch', 'aria-label': label, checked, disabled, title, onChange: event => onChange(event.target.checked) }),
   };
   const module = { exports: {} };
+  const avatarImage = { exports: {} };
+  runInNewContext(transformSync(readFileSync(new URL('../src/client/avatar-image.tsx', import.meta.url), 'utf8'), { loader: 'tsx', format: 'cjs' }).code,
+    { module: avatarImage, exports: avatarImage.exports, require: id => { if (id === 'react') return React; throw new Error(id); } });
+  const popover = { exports: {} };
+  const popoverCode = transformSync(readFileSync(new URL('../src/client/avatar-history-popover.tsx', import.meta.url), 'utf8'), { loader: 'tsx', format: 'cjs' }).code;
+  runInNewContext(popoverCode, { module: popover, exports: popover.exports, require(id) {
+    if (id === 'react') return React;
+    if (id === 'react-dom') return { createPortal };
+    if (id === './avatar-image.tsx') return avatarImage.exports;
+    if (id === '@deepseek-ai/dsh-client-ui-primitives') return primitives;
+    throw new Error(id);
+  } });
   const code = transformSync(readFileSync(new URL('../src/client/settings-card.tsx', import.meta.url), 'utf8'), { loader: 'tsx', format: 'cjs' }).code;
   runInNewContext(code, { module, exports: module.exports, FileReader: fileReader ?? dom.window.FileReader,
     Image: class { async decode() { await imageDecode?.(); } }, require(id) {
     if (id === 'react') return React;
+    if (id === './avatar-history-popover.tsx') return popover.exports;
+    if (id === './avatar-image.tsx') return avatarImage.exports;
     if (id === '../shared/model.ts') return model;
+    if (id === '../shared/avatar-history.ts') return avatarHistory;
     if (id === '@deepseek-ai/dsh-client-ui-primitives') return primitives;
     throw new Error(id);
   } });
   const { createRoot } = await import('react-dom/client');
   const root = createRoot(dom.window.document.querySelector('main'));
   const listeners = new Set(), writes = [];
-  let snapshot = { status: 'ready', writable: true, revision: 7, value: { ...model.DEFAULTS, ...value } };
+  let snapshot = { status: 'ready', writable: true, revision: 7, value: { ...model.DEFAULTS, avatarHistory: [], ...value } };
   let accepted = false;
   let presentationController = null;
   const form = { getSnapshot: () => snapshot, subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }, async mutate(ops, revision) { writes.push({ ops, revision }); if (accepted) { snapshot = { ...snapshot, revision: snapshot.revision + 1, value: { ...snapshot.value, ...Object.fromEntries(ops.map(op => [op.path[0], op.value])) } }; presentationController?.update(model.resolvePreferences(snapshot.value)); for (const fn of listeners) fn(); } return accepted; } };
@@ -61,7 +90,7 @@ async function mountSettings({ fileReader, imageDecode, value, presentation: ini
   const presentation = presentationController ?? fakePresentation;
   const buttons = () => [...doc.querySelectorAll('button')];
   const button = name => buttons().find(node => node.textContent === name || node.getAttribute('aria-label') === name || node.getAttribute('aria-label')?.startsWith(`${name}: `));
-  return { doc, dom, root, button, writes, form, presentation, listeners,
+  return { doc, dom, root, button, writes, form, presentation, listeners, handler: name => buttonHandlers.get(name),
     accept(value) { accepted = value; },
     async snapshot(changes) { await act(async () => { snapshot = { ...snapshot, ...changes }; for (const fn of listeners) fn(); }); },
     async render() { await act(async () => root.render(React.createElement(module.exports.SettingsCard, { preferencesForm: form, presentation, t }))); },
@@ -140,7 +169,7 @@ test('登出只临时生成已选账号头像，替换关闭时仍可主动启�
     assert.equal(preview?.getAttribute('src'), model.resolvePreferences({ nickname: '临时访客甲', avatar: '' }).avatar);
     assert.notEqual(preview?.getAttribute('src'), savedAvatar);
     assert.notEqual(preview?.getAttribute('src'), 'stale-account.png');
-    assert.equal(h.doc.querySelector('[role="status"]'), null);
+    assert.equal(h.doc.querySelector('[role="status"]') === null, true);
     assert.equal(h.button('编辑显示昵称').disabled, false);
     assert.equal(h.button('选择图片').disabled, false);
     assert.equal(h.button('按昵称生成').disabled, false);
@@ -284,7 +313,9 @@ test('取消选图不切换来源，合法解码后才立即写入本地头像',
     await act(async () => h.button('avatar').click());
     assert.equal(h.button('accountAvatar').getAttribute('aria-pressed'), 'true');
     await h.selectFile(); assert.equal(h.writes.length, 1);
-    assert.ok(h.doc.querySelector('[data-pdsh-avatar-loading]'));
+    assert.equal(Boolean(h.doc.querySelector('[data-pdsh-avatar-loading]')), false, '正常读取不新增可见提示');
+    assert.equal(Boolean(h.doc.querySelector('[data-pdsh-avatar-feedback]')), false, '正常读取不新增占位行');
+    assert.equal(h.doc.querySelector('.pdsh-avatar-actions').getAttribute('aria-busy'), 'true');
     await act(async () => readers[0].finish());
     assert.equal(h.writes.length, 2);
     assert.equal(h.writes[1].ops[0].value, 'data:image/png;base64,YQ==');
@@ -362,14 +393,14 @@ test('外来昵称更新时阻止覆盖，Esc取当前值；无关开关不制�
   const h = await mountSettings();
   try {
     await h.render(); await editName(h, '本地编辑');
-    await h.snapshot({ revision: 8, value: { ...model.DEFAULTS, nickname: '外来新昵称' } });
+    await h.snapshot({ revision: 8, value: { ...model.DEFAULTS, avatarHistory: [], nickname: '外来新昵称' } });
     assert.equal(h.doc.querySelector('#pdsh-nickname').value, '本地编辑');
     assert.equal(h.button('doneEditing').disabled, true);
     assert.equal(h.doc.querySelector('.pdsh-nickname-editor [role="alert"]').textContent, 'nicknameConflict');
     await act(async () => h.doc.querySelector('#pdsh-nickname').dispatchEvent(new h.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
     assert.equal(h.doc.querySelector('.pdsh-profile-name').textContent, '外来新昵称');
     await editName(h, '再编辑');
-    await h.snapshot({ revision: 9, value: { ...model.DEFAULTS, nickname: '外来新昵称', maskTitles: true, future: 'host' } });
+    await h.snapshot({ revision: 9, value: { ...model.DEFAULTS, avatarHistory: [], nickname: '外来新昵称', maskTitles: true, future: 'host' } });
     assert.equal(h.button('doneEditing').disabled, false);
     h.accept(true); await act(async () => h.button('doneEditing').click());
     assert.equal(h.writes[0].revision, 9); assert.equal(h.writes[0].ops.length, 1);
@@ -386,7 +417,7 @@ test('头像写入失败不假选中，保留候选供重试；外来来源更�
     h.accept(true); await act(async () => h.button('retryAvatar').click());
     assert.equal(h.button('accountAvatar').getAttribute('aria-pressed'), 'true');
     h.accept(false); await act(async () => h.button('generated').click());
-    await h.snapshot({ revision: 9, value: { ...model.DEFAULTS, avatar: 'data:image/png;base64,Yg==' } });
+    await h.snapshot({ revision: 9, value: { ...model.DEFAULTS, avatarHistory: [], avatar: 'data:image/png;base64,Yg==' } });
     assert.equal(h.button('retryAvatar').disabled, true);
     assert.equal(h.doc.querySelector('[data-pdsh-avatar-feedback] [role="alert"]').textContent, 'avatarConflict');
     assert.equal(h.writes.length, 3);
@@ -415,7 +446,7 @@ test('读取期间Host改了头像，不在解码结束后覆盖它', async () =
   const { Reader, readers } = readerFixture(); const h = await mountSettings({ fileReader: Reader });
   try {
     await h.render(); h.accept(true); await h.selectFile();
-    await h.snapshot({ revision: 8, value: { ...model.DEFAULTS, useAccountAvatar: true } });
+    await h.snapshot({ revision: 8, value: { ...model.DEFAULTS, avatarHistory: [], useAccountAvatar: true } });
     await act(async () => readers[0].finish());
     assert.equal(h.writes.length, 0); assert.equal(h.button('accountAvatar').getAttribute('aria-pressed'), 'true');
     assert.equal(h.doc.querySelector('[data-pdsh-avatar-feedback] [role="alert"]').textContent, 'avatarConflict');
@@ -486,7 +517,7 @@ test('昵称改回原值只关闭编辑，不物化继承值；首次编辑取�
     await h.render(); await editName(h, '暂改');
     await h.input(h.doc.querySelector('#pdsh-nickname'), model.DEFAULTS.nickname);
     await act(async () => h.button('doneEditing').click()); assert.equal(h.writes.length, 0);
-    const next = { status: 'ready', writable: true, revision: 99, value: { ...model.DEFAULTS, nickname: '刚更新' } };
+    const next = { status: 'ready', writable: true, revision: 99, value: { ...model.DEFAULTS, avatarHistory: [], nickname: '刚更新' } };
     h.form.getSnapshot = () => next;
     await act(async () => h.button('editNickname').click());
     assert.equal(h.doc.querySelector('#pdsh-nickname').value, '刚更新');
@@ -533,5 +564,222 @@ test('每组只有一次功能标题并与开关同排，遮挡范围只在悬�
     assert.equal(h.doc.querySelectorAll('section[role="group"]').length, 2);
     assert.equal(rows[1].querySelector('[role="switch"]').disabled, false);
     assert.equal(h.writes.length, 0);
+  } finally { await h.close(); }
+});
+
+test('切到生成头像时，旧本地图与两个历史项在同一提交中轮换', async () => {
+  const A = 'data:image/png;base64,YQ==', B = 'data:image/png;base64,Yg==', C = 'data:image/png;base64,Yw==';
+  const h = await mountSettings({ value: { avatar: C, avatarHistory: [B, A] } });
+  try {
+    await h.render(); h.accept(true);
+    await act(async () => h.button('generated').click());
+    assert.deepEqual(Array.from(h.form.getSnapshot().value.avatarHistory), [C, B]);
+    assert.equal(h.form.getSnapshot().value.avatar, '');
+    assert.equal(h.writes.length, 1);
+    assert.deepEqual(Array.from(h.writes[0].ops, op => op.path[0]), ['avatar', 'useAccountAvatar', 'avatarHistory']);
+  } finally { await h.close(); }
+});
+
+test('头像提交失败不推进历史，切到账号不把本地图重复归档', async () => {
+  const A = 'data:image/png;base64,YQ==', B = 'data:image/png;base64,Yg==';
+  const h = await mountSettings({ value: { avatar: B, avatarHistory: [A] } });
+  try {
+    await h.render(); await act(async () => h.button('generated').click());
+    assert.equal(h.form.getSnapshot().value.avatar, B);
+    assert.deepEqual(Array.from(h.form.getSnapshot().value.avatarHistory), [A]);
+    assert.deepEqual(Array.from(h.writes[0].ops.find(op => op.path[0] === 'avatarHistory')?.value ?? []), [B, A]);
+    h.accept(true); await act(async () => h.button('accountAvatar').click());
+    assert.equal(h.form.getSnapshot().value.avatar, B);
+    assert.deepEqual(Array.from(h.form.getSnapshot().value.avatarHistory), [A]);
+  } finally { await h.close(); }
+});
+
+test('有历史时只打开一层 dialog；复用旧头像轮换历史，不改昵称', async () => {
+  const A = 'data:image/png;base64,YQ==', B = 'data:image/png;base64,Yg==', C = 'data:image/png;base64,Yw==';
+  const h = await mountSettings({ value: { avatar: C, avatarHistory: [B, A], nickname: '保持昵称' } });
+  try {
+    await h.render(); h.accept(true);
+    await act(async () => h.button('avatar').click());
+    const panel = h.doc.querySelector('[role="dialog"]');
+    assert.ok(panel); assert.equal(panel.parentElement, h.doc.body);
+    assert.equal(h.doc.activeElement, panel); assert.equal(h.doc.querySelector('[role="menu"]'), null);
+    assert.equal(h.button('avatar').getAttribute('aria-expanded'), 'true');
+    const old = h.button('reuseAvatar 2'); assert.equal(old.disabled, true);
+    assert.equal(old.querySelector('img').className, h.doc.querySelector('.pdsh-identity img').className,
+      '历史图片与实际设置预览共用头像几何，不能各自缩放');
+    await act(async () => old.querySelector('img').dispatchEvent(new h.dom.window.Event('load')));
+    await act(async () => old.click());
+    const state = h.form.getSnapshot().value;
+    assert.equal(state.avatar, A); assert.equal(state.useAccountAvatar, false); assert.equal(state.nickname, '保持昵称');
+    assert.deepEqual(Array.from(state.avatarHistory), [C, B]);
+    assert.equal(h.doc.querySelector('[role="dialog"]'), null);
+    assert.equal(h.doc.activeElement, h.button('avatar'));
+  } finally { await h.close(); }
+});
+
+test('Escape归还触发焦点，外点和外部焦点关闭不抢焦点；Tab不选图', async () => {
+  const h = await mountSettings({ value: { avatarHistory: ['data:image/png;base64,YQ=='] } });
+  try {
+    await h.render();
+    await act(async () => h.button('avatar').click());
+    await act(async () => h.doc.activeElement.dispatchEvent(new h.dom.window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true })));
+    assert.equal(h.writes.length, 0); assert.ok(h.doc.querySelector('[role="dialog"]'));
+    await act(async () => h.doc.activeElement.dispatchEvent(new h.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+    assert.equal(h.doc.querySelector('[role="dialog"]'), null); assert.equal(h.doc.activeElement, h.button('avatar'));
+    await act(async () => h.button('avatar').click());
+    await act(async () => h.button('accountAvatar').focus());
+    assert.equal(h.doc.querySelector('[role="dialog"]'), null); assert.equal(h.doc.activeElement, h.button('accountAvatar'));
+    await act(async () => h.button('avatar').click());
+    await act(async () => h.doc.body.dispatchEvent(new h.dom.window.Event('pointerdown', { bubbles: true })));
+    assert.equal(h.doc.querySelector('[role="dialog"]'), null); assert.equal(h.writes.length, 0);
+  } finally { await h.close(); }
+});
+
+test('清除历史只写历史字段；失败不清空当前图或历史', async () => {
+  const A = 'data:image/png;base64,YQ==', B = 'data:image/png;base64,Yg==';
+  const h = await mountSettings({ value: { avatar: B, avatarHistory: [A] } });
+  try {
+    await h.render();
+    await act(async () => h.button('avatar').click());
+    await act(async () => h.button('clearAvatarHistory').click());
+    assert.deepEqual(Array.from(h.form.getSnapshot().value.avatarHistory), [A]);
+    assert.equal(h.doc.querySelector('[role="alert"]').textContent, 'avatarHistoryClearFailed');
+    h.accept(true);
+    await act(async () => h.button('avatar').click());
+    await act(async () => h.button('clearAvatarHistory').click());
+    assert.equal(h.form.getSnapshot().value.avatar, B);
+    assert.deepEqual(Array.from(h.form.getSnapshot().value.avatarHistory), []);
+    assert.ok(h.writes.every(write => write.ops.length === 1 && write.ops[0].path[0] === 'avatarHistory'));
+    assert.equal(h.button('avatar').hasAttribute('aria-haspopup'), false);
+  } finally { await h.close(); }
+});
+
+test('历史图解码失败只显示占位且不能选中，没有伪装成生成头像', async () => {
+  const h = await mountSettings({ value: { avatarHistory: ['data:image/png;base64,YQ=='] } });
+  try {
+    await h.render(); await act(async () => h.button('avatar').click());
+    const image = h.doc.querySelector('[role="dialog"] img');
+    await act(async () => image.dispatchEvent(new h.dom.window.Event('error')));
+    const failed = h.button('avatarHistoryUnavailable 1');
+    assert.equal(failed.disabled, true); assert.equal(image.hidden, true);
+    await act(async () => failed.click()); assert.equal(h.writes.length, 0);
+    assert.equal(h.doc.querySelector('[role="dialog"] img').src, 'data:image/png;base64,YQ==');
+  } finally { await h.close(); }
+});
+
+test('旧Host缺少历史字段时保留原头像来源，只提交既有字段', async () => {
+  const A = 'data:image/png;base64,YQ==';
+  const h = await mountSettings();
+  try {
+    await h.snapshot({ value: { ...model.DEFAULTS, avatar: A } });
+    await h.render(); h.accept(true);
+    for (const key of ['avatar', 'generated', 'accountAvatar']) assert.equal(h.button(key).disabled, false);
+    assert.equal(h.doc.querySelector('[role="status"]') === null, true);
+    assert.equal(h.button('editNickname').disabled, false);
+    assert.equal(h.doc.querySelector('[role="switch"][aria-label="maskIdentity"]').disabled, false);
+    await act(async () => h.button('generated').click());
+    assert.equal(h.form.getSnapshot().value.avatar, '');
+    await act(async () => h.button('accountAvatar').click());
+    assert.equal(h.form.getSnapshot().value.useAccountAvatar, true);
+    assert.ok(h.writes.every(write => write.ops.length === 2 && write.ops.every(op => ['avatar', 'useAccountAvatar'].includes(op.path[0]))));
+    assert.equal(Object.hasOwn(h.form.getSnapshot().value, 'avatarHistory'), false);
+    await h.snapshot({ value: { ...model.DEFAULTS, avatarHistory: [] }, revision: 10 });
+    assert.equal(h.button('avatar').disabled, false); assert.equal(h.doc.querySelector('[role="status"]') === null, true);
+  } finally { await h.close(); }
+});
+
+test('旧Host选择图片直开picker，失败可重试且不伪造历史字段', async () => {
+  const { Reader, readers } = readerFixture();
+  const h = await mountSettings({ fileReader: Reader });
+  try {
+    await h.snapshot({ value: { ...model.DEFAULTS } }); await h.render();
+    let pickers = 0; h.doc.querySelector('input[type="file"]').click = () => ++pickers;
+    await act(async () => h.button('avatar').click());
+    assert.equal(pickers, 1); assert.equal(h.doc.querySelector('[role="dialog"]'), null);
+    await h.selectFile(); await act(async () => readers[0].finish());
+    assert.equal(h.doc.querySelector('[role="alert"]').textContent, 'avatarSaveFailed');
+    assert.equal(h.form.getSnapshot().value.avatar, '');
+    h.accept(true); await act(async () => h.button('retryAvatar').click());
+    assert.equal(h.form.getSnapshot().value.avatar, 'data:image/png;base64,YQ==');
+    assert.equal(Object.hasOwn(h.form.getSnapshot().value, 'avatarHistory'), false);
+    assert.ok(h.writes.every(write => write.ops.length === 2));
+  } finally { await h.close(); }
+});
+
+test('旧Host读取途中载入历史能力，旧事务拒绝越过能力世代', async () => {
+  const { Reader, readers } = readerFixture();
+  const h = await mountSettings({ fileReader: Reader });
+  try {
+    await h.snapshot({ value: { ...model.DEFAULTS } }); await h.render(); h.accept(true);
+    await h.selectFile();
+    assert.equal(readers.length, 1);
+    await h.snapshot({ value: { ...model.DEFAULTS, avatarHistory: [] }, revision: 8 });
+    await act(async () => readers[0].finish());
+    assert.equal(h.writes.length, 0); assert.equal(h.doc.querySelector('[role="alert"]').textContent, 'avatarConflict');
+  } finally { await h.close(); }
+});
+
+test('损坏的已声明历史字段不是旧Host；缺少基础头像字段也不猜默认值', async () => {
+  const h = await mountSettings();
+  try {
+    await h.render();
+    for (const value of [{ ...model.DEFAULTS, avatarHistory: undefined }, { ...model.DEFAULTS, avatarHistory: null },
+      { ...model.DEFAULTS, avatarHistory: ['invalid'] }, { nickname: model.DEFAULTS.nickname }]) {
+      await h.snapshot({ value });
+      for (const key of ['avatar', 'generated', 'accountAvatar']) assert.equal(h.button(key).disabled, true);
+      assert.equal(h.doc.querySelector('[role="status"]').textContent, 'avatarConfigurationUnavailable');
+    }
+    assert.equal(h.writes.length, 0);
+  } finally { await h.close(); }
+});
+
+test('解码期间外部清除历史，迟到读取不得复活已清除的图片', async () => {
+  const { Reader, readers } = readerFixture();
+  const h = await mountSettings({ fileReader: Reader, value: { avatarHistory: ['data:image/png;base64,Yg=='] } });
+  try {
+    await h.render(); h.accept(true); await h.selectFile();
+    await h.snapshot({ value: { ...model.DEFAULTS, avatarHistory: [] }, revision: 8 });
+    await act(async () => readers[0].finish());
+    assert.equal(h.writes.length, 0);
+    assert.deepEqual(h.form.getSnapshot().value.avatarHistory, []);
+    assert.equal(h.doc.querySelector('[role="alert"]').textContent, 'avatarConflict');
+  } finally { await h.close(); }
+});
+
+
+test('历史能力撤回时拒绝在途旧事务，不丢弃待轮换历史后降级写入', async () => {
+  const { Reader, readers } = readerFixture();
+  const h = await mountSettings({ fileReader: Reader, value: { avatarHistory: ['data:image/png;base64,Yg=='] } });
+  try {
+    await h.render(); h.accept(true); await h.selectFile();
+    await h.snapshot({ value: { ...model.DEFAULTS }, revision: 8 });
+    await act(async () => readers[0].finish());
+    assert.equal(h.writes.length, 0); assert.equal(h.doc.querySelector('[role="alert"]').textContent, 'avatarConflict');
+    assert.equal(h.button('avatar').disabled, false);
+  } finally { await h.close(); }
+});
+
+test('旧Host基础分流仍遵守登录状态，不放开账号来源', async () => {
+  const h = await mountSettings({ presentation: { accountStatus: 'signed-out' } });
+  try {
+    await h.snapshot({ value: { ...model.DEFAULTS } }); await h.render();
+    assert.equal(h.button('avatar').disabled, false); assert.equal(h.button('generated').disabled, false);
+    assert.equal(h.button('accountAvatar').disabled, true); assert.equal(h.writes.length, 0);
+  } finally { await h.close(); }
+});
+
+
+test('迟到的清除历史回调重新核对完整头像配置', async () => {
+  const B = 'data:image/png;base64,Yg==';
+  const h = await mountSettings({ value: { avatarHistory: [B] } });
+  try {
+    await h.render(); h.accept(true);
+    await act(async () => h.button('avatar').click());
+    const clear = h.handler('clearAvatarHistory');
+    assert.equal(typeof clear, 'function');
+    await h.snapshot({ value: { ...model.DEFAULTS, avatar: undefined, avatarHistory: [B] }, revision: 8 });
+    await act(async () => clear());
+    assert.equal(h.writes.length, 0);
+    assert.deepEqual(h.form.getSnapshot().value.avatarHistory, [B]);
   } finally { await h.close(); }
 });

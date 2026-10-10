@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖生成 Client、Cordis、ReactDOM、平台标识与共享组合根加载器。
+ * [INPUT]: 依赖生成 Client、Cordis、ReactDOM root/portal、Host 浮层 hooks 桩与平台标识。
  * [OUTPUT]: 验证两 Remote、平台 provider 门、几何代际、字形清理、相机插槽。
  * [POS]: 组合根合同；不冒充 Host、原生像素或 Desktop 验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -11,6 +11,7 @@ import { TextEncoder } from 'node:util';
 import { runInNewContext } from 'node:vm';
 import { Context } from '@deepseek-ai/cordis';
 import React, { act } from 'react';
+import { createPortal } from 'react-dom';
 import * as jsxRuntime from 'react/jsx-runtime';
 import { createRoot as reactCreateRoot } from 'react-dom/client';
 import { JSDOM } from 'jsdom';
@@ -36,6 +37,7 @@ function loadBundle(createRoot, doc) {
   const module = row.factory(id => {
     if (id === 'react') return React;
     if (id === 'react/jsx-runtime') return jsxRuntime;
+    if (id === 'react-dom') return { createPortal };
     if (id === 'react-dom/client') return { createRoot };
     if (id === '@deepseek-ai/dsh-client-ui-primitives') return primitives();
     throw new Error(`unexpected external module ${id}`);
@@ -46,6 +48,9 @@ function loadBundle(createRoot, doc) {
 
 function primitives() {
   return {
+    MenuSurface: React.forwardRef((props, ref) => React.createElement('div', { ...props, ref })),
+    useAnchoredPosition: ({ open }) => open ? { left: 0, top: 0 } : null,
+    useDismissOnOutsidePointer: () => {},
     Input: props => React.createElement('input', props),
     Button: ({ children, variant: _variant, ...props }) => React.createElement('button', props, children),
     Switch: ({ checked, label, disabled, onChange }) => React.createElement('button', {

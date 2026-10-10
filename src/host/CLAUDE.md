@@ -1,7 +1,7 @@
 # src/host/
 > L2 | 父级: ../CLAUDE.md
 
-- `index.ts`: 唯一 `pdsh` Host Config/apply 与 Typert 源面；保留根 Config 地址，macOS 保持注册 capture service，Windows 仅在 x64 且包内 exe 为普通文件时注册；其余功能与 captureEnabled 撤回独立。
+- `index.ts`: 唯一 `pdsh` Host Config/apply 与 Typert 源面；avatarHistory 限两个有界本地栅格数据 URL，与头像共用根 Settings；保留根 Config 地址，macOS 保持注册 capture service，Windows 仅在 x64 且包内 exe 为普通文件时注册；其余功能与 captureEnabled 撤回独立。
 - `capture.ts`: 声明 `captureEnabled`、独立身份遮挡与导出设置，引用 shared POSIX/Windows 绝对目录语法；保留历史默认迁移和 root owner-scoped listener，实际写入仍受 Host native path 校验。默认目录沿用本机用户home下Downloads，不探测重定向known folder。
 - `context.ts`: 以类型扩充 Cordis Context，描述唯一已注册 capture service；不制造 runtime binding 或 Typert descriptor。
 - `window-capture-service.ts`: 固定基础 Remote 壳，提供截图/保存及历史壁纸兼容面。只依赖 Loader 的稳定接口；新能力不进入根生成面。

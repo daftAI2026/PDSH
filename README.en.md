@@ -12,7 +12,7 @@ English · [简体中文](README.md)
 Mask sidebar titles, customize display aliases, and capture and redact this window. No session isolation.
 <!-- pdsh:description:end -->
 
-DeepSeek Harness Desktop plugin · **Version 0.5.9** · [`v0.5.9`](https://github.com/daftAI2026/PDSH/tree/v0.5.9)
+DeepSeek Harness Desktop plugin · **Version 0.5.10** · [`v0.5.10`](https://github.com/daftAI2026/PDSH/tree/v0.5.10)
 
 Supports macOS and Windows. The screenshot helper ships with the plugin and needs no separate installation.
 
@@ -21,7 +21,7 @@ Supports macOS and Windows. The screenshot helper ships with the plugin and need
 ## Features
 
 - **Title masking:** Use the hat button to toggle gray bars over workspace and session titles.
-- **Local identity:** Set a display name, generate or upload an avatar, or use your account avatar. Local identity replacement is off by default. While signed out, you can replace the display identity on the “More” entry while keeping its native menu.
+- **Local identity:** Set a display name, generate or upload an avatar, or use your account avatar. Keep two previous uploads for reuse; clearing history leaves the current avatar unchanged. Local identity replacement is off by default. While signed out, you can replace the display identity on the “More” entry while keeping its native menu.
 - **Screenshot editing:** Capture the current DSH window, select detected regions or draw redactions manually, then adjust the background and margins before copying or saving. When the sidebar is collapsed, use the camera in the session's top-right corner.
 - **Screenshot privacy:** “Private titles” redacts sidebar session titles; “Private identity” redacts the sidebar avatar and nickname. The switches are independent, and toggling either retakes the screenshot. The image and switch update only after a successful retake; both stay unchanged if it fails. The identity override lasts only for the current editing session.
 - **Background gallery:** Choose from five presets, add your own images, or fetch up to five system wallpapers. Refreshing system wallpapers preserves saved images.
@@ -35,7 +35,7 @@ In Harness, open **Plugins → Add Plugin → GitHub repository URL** and enter:
 https://github.com/daftAI2026/PDSH
 ```
 
-Choose the fixed version `v0.5.9`. Existing users can confirm an upgrade on the plugin details page.
+Choose the fixed version `v0.5.10`. Existing users can confirm an upgrade on the plugin details page.
 
 **Upgrade note:** Versions `0.3.2` and earlier need one normal load during their first upgrade. A running `0.5.0` installation does not support a no-restart upgrade. See [Upgrade Compatibility](PUBLISHING.en.md#upgrade-compatibility).
 
@@ -47,7 +47,7 @@ Choose the fixed version `v0.5.9`. Existing users can confirm an upgrade on the 
 - The gallery and editing preferences stay on your device. The gallery stores no screenshots, source videos, or original filenames. A full store rejects imports rather than deleting images.
 - Masking changes only the display, not account data, original text, history, logs, or model requests. PDSH does not provide session isolation, credential migration, or forensic privacy guarantees.
 
-Detected regions do not identify sensitive content. Check redactions before copying or saving. See [usage details](PUBLISHING.en.md#usage-details) and the [full acceptance status](PUBLISHING.en.md#059-release-decision-update-cancellation).
+Detected regions do not identify sensitive content. Check redactions before copying or saving. See [usage details](PUBLISHING.en.md#usage-details) and the [full acceptance status](PUBLISHING.en.md#0510-release-decision-recent-avatars).
 
 ## Development
 

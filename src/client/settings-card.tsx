@@ -1,18 +1,26 @@
 /**
- * [INPUT]: 依赖宿主 React/primitives、ConfigForm 与独立账号状态；shared/model.ts 校验昵称/图像。
- * [OUTPUT]: 提供本地身份设置、账号头像可用性提示、登出临时生成预览、局部提交与可取消图片读取。
+ * [INPUT]: 依赖 Host ConfigForm、账号状态、共用 AvatarImage 与历史面板；shared 校验图像并计算 MRU 轮换。
+ * [OUTPUT]: 提供身份设置与无可见提示的可取消读取。旧合同保留换头像；历史就绪才原子轮换。
  * [POS]: PDSH 偏好交互层；账号状态只影响头像预览与来源按钮，不增加登出说明行或改写 Host 接受值。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { AvatarHistoryPopover } from './avatar-history-popover.tsx';
+import { AvatarImage } from './avatar-image.tsx';
 import { Input, Switch, Button, Tooltip, IconUserOutlineMedium, IconEditOutlineRegular, IconCheckOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives';
+import { avatarConfigurationMode, isAvatarHistory, rotateAvatarHistory, sameAvatarHistory } from '../shared/avatar-history.ts';
 import { DEFAULTS, MAX_AVATAR_CHARS, MAX_NAME_CHARS, NICKNAME_PATTERN, resolvePreferences } from '../shared/model.ts';
 
 function avatarValues(value) {
-  return { avatar: value?.avatar ?? DEFAULTS.avatar, useAccountAvatar: value?.useAccountAvatar ?? DEFAULTS.useAccountAvatar };
+  // +--- 保留真实字段存在性；默认值不能冒充 Host 已接受的合同 ---+
+  return Object.fromEntries(['avatar', 'useAccountAvatar', 'avatarHistory']
+    .filter(field => value && Object.hasOwn(value, field)).map(field => [field, value[field]]));
 }
 function sameAvatar(left, right) {
-  return Boolean(left && right && left.avatar === right.avatar && left.useAccountAvatar === right.useAccountAvatar);
+  const mode = avatarConfigurationMode(left);
+  return mode !== 'invalid' && mode === avatarConfigurationMode(right) &&
+    left.avatar === right.avatar && left.useAccountAvatar === right.useAccountAvatar &&
+    (mode === 'legacy' || sameAvatarHistory(left.avatarHistory, right.avatarHistory));
 }
 function Hint({ label, children }) {
   return <Tooltip label={label} side="bottom" delayMs={500} focusDelayMs={0} portal>{children}</Tooltip>;
@@ -73,11 +81,14 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t, sho
   const nicknameInvalid = typeof displayedNickname !== 'string' || displayedNickname.length > MAX_NAME_CHARS || !NICKNAME_PATTERN.test(displayedNickname);
   const nicknameConflict = nicknameDraft !== null && ready && nicknameBase.current !== acceptedNickname;
   const acceptedAvatar = avatarValues(snapshot.value);
+  const avatarMode = avatarConfigurationMode(acceptedAvatar);
+  const avatarReady = avatarMode === 'history';
+  const avatarWritable = writable && avatarMode !== 'invalid';
   const avatarSource = acceptedAvatar.useAccountAvatar ? 'account' : acceptedAvatar.avatar ? 'local' : 'generated';
   const avatarConflict = avatarRetry && !sameAvatar(avatarRetry.base, acceptedAvatar);
   const temporaryGeneratedPreview = avatarSource === 'account' && accountStatus === 'signed-out';
   const previewSource = temporaryGeneratedPreview ? 'generated' : avatarSource;
-  const accountAvatarDisabled = !writable || accountStatus !== 'signed-in';
+  const accountAvatarDisabled = !avatarWritable || accountStatus !== 'signed-in';
   const accountAvatarHint = accountStatus === 'signed-out' ? t('accountAvatarSignedOut')
     : accountStatus === 'unsupported' ? t('status.unsupported') : t('accountAvatarHint');
   const previewNickname = nicknameInvalid ? acceptedNickname : displayedNickname;
@@ -133,13 +144,34 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t, sho
     if (pendingMutation.current || current.status !== 'ready' || !current.writable) return;
     setAvatarError(''); setAvatarRetry(null);
     if (!sameAvatar(base, avatarValues(current.value))) { setAvatarError('avatarConflict'); return; }
-    if (sameAvatar(value, base)) return;
-    const accepted = await mutate('avatar', ['avatar', 'useAccountAvatar'].map(field => ({ op: 'set', path: [field], value: value[field] })), current, origin);
+    if (value.avatar === base.avatar && value.useAccountAvatar === base.useAccountAvatar) return;
+    const ops = ['avatar', 'useAccountAvatar'].map(field => ({ op: 'set', path: [field], value: value[field] }));
+    // +--- 新能力独立分流；旧 Host 只接收已存在的基础字段 ---+
+    if (avatarConfigurationMode(base) === 'history') {
+      const avatarHistory = value.avatar === base.avatar ? base.avatarHistory : rotateAvatarHistory(base.avatarHistory, base.avatar, value.avatar);
+      if (!sameAvatarHistory(base.avatarHistory, avatarHistory)) ops.push({ op: 'set', path: ['avatarHistory'], value: avatarHistory });
+    }
+    const accepted = await mutate('avatar', ops, current, origin);
     if (alive.current && !accepted) { setAvatarError('avatarSaveFailed'); setAvatarRetry({ value, base }); }
+  }
+  function selectHistory(avatar, origin) {
+    const current = form.getSnapshot(), base = avatarValues(current.value);
+    if (!isAvatarHistory(base.avatarHistory) || !base.avatarHistory.includes(avatar)) return;
+    cancelAvatarRead();
+    void persistAvatar({ avatar, useAccountAvatar: false }, base, origin);
+  }
+  async function clearHistory(origin) {
+    const current = form.getSnapshot();
+    if (pendingMutation.current || current.status !== 'ready' || !current.writable || avatarConfigurationMode(current.value) !== 'history') return;
+    cancelAvatarRead(); setAvatarRetry(null); setAvatarError('');
+    if (!current.value.avatarHistory.length) return;
+    const accepted = await mutate('avatar', [{ op: 'set', path: ['avatarHistory'], value: [] }], current, origin);
+    if (alive.current && !accepted) setAvatarError('avatarHistoryClearFailed');
   }
   function chooseSource(source, origin) {
     const current = form.getSnapshot();
     if (pendingMutation.current || current.status !== 'ready' || !current.writable) return;
+    if (avatarConfigurationMode(current.value) === 'invalid') return;
     if (source === 'account' && presentation.accountStatus() !== 'signed-in') return;
     cancelAvatarRead(); setAvatarRetry(null); setAvatarError('');
     if (source === 'local') { fileInput.current?.click(); return; }
@@ -149,7 +181,7 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t, sho
   async function chooseAvatar(event) {
     const file = event.target.files?.[0]; event.target.value = '';
     const current = form.getSnapshot();
-    if (!file || pendingMutation.current || current.status !== 'ready' || !current.writable) return;
+    if (!file || pendingMutation.current || current.status !== 'ready' || !current.writable || avatarConfigurationMode(current.value) === 'invalid') return;
     cancelAvatarRead(); const request = ++fileSequence.current, base = avatarValues(current.value);
     setReadingAvatar(true); setAvatarRetry(null); setAvatarError('');
     try {
@@ -181,19 +213,21 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t, sho
       <div className="pdsh-identity" aria-label={t('identityPreview')}>
         {previewSource === 'account' && !accountAvatar
           ? <span className="pdsh-avatar-preview pdsh-avatar-fallback" role="img" aria-label={t('accountAvatar')}><IconUserOutlineMedium /></span>
-          : preview && <img className="pdsh-avatar-preview" src={previewSource === 'account' ? accountAvatar : preview} alt={t(previewSource === 'account' ? 'accountAvatar' : 'preview')} referrerPolicy="no-referrer" />}
+          : preview && <AvatarImage src={previewSource === 'account' ? accountAvatar : preview} alt={t(previewSource === 'account' ? 'accountAvatar' : 'preview')} />}
         <div className="pdsh-copy pdsh-profile-copy"><strong className="pdsh-profile-name">{displayedNickname}</strong></div>
         <div className="pdsh-avatar-actions" role="group" aria-labelledby="pdsh-avatar-source-label" aria-describedby={avatarError || avatarConflict ? 'pdsh-avatar-error' : undefined} aria-busy={readingAvatar || mutation === 'avatar' || undefined}>
           <span className="pdsh-avatar-source-label pdsh-label" id="pdsh-avatar-source-label">{t('avatarLabel')}</span>
-          <Button variant={avatarSource === 'generated' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'generated'} onClick={event => chooseSource('generated', event.currentTarget)} disabled={!writable}>{t('generated')}</Button>
-          <Hint label={t('avatarHint')}><Button variant={avatarSource === 'local' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'local'} onClick={event => chooseSource('local', event.currentTarget)} disabled={!writable}>{t('avatar')}</Button></Hint>
+          <Button variant={avatarSource === 'generated' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'generated'} onClick={event => chooseSource('generated', event.currentTarget)} disabled={!avatarWritable}>{t('generated')}</Button>
+          <AvatarHistoryPopover history={avatarReady ? acceptedAvatar.avatarHistory.filter(avatar => avatar !== acceptedAvatar.avatar) : []}
+            active={avatarSource === 'local'} disabled={!avatarWritable} t={t}
+            onChooseNew={origin => chooseSource('local', origin)} onSelect={selectHistory} onClear={clearHistory} />
           <Hint label={accountAvatarHint}><span className="pdsh-avatar-source-tooltip" tabIndex={accountAvatarDisabled ? 0 : undefined}><Button variant={avatarSource === 'account' ? 'outline' : 'ghost'} aria-pressed={avatarSource === 'account'} onClick={event => chooseSource('account', event.currentTarget)} disabled={accountAvatarDisabled}>{t('accountAvatar')}</Button></span></Hint>
         </div>
       </div>
-      {(avatarError || avatarConflict || readingAvatar) && <div className="pdsh-avatar-feedback" data-pdsh-avatar-feedback>
-        {readingAvatar && <span role="status" className="pdsh-hint" data-pdsh-avatar-loading>{t('avatarLoading')}</span>}
+      {ready && avatarMode === 'invalid' && <p role="status" className="pdsh-hint">{t('avatarConfigurationUnavailable')}</p>}
+      {(avatarError || avatarConflict) && <div className="pdsh-avatar-feedback" data-pdsh-avatar-feedback>
         {(avatarError || avatarConflict) && <span role="alert" id="pdsh-avatar-error" className="pdsh-error">{t(avatarConflict ? 'avatarConflict' : avatarError)}</span>}
-        {avatarRetry && <Button onClick={event => persistAvatar(avatarRetry.value, avatarRetry.base, event.currentTarget)} disabled={!writable || avatarConflict}>{t('retryAvatar')}</Button>}
+        {avatarRetry && <Button onClick={event => persistAvatar(avatarRetry.value, avatarRetry.base, event.currentTarget)} disabled={!avatarWritable || avatarConflict}>{t('retryAvatar')}</Button>}
       </div>}
       <div className="pdsh-detail-row" ref={nicknameRow}>
         <span className="pdsh-label" id="pdsh-nickname-label">{t('nickname')}</span>
@@ -207,7 +241,7 @@ export function SettingsCard({ view, preferencesForm: form, presentation, t, sho
         </div>{(nicknameInvalid || nicknameConflict || nicknameError) && <p role="alert" id="pdsh-nickname-error" className="pdsh-error">{t(nicknameInvalid ? 'invalidNickname' : nicknameConflict ? 'nicknameConflict' : nicknameError)}</p>}</div>
           : <div className="pdsh-value-action"><span>{acceptedNickname}</span><Hint label={t('editNickname')}><Button className="pdsh-nickname-action" variant="ghost" aria-label={`${t('editNickname')}: ${acceptedNickname}`} onClick={beginNickname} disabled={!writable}><IconEditOutlineRegular /></Button></Hint></div>}
       </div>
-      <input ref={fileInput} id="pdsh-avatar-file" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseAvatar} disabled={!writable} hidden aria-label={t('avatar')} />
+      <input ref={fileInput} id="pdsh-avatar-file" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseAvatar} disabled={!avatarWritable} hidden aria-label={t('avatar')} />
       {status === 'unsupported' && <p role="status" className="pdsh-hint">{t('status.unsupported')}</p>}
     </section>
   </section>;

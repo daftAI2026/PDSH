@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 shared/components.ts 的配置身份、shared/model.ts 的显示默认值、capture.ts 的拍照字段/Loader volatile-update 订阅与平台原生 helper 可用性。
+ * [INPUT]: 依赖 shared/components.ts 的配置身份、shared/model.ts 的显示默认值、avatar-history 的两项预算、capture.ts 的拍照字段/Loader volatile-update 订阅与平台原生 helper 可用性。
  * [OUTPUT]: 提供当前稳定/RC 身份的唯一 Config/apply 与 Typert 可见的 owned-window service；captureEnabled 撤回取像/保存/壁纸三路。
  * [POS]: PDSH 唯一 Cordis Host 入口；仅在有对应平台 provider 时注册 capture service，不影响身份/标题设置。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -9,6 +9,7 @@ import { ROOT_ENTRY_ID } from '../shared/components.ts';
 import { lstatSync } from 'node:fs';
 import './context.ts'
 import { DEFAULTS, MAX_AVATAR_CHARS, MAX_NAME_CHARS, NICKNAME_PATTERN, LOCAL_AVATAR_PATTERN } from '../shared/model.ts';
+import { MAX_PREVIOUS_AVATARS } from '../shared/avatar-history.ts';
 import { CAPTURE_CONFIG_FIELDS, apply as applyCapture, observeCaptureEnabled } from './capture.ts';
 import { shouldRegisterNativeCaptureProvider } from './native-window-capture.ts';
 import { WindowCaptureService } from './window-capture-service.ts';
@@ -23,6 +24,7 @@ export const Config = z.object({
   useAccountAvatar: z.boolean().default(DEFAULTS.useAccountAvatar).description('Keep native account avatar / 使用账号原始头像').volatile(),
   nickname: z.string().max(MAX_NAME_CHARS).pattern(NICKNAME_PATTERN).default(DEFAULTS.nickname).description('Display nickname / 显示昵称').volatile(),
   avatar: z.string().max(MAX_AVATAR_CHARS).pattern(LOCAL_AVATAR_PATTERN).default('').description('Local raster data URL; empty generates avatar / 本地图片，留空生成头像').volatile(),
+  avatarHistory: z.array(z.string().min(1).max(MAX_AVATAR_CHARS).pattern(LOCAL_AVATAR_PATTERN)).max(MAX_PREVIOUS_AVATARS).default([]).description('Two previous local avatars, newest first / 两个旧本地图，最近使用在前').volatile(),
   ...CAPTURE_CONFIG_FIELDS,
 });
 

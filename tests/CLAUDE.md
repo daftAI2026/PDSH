@@ -25,8 +25,8 @@
 - `host-compatibility-assessment.test.ts`: 临时源码仓的只读触点/imports、原生几何与历史路径提示、遍历预算及敏感路径/CLI/导入副作用合同；始终未验证兼容，不联网、不启动宿主或原生助手。
 
 - `component-host.test.ts`: 生成唯一Config、root owner captureEnabled observer、配置不触发旧连接与Mac/Windows helper包内相对路径；新代码的单航班/结算另列专门合同，不冒充真实Loader或实机。
-- `client-injection.test.ts`: Cordis 4.0.4 真注册器运行唯一生成 Client；两入口只追加既有 Bundle 的 UI 注册。旧 ready Host 缺少截图字段时身份/标题照常而相机撤回，完整 snapshot 可恢复；另验平台/Remote provider、旧桥隔离与 namespace 生命周期，不冒充实机像素验收。
-- `client.test.ts`: 生成 Client 的八组合、取消、回滚和页脚。会话相机追加 utilities，不覆盖 corner。内存编译真实组合根，验证同 proxy 握手世代；两个 mutant 须失败。spy 不证明像素、Host 或 Desktop。
+- `client-injection.test.ts`: Cordis 真注册器与 ReactDOM portal 加载唯一生成 Client；两入口只追加既有 Bundle 的 UI 注册。旧 ready Host 缺少截图字段时身份/标题照常而相机撤回，完整 snapshot 可恢复；另验平台/Remote provider、旧桥隔离与 namespace 生命周期，不冒充实机像素验收。
+- `client.test.ts`: 生成 Client 的八组合、取消、回滚和页脚。真实 ReactDOM root/portal 接入模块表，Host 浮层 hooks 仅作外观桩。会话相机追加 utilities，不覆盖 corner。内存编译真实组合根，验证同 proxy 握手世代；两个 mutant 须失败。spy 不证明像素、Host 或 Desktop。
 - `header-camera.test.ts`: 真实 JSX 与侧栏 DOM 适配合同。验证收起态、语义失配、点击重读、忙碌、语言及卸载。歧义锚点改名后必须恢复。聊天增删不得触发全局锚点查询。控件外观桩不证明 Desktop 排版或取像。
 - `capture-bootstrap.test.ts`: 副作用适配下的真实启动编排，拒绝身份/端口、ACK 失败、关闭 unknown 与取消，系统临时根内私有目录独占创建/分别归还，只读真实 macOS ps 路径格式；不操作真实 Main。
 - `capture-control.test.ts`: 生成 Main 与真实 Host socket transport 的畸形帧、握手、控制 ACK、取消与资源归还；新增系统临时根内真实 Unix socket 两端握手及目录边界/权限/符号链接拒绝及根别名接受；不打开真实应用调试端口。
@@ -41,16 +41,17 @@
 - `capture-styles.test.ts`: 五列统一圆角色块、固定240px检查器与设置开关等高槽；检查器选中环安全边距与圆形拾色图标局部约束， 工作台Host token来源/实时几何消费及自有色谱28px白环及内层圆形隔离、浮层单一elevation描边；禁Codex主题、数值回退与宿主拾色器样式污染。
 - `capture-editor-keyboard.test.ts`: 背景面板Tab围栏跳过hidden/inert/CSS隐藏、disabled与负tabindex；不替代原生键盘验收。
 - `capture-view.test.ts`: 生产布局锁住标题下留白、图标顶沿与滑轨刻度。私密标题/私密身份使用双语短文案，编辑器独立关联标题。检测区域保留可访问名称与共享点击命令。标题遮罩独立于单一身份遮罩；无系统壁纸 adapter 时不伪造入口。
-- `host.test.ts`: 真实 Schemastery Config/路径边界与平台provider分流；默认 Downloads 使用宿主 `homedir()` 与 `path.join` 精确比较，覆盖 POSIX/Windows drive-root/UNC 并拒绝相对、非canonical及device namespace；缺 helper/不支持架构仍保留设置。
+- `host.test.ts`: 真实 Schemastery Config、历史头像两项预算、路径边界与平台provider分流；默认 Downloads 使用宿主 `homedir()` 与 `path.join` 精确比较，覆盖 POSIX/Windows drive-root/UNC 并拒绝相对、非canonical及device namespace；缺 helper/不支持架构仍保留设置。
 - `localization.test.ts`: 单 Bundle 离线品牌元信息与内部三功能 zh/en 文案；透明底单路径图标响应 Host color-scheme；更新定稿与取消阶段双语键同源。
 - `model.test.ts`: 昵称、头像和旧字段投影验证。
 - `presentation.test.ts`: 视觉身份的唯一归属与卸载。未登录借用官方头像和身份行；收起及停用恢复原样。样式缺失、重复和错属拒绝覆盖。菜单、临时头像和登录恢复独立于配置写入。
 - `plugin-detail-typography.test.ts`: 自身大标题标记、版本胶囊不变、未知结构及外部接管合同。原生 CSS 的实际字形另在浏览器验收。
 - `search-entry.test.ts`: 初拍/重拍CSS阶段保留两入口并隐藏工作台；原生搜索邻接、折叠/展开、实时 SVG strokeWidth 按 viewBox 尺寸匹配、两入口同笔画与不可靠几何退让；保留根透明度/颜色/class/点击和卸载合同。
-- `settings-card.test.ts`: React 字段写入、取消、冲突与焦点合同。真实 MutationObserver 驱动退出与登录恢复，不写配置。未登录禁用账号来源；默认 SVG 账号仍可选。来源标签归右侧操作组。
+- `avatar-history.test.ts`: 基础/历史能力判别、MRU 纯合同与短数组穷举；缺失与损坏分开，验证两项预算、去重与输入不变。
+- `settings-card.test.ts`: 验历史与实际预览共用头像几何。 正常头像读取只发布忙碌语义，不增提示行。 React 字段写入、取消、冲突与焦点合同。旧 Host 保留基础头像写入和 picker；历史独立就绪，能力切换拒绝迟到事务。迟到清除回调重验完整配置。真实 MutationObserver 驱动退出与登录恢复，不写配置。未登录禁用账号来源；默认 SVG 账号仍可选。来源标签归右侧操作组。
 - `sidebar-redaction.test.ts`: 普通/空白会话、搜索与 HoverCard 标记和恢复。
 - `native-style-probe.test.ts`: 原生 Input/Button/Switch/设置字段/Tooltip 几何与动效采样，SVG 笔画比例/透明度/尺寸及主题/DOM/resize 重采；合法零长度保真、无效值或探针节点缺席时撤销旧值，节点重建后重采，root 脱离后清空且卸载恢复原值。
-- `styles.test.ts`: 视觉规则与上游 token 来源；整排页脚紧凑靠右，正文同字号，GitHub 图稿不带内联基线空白。保留间距、主题与焦点。入口只合成根透明度；原生探针独占测量并隐藏绘制。验证来源文本间距和昵称留白，不抢焦点。
+- `styles.test.ts`: 历史头像独立正圆裁切、宿主细边框、样式优先级及操作层级。 视觉规则与上游 token 来源；整排页脚紧凑靠右，正文同字号，GitHub 图稿不带内联基线空白。保留间距、主题与焦点。入口只合成根透明度；原生探针独占测量并隐藏绘制。验证来源文本间距和昵称留白，不抢焦点。
 - `title-toggle.test.ts`: Host 单路径切换及失败状态。
 - `client-runtime-fixture.ts`: 共享组合根内存加载器，功能边界显式设桩，不启动Host。
 - `update-runtime.test.ts`: 真实组合根更新阶段订阅与释放，不重复其它功能验收。

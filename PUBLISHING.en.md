@@ -153,7 +153,7 @@ Windows preview/export proportions were verified for a representative region.
 Complete pixel alignment and cancellation during active capture remain unverified.
 Native candidate-to-final-PNG alignment in the final stable macOS installation remains unverified.
 Pixel consistency across warm switches, dark and opposite Host/OS themes, and English Desktop remain unverified.
-See [this version's acceptance status](#058-release-decision-continuous-manual-drawing) for the Mac manual-drawing repair checks and other unverified gates.
+See [this version's acceptance status](#0510-release-decision-recent-avatars) for recent-avatar checks and other unverified gates.
 
 ## Separate Verification Gates
 
@@ -228,6 +228,32 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 1. Run `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm build`, and `pnpm run bundle`. Check the current version's actual tgz members, bytes, permissions, version, and dependency licenses. Do not substitute an older package. Include only the manifest allowlist and npm's fixed package metadata and README files; exclude node_modules, profiles, credentials, logs, and private research.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
+
+## 0.5.10 Release Decision: Recent Avatars
+
+Local avatars keep the current image and two previous uploads.
+Reusing an image updates the most-recently-used order; duplicates use no extra slot.
+Clearing history preserves the current avatar.
+Account and generated avatars are not added to history.
+Avatar, source, and history commit through one Settings revision.
+An older Host without the history field retains basic avatar changes without writes to the new field.
+The added Config field requires a normal load; no no-restart activation of history is promised.
+Settings and history images share circular cropping, size, and a thin semantic border.
+A single history image is centered; normal reads add no visible status row.
+
+Before publication, run all contracts, the final stable archive gate, and isolated Host checks.
+Mac Desktop evidence belongs to a same-source RC, not the final stable installation.
+The RC covered imports, two-item rotation, reuse, clear, cancellation, and keyboard focus.
+It also covered light-theme borders, rectangular cropping, one-item centering, and small-window layout.
+The RC was removed and the previous stable package restored.
+
+The user authorized main and v0.5.10, followed by an upgrade and normal reopening.
+Windows Desktop and the same official tag upgrade await the user's report.
+Final stable restart persistence, dark theme, and English Desktop remain unverified.
+This is a version-specific publication exception, not permission to skip future checks.
+Native helpers, capture, saving, and wallpaper contracts are unchanged.
+Earlier unverified gates for those areas remain separate; they are not reported as passed.
+Do not create a GitHub Release, publish to npm, or automatically install stable.
 
 ## 0.5.9 Release Decision: Update Cancellation
 

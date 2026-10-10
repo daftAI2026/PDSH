@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖唯一生成 Client、Cordis 4.0.4 真注册器、Mac/Win Navigator fixture、官方 Remote namespace 与遗留桥负例。
+ * [INPUT]: 依赖唯一生成 Client、Cordis 真注册器、ReactDOM portal 与 Mac/Win Navigator 夹具。
  * [OUTPUT]: 验证截图字段、两入口注册和 Remote 撤回。
  * [POS]: Client 服务图回归；不直调 apply 绕过注入，React root 仅作生命周期桩，不冒充界面或 Main 取像。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -11,6 +11,7 @@ import { TextEncoder } from 'node:util';
 import { runInNewContext } from 'node:vm';
 import { Context } from '@deepseek-ai/cordis';
 import React from 'react';
+import { createPortal } from 'react-dom';
 import * as jsx from 'react/jsx-runtime';
 import { JSDOM } from 'jsdom';
 import { DEFAULTS } from '../src/shared/model.ts';
@@ -28,6 +29,7 @@ function fixture(platform = 'MacIntel') {
   const plugin = factory(id => {
     if (id === 'react') return React;
     if (id === 'react/jsx-runtime') return jsx;
+    if (id === 'react-dom') return { createPortal };
     if (id === 'react-dom/client') return { createRoot() {
       const root = { render() {}, unmount() { roots.delete(root); } }; roots.add(root); return root;
     } };

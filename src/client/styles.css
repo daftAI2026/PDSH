@@ -1,6 +1,6 @@
 /*
  * [INPUT]: Harness ui-theme 的语义色/圆角/字号，以及可卸载的原生 Input/Button/Switch/SettingsValueField/Tooltip/图标探针的实时计算参数。
- * [OUTPUT]: 提供遮挡、设置、页脚、更新状态和相机布局。Host StateDot 独占 loading 绘制与动效。
+ * [OUTPUT]: 提供遮挡、设置、圆形历史头像、页脚、更新状态和相机布局。Host StateDot 独占 loading 绘制与动效。
  * [POS]: PDSH 的展示层；来源和使用处记录于 style-sources.json，卸载时整体移除。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -72,7 +72,9 @@ html.pdsh-capture-redact [data-pdsh-capture-redact="text"]::after {
 /* 标签到首个按钮轮廓的可见间隔，匹配两个 ghost 按钮文字之间的 gap + 双侧内边距。 */
 .pdsh-avatar-source-label { flex: none; align-self: center; color: var(--dsw-alias-label-secondary); white-space: nowrap; margin-inline-end: calc(var(--pdsh-button-inset) + var(--pdsh-button-inset)); }
 /* 摘要头像占两个原生控件高度；来源仍是 Input 探针，不凭空指定头像尺寸。 */
-.pdsh-avatar-preview { flex: none; border-radius: 50%; corner-shape: round; object-fit: cover; width: calc(var(--pdsh-control-size) + var(--pdsh-control-size)); height: calc(var(--pdsh-control-size) + var(--pdsh-control-size)); }
+.pdsh-avatar-preview { box-sizing: border-box; border: var(--pdsh-outline-width) solid var(--dsw-alias-border-l3); display: block; flex: none; border-radius: 50%; corner-shape: round; object-fit: cover; }
+.pdsh-avatar-preview, .pdsh-history-grid .pdsh-history-image { width: calc(var(--pdsh-control-size) + var(--pdsh-control-size)); height: calc(var(--pdsh-control-size) + var(--pdsh-control-size)); }
+.pdsh-avatar-preview[hidden] { display: none; }
 .pdsh-detail-row { display: flex; align-items: center; justify-content: space-between; gap: var(--pdsh-section-inset); padding-block: var(--pdsh-section-inset); border-top: var(--pdsh-outline-width) solid var(--dsw-alias-border-l2); }
 /* 开关比按钮矮，但字段动作槽等高；保留统一上下内边距。 */
 .pdsh-detail-row > .pdsh-switch-tooltip { min-height: var(--pdsh-action-size); align-items: center; }
@@ -101,3 +103,15 @@ html.pdsh-capture-redact [data-pdsh-capture-redact="text"]::after {
 [data-pdsh-search-entry="wide"], [data-pdsh-capture-entry="wide"][data-pdsh-entry-first] { margin-left: auto; flex: none; }
 [data-pdsh-search-entry="wide"]:not([hidden]) + div { margin-left: 0; }
 [data-pdsh-capture-entry="wide"]:not([hidden]) + div { margin-left: 0; }
+
+/* +--- 两个旧头像共用非模态宿主面板，图片像素不参与主题换色 ---+ */
+.pdsh-history-anchor { display: inline-flex; column-gap: var(--pdsh-field-gap); }
+.pdsh-history-popover { z-index: 100; box-shadow: var(--dsw-elevation-prominent); display: flex; flex-direction: column; gap: var(--pdsh-field-gap); padding: var(--pdsh-section-inset); max-width: 100%; max-height: 100%; overflow: auto; font: var(--dsw-font-xs-13); color: var(--dsw-alias-label-primary); }
+.pdsh-history-heading strong { font: var(--dsw-font-xs-strong-13); }
+.pdsh-history-heading .pdsh-history-clear { color: var(--dsw-alias-label-secondary); }
+.pdsh-history-new { align-self: stretch; }
+.pdsh-history-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--pdsh-field-gap); }
+.pdsh-history-grid { display: flex; justify-content: center; gap: var(--pdsh-section-inset); padding-block: var(--pdsh-field-gap); }
+.pdsh-history-grid .pdsh-history-image { flex: none; padding: 0; border-radius: 50%; corner-shape: round; }
+.pdsh-history-image > span { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.pdsh-history-popover:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-alias-state-business-primary); }

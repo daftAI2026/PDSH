@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 esbuild、官方 Typert generator 与平台 SDK。Windows 依赖固定 Mac 原生闭包。
+ * [INPUT]: 依赖 esbuild、官方 Typert generator 与平台 SDK；React/ReactDOM 由 Host module table 提供。
  * [OUTPUT]: 生成 Host/Client、版本化能力、DTO、原生助手与主题包图。
  * [POS]: 单 Bundle 构建边界。内部能力面随业务闭包装配，根 Config/Client 身份不变。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -54,6 +54,6 @@ await build({ absWorkingDir: root, entryPoints: ['src/host/capture-runtime.ts'],
   banner: { js: banner('src/host/capture-runtime.ts、官方能力面与原生后端', '稳定基础与当前子能力，同一 Config/Client') } });
 await build({ absWorkingDir: root, entryPoints: ['src/client/client-entry.tsx'], outfile: 'client.js', bundle: true, format: 'cjs', platform: 'browser', target: 'es2022', sourcemap: true, minify: true,
   loader: { '.css': 'text', '.svg': 'text', '.jpg': 'dataurl' }, define: { ...identityDefine, __PDSH_VERSION__: JSON.stringify(version) },
-  external: ['react', 'react/jsx-runtime', 'react-dom/client', '@deepseek-ai/dsh-client-ui-primitives'],
+  external: ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', '@deepseek-ai/dsh-client-ui-primitives'],
   banner: { js: `${banner('src/client/client-entry.tsx 与宿主 module table', `${packageName} 唯一 lazy factory`)}\nwindow.__ModuleLoader__.load({id:${JSON.stringify(packageName)},factory:(require)=>{var module={exports:{}};var exports=module.exports;` },
   footer: { js: 'return module.exports;}});' } });

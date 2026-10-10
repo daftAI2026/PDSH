@@ -13,6 +13,13 @@
   "captureShell": {"implementation": "src/client/capture/capture-window.css", "spacingSource": "--pdsh-field-gap", "spacingSourceFile": "packages/client/ui-primitives/src/settings-form/fields.module.css", "spaceDivisor": 2, "insetMultiplier": 5, "decision": "用户2026-10-04要求外壳上下留白按现有左右对齐；header顶部、workspace左右、footer底部复用同一inset。段落间隔与视口边距不属于外壳inset，保留原值；chrome高度预算补上新增的上下两格。"},
   "detailHeading": {"implementation": "src/client/plugin-detail-typography.ts / styles.css", "scope": "唯一自身 data-plugin-detail 的纯文本 h3", "decision": "标题使用浏览器 text-box: trim-both cap alphabetic 裁去字体留白。版本胶囊与宿主字号不变；不测 Canvas、不写位移。未知结构或不支持的浏览器保留原布局。", "source": "https://developer.chrome.com/blog/css-text-box-trim"},
   "styles": [
+    { "role": "avatar history nonmodal popover",
+      "file": "packages/client/ui-primitives/src/MenuSurface.tsx / MenuSurface.module.css / useAnchoredPosition.ts / useDismissOnOutsidePointer.ts; packages/client/ui-sidebar-documentpreview/src/client/office/FontNotice.tsx / FontNotice.module.css",
+      "selector": "MenuSurface / useAnchoredPosition / useDismissOnOutsidePointer / FontNotice .panel",
+      "providerVersion": "0.2.0-rc.2", "publicSourceTag": "dsh-v0.2.0-rc.2", "sourceCommit": "639ed015397290b3745d163aafe02ffee4aa3f84",
+      "installedPrimitivesSha256": "6b551f0039ae2632704aab24011fad333fa46181129623e786629358f9494523",
+      "acquisition": "核对精确 ASAR 导出与实现。复用 Host MenuSurface 材质、定位夹取、滚动/尺寸重定位与外点 hook；不复制 CSS hash。FontNotice 提供非模态 dialog、portal、Escape 和 z-index 100 的来源。头像面板采用既有字段 gap、卡片 inset、圆形摘要头像比例和 prominent 阴影。Host module table 提供 react-dom。Host Menu 的 Tab 会选中行，不用于图片选择。PDSH 自有两个旧图布局、加载占位与 Tab 边界；未复制 Base UI 状态机或安装运行库。 核对 Host Button children 直接渲染且默认控件圆角与内边距。图片独立设置 50%/round，不继承控件圆角；设置预览与历史图复用 AvatarImage 和同一尺寸、裁切、细描边规则；历史图不另设百分比缩放。复用既有 Input 探针 --pdsh-outline-width 与 Host outline Button 的 --dsw-alias-border-l3，border-box 保持头像外径；头像按钮使用局部双类优先级。清除采用 Host sm ghost 次级文字；新图采用 outline；历史容器按实际一张或两张居中，不预留空列；间距复用 section inset。",
+      "pdshConsumer": "src/client/avatar-history-popover.tsx / styles.css / build.ts" },
     {
       "role": "plugin update pending indicator", "providerVersion": "0.2.0-rc.2",
       "file": "packages/client/ui-primitives/src/StateDot.tsx", "component": "StateDot", "props": { "state": "ongoing" },

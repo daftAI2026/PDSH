@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 styles.css 的真实 selector 与 rc.2 原生样式来源账。
- * [OUTPUT]: 验证标题灰条、控件几何及入口透明度；整排页脚靠右、正文同字号、图标无基线空白，保留 Host 主题和焦点。
+ * [OUTPUT]: 验证历史头像正圆与操作分层、标题灰条、控件几何及入口透明度；整排页脚靠右、正文同字号、图标无基线空白，保留 Host 主题和焦点。
  * [POS]: PDSH 的样式合同，追溯语义视觉来源并保护原生入口按钮交互、来源标签邻接、昵称留白与实时原生控件测量边界。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -171,4 +171,27 @@ test('字段自带内边距，不与组gap重复叠加；昵称在右侧紧凑�
   assert.match(css, /\.pdsh-nickname-editor\s*\{[^}]*flex:\s*0 1 auto/);
   assert.match(css, /\.pdsh-avatar-actions\s*\{[^}]*gap:\s*var\(--pdsh-field-gap\)/);
   assert.doesNotMatch(css.match(/\.pdsh-profile-copy\s*\{[^}]*\}/)?.[0] ?? '', /pdsh-button-inset/);
+});
+
+test('历史头像自行裁为正圆，不继承 Host Button 的控件圆角；紧凑操作与选图分层', () => {
+  const image = css.match(/(?:^|\n)\.pdsh-avatar-preview\s*\{[^}]*\}/)?.[0] ?? '';
+  assert.match(image, /border-radius:\s*50%/, '图片自己拥有圆形裁切，不能继承按钮的绝对圆角');
+  assert.match(image, /corner-shape:\s*round/);
+  assert.match(image, /display:\s*block/);
+  const outline = image;
+  assert.match(outline, /box-sizing:\s*border-box/);
+  assert.match(outline, /border:\s*var\(--pdsh-outline-width\) solid var\(--dsw-alias-border-l3\)/);
+  assert.match(css, /\.pdsh-history-grid\s+\.pdsh-history-image\s*\{[^}]*padding:\s*0/,
+    '作用域提高优先级，Host 后加载也不能给头像加文字按钮内边距');
+  const button = css.match(/(?:^|\n)\.pdsh-history-grid \.pdsh-history-image\s*\{[^}]*\}/)?.[0] ?? '';
+  assert.match(button, /border-radius:\s*50%/);
+  assert.match(button, /corner-shape:\s*round/);
+  assert.match(css, /\.pdsh-avatar-preview, \.pdsh-history-grid \.pdsh-history-image\s*\{[^}]*width:[^}]*height:/);
+  assert.doesNotMatch(css, /\.pdsh-history-image img\s*\{/, '历史图不再拥有独立缩放规则');
+  assert.match(css, /\.pdsh-history-grid\s*\{[^}]*justify-content:\s*center/);
+  assert.match(css, /\.pdsh-history-grid\s*\{[^}]*display:\s*flex/);
+  assert.doesNotMatch(css.match(/\.pdsh-history-grid\s*\{[^}]*\}/)?.[0] ?? '', /grid-template-columns/, '单个头像不能预留第二列');
+  const source = readFileSync(new URL('../src/client/avatar-history-popover.tsx', import.meta.url), 'utf8');
+  assert.match(source, /<Button variant="ghost" size="sm" className="pdsh-history-clear"/);
+  assert.match(source, /<Button variant="outline" className="pdsh-history-new"/);
 });

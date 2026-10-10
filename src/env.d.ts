@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 Host Client Loader 的控件、StateDot、URL 图标、Modal 契约与 esbuild 文本资源。
+ * [INPUT]: 依赖 Host Client Loader 的控件、MenuSurface/定位 hooks、StateDot、URL 图标、Modal 契约与 esbuild 文本资源。
  * [OUTPUT]: 声明仅在构建/宿主边界存在的模块形状。
  * [POS]: TypeScript 编译边界；运行时仍由 Harness 与 build.ts 提供实际实现。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -8,6 +8,15 @@ declare module '*.css' { const value: string; export default value; }
 declare module '*.svg' { const value: string; export default value; }
 declare const __PDSH_VERSION__: string;
 declare module '@deepseek-ai/dsh-client-ui-primitives' {
+  export const MenuSurface: import('react').ForwardRefExoticComponent<import('react').HTMLAttributes<HTMLDivElement> & {
+    compact?: boolean;
+  } & import('react').RefAttributes<HTMLDivElement>>;
+  export function useAnchoredPosition(options: {
+    open: boolean; anchorRef: import('react').RefObject<HTMLElement>; panelRef: import('react').RefObject<HTMLElement>;
+    side?: 'top' | 'bottom'; align?: 'start' | 'end'; gap: number; margin: number;
+  }): { left: number; top: number } | null;
+  export function useDismissOnOutsidePointer(root: import('react').RefObject<HTMLElement>, open: boolean,
+    setOpen: (open: boolean) => void, portal?: import('react').RefObject<HTMLElement>): void;
   export const StateDot: import('react').ComponentType<{
     state: 'done' | 'warning' | 'ongoing' | 'error' | 'idle';
     size?: number;

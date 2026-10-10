@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 精确 DSH Host、候选归档与官方 PNPM。Windows 用真实 ACL 验临时路径所有权。
- * [OUTPUT]: 验官方安装、基础与壁纸/几何能力版本、严格注册与生命周期。不取像或下载媒体。
+ * [OUTPUT]: 验官方安装、身份原子配置、基础与扩展注册及生命周期。不取像或下载媒体。
  * [POS]: 仓库根目录的集成验收入口；只操作调用方指定且 owner/权限验证的临时 profile，不改写 DSH 用户 profile 或替代官方解析器。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -460,6 +460,37 @@ async function main(): Promise<void> {
     assert.equal(restored.value?.nickname, priorValueNickname, '昵称恢复后与修改前不一致')
     assert.equal(Object.hasOwn(restored.user ?? {}, 'nickname'), priorHadNickname, '昵称恢复改变了原有 profile override 层')
     console.log(`PASS settings: ConfigEditor nickname write/revision/restore (${nicknameSnapshot.revision} → ${changed.revision} → ${restored.revision})`)
+
+    // +--- 新身份合同经真实 Settings/ConfigEditor 落盘；不接触用户 profile ---+
+    if (Object.hasOwn(restored.value, 'avatarHistory')) {
+      const keys = ['avatar', 'useAccountAvatar', 'avatarHistory']
+      const prior = keys.map(key => ({ key, own: Object.hasOwn(restored.user ?? {}, key), value: restored.user?.[key] }))
+      const avatar = 'data:image/png;base64,YQ=='
+      const older = 'data:image/png;base64,Yg=='
+      await ctx.settings.mutate(rootEntry, [
+        { op: 'set', path: ['avatar'], value: avatar },
+        { op: 'set', path: ['useAccountAvatar'], value: false },
+        { op: 'set', path: ['avatarHistory'], value: [older] },
+      ], restored.revision)
+      const applied = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
+      assert.equal(applied.value.avatar, avatar)
+      assert.equal(applied.value.useAccountAvatar, false)
+      assert.deepEqual(applied.value.avatarHistory, [older])
+      assert.equal(applied.value.nickname, priorValueNickname)
+      await assert.rejects(ctx.settings.mutate(rootEntry, [{ op: 'set', path: ['avatarHistory'], value: [] }], restored.revision))
+      await assert.rejects(ctx.settings.mutate(rootEntry, [
+        { op: 'set', path: ['avatar'], value: older },
+        { op: 'set', path: ['avatarHistory'], value: [avatar, older, avatar] },
+      ], applied.revision))
+      const rejected = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
+      assert.equal(rejected.value.avatar, avatar, '无效历史不得留下部分头像写入')
+      assert.deepEqual(rejected.value.avatarHistory, [older])
+      await ctx.settings.mutate(rootEntry, prior.map(({ key, own, value }) => own
+        ? { op: 'set', path: [key], value } : { op: 'unset', path: [key] }), rejected.revision)
+      const final = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
+      for (const key of keys) assert.deepEqual(final.value[key], restored.value[key])
+      console.log('PASS avatar-history: atomic fields, stale revision, invalid-batch rollback and restore')
+    }
 
     const disabledBundle = await manager.setBundleEnabled(ROOT_BUNDLE, false)
     assert.equal(disabledBundle.application, 'applied', '官方 Manager 未应用 Bundle disable')

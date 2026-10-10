@@ -1,7 +1,7 @@
 /**
  * [INPUT]: src/host/index.ts 与官方 Typert service，由 build.ts 生成。
  * [OUTPUT]: 唯一 pdsh Config/name/apply 与 owned-window capture/save/wallpaper。
- * [POS]: 单包运行产物；PDSH build "0.5.9"，不手工修改。
+ * [POS]: 单包运行产物；PDSH build "0.5.10"，不手工修改。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 var __create = Object.create;
@@ -77,6 +77,9 @@ var DEFAULTS = Object.freeze({
   nickname: "\u4E34\u65F6\u8BBF\u5BA2",
   avatar: ""
 });
+
+// src/shared/avatar-history.ts
+var MAX_PREVIOUS_AVATARS = 2;
 
 // src/host/capture.ts
 import { homedir } from "node:os";
@@ -394,6 +397,7 @@ var Config = z2.object({
   useAccountAvatar: z2.boolean().default(DEFAULTS.useAccountAvatar).description("Keep native account avatar / \u4F7F\u7528\u8D26\u53F7\u539F\u59CB\u5934\u50CF").volatile(),
   nickname: z2.string().max(MAX_NAME_CHARS).pattern(NICKNAME_PATTERN).default(DEFAULTS.nickname).description("Display nickname / \u663E\u793A\u6635\u79F0").volatile(),
   avatar: z2.string().max(MAX_AVATAR_CHARS).pattern(LOCAL_AVATAR_PATTERN).default("").description("Local raster data URL; empty generates avatar / \u672C\u5730\u56FE\u7247\uFF0C\u7559\u7A7A\u751F\u6210\u5934\u50CF").volatile(),
+  avatarHistory: z2.array(z2.string().min(1).max(MAX_AVATAR_CHARS).pattern(LOCAL_AVATAR_PATTERN)).max(MAX_PREVIOUS_AVATARS).default([]).description("Two previous local avatars, newest first / \u4E24\u4E2A\u65E7\u672C\u5730\u56FE\uFF0C\u6700\u8FD1\u4F7F\u7528\u5728\u524D").volatile(),
   ...CAPTURE_CONFIG_FIELDS
 });
 function apply2(ctx, config) {

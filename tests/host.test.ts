@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实共享包身份及 node:test、node:os/node:path 的本机 Downloads 路径语义、真实 Schemastery root/capture Config 与平台 provider 注册谓词，不模拟校验结果。
- * [OUTPUT]: 验证唯一 Host Config 与平台能力分流；无 helper 平台仍配置 Settings 并保留独立功能。
+ * [OUTPUT]: 验证唯一 Host Config、历史头像预算与平台分流；无 helper 平台保留 Settings。
  * [POS]: PDSH Host 合同，防止 Client 验证通过却绕过 Host 的保存边界。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -14,6 +14,7 @@ import { runInNewContext } from 'node:vm';
 import { transformSync } from 'esbuild';
 import schema from '@deepseek-ai/schemastery';
 import * as model from '../src/shared/model.ts';
+import * as avatarHistory from '../src/shared/avatar-history.ts';
 import { CAPTURE_CONFIG_FIELDS } from '../src/host/capture.ts';
 import { Config, name } from '../index.js';
 import { shouldRegisterNativeCaptureProvider } from '../src/host/native-window-capture.ts';
@@ -84,6 +85,7 @@ test('单 Host apply 按平台配置唯一 Remote service，Settings 与root own
       if (id === '../shared/components.ts') return identity;
       if (id === '@deepseek-ai/schemastery') return schema;
       if (id === '../shared/model.ts') return model;
+      if (id === '../shared/avatar-history.ts') return avatarHistory;
       if (id === './capture.ts') return capture;
       if (id === './context.ts') return {};
       if (id === 'node:fs') return { lstatSync() { if (!hasHelper) throw new Error('ENOENT'); return { isFile: () => true }; } };
@@ -108,4 +110,15 @@ test('单 Host apply 按平台配置唯一 Remote service，Settings 与root own
   assert.equal(calls.filter(([kind])=>kind==='service').length,serviceCount, `${platform}/${arch}/${hasHelper}`);
   assert.equal(calls.filter(([kind])=>kind==='observe').length,1);
  }
+});
+
+test('Host历史默认空数组，只接受两个有界本地栅格图，保持volatile地址', () => {
+  const A = 'data:image/png;base64,YQ==', B = 'data:image/jpeg;base64,Yg==';
+  assert.deepEqual(Config({}).avatarHistory.get(), []);
+  assert.deepEqual(Config({ avatarHistory: [A, B] }).avatarHistory.get(), [A, B]);
+  for (const avatarHistory of ['text', [A, B, A], [''], ['https://example.com/a.png'],
+    ['data:image/svg+xml;base64,YQ=='], ['data:image/png;base64,' + 'A'.repeat(model.MAX_AVATAR_CHARS)]]) {
+    assert.throws(() => Config({ avatarHistory }));
+  }
+  assert.equal(Config.dict.avatarHistory.meta.volatile, true);
 });

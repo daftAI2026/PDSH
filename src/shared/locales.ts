@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 shared/components 的稳定/RC 配置身份与宿主 locale 字典协议；不读取或持久化独立语言偏好。
- * [OUTPUT]: 提供当前配置身份的 NS 与 zh/en 文案，覆盖本地/账号头像可用性、设置、项目链接、更新取消与安装结果；设置摘要按受支持平台描述功能。
+ * [OUTPUT]: 提供当前配置身份的 NS 与 zh/en 文案，覆盖本地/账号头像可用性、历史头像、设置、项目链接、更新取消与安装结果；设置摘要按受支持平台描述功能。
  * [POS]: PDSH 文案归属层；界面语言由 Harness 拥有，头像提示随账号状态变化，包元信息由 locale/*.json 离线提供。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -23,8 +23,11 @@ export const dictionaries = {
     title: 'DSH 私密模式设置', description: '遮挡侧栏标题、自定义本地身份；在受支持的平台截取并编辑当前窗口。',
     maskTitles: '遮挡侧栏标题', maskIdentity: '替换侧栏身份', nickname: '显示昵称', avatar: '选择图片',
     avatarHint: '支持 PNG、JPEG、WebP，不会上传。',
+    avatarHistory: '历史头像', reuseAvatar: '使用历史头像', chooseNewAvatar: '选择新图片', clearAvatarHistory: '清除历史',
+    avatarHistoryUnavailable: '历史头像无法读取', avatarHistoryClearFailed: '历史头像未能清除，请重试。',
+    avatarConfigurationUnavailable: '头像配置无效，暂时无法修改。',
     generated: '按昵称生成', preview: '显示头像预览',
-    loading: '正在读取插件设置…', unavailable: '当前连接无法编辑插件设置。', readOnly: '当前设置只读。', avatarLoading: '正在读取头像…',
+    loading: '正在读取插件设置…', unavailable: '当前连接无法编辑插件设置。', readOnly: '当前设置只读。',
     avatarFailed: '头像格式、内容或大小不合法，请选择较小的 PNG / JPEG / WebP 图片。',
     invalidNickname: '昵称不能为空、过长或含控制字符。',
     'status.unsupported': '未识别唯一的原生侧栏身份，本次不替换。',
@@ -64,8 +67,11 @@ export const dictionaries = {
     title: 'DSH Private Mode settings', description: 'Mask sidebar titles and customize local identity; capture and edit this window on supported platforms.',
     maskTitles: 'Mask sidebar titles', maskIdentity: 'Replace sidebar identity', nickname: 'Display nickname', avatar: 'Choose image',
     avatarHint: 'Supports PNG, JPEG, and WebP. Your image is not uploaded.',
+    avatarHistory: 'Recent avatars', reuseAvatar: 'Use recent avatar', chooseNewAvatar: 'Choose new image', clearAvatarHistory: 'Clear history',
+    avatarHistoryUnavailable: 'Recent avatar unavailable', avatarHistoryClearFailed: 'Could not clear recent avatars. Try again.',
+    avatarConfigurationUnavailable: 'Avatar settings are invalid and cannot be changed.',
     generated: 'Generate', preview: 'Display avatar preview',
-    loading: 'Loading plugin settings…', unavailable: 'Plugin settings cannot be edited in this connection.', readOnly: 'Settings are read-only.', avatarLoading: 'Reading avatar…',
+    loading: 'Loading plugin settings…', unavailable: 'Plugin settings cannot be edited in this connection.', readOnly: 'Settings are read-only.',
     avatarFailed: 'Invalid or oversized avatar. Choose a smaller PNG / JPEG / WebP image.',
     invalidNickname: 'Nickname must be non-empty, within the length limit and control-free.',
     'status.unsupported': 'No unique native sidebar identity recognized; replacement skipped.',
