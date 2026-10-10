@@ -1,11 +1,12 @@
 # src/host/
 > L2 | 父级: ../CLAUDE.md
 
-- `index.ts`: 唯一 `pdsh` Host Config/apply 与 Typert 源面；avatarHistory 限两个有界本地栅格数据 URL，与头像共用根 Settings；保留根 Config 地址，macOS 保持注册 capture service，Windows 仅在 x64 且包内 exe 为普通文件时注册；其余功能与 captureEnabled 撤回独立。
+- `index.ts`: 唯一 `pdsh` Host Config/apply 与实际根版本标记、Typert 源面；avatarHistory 限两个有界本地栅格数据 URL，与头像共用根 Settings；保留根 Config 地址，macOS 保持注册 capture service，Windows 仅在 x64 且包内 exe 为普通文件时注册；其余功能与 captureEnabled 撤回独立。
 - `capture.ts`: 声明 `captureEnabled`、独立身份遮挡与导出设置，引用 shared POSIX/Windows 绝对目录语法；保留历史默认迁移和 root owner-scoped listener，实际写入仍受 Host native path 校验。默认目录沿用本机用户home下Downloads，不探测重定向known folder。
 - `context.ts`: 以类型扩充 Cordis Context，描述唯一已注册 capture service；不制造 runtime binding 或 Typert descriptor。
 - `window-capture-service.ts`: 固定基础 Remote 壳，提供截图/保存及历史壁纸兼容面。只依赖 Loader 的稳定接口；新能力不进入根生成面。
-- `runtime-capabilities-service.ts`: 官方内部能力 service；子 Fiber 拥有版本、壁纸与 digest 查询的视口几何接口，权限与业务仍归根实例。
+- `runtime-root-reload.ts`: 官方 Registry 根换载。版本 URL 加载 Manager 当前安装件；HMR 队列内结算旧根并复用 Entry 与配置。新根基础版本握手完成惰性注册，失败恢复旧根，不改 resolver 或模块缓存。
+- `runtime-capabilities-service.ts`: 官方内部能力 service；版本握手先接续根换载，子 Fiber 拥有壁纸与 digest 查询的视口几何接口，权限与业务仍归根实例。
 - `capture-runtime.ts`: 稳定基础与内部能力闭包。初始 thenable 等官方子 Fiber。壁纸按平台分流；Windows 加载前重读 native roster，Mac 保留 Apple 目录。截图只暂存一份 digest 绑定几何，停用/卸载/换代撤销。
 - `window-capture-stream.ts`: 纯异步 capture 编排；惰性首拉、单航班、固定阶段/终态和≤32KiB PNG chunk。内部 viewport 不进基础帧；几何只随完整终态提交，取消等待 helper settle。
 - `native-window-capture.ts`: Node adapter 只选择已支持的 macOS/Windows x64 包内 helper，Windows 隐藏子进程窗口；校验固定状态/PNG envelope，附带的视口矩形失效只禁用几何；取消后等待 close，不持久化图像。

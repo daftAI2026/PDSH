@@ -41,6 +41,7 @@
 - `capture-styles.test.ts`: 五列统一圆角色块、固定240px检查器与设置开关等高槽；检查器选中环安全边距与圆形拾色图标局部约束， 工作台Host token来源/实时几何消费及自有色谱28px白环及内层圆形隔离、浮层单一elevation描边；禁Codex主题、数值回退与宿主拾色器样式污染。
 - `capture-editor-keyboard.test.ts`: 背景面板Tab围栏跳过hidden/inert/CSS隐藏、disabled与负tabindex；不替代原生键盘验收。
 - `capture-view.test.ts`: 生产布局锁住标题下留白、图标顶沿与滑轨刻度。私密标题/私密身份使用双语短文案，编辑器独立关联标题。检测区域保留可访问名称与共享点击命令。标题遮罩独立于单一身份遮罩；无系统壁纸 adapter 时不伪造入口。
+- `runtime-root-reload.test.ts`: 真实 Registry 换根、并发合并、惰性就绪、失败恢复与卸载围栏。拒绝异包、错误版本和符号链接入口；Entry 夹具不代替官方升级或 Desktop 验收。
 - `host.test.ts`: 真实 Schemastery Config、历史头像两项预算、路径边界与平台provider分流；默认 Downloads 使用宿主 `homedir()` 与 `path.join` 精确比较，覆盖 POSIX/Windows drive-root/UNC 并拒绝相对、非canonical及device namespace；缺 helper/不支持架构仍保留设置。
 - `localization.test.ts`: 单 Bundle 离线品牌元信息与内部三功能 zh/en 文案；透明底单路径图标响应 Host color-scheme；更新定稿与取消阶段双语键同源。
 - `model.test.ts`: 昵称、头像和旧字段投影验证。

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实共享包身份及 node:test、node:os/node:path 的本机 Downloads 路径语义、真实 Schemastery root/capture Config 与平台 provider 注册谓词，不模拟校验结果。
- * [OUTPUT]: 验证唯一 Host Config、历史头像预算与平台分流；无 helper 平台保留 Settings。
+ * [OUTPUT]: 验证唯一 Host Config、根函数实际版本、历史头像预算与平台分流；无 helper 平台保留 Settings。
  * [POS]: PDSH Host 合同，防止 Client 验证通过却绕过 Host 的保存边界。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -16,7 +16,7 @@ import schema from '@deepseek-ai/schemastery';
 import * as model from '../src/shared/model.ts';
 import * as avatarHistory from '../src/shared/avatar-history.ts';
 import { CAPTURE_CONFIG_FIELDS } from '../src/host/capture.ts';
-import { Config, name } from '../index.js';
+import { Config, name, apply } from '../index.js';
 import { shouldRegisterNativeCaptureProvider } from '../src/host/native-window-capture.ts';
 test('Host 默认和 live 配置字段', () => {
   assert.equal(name, 'pdsh');
@@ -80,7 +80,7 @@ test('单 Host apply 按平台配置唯一 Remote service，Settings 与root own
   const source = readFileSync(new URL('../src/host/index.ts', import.meta.url), 'utf8');
   const module = { exports: {} };
   const context = {
-    module, exports: module.exports, process: { platform, arch },
+    module, exports: module.exports, process: { platform, arch }, __PDSH_VERSION__: apply.pdshVersion,
     require(id) {
       if (id === '../shared/components.ts') return identity;
       if (id === '@deepseek-ai/schemastery') return schema;
@@ -110,6 +110,12 @@ test('单 Host apply 按平台配置唯一 Remote service，Settings 与root own
   assert.equal(calls.filter(([kind])=>kind==='service').length,serviceCount, `${platform}/${arch}/${hasHelper}`);
   assert.equal(calls.filter(([kind])=>kind==='observe').length,1);
  }
+});
+
+test('根版本标记绑定已构建的 apply，不从被替换的磁盘 manifest 推断运行版本', () => {
+  const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.equal(apply.pdshVersion, manifest.version);
+  assert.equal(Object.getOwnPropertyDescriptor(apply, 'pdshVersion').writable, false);
 });
 
 test('Host历史默认空数组，只接受两个有界本地栅格图，保持volatile地址', () => {

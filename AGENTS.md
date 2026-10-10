@@ -97,7 +97,7 @@ InCodex 的所有权与路径安全约束应按目标场景保留。
 | `cordis.patch.yml` | 唯一 Cordis 插入层。 |
 | `build.ts` / `tsconfig*.json` | 构建与源码类型边界。 |
 | `bundle-artifacts.ts` | 入口、双语 README、二进制、tgz 字节与权限验真。 |
-| `verify-host.ts` | 临时 profile 的官方安装、实际业务、独立扩展握手与生命周期门；Windows 路径须验真实 ACL。 |
+| `verify-host.ts` | 临时 profile 的官方安装、固定旧版升级、实际业务与生命周期门；Windows 路径须验真实 ACL。 |
 | `check-release.ts` | 长期发布章节、双语版本、产物与清洁树门。 |
 | `tools/release-metadata.ts` | 公开简介和 Topics 的唯一声明。 |
 | `tools/pack-rc.ts` | 同源临时 RC 构建；不安装到用户 profile。 |
@@ -227,6 +227,12 @@ Git 安装依赖这些已提交产物。不要分别手写它们。
 - 初始 thenable 等官方子 Fiber，不改变实例身份。
 - 基础版本回复后，Client 仍须独立核对能力版本。
 - Config、固定壳或依赖变化须正常加载。
+- 根换载只操作自身唯一 Entry。
+- 新根从 Manager 当前安装件的版本 URL 导入。
+- HMR 队列内先撤销旧 Registry，再结算旧 Fiber。
+- 新根沿用原 Config 地址和原始配置。
+- 新根与惰性业务均就绪后才确认换载。
+- 换载失败恢复旧根，不改模块缓存或 resolver。
 - Client 本地方法不证明 Host 注册；扩展须实际握手。
 - 首次桥 bootstrap 不是免重启升级证据。
 - `setBundleEnabled` 只协调配置，不证明代码已重载。

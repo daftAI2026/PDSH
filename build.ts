@@ -33,7 +33,7 @@ const glyph = (await readFile(new URL('./src/client/entry-icon.svg', import.meta
 const pluginIcon = createThemeAwarePluginIcon(glyph, artwork.foreground.value, artwork.darkForeground.value);
 await writeFile(join(root, 'plugin-icon.svg'), `<!--\n[INPUT]: src/client/entry-icon.svg 与 style-sources.json，由 build.ts 生成。\n[OUTPUT]: 按宿主 color-scheme 选择前景的透明帽子图稿。\n[POS]: 单 Bundle 标识，不手工修改。\n[PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n-->\n${pluginIcon}`);
 const banner = (source: string, output: string) => `/**\n * [INPUT]: ${source}，由 build.ts 生成。\n * [OUTPUT]: ${output}。\n * [POS]: 单包运行产物；PDSH build ${JSON.stringify(version)}，不手工修改。\n * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md\n */`;
-await build({ absWorkingDir: root, entryPoints: ['src/host/index.ts'], outfile: 'index.js', bundle: true, format: 'esm', define: identityDefine, platform: 'node', target: 'es2022',
+await build({ absWorkingDir: root, entryPoints: ['src/host/index.ts'], outfile: 'index.js', bundle: true, format: 'esm', define: { ...identityDefine, __PDSH_VERSION__: JSON.stringify(version) }, platform: 'node', target: 'es2022',
   external: ['@deepseek-ai/cordis', '@deepseek-ai/dsh-typert-protocol', '@deepseek-ai/schemastery', 'blobatar/uri'], banner: { js: banner('src/host/index.ts 与官方 Typert service', '唯一 pdsh Config/name/apply 与 owned-window capture/save/wallpaper') } });
 // +--- 只保留当前版本闭包；版本文件名让标准 ESM 缓存区分升级前后代码 ---+
 const runtimeDirectory = join(root, 'lib/capture-runtime');

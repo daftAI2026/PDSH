@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 shared/components.ts 的配置身份、shared/model.ts 的显示默认值、avatar-history 的两项预算、capture.ts 的拍照字段/Loader volatile-update 订阅与平台原生 helper 可用性。
- * [OUTPUT]: 提供当前稳定/RC 身份的唯一 Config/apply 与 Typert 可见的 owned-window service；captureEnabled 撤回取像/保存/壁纸三路。
+ * [OUTPUT]: 提供唯一 Config/apply、实际根版本标记与 owned-window service；captureEnabled 撤回取像/保存/壁纸三路。
  * [POS]: PDSH 唯一 Cordis Host 入口；仅在有对应平台 provider 时注册 capture service，不影响身份/标题设置。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -39,3 +39,7 @@ export function apply(ctx, config) {
   // +--- Loader volatile-update 是 Config owner-scoped；此 listener 必须留在 pdsh root fiber ---+
   observeCaptureEnabled(ctx)
 }
+
+// +--- 标记实际加载的根函数；不读磁盘版本，不新增用户设置或 Remote 接口。 ---+
+declare const __PDSH_VERSION__: string
+Object.defineProperty(apply, 'pdshVersion', { value: __PDSH_VERSION__ })

@@ -229,6 +229,27 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
 
+## 0.5.11 Repair-Tag Validation: Root Config Hot Reload
+
+Keep one Bundle, one root Entry, and the existing settings address.
+The new business payload imports the root from the current installation using a standard versioned URL.
+Replacement uses the official Cordis Registry and serialized HMR queue.
+Settle the old root before starting the new root and its lazy business services.
+Restore the old root on load failure; do not modify module caches or the resolver.
+Preserve the official Manager's `restart-required` installation result.
+Record capability activation separately from installation.
+
+Upgrade from the pinned `0.5.9` baseline to this candidate in the same process.
+Check the new root Config, history entry point, and actual avatar changes.
+Verify disable/re-enable, failure recovery, and user settings independently.
+Source and isolated Host checks do not replace a Desktop upgrade through the official tag path.
+This authorization publishes `main` and remote `v0.5.11` first.
+Then verify the in-plugin upgrade from `0.5.9`.
+Installing a local archive does not replace that path.
+Desktop upgrade and restoration remain pending; do not claim the repair is complete in advance.
+Do not create a GitHub Release or publish to npm.
+Do not reuse unrelated native results as evidence for this change.
+
 ## 0.5.10 Release Decision: Recent Avatars
 
 Local avatars keep the current image and two previous uploads.

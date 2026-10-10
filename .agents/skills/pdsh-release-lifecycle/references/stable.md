@@ -55,6 +55,18 @@ Mac universal 与 Windows x64/asInvoker 分别核对。
 安装结果、文件摘要与 service 注册不能代替实际导入。
 按任务完成 Desktop、原生和恢复门，或明确记录授权例外。
 
+根 Config 热加载修复使用现有 `verify-host.ts`。
+追加 `upgrade-from-0.5.9` 参数。
+该门先安装固定 SHA 的真实旧版，再官方升级候选。
+它经官方 Gateway 调用基础与能力版本。
+核对实际根 Fiber 换代、Config 与历史头像原子写入。
+再验证停用、重新启用和实际能力。
+隔离 Host 的 HMR 队列是串行调度桩。
+该门不证明 Desktop Client 或真实传输完成。
+最终仍须从同一旧版实跑官方 tag 升级。
+换载期间重新读取服务，不复用已撤销的实例。
+不得通过重启或切开关补齐首次升级。
+
 ## 提交、合并与 tag
 
 再次核对 HEAD、全部未提交路径和远端 main。

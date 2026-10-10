@@ -12,7 +12,7 @@
 遮挡侧栏标题、自定义昵称与头像，截取并打码编辑当前窗口。不提供会话隔离。
 <!-- pdsh:description:end -->
 
-DeepSeek Harness Desktop 插件 · **0.5.10 版本** · [`v0.5.10`](https://github.com/daftAI2026/PDSH/tree/v0.5.10)
+DeepSeek Harness Desktop 插件 · **0.5.11 版本** · [`v0.5.11`](https://github.com/daftAI2026/PDSH/tree/v0.5.11)
 
 支持 macOS 和 Windows，截图助手随插件提供，无需单独安装。
 
@@ -35,7 +35,7 @@ DeepSeek Harness Desktop 插件 · **0.5.10 版本** · [`v0.5.10`](https://gith
 https://github.com/daftAI2026/PDSH
 ```
 
-固定版本请选择 `v0.5.10`；已安装用户可在插件详情页确认升级。
+固定版本请选择 `v0.5.11`；已安装用户可在插件详情页确认升级。
 
 **旧版提醒**：`0.3.2` 及更早版本首次升级需正常加载一次；运行中的 `0.5.0` 不支持免重启升级。[兼容说明](PUBLISHING.md#升级兼容)。
 

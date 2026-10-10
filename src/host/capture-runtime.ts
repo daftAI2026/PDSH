@@ -1,7 +1,7 @@
 /**
- * [INPUT]: 依赖稳定壳、accepted Settings、原生后端与官方生成的内部能力面。
+ * [INPUT]: 依赖稳定壳、accepted Settings、根 Host 换载、原生后端与官方生成的内部能力面。
  * [OUTPUT]: 提供稳定 v1 截图/保存与可更新能力。壁纸分平台读取；几何仅在完整 capture 成功后按 PNG digest 暂存。
- * [POS]: 同包版本化业务闭包。根 Config 拥有权限；旧操作结算后撤销本代能力。
+ * [POS]: 同包版本化业务闭包。根 Config 拥有权限；能力握手接续根换载，旧操作结算后撤销本代能力。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { ROOT_ENTRY_ID } from '../shared/components.ts'
@@ -33,6 +33,7 @@ import type { NativeWallpaperImage } from './system-wallpaper-native.ts'
 import { downloadAppleWallpaperVideo } from './system-wallpaper-download.ts'
 import { discoverSystemWallpaperSources } from './system-wallpaper-catalog.ts'
 import { RuntimeCapabilitiesService } from './runtime-capabilities-service.ts'
+import { refreshRuntimeRoot } from './runtime-root-reload.ts'
 import { TYPERT } from '../../lib/runtime-capabilities/typert.host.js'
 
 type HostServiceContext = Context & {
@@ -134,6 +135,17 @@ export class CaptureRuntime {
   private captureGeometryLease: object | undefined
   private captureGeometryRecord: { readonly pngSha256: string; readonly geometry: CaptureGeometry } | undefined
   private readonly capabilities: ReturnType<Context['plugin']> | undefined
+  private rootRefresh: Promise<void> | undefined
+
+  /** 基础 Loader 已完成 current() 后，能力握手才接续根换代，避免自等待。 */
+  refreshRoot(): Promise<void> {
+    if (!this.rootRefresh) {
+      const task = refreshRuntimeRoot(this.ctx, version)
+      this.rootRefresh = task
+      void task.catch(() => { if (this.rootRefresh === task) this.rootRefresh = undefined })
+    }
+    return this.rootRefresh
+  }
 
   constructor(private readonly ctx: Context) {
     const serviceContext = this.ctx as HostServiceContext

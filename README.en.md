@@ -12,7 +12,7 @@ English · [简体中文](README.md)
 Mask sidebar titles, customize display aliases, and capture and redact this window. No session isolation.
 <!-- pdsh:description:end -->
 
-DeepSeek Harness Desktop plugin · **Version 0.5.10** · [`v0.5.10`](https://github.com/daftAI2026/PDSH/tree/v0.5.10)
+DeepSeek Harness Desktop plugin · **Version 0.5.11** · [`v0.5.11`](https://github.com/daftAI2026/PDSH/tree/v0.5.11)
 
 Supports macOS and Windows. The screenshot helper ships with the plugin and needs no separate installation.
 
@@ -35,7 +35,7 @@ In Harness, open **Plugins → Add Plugin → GitHub repository URL** and enter:
 https://github.com/daftAI2026/PDSH
 ```
 
-Choose the fixed version `v0.5.10`. Existing users can confirm an upgrade on the plugin details page.
+Choose the fixed version `v0.5.11`. Existing users can confirm an upgrade on the plugin details page.
 
 **Upgrade note:** Versions `0.3.2` and earlier need one normal load during their first upgrade. A running `0.5.0` installation does not support a no-restart upgrade. See [Upgrade Compatibility](PUBLISHING.en.md#upgrade-compatibility).
 

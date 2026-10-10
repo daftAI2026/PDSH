@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 精确 DSH Host、候选归档与官方 PNPM。Windows 用真实 ACL 验临时路径所有权。
- * [OUTPUT]: 验官方安装、身份原子配置、基础与扩展注册及生命周期。不取像或下载媒体。
+ * [OUTPUT]: 验官方安装、可选固定旧版升级、身份原子配置、基础与扩展注册及生命周期。不取像或下载媒体。
  * [POS]: 仓库根目录的集成验收入口；只操作调用方指定且 owner/权限验证的临时 profile，不改写 DSH 用户 profile 或替代官方解析器。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -25,7 +25,7 @@ type PackageManagerCommand = {
 }
 
 function usage(): never {
-  throw new Error('用法: node --experimental-strip-types verify-host.ts <fixtureRoot> <consumerProfile> <rootTgz|PDSH-GitHub-source> <pmCommandJSON> [green|historical-pnpm-red|historical-host-red] [candidateRoot]')
+  throw new Error('用法: node --experimental-strip-types verify-host.ts <fixtureRoot> <consumerProfile> <rootTgz|PDSH-GitHub-source> <pmCommandJSON> [green|historical-pnpm-red|historical-host-red] [candidateRoot] [upgrade-from-0.5.9]')
 }
 
 // +--- 临时目录不等于私有目录；验证 owner 与写权限，不擅自 chmod 调用方内容 ---+
@@ -200,9 +200,13 @@ async function waitWindowCapability(ctx: any, present: boolean, identity: Accept
 
 /** 基础版本回复之后，内部能力还须有真实严格注册和独立版本；不读取媒体。 */
 async function assertRuntimeCapabilities(ctx: any, identity: AcceptanceIdentity, version: string): Promise<void> {
+  const bootstrap = ctx.get('pdshRuntimeCapabilities')
+  assert.ok(bootstrap, '当前业务未装配内部能力 service')
+  assert.equal(await bootstrap.implementationVersion(), version, '内部能力不是当前安装版本')
+  // +--- 握手可撤销旧根；后续断言必须绑定新注册实例，不能复用已撤销的对象。 ---+
   const service = ctx.get('pdshRuntimeCapabilities')
-  assert.ok(service, '当前业务未装配内部能力 service')
-  assert.equal(await service.implementationVersion(), version, '内部能力不是当前安装版本')
+  assert.ok(service, '根换载后能力未重新注册')
+  assert.equal(await service.implementationVersion(), version)
   assert.equal(service.wallpaperRegistered(), true, '内部能力未授权壁纸接口')
   assert.equal(service.captureGeometryRegistered(), true, '内部能力未注册当前几何接口')
   assert.equal(await service.captureGeometry('0'.repeat(64)), null, '未取像时不得伪造几何记录')
@@ -233,9 +237,10 @@ function assertPnpm11(manager: PackageManagerCommand, profile: string): void {
 }
 
 async function main(): Promise<void> {
-  const [fixtureArg, profileArg, tgzArg, pmArg, expectedResult = 'green', candidateArg] = process.argv.slice(2)
+  const [fixtureArg, profileArg, tgzArg, pmArg, expectedResult = 'green', candidateArg, upgradeMode] = process.argv.slice(2)
   if (!fixtureArg || !profileArg || !tgzArg || !pmArg) usage()
   assert.ok(['green', 'historical-pnpm-red', 'historical-host-red'].includes(expectedResult), 'expectation 必須是 green、historical-pnpm-red 或 historical-host-red')
+  assert.ok(upgradeMode === undefined || (upgradeMode === 'upgrade-from-0.5.9' && expectedResult === 'green'), '升级门只接受固定 0.5.9 基线与 green 模式')
 
   const fixtureRoot = resolve(fixtureArg)
   const consumerProfile = resolve(profileArg)
@@ -335,8 +340,41 @@ async function main(): Promise<void> {
     }).await()
     const manager = ctx.get('pluginManager')
     assert.ok(manager?.installBundle && manager?.listPlugins, '官方 PluginManager service 未注册')
-    const installed = await manager.installBundle(installSource, { enabled: true })
-  if (expectedResult === 'historical-pnpm-red') {
+    const gatewayModule = upgradeMode ? await importHostModule(requireFromHost, '@deepseek-ai/dsh-api-gateway') : undefined
+    const gateway = gatewayModule ? ctx.plugin(gatewayModule.default ?? gatewayModule.TypertGatewayService) : undefined
+    await gateway?.await()
+    const versionOf = (namespace: string) => ctx.typertGateway.invoke({ namespace, method: 'implementationVersion', args: {} })
+    const baselineSource = 'github:daftAI2026/PDSH#69d578592da6fba545c841cdca60d8a02e20aebc'
+    let installed = await manager.installBundle(upgradeMode ? baselineSource : installSource, { enabled: true })
+    if (upgradeMode) {
+      assert.equal(identity.name, '@daftai/pdsh', '真实升级门不接受 RC 身份')
+      assert.equal(installed.application, 'applied', '固定旧版本首装未生效')
+      await ctx.loader.await()
+      const before = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
+      assert.ok(before && !Object.hasOwn(before.value, 'avatarHistory'), '必须运行缺历史字段的真实旧 Config')
+      await ctx.settings.mutate(rootEntry, [
+        { op: 'set', path: ['nickname'], value: 'pdsh-upgrade-fixture' },
+        { op: 'set', path: ['avatar'], value: 'data:image/png;base64,YQ==' },
+        { op: 'set', path: ['useAccountAvatar'], value: false },
+        { op: 'set', path: ['maskIdentity'], value: true },
+      ], before.revision)
+      const preserved = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
+      assert.equal(await versionOf('pdshNativeWindowCapture'), '0.5.9')
+      const previousFiber = activePdshRows(ctx, rootEntry)[0].fiber
+      installed = await manager.installBundle(installSource, { enabled: true })
+      assert.equal(installed.application, 'restart-required', '保留官方安装结果，不伪造 applied')
+      assert.equal(installed.error, undefined)
+      assert.equal(await versionOf('pdshNativeWindowCapture'), candidate.version)
+      assert.equal(await versionOf('pdshRuntimeCapabilities'), candidate.version)
+      await ctx.loader.await()
+      const after = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
+      assert.ok(after && Object.hasOwn(after.value, 'avatarHistory'), '截图 payload 更新不能代替根 Config 热加载')
+      assert.notEqual(activePdshRows(ctx, rootEntry)[0].fiber, previousFiber, '根 Host 必须真正换代')
+      for (const key of Object.keys(preserved.value)) assert.deepEqual(after.value[key], preserved.value[key], `换根不得改变原配置: ${key}`)
+      assert.deepEqual(after.user, preserved.user, '换根不得改写用户 override')
+      console.log(`PASS same-process upgrade: fixed 0.5.9 → ${candidate.version}; real root Config and payload replaced through official Gateway; no restart or bundle toggle`)
+    }
+    if (expectedResult === 'historical-pnpm-red') {
       assert.equal(installed.application, 'failed', '预期 PNPM 拒绝，但官方 Manager 报告未失败')
       assert.ok(installed.packageResult && installed.packageResult.exitCode !== 0, `预期在 PNPM 安装阶段失败: ${JSON.stringify(installed)}`)
       assert.match(installed.error?.diagnostic ?? '', /ERR_PNPM_EXOTIC_SUBDEP/, 'PNPM-red 必须由 blockExoticSubdeps 拒绝 Git 子依赖，不接受网络等其他失败')
@@ -355,7 +393,7 @@ async function main(): Promise<void> {
       console.log(`EXPECTED RED [Host activation after PNPM success]: pnpm=${installed.packageResult.exitCode}; ${JSON.stringify(installed.error)}`)
       return
     }
-    assert.equal(installed.application, 'applied', `官方 Manager 未应用 Bundle: ${JSON.stringify(installed)}`)
+    assert.equal(installed.application, upgradeMode ? 'restart-required' : 'applied', `官方 Manager 未接受 Bundle: ${JSON.stringify(installed)}`)
     assert.equal(installed.error, undefined, `官方 Manager 安装报告错误: ${JSON.stringify(installed.error)}`)
     assert.equal(installed.bundle, ROOT_BUNDLE, '官方 Manager 安装的不是目标 root Bundle')
     assert.equal(installed.packageResult?.exitCode, 0, '官方 Manager 内部 PNPM 未成功')

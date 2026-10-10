@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖官方 Typert、当前业务实例与共享壁纸/取像几何 DTO。
- * [OUTPUT]: 提供当前业务版本、壁纸接口及按 PNG 摘要查询视口几何的独立握手。
+ * [OUTPUT]: 根 Host 接续成功后提供当前版本；另供壁纸接口及按 PNG 摘要查询视口几何的握手。
  * [POS]: 版本化业务的内部 Remote 面。根 Config 拥有权限，子 Fiber 拥有注册。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -13,6 +13,7 @@ import type { WallpaperFrame, WallpaperRequest } from '../shared/system-wallpape
 
 export interface RuntimeCapabilityImplementation {
   readonly version: string
+  refreshRoot?(): Promise<void>
   readonly geometryContract?: string
   wallpaper(request: WallpaperRequest, signal: AbortSignal): AsyncIterable<WallpaperFrame>
   captureGeometry?(pngSha256: string): Promise<CaptureGeometry | null>
@@ -30,6 +31,7 @@ export class RuntimeCapabilitiesService extends TypertRemoteService {
   @Remote
   async implementationVersion(): Promise<string> {
     if (this.disposed) throw new Error('capture-runtime-unavailable')
+    await this.implementation.refreshRoot?.()
     return this.implementation.version
   }
 
