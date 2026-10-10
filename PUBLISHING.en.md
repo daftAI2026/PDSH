@@ -246,7 +246,13 @@ Source and isolated Host checks do not replace a Desktop upgrade through the off
 This authorization publishes `main` and remote `v0.5.11` first.
 Then verify the in-plugin upgrade from `0.5.9`.
 Installing a local archive does not replace that path.
-Desktop upgrade and restoration remain pending; do not claim the repair is complete in advance.
+The Mac in-plugin upgrade from pinned `0.5.9` passed.
+The user performed the upgrade and manually tested avatar history.
+Main/Host processes remained unchanged; installed bytes matched the tag.
+History writes, deduplication, exclusion of the current image, and preservation of other settings passed.
+The original avatar was restored; only owned test history was cleared.
+The user waived a Windows retest for this shared repair.
+This result does not cover other unverified gates or arbitrary dependency hot replacement.
 Do not create a GitHub Release or publish to npm.
 Do not reuse unrelated native results as evidence for this change.
 
