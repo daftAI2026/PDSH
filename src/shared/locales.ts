@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 shared/components 的稳定/RC 配置身份与宿主 locale 字典协议；不读取或持久化独立语言偏好。
- * [OUTPUT]: 提供当前配置身份的 NS 与 zh/en 文案，覆盖本地/账号头像可用性、设置、项目链接与安装结果；设置摘要按受支持平台描述功能。
+ * [OUTPUT]: 提供当前配置身份的 NS 与 zh/en 文案，覆盖本地/账号头像可用性、设置、项目链接、更新取消与安装结果；设置摘要按受支持平台描述功能。
  * [POS]: PDSH 文案归属层；界面语言由 Harness 拥有，头像提示随账号状态变化，包元信息由 locale/*.json 离线提供。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -28,12 +28,14 @@ export const dictionaries = {
     avatarFailed: '头像格式、内容或大小不合法，请选择较小的 PNG / JPEG / WebP 图片。',
     invalidNickname: '昵称不能为空、过长或含控制字符。',
     'status.unsupported': '未识别唯一的原生侧栏身份，本次不替换。',
-    updateTitle: '插件更新', installSourceHint: '将从 GitHub 固定提交安装，可能切换当前来源；不会自动重启。',
-    installUpdate: '安装版本', 'update.cancel': '取消', 'update.retry': '重新检查',
-    'update.available': '有新版本可安装',
-    'update.installing': '正在通过宿主安装…', 'update.installed': '宿主已应用版本', 'update.restart': '安装完成；请在合适时机重启 Harness，启用版本',
+    updateTitle: '插件更新', installSourceHint: '从 GitHub 安装此版本。',
+    installUpdate: '更新', 'update.cancel': '取消', 'update.retry': '重新检查',
+    'update.available': '有可用更新',
+    'update.installing': '更新中…', 'update.installed': '宿主已应用版本', 'update.restart': '安装完成；请在合适时机重启 Harness，启用版本',
     'update.restartTitle': '更新已安装，需要重新启动 DSH', 'update.restartDescription': '请先保存未完成的工作，再退出并重新打开 DSH，使新版本的 Host 配置和截图接口生效。当前 DSH 未向插件提供一键重启接口。', 'update.later': '稍后重启',
     'update.installRetryTimeout': '连接 GitHub 再次超时，未完成更新。请检查网络后重试。',
+    'update.cancelling': '正在取消…', 'update.cancelled': '已取消更新', 'update.applying': '正在完成更新…',
+    'update.cancelUnconfirmed': '无法确认是否已取消，仍在等待更新结果。',
     'update.retrying': '连接 GitHub 超时，正在自动重试一次…',
     'update.installIntegrityFailed': '插件下载校验失败，未完成更新。请核对官方来源后重试。',
     'update.installDiskFull': '磁盘空间不足，未完成更新。请释放空间后重试。',
@@ -67,12 +69,14 @@ export const dictionaries = {
     avatarFailed: 'Invalid or oversized avatar. Choose a smaller PNG / JPEG / WebP image.',
     invalidNickname: 'Nickname must be non-empty, within the length limit and control-free.',
     'status.unsupported': 'No unique native sidebar identity recognized; replacement skipped.',
-    updateTitle: 'Plugin updates', installSourceHint: 'Install a pinned GitHub commit. This may change your current source. No automatic restart.',
-    installUpdate: 'Install version', 'update.cancel': 'Cancel', 'update.retry': 'Check again',
-    'update.available': 'A newer version is available',
-    'update.installing': 'Installing through the host…', 'update.installed': 'The host applied version', 'update.restart': 'Installed; restart Harness when convenient to activate version',
+    updateTitle: 'Plugin updates', installSourceHint: 'Install this version from GitHub.',
+    installUpdate: 'Update', 'update.cancel': 'Cancel', 'update.retry': 'Check again',
+    'update.available': 'Update available',
+    'update.installing': 'Updating…', 'update.installed': 'The host applied version', 'update.restart': 'Installed; restart Harness when convenient to activate version',
     'update.restartTitle': 'Update installed; restart DSH', 'update.restartDescription': 'Save unfinished work, then quit and reopen DSH to load the new Host configuration and capture interface. This DSH build does not expose one-click restart to plugins.', 'update.later': 'Restart later',
     'update.installRetryTimeout': 'GitHub connection timed out again. Update not completed; check your network and retry.',
+    'update.cancelling': 'Cancelling…', 'update.cancelled': 'Update cancelled', 'update.applying': 'Finishing update…',
+    'update.cancelUnconfirmed': 'Cancellation is unconfirmed. Waiting for the update result.',
     'update.retrying': 'GitHub connection timed out. Retrying once…',
     'update.installIntegrityFailed': 'Download verification failed. Update not completed; verify the official source before retrying.',
     'update.installDiskFull': 'Not enough disk space. Update not completed; free up space and retry.',

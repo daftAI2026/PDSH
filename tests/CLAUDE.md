@@ -42,7 +42,7 @@
 - `capture-editor-keyboard.test.ts`: 背景面板Tab围栏跳过hidden/inert/CSS隐藏、disabled与负tabindex；不替代原生键盘验收。
 - `capture-view.test.ts`: 生产布局锁住标题下留白、图标顶沿与滑轨刻度。私密标题/私密身份使用双语短文案，编辑器独立关联标题。检测区域保留可访问名称与共享点击命令。标题遮罩独立于单一身份遮罩；无系统壁纸 adapter 时不伪造入口。
 - `host.test.ts`: 真实 Schemastery Config/路径边界与平台provider分流；默认 Downloads 使用宿主 `homedir()` 与 `path.join` 精确比较，覆盖 POSIX/Windows drive-root/UNC 并拒绝相对、非canonical及device namespace；缺 helper/不支持架构仍保留设置。
-- `localization.test.ts`: 单 Bundle 离线品牌元信息与内部三功能 zh/en 文案；透明底单路径图标响应 Host color-scheme。
+- `localization.test.ts`: 单 Bundle 离线品牌元信息与内部三功能 zh/en 文案；透明底单路径图标响应 Host color-scheme；更新定稿与取消阶段双语键同源。
 - `model.test.ts`: 昵称、头像和旧字段投影验证。
 - `presentation.test.ts`: 视觉身份的唯一归属与卸载。未登录借用官方头像和身份行；收起及停用恢复原样。样式缺失、重复和错属拒绝覆盖。菜单、临时头像和登录恢复独立于配置写入。
 - `plugin-detail-typography.test.ts`: 自身大标题标记、版本胶囊不变、未知结构及外部接管合同。原生 CSS 的实际字形另在浏览器验收。
@@ -52,8 +52,11 @@
 - `native-style-probe.test.ts`: 原生 Input/Button/Switch/设置字段/Tooltip 几何与动效采样，SVG 笔画比例/透明度/尺寸及主题/DOM/resize 重采；合法零长度保真、无效值或探针节点缺席时撤销旧值，节点重建后重采，root 脱离后清空且卸载恢复原值。
 - `styles.test.ts`: 视觉规则与上游 token 来源；整排页脚紧凑靠右，正文同字号，GitHub 图稿不带内联基线空白。保留间距、主题与焦点。入口只合成根透明度；原生探针独占测量并隐藏绘制。验证来源文本间距和昵称留白，不抢焦点。
 - `title-toggle.test.ts`: Host 单路径切换及失败状态。
-- `updater.test.ts`: 首次清单等待卸载不安装、重试通知卸载围栏、第二次 PNPM 超时不误报 GitHub；稳定 tag、固定 Git 提交、官方 Remote 回包封套、显式安装、预检查超时最多重试一次与失败原因白名单；第四参 activation hook 仅以 `true` 确认升格 `restart-required`，false/throw 保留 restart，旧三参兼容且 dispose 拒绝迟到成功；安装失败保留目标版本，不假定 Manager 回滚磁盘清单，提示覆盖全部已知结果白名单。
-- `update-badge.test.ts`: 官方详情安装等待委托 Host StateDot；重试和磁盘前移保留 loading，成功/失败/重启立即移除。保留当前 Client 探测、失败重挂及官方 Modal 合同；不代替 Desktop 绘制。
+- `client-runtime-fixture.ts`: 共享组合根内存加载器，功能边界显式设桩，不启动Host。
+- `update-runtime.test.ts`: 真实组合根更新阶段订阅与释放，不重复其它功能验收。
+- `update-cancel.test.ts`: requestId取消、注册抢跑、终态竞态、未知结果与限定重试合同；不代Desktop。
+- `updater.test.ts`: 首次清单等待卸载不安装、重试通知卸载围栏、第二次 PNPM 超时不误报 GitHub；稳定 tag、固定 Git 提交、官方 Remote 回包封套、显式安装、预检查超时最多重试一次与失败原因白名单；取消回包为独立终态；第四参 activation hook 仅以 `true` 确认升格 `restart-required`，false/throw 保留 restart，旧三参兼容且 dispose 拒绝迟到成功；安装失败保留目标版本，不假定 Manager 回滚磁盘清单，提示覆盖全部已知结果白名单。
+- `update-badge.test.ts`: 官方详情更新/取消/应用等待委托 Host StateDot；取消未知独立告警；重试和磁盘前移保留 loading，成功/失败/重启立即移除。保留当前 Client 探测、失败重挂及官方 Modal 合同；不代替 Desktop 绘制。
 - `update-source.test.ts`: 公共 GitHub tag 请求的无凭据网络边界；不冒充 Desktop CSP 证明。
 - `dom-tooltip.test.ts`: 非 React 控件跟随宿主 Tooltip 延时与方位参数，卸载彻底清理。
 - `release-check.test.ts`: 隔离 Git 验发布门。长期 Release 章节与双语 README 当前版本分离。拒绝缺章、漂移、脏树及异位 tag。假 gh 拒绝写请求，不创建 tag。

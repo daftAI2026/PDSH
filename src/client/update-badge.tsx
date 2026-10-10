@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖稳定/RC 身份、官方 detail.badge、更新控制器与 Host Button/Tooltip/Modal/StateDot。
- * [OUTPUT]: 安装等待显示 Host loading；终态立即移除。保留固定版本确认、清单前移提示与官方重启 Modal，不承诺跨 Fiber 恢复。
+ * [OUTPUT]: 更新与取消等待显示 Host loading；应用阶段不可取消。取消未知独立告警，确认终态移除 loading。
  * [POS]: 更新交互的独立 detail slot；探测跟随详情挂载，不增设后台轮询或设置卡片。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -34,14 +34,15 @@ export function UpdateBadge({ subject, updater, version, t }) {
     setRestartPromptOpen(update.phase === 'restart');
   }, [update.phase, update.version]);
 
-  const inProgress = ['installing', 'installed', 'restart'].includes(update.phase);
+  const pending = ['installing', 'cancelling', 'applying'].includes(update.phase);
+  const inProgress = pending || ['installed', 'restart', 'cancelled'].includes(update.phase);
   const failedInstall = update.phase === 'failed' && update.operation === 'install';
   const retainedInstallFailure = failedInstall && ownBundle && !runningBundle && subject.pkg.version === update.version;
   if (!ownBundle || (!runningBundle && !inProgress && !retainedInstallFailure) || (update.phase !== 'available' && !inProgress && !failedInstall)) return null;
 
   return <span className="pdsh-update-badge" data-pdsh-update-badge>
-    {update.phase === 'available' && <Tooltip label={`${t('update.available')} v${update.version}`} side="bottom" delayMs={500} focusDelayMs={0} portal><Button variant="ghost" size="sm" className="pdsh-update-trigger"
-      data-pdsh-update-trigger aria-label={`${t('update.available')} v${update.version}`}
+    {update.phase === 'available' && <Tooltip label={t('update.available')} side="bottom" delayMs={500} focusDelayMs={0} portal><Button variant="ghost" size="sm" className="pdsh-update-trigger"
+      data-pdsh-update-trigger aria-label={t('update.available')}
       aria-expanded={expanded}
       onClick={() => setExpanded(value => !value)}>
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -55,10 +56,13 @@ export function UpdateBadge({ subject, updater, version, t }) {
         <Button size="sm" data-pdsh-update-install onClick={() => void updater.install()}>{t('installUpdate')}</Button>
         <Button size="sm" variant="ghost" onClick={() => setExpanded(false)}>{t('update.cancel')}</Button>
       </>}
-      {inProgress && <span role="status" className="pdsh-update-status" aria-busy={update.phase === 'installing' || undefined}>
-        {update.phase === 'installing' && <StateDot state="ongoing" />}
-        <span>{t(update.phase === 'installing' && update.attempt === 2 ? 'update.retrying' : `update.${update.phase}`)} {update.version}</span>
+      {inProgress && <span role="status" className="pdsh-update-status" aria-busy={pending || undefined}>
+        {pending && <StateDot state="ongoing" />}
+        <span>{t(update.phase === 'installing' && update.attempt === 2 ? 'update.retrying' : `update.${update.phase}`)}{['installed', 'restart'].includes(update.phase) ? ` ${update.version}` : ''}</span>
       </span>}
+      {update.phase === 'installing' && update.canCancel && <Button size="sm" variant="ghost" data-pdsh-update-cancel onClick={() => void updater.cancel()}>{t('update.cancel')}</Button>}
+      {update.cancelUnconfirmed && <span role="alert" className="pdsh-error">{t('update.cancelUnconfirmed')}</span>}
+      {update.phase === 'cancelled' && runningBundle && <Button size="sm" variant="ghost" data-pdsh-update-recheck onClick={() => void updater.check()}>{t('update.retry')}</Button>}
       {failedInstall && <>
         <span role="alert" className="pdsh-error">{t(update.reason === 'timeout' && update.attempt === 2 ? 'update.installRetryTimeout' : FAILURE_MESSAGES[update.reason] ?? 'update.installFailed')}</span>
         {runningBundle && <Button size="sm" variant="ghost" onClick={() => void updater.check()}>{t('update.retry')}</Button>}
