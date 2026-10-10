@@ -229,6 +229,25 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
 
+## 0.5.9 Release Decision: Update Cancellation
+
+The details page uses concise bilingual copy and the official StateDot while updating.
+Cancellation calls the official manager with the installation requestId. No new installer or inferred download progress is added.
+Only confirmed termination is shown as cancelled. Applying and too-late outcomes wait for the actual installation result.
+A registration race permits at most one additional cancellation call. Cancellation intent prevents automatic reinstallation.
+Request ownership fences late replies, and disposal releases the progress subscription.
+Config, Remote contracts, native helpers, capture, and saving are unchanged.
+
+The user authorized main and v0.5.9 publication before targeted Windows acceptance, with no repeated verification outside the changed scope.
+This release runs targeted update, copy, assembly, and guide contracts, plus type, build, real archive, and clean-main release gates.
+The full test suite and isolated Host eight-combination feature acceptance are not rerun. They remain NOT_RUN for this release; historical results do not fill them in.
+No GitHub Release, npm publication, or automatic live Desktop installation is authorized.
+
+The already-running old Client owns the upgrade into 0.5.9. It cannot display copy or cancellation code that has not loaded yet.
+After 0.5.9 is actually loaded, a later stable target is needed to verify the complete new flow.
+The user plans to verify this path with 0.5.10 after the next actual issue is completed. Do not fabricate a target, inject progress, or publish an empty version just for acceptance.
+Actual Desktop upgrade and cancellation remain pending targeted acceptance. Earlier independent capture, gallery, theme, and persistence gaps remain separate.
+
 ## 0.5.8 Release Decision: Continuous Manual Drawing
 
 Asynchronous gallery notifications update only the inspector, preserving the gesture stage.
