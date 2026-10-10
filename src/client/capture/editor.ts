@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖模型、受控原生 Tabs、视口/预算/取消、背景与 Client IndexedDB 图库包装、DOM 模板及已接受保存配置
- * [OUTPUT]: 提供工作台编辑/合成/导出生命周期；标题或身份开关只在重拍成功后提交，身份覆盖不持久化。
+ * [OUTPUT]: 提供工作台编辑/合成/导出生命周期；标题或身份开关只在重拍成功后提交，身份覆盖不持久化。工具栏换载先关闭选色浮层。
  * [POS]: capture-window 总协调器；身份与标题共用真实重拍像素，失败保持已有 source/state，媒体与偏好 ID 分离。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -396,6 +396,7 @@ export function mountCaptureWindowEditor(
     template.innerHTML = captureToolbarTemplate(state, copy).trim();
     const replacement = template.content.firstElementChild;
     if (!(replacement instanceof HTMLElement)) return;
+    unwireColorPopovers.close();
     toolbar.replaceWith(replacement);
     wireToolbarActions(root, dispatch, dispatchRegion, editorViewport);
     restoreCaptureWindowRender(root, memory);

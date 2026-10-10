@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 model.ts 的编辑状态、copy.ts 的本地化文案、presets.ts 的背景分层、持久 Gallery 目录、有限系统目录/失败码校验与 icons.ts 图标
- * [OUTPUT]: 提供背景图库、独立标题和身份遮罩。背景 h2 标记语言。空图库不重复说明。
+ * [OUTPUT]: 提供背景图库、独立标题和身份遮罩。背景 h2 标记语言。空图库不重复说明。纯色工具和设色器共用工具栏颜色。
  * [POS]: DSH 工作台声明式视图。身份开关标记头像与名称。加号只发起动作，不承载像素或选中态。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -118,7 +118,7 @@ export function captureToolbarTemplate(
 ): string {
   const hint = captureRegionHint(state, copy);
   return `
-    <div class="pdsh-capture-toolbar">
+    <div class="pdsh-capture-toolbar" style="--capture-solid-color:${escapeAttribute(state.solidColor)}">
       <span class="pdsh-capture-region-hint">${hint}</span>
       <div class="pdsh-capture-toolbar-controls" role="group" aria-label="${copy.tools}">
         ${iconButton("tool-move", "hand", copy.move, false, state.tool === "move")}
@@ -214,7 +214,7 @@ function inspectorTemplate(
 function solidColorTemplate(state: CaptureWindowState, copy: CaptureWindowCopy): string {
   return `
     <button class="pdsh-capture-solid-color" data-color-trigger="solid" type="button" aria-label="${copy.maskColor}" data-pdsh-tooltip="${copy.maskColor}" aria-haspopup="dialog" aria-expanded="false" data-state="closed" ${state.redactionStyle === "solid" ? "" : "hidden"}>
-      <span style="--capture-solid-color:${state.solidColor}"></span>
+      <span></span>
     </button>
   `;
 }

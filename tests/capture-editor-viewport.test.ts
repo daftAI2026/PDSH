@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实编辑器、jsdom 与可控 requestAnimationFrame；不读取用户截图或启动 Desktop。
- * [OUTPUT]: 验证视口合帧、越界提交与指针终态。覆盖失捕获、失焦、重复事件及卸载清理。
+ * [OUTPUT]: 验证统一缩放、无像素重合成、合帧及越界提交。覆盖忙碌、失捕获、失焦、重复指针、终态重入与卸载清理。另验设色器显隐、同源颜色与切换恢复。
  * [POS]: capture 视口交互合同。Canvas 桩不证明 Desktop 绘制。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -10,6 +10,77 @@ import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 import { mountCaptureWindowEditor, type CaptureWindowEditorOptions } from '../src/client/capture/editor.ts';
 import { createCaptureWindowState, scaleCaptureZoom, wheelCaptureZoom } from '../src/client/capture/model.ts';
+
+test('设色器只在纯色打码时显示，CSS 不得覆盖 hidden', () => {
+  const h = fixture();
+  try {
+    const style = h.dom.window.document.createElement('style');
+    style.textContent = readFileSync(new URL('../src/client/capture/capture-window.css', import.meta.url), 'utf8');
+    assert.match(style.textContent, /\[data-redaction-style="solid"\]\s*>\s*svg\s*>\s*rect\s*\{\s*fill:\s*var\(--capture-solid-color\)/);
+    h.dom.window.document.head.append(style);
+    const click = (action: string) => h.root.querySelector<HTMLButtonElement>(`[data-action="${action}"]`)!.click();
+    const expectVisible = (visible: boolean) => {
+      const trigger = h.root.querySelector<HTMLElement>('[data-color-trigger="solid"]');
+      assert.ok(trigger);
+      assert.equal(trigger.hidden, !visible);
+      assert.equal(h.dom.window.getComputedStyle(trigger).display === 'none', !visible);
+    };
+    click('tool-redact');
+    expectVisible(false);
+    click('style-solid');
+    expectVisible(true);
+    click('style-blur');
+    expectVisible(false);
+    click('style-mosaic');
+    expectVisible(false);
+    click('style-solid');
+    click('tool-move');
+    assert.equal(h.root.querySelector('[data-color-trigger="solid"]'), null);
+    click('tool-redact');
+    expectVisible(true);
+  } finally { h.close(); }
+});
+
+test('纯色工具方块与设色器同源更新，重建工具栏保留选择颜色', () => {
+  const h = fixture({ automaticRegions: [
+    { id: 'first', x: 10, y: 10, width: 20, height: 20 },
+    { id: 'next', x: 60, y: 10, width: 20, height: 20 },
+  ] });
+  try {
+    const click = (action: string) => h.root.querySelector<HTMLButtonElement>(`[data-action="${action}"]`)!.click();
+    const expectColor = (color: string) => {
+      const toolbar = h.root.querySelector<HTMLElement>('.pdsh-capture-toolbar')!;
+      assert.equal(toolbar.style.getPropertyValue('--capture-solid-color'), color);
+      for (const element of toolbar.querySelectorAll<HTMLElement>('[data-action="style-solid"], [data-color-trigger="solid"], [data-color-trigger="solid"] > span')) {
+        assert.equal(element.style.getPropertyValue('--capture-solid-color'), '', '子节点不得遮蔽工具栏颜色');
+      }
+      assert.equal(h.editor.getState().solidColor, color);
+    };
+    click('tool-redact');
+    click('style-solid');
+    expectColor('#101114');
+    h.root.querySelector<HTMLElement>('.pdsh-capture-region-candidate')!.click();
+    h.root.querySelector<HTMLButtonElement>('[data-color-trigger="solid"]')!.click();
+    const input = h.root.querySelector<HTMLInputElement>('[data-color-hex="solid"]')!;
+    input.value = '#e54b87';
+    input.dispatchEvent(new h.dom.window.Event('input', { bubbles: true }));
+    expectColor('#e54b87');
+    assert.equal(h.editor.getState().regions[0].color, '#101114', '改工具颜色不得追改旧区域');
+    h.root.querySelector<HTMLElement>('.pdsh-capture-region-candidate')!.click();
+    assert.equal(h.editor.getState().regions[1].color, '#e54b87', '新区域采用当前工具颜色');
+    click('style-mosaic');
+    assert.equal(h.root.querySelector('[data-color-popover="solid"]'), null);
+    expectColor('#e54b87');
+    click('undo');
+    assert.deepEqual(h.editor.getState().regions.map(region => region.color), ['#101114']);
+    click('redo');
+    assert.deepEqual(h.editor.getState().regions.map(region => region.color), ['#101114', '#e54b87']);
+    click('style-solid');
+    h.root.querySelector<HTMLButtonElement>('[data-color-trigger="solid"]')!.click();
+    assert.equal(h.root.querySelector<HTMLInputElement>('[data-color-hex="solid"]')!.value, '#e54b87');
+    expectColor('#e54b87');
+  } finally { h.close(); }
+});
 
 function fixture(editorOptions: Partial<CaptureWindowEditorOptions> = {}) {
   const dom = new JSDOM('<html lang="zh"><title>视口夹具</title><body><main></main></body></html>', {

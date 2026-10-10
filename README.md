@@ -12,7 +12,7 @@
 遮挡侧栏标题、自定义昵称与头像，截取并打码编辑当前窗口。不提供会话隔离。
 <!-- pdsh:description:end -->
 
-DeepSeek Harness Desktop 插件 · **0.5.6 版本** · [`v0.5.6`](https://github.com/daftAI2026/PDSH/tree/v0.5.6)
+DeepSeek Harness Desktop 插件 · **0.5.7 版本** · [`v0.5.7`](https://github.com/daftAI2026/PDSH/tree/v0.5.7)
 
 支持 macOS 和 Windows，截图助手随插件提供，无需单独安装。
 
@@ -35,7 +35,7 @@ DeepSeek Harness Desktop 插件 · **0.5.6 版本** · [`v0.5.6`](https://github
 https://github.com/daftAI2026/PDSH
 ```
 
-固定版本请选择 `v0.5.6`；已安装用户可在插件详情页确认升级。
+固定版本请选择 `v0.5.7`；已安装用户可在插件详情页确认升级。
 
 **旧版提醒**：`0.3.2` 及更早版本首次升级需正常加载一次；运行中的 `0.5.0` 不支持免重启升级。[兼容说明](PUBLISHING.md#升级兼容)。
 
@@ -47,7 +47,7 @@ https://github.com/daftAI2026/PDSH
 - 图库和编辑偏好保存在本机，不保存截图、源视频或原文件名。空间满时拒绝导入，不自动删除图片。
 - 遮挡只改变显示，不改账号、原始文字、历史、日志或模型请求。不提供会话隔离、凭据迁移或取证级隐私保证。
 
-检测区域不是敏感内容检测，保存或复制前请检查打码。详见[使用细节](PUBLISHING.md#使用细节)与[完整验收状态](PUBLISHING.md#056-发布决定工作台终态与图库)。
+检测区域不是敏感内容检测，保存或复制前请检查打码。详见[使用细节](PUBLISHING.md#使用细节)与[完整验收状态](PUBLISHING.md#057-发布决定纯色工具联动)。
 
 ## 开发
 

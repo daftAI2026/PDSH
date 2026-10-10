@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 view.ts 输出的 capture-window DOM、DSH 主题/动画 token 与实时原生 Button/Switch/图标/字段样式探针
- * [OUTPUT]: 提供工作台、画布和拍摄占位；压缩标题留白，用图标笔画及字形指标校准标题顶沿。边距刻度叠在原生滑轨。
+ * [OUTPUT]: 提供工作台、画布和拍摄占位。压缩标题留白，校准图标与标题顶沿。刻度叠在原生滑轨。纯色方块和色点继承同源颜色，设色器遵守 hidden。
  * [POS]: capture-window 主界面样式，与 color-popover.css 分工；不改舞台尺寸和按钮命中区，刻度不截获 range 输入。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -567,6 +567,14 @@ html.pdsh-capture-redact [data-pdsh-capture-redact-avatar-only]::after {
   height: var(--pdsh-capture-icon-sm);
   pointer-events: none;
   width: var(--pdsh-capture-icon-sm);
+}
+
+.pdsh-capture-solid-color[hidden] {
+  display: none;
+}
+
+.pdsh-capture-icon-button[data-redaction-style="solid"] > svg > rect {
+  fill: var(--capture-solid-color);
 }
 
 .pdsh-capture-range {

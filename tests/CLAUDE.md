@@ -74,7 +74,7 @@
 - `page-save-main.test.ts`: 面板/直接保存回执、5K默认边距的PNG/JPEG输出预算、真实文件提交前取消/导航/停用及跨装配串行锁；不冒充实机验收。
 
 - `capture-editor-export.test.ts`: 身份开关失败时保留旧图和旧值，成功重拍统一更新头像与名称且不持久化；标题仍独立。另验背景 Tabs、取消、保存与导出共用新源；Canvas 桩不证明视觉或本机文件面板。
-- `capture-editor-viewport.test.ts`: 初始Image面板仅读本地元数据、不调用Host目录/媒体；真实编辑器滚轮deltaMode/限幅、统一缩放源、无像素重合成、帧合并、越界裁剪及忙碌/失捕获/失焦/重复指针/终态重入/dispose合同；不冒充Desktop动效实测。
+- `capture-editor-viewport.test.ts`: 真实编辑器设色器显隐、纯色同源投影与工具切换恢复。初始 Image 面板仅读本地元数据，不调用 Host 目录/媒体。覆盖滚轮 deltaMode/限幅、统一缩放源、无像素重合成、帧合并与越界裁剪。另验忙碌、失捕获、失焦、重复指针、终态重入和 dispose；不冒充 Desktop 动效实测。
 
 - `host-acceptance.test.ts`: 集成 CLI 安全前置；自有临时目录验证 owner/路径/符号链接/凭据、stable/RC候选身份和精确PNPM版本门，不启动DSH或替代安装件验收。
 

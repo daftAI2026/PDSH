@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖编辑器颜色状态、浏览器 DOM 与浮层定位。
- * [OUTPUT]: 提供选色浮层生命周期及属性转义。浮层保留无色像素无法表达的 HSV 分量，切换背景模式不残留浮层。
+ * [OUTPUT]: 提供选色浮层及属性转义。浮层保留无色端点的 HSV 分量，切换背景模式不残留浮层。纯色同步写入工具栏，供方块和色点继承。
  * [POS]: capture-window 的选色交互边界；view 复用属性转义保护本机缩略图属性。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -176,7 +176,7 @@ export function syncCaptureColorPopover(
 ): void {
   const trigger = root.querySelector<HTMLElement>(`[data-color-trigger="${target}"]`);
   if (target === "background") trigger?.style.setProperty("--capture-swatch", color);
-  else trigger?.style.setProperty("--capture-solid-color", color);
+  else root.querySelector<HTMLElement>(".pdsh-capture-toolbar")?.style.setProperty("--capture-solid-color", color);
   const popover = root.querySelector<HTMLElement>(`[data-color-popover="${target}"]`);
   if (popover) syncPicker(popover, color, document.activeElement !== hexInput(popover, target));
 }

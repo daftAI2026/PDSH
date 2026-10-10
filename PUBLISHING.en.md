@@ -151,9 +151,9 @@ Never copy RC manifests, entries, or generated files back into the stable source
 
 Windows preview/export proportions were verified for a representative region.
 Complete pixel alignment and cancellation during active capture remain unverified.
-Physical testing of this version on macOS and native candidate-to-final-PNG alignment remain unverified.
+Native candidate-to-final-PNG alignment in the final stable macOS installation remains unverified.
 Pixel consistency across warm switches, dark and opposite Host/OS themes, and English Desktop remain unverified.
-See [this version's acceptance status](#056-release-decision-workbench-settlement-and-gallery) for the other unverified gates.
+See [this version's acceptance status](#057-release-decision-solid-color-tool-sync) for Mac RC solid-color testing and other unverified gates.
 
 ## Separate Verification Gates
 
@@ -228,6 +228,35 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 1. Run `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm build`, and `pnpm run bundle`. Check the current version's actual tgz members, bytes, permissions, version, and dependency licenses. Do not substitute an older package. Include only the manifest allowlist and npm's fixed package metadata and README files; exclude node_modules, profiles, credentials, logs, and private research.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
+
+## 0.5.7 Release Decision: Solid Color Tool Sync
+
+Show the color picker only in solid redaction mode.
+The tool square, color dot and subsequent regions use the selected color.
+Existing regions and undo history retain their individual colors.
+Close the color popover before changing tools, leaving no orphaned popover.
+Copy/save formats, settings and permissions remain unchanged.
+
+The same-source RC.24 passed physical macOS testing in Chinese and light mode.
+Visibility, two colors, undo/redo and mode switching were verified.
+Switching to blur with the keyboard closes the popover and retains existing regions.
+Native capture and selected colors in a real saved PNG were verified.
+RC was uninstalled; the original stable package, configuration and capture function were restored.
+These results do not establish final stable installation or fixed-SHA upgrade acceptance.
+
+The user explicitly requested a push and tag, followed by Windows upgrade testing.
+This authorization publishes main and v0.5.7 with the disclosed limits.
+Do not create a GitHub Release, publish to npm, or automatically upgrade Desktop.
+Final stable source, archive and exact isolated Host gates run independently.
+
+Keep these gates unverified for this release:
+live installation of the final stable package and the official fixed-SHA upgrade;
+actual Windows upgrade and solid-color interactions with the current installation;
+Mac dark/inverse themes, English Desktop and high DPI;
+normal Desktop restart persistence, permission revocation and abnormal exit;
+full-image pixel alignment, JPEG/WebP, copying and active-capture cancellation.
+Limited results from earlier versions do not substitute for this candidate's physical testing.
+This authorization neither reuses older exceptions nor authorizes later versions.
 
 ## 0.5.6 Release Decision: Workbench Settlement and Gallery
 
