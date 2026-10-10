@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实编辑器、jsdom 与可控 requestAnimationFrame；不读取用户截图或启动 Desktop。
- * [OUTPUT]: 验证统一缩放、无像素重合成、合帧及越界提交。覆盖忙碌、失捕获、失焦、重复指针、终态重入与卸载清理。另验设色器显隐、同源颜色与切换恢复。
+ * [OUTPUT]: 验证统一缩放、无像素重合成、合帧及越界提交。覆盖忙碌、失捕获、失焦、重复指针、终态重入与卸载清理。另验设色器显隐、同源颜色与切换恢复；图库结算不得取消首笔。
  * [POS]: capture 视口交互合同。Canvas 桩不证明 Desktop 绘制。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -174,7 +174,7 @@ function fixture(editorOptions: Partial<CaptureWindowEditorOptions> = {}) {
     deltaY,
   }));
   const pointer = (type: string, pointerId: number, clientX: number, clientY: number, button = 0) => {
-    const event = new dom.window.MouseEvent(type, { bubbles: true, button, clientX, clientY });
+    const event = new dom.window.MouseEvent(type, { bubbles: true, button, buttons: ['pointerup', 'pointercancel'].includes(type) ? 0 : 1, clientX, clientY });
     Object.defineProperty(event, 'pointerId', { value: pointerId });
     stage.dispatchEvent(event);
   };
@@ -649,7 +649,7 @@ test('手绘越出原图后松开仅提交交集，预览与捕获清空，下�
   } finally { h.close(); }
 });
 
-test('捕获丢失立即取消越界草稿，迟到松开不提交，重画不会留下孤儿框', () => {
+test('仍按键的捕获丢失立即取消越界草稿，迟到松开不提交，重画不会留下孤儿框', () => {
   const h = fixture();
   try {
     const p = prepareRegionPointer(h);
@@ -765,5 +765,34 @@ test('平移失去捕获即退出 panning；捕获被浏览器拒绝时不创建
     h.stage.setPointerCapture = id => { p.captured.add(id); };
     p.draw(92);
     assert.equal(h.editor.getState().regions.length, 1);
+  } finally { h.close(); }
+});
+
+
+test('首次手绘中本地图库结算不得替换舞台或取消首笔', async () => {
+  let finishList!: (assets: []) => void;
+  const h = fixture({
+    initialState: createCaptureWindowState({ width: 120, height: 80, scaleFactor: 1 }),
+    galleryStore: {
+      list: () => new Promise(resolve => { finishList = resolve; }),
+      async get() { return undefined; }, async put() { assert.fail('不导入图片'); },
+      async remove() { assert.fail('不删除图片'); }, close() {},
+    },
+  });
+  try {
+    const p = prepareRegionPointer(h);
+    p.choose('tool-redact'); p.choose('source-draw');
+    h.pointer('pointerdown', 901, 20, 20);
+    h.pointer('pointermove', 901, 60, 50);
+    assert.ok(h.root.querySelector('.pdsh-capture-draft-region'));
+    finishList([]); await h.flushAsync();
+    assert.equal(h.root.querySelector('.pdsh-capture-stage'), h.stage, '库存结算不能换掉 pointer capture owner');
+    assert.ok(h.root.querySelector('.pdsh-capture-draft-region'), '库存结算不能丢弃首笔');
+    h.pointer('pointerup', 901, 60, 50);
+    assert.equal(h.editor.getState().regions.length, 1, '第一笔必须提交，无需第二次拖拽');
+    assert.equal(h.editor.getState().history.past.length, 1);
+    assert.equal(h.root.querySelector('[aria-label="我的图片"]')?.getAttribute('aria-busy'), 'false');
+    p.draw(902);
+    assert.equal(h.editor.getState().regions.length, 2, '结算后的第二笔仍能正常提交');
   } finally { h.close(); }
 });

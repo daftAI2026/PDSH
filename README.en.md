@@ -12,7 +12,7 @@ English · [简体中文](README.md)
 Mask sidebar titles, customize display aliases, and capture and redact this window. No session isolation.
 <!-- pdsh:description:end -->
 
-DeepSeek Harness Desktop plugin · **Version 0.5.7** · [`v0.5.7`](https://github.com/daftAI2026/PDSH/tree/v0.5.7)
+DeepSeek Harness Desktop plugin · **Version 0.5.8** · [`v0.5.8`](https://github.com/daftAI2026/PDSH/tree/v0.5.8)
 
 Supports macOS and Windows. The screenshot helper ships with the plugin and needs no separate installation.
 
@@ -35,7 +35,7 @@ In Harness, open **Plugins → Add Plugin → GitHub repository URL** and enter:
 https://github.com/daftAI2026/PDSH
 ```
 
-Choose the fixed version `v0.5.7`. Existing users can confirm an upgrade on the plugin details page.
+Choose the fixed version `v0.5.8`. Existing users can confirm an upgrade on the plugin details page.
 
 **Upgrade note:** Versions `0.3.2` and earlier need one normal load during their first upgrade. A running `0.5.0` installation does not support a no-restart upgrade. See [Upgrade Compatibility](PUBLISHING.en.md#upgrade-compatibility).
 
@@ -47,7 +47,7 @@ Choose the fixed version `v0.5.7`. Existing users can confirm an upgrade on the 
 - The gallery and editing preferences stay on your device. The gallery stores no screenshots, source videos, or original filenames. A full store rejects imports rather than deleting images.
 - Masking changes only the display, not account data, original text, history, logs, or model requests. PDSH does not provide session isolation, credential migration, or forensic privacy guarantees.
 
-Detected regions do not identify sensitive content. Check redactions before copying or saving. See [usage details](PUBLISHING.en.md#usage-details) and the [full acceptance status](PUBLISHING.en.md#057-release-decision-solid-color-tool-sync).
+Detected regions do not identify sensitive content. Check redactions before copying or saving. See [usage details](PUBLISHING.en.md#usage-details) and the [full acceptance status](PUBLISHING.en.md#058-release-decision-continuous-manual-drawing).
 
 ## Development
 

@@ -153,7 +153,7 @@ Windows preview/export proportions were verified for a representative region.
 Complete pixel alignment and cancellation during active capture remain unverified.
 Native candidate-to-final-PNG alignment in the final stable macOS installation remains unverified.
 Pixel consistency across warm switches, dark and opposite Host/OS themes, and English Desktop remain unverified.
-See [this version's acceptance status](#057-release-decision-solid-color-tool-sync) for Mac RC solid-color testing and other unverified gates.
+See [this version's acceptance status](#058-release-decision-continuous-manual-drawing) for the Mac manual-drawing repair checks and other unverified gates.
 
 ## Separate Verification Gates
 
@@ -228,6 +228,40 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 1. Run `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm build`, and `pnpm run bundle`. Check the current version's actual tgz members, bytes, permissions, version, and dependency licenses. Do not substitute an older package. Include only the manifest allowlist and npm's fixed package metadata and README files; exclude node_modules, profiles, credentials, logs, and private research.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
+
+## 0.5.8 Release Decision: Continuous Manual Drawing
+
+Asynchronous gallery notifications update only the inspector, preserving the gesture stage.
+A zero-button capture loss preserves the draft until the matching pointerup.
+Blur, cancellation, mode changes, and a new pointerdown still discard incomplete strokes.
+Pointerup commits only the intersection with the source image, once.
+Retaking preserves existing redactions and undo history.
+This version does not change Config, Remote, native helpers, or export formats.
+
+The current 0.5.8-rc.1 completed 60 strokes on the Chinese light-theme Mac Desktop.
+This covered ten strokes per style and thirty strokes with interleaved style changes.
+Undo, redo, retake preservation, and the next stroke were also checked.
+All three file formats were saved and their redacted images inspected.
+The independent PNG copy was read and its image inspected.
+Cancelling the official directory picker returned to editing; the next stroke worked.
+These results belong to the current RC, not the final archive or its upgrade path.
+The RC was uninstalled; the original stable package's bytes, configuration, and capture were verified after restoration.
+A pure DOM baseline identified early capture loss triggered by zero-button movement.
+The source of the button state remains unknown; no platform is assigned blame.
+
+The user requested additional local regression checks before merging and tagging.
+Windows 10 installation and upgrade acceptance follows the tag at the user's request.
+Source, archive, and exact isolated Host gates must still pass.
+Publish only main and v0.5.8, without a GitHub Release, npm publication, or automatic Desktop upgrade.
+
+Final stable installation and fixed-SHA upgrade remain unverified.
+The user reported that losing focus during a held drag discarded the incomplete stroke and the next stroke worked.
+This is a user-reported physical test, not agent-generated physical input.
+The current fix still requires Windows 10 Desktop acceptance.
+The source of zero-button automated input and complete pixel alignment remain unverified.
+This drawing regression does not establish dark/inverted themes, English, high DPI,
+normal-restart persistence, permission withdrawal, or abnormal-exit behavior.
+Do not turn unverified gates into passes or inherit previous release exceptions.
 
 ## 0.5.7 Release Decision: Solid Color Tool Sync
 

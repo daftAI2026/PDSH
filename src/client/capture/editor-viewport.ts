@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖编辑器当前 CaptureWindowState、舞台/画布 DOM 与模型命令入口；缩放单位按 WheelEvent.deltaMode 归一。
- * [OUTPUT]: 提供视口控制器；指针松开提交交集，失捕获、失焦及模式切换取消。先清空手势再提交，按帧写 transform。
+ * [OUTPUT]: 提供视口控制器；接受手势阻止默认选择与拖拽，松开提交交集。已松键失捕获等待同指针松开，其余失捕获、失焦及模式切换取消。先清空手势再提交，按帧写 transform。
  * [POS]: capture 编辑器的高频交互边界；zoom 仍由模型持有，pan 仅由该控制器持有，二者不从 DOM 文本回读。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -27,6 +27,7 @@ type PointerGesture = {
   startClientY: number;
   startPanX: number;
   startPanY: number;
+  captureReleased: boolean;
 };
 
 export type CaptureEditorViewportController = {
@@ -199,7 +200,8 @@ export function createCaptureEditorViewport(
     }, { passive: false });
 
     listen('pointerdown', (event) => {
-      if (!isInteractive() || gesture) return;
+      if (!isInteractive()) return;
+      if (gesture) return;
       const state = options.readState();
       const targetElement = event.target instanceof Element ? event.target : null;
       const intent = capturePointerIntent(
@@ -213,9 +215,12 @@ export function createCaptureEditorViewport(
       } catch {
         return;
       }
+      // +--- 手势已由舞台拥有；禁止默认选择或原生拖拽夺走捕获。 ---+
+      event.preventDefault();
       const pan = readPan();
       gesture = {
         pointerId: event.pointerId,
+        captureReleased: false,
         startClientX: event.clientX,
         startClientY: event.clientY,
         startPanX: pan.x,
@@ -232,7 +237,7 @@ export function createCaptureEditorViewport(
     });
 
     listen('pointermove', (event) => {
-      if (!gesture || gesture.pointerId !== event.pointerId) return;
+      if (!gesture || gesture.pointerId !== event.pointerId || gesture.captureReleased) return;
       if (!isInteractive()) {
         detachGesture(false);
         return;
@@ -249,7 +254,27 @@ export function createCaptureEditorViewport(
 
     listen('pointerup', (event) => detachGesture(isInteractive(), event));
     listen('pointercancel', (event) => detachGesture(false, event));
-    listen('lostpointercapture', (event) => detachGesture(false, event));
+    listen('lostpointercapture', (event) => {
+      if (!gesture || gesture.pointerId !== event.pointerId) return;
+      // +--- 已松键的失捕获不是取消；等待真实松开，不据此提交。 ---+
+      if (draft && event.buttons === 0) gesture.captureReleased = true;
+      else detachGesture(false, event);
+    });
+    const cancelStale = () => {
+      if (gesture?.captureReleased) detachGesture(false);
+    };
+    const finishReleased = (event: PointerEvent) => {
+      if (gesture?.captureReleased) detachGesture(isInteractive(), event);
+    };
+    const cancelReleased = (event: PointerEvent) => detachGesture(false, event);
+    target.ownerDocument.addEventListener('pointerdown', cancelStale, true);
+    target.ownerDocument.addEventListener('pointerup', finishReleased, true);
+    target.ownerDocument.addEventListener('pointercancel', cancelReleased, true);
+    removers.push(() => {
+      target.ownerDocument.removeEventListener('pointerdown', cancelStale, true);
+      target.ownerDocument.removeEventListener('pointerup', finishReleased, true);
+      target.ownerDocument.removeEventListener('pointercancel', cancelReleased, true);
+    });
     const cancelOnBlur = () => detachGesture(false);
     view?.addEventListener('blur', cancelOnBlur);
     removers.push(() => view?.removeEventListener('blur', cancelOnBlur));

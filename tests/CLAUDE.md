@@ -74,7 +74,7 @@
 - `page-save-main.test.ts`: 面板/直接保存回执、5K默认边距的PNG/JPEG输出预算、真实文件提交前取消/导航/停用及跨装配串行锁；不冒充实机验收。
 
 - `capture-editor-export.test.ts`: 身份开关失败时保留旧图和旧值，成功重拍统一更新头像与名称且不持久化；标题仍独立。另验背景 Tabs、取消、保存与导出共用新源；Canvas 桩不证明视觉或本机文件面板。
-- `capture-editor-viewport.test.ts`: 真实编辑器设色器显隐、纯色同源投影与工具切换恢复。初始 Image 面板仅读本地元数据，不调用 Host 目录/媒体。覆盖滚轮 deltaMode/限幅、统一缩放源、无像素重合成、帧合并与越界裁剪。另验忙碌、失捕获、失焦、重复指针、终态重入和 dispose；不冒充 Desktop 动效实测。
+- `capture-editor-viewport.test.ts`: 真实编辑器设色器显隐、纯色同源投影与工具切换恢复。初始 Image 面板仅读本地元数据，不调用 Host 目录/媒体；异步库存结算保留首笔舞台与捕获。覆盖滚轮 deltaMode/限幅、统一缩放源、无像素重合成、帧合并与越界裁剪。另验忙碌、失捕获、失焦、重复指针、终态重入和 dispose；不冒充 Desktop 动效实测。
 
 - `host-acceptance.test.ts`: 集成 CLI 安全前置；自有临时目录验证 owner/路径/符号链接/凭据、stable/RC候选身份和精确PNPM版本门，不启动DSH或替代安装件验收。
 
@@ -144,5 +144,8 @@
 - `public-guides.test.ts`: 验证双语互链、同源版本和平台边界。两平台壁纸最多五项；Windows 不读当前壁纸、不联网。README 写产品事实并链接验收状态，PUBLISHING 保留未验门。另核 skill 同步、历史原文摘要及头像许可。不运行宿主或联网。
 
 - `plugin-icon-theme.test.ts`: 官方标签主色快照与单路径 SVG 生成合同。深色媒体查询由 Host color-scheme 驱动；不冒充浏览器主题验收。
+
+- `capture-pointer-release.test.ts`: jsdom 重放零按钮移动与先失捕获后 pointerup；验证生产状态机、取消与连续十笔，不模拟 Blink。
+- `capture-pointer-default.test.ts`: 生产视口起点默认动作与失捕获取消合同；不冒充 Electron 原生事件。
 
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md

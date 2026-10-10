@@ -1,7 +1,7 @@
 /**
  * [INPUT]: 依赖模型、受控原生 Tabs、视口/预算/取消、背景与 Client IndexedDB 图库包装、DOM 模板及已接受保存配置
  * [OUTPUT]: 提供工作台编辑/合成/导出生命周期；标题或身份开关只在重拍成功后提交，身份覆盖不持久化。工具栏换载先关闭选色浮层。
- * [POS]: capture-window 总协调器；身份与标题共用真实重拍像素，失败保持已有 source/state，媒体与偏好 ID 分离。
+ * [POS]: capture-window 总协调器；身份与标题共用真实重拍像素，失败保持已有 source/state。图库通知只换检查器，保留手势舞台；媒体与偏好 ID 分离。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { captureBackgroundMode, createCaptureBackgroundMemory, type CaptureBackgroundMode } from "./background-modes.ts";
@@ -154,7 +154,7 @@ export function mountCaptureWindowEditor(
   host.append(root);
   const inspectorScroll = createInspectorScroll(root);
   const systemWallpaperController = createSystemWallpaperController(wallpaperGallery.systemAdapter, () => {
-    if (!destroyed && root.dataset.state === "editing") render();
+    if (!destroyed && root.dataset.state === "editing") render(true);
   });
   const systemWallpaperActions = createSystemWallpaperEditorActions(systemWallpaperController, {
     apply: ({ dataUrl, id }) => {
@@ -182,7 +182,7 @@ export function mountCaptureWindowEditor(
         : action === 'select' ? copy.systemWallpaperLoadError
           : copy.galleryUnavailable),
     onChanged: () => {
-      if (!destroyed && root.dataset.state === "editing") render();
+      if (!destroyed && root.dataset.state === "editing") render(true);
     },
     onRemoved: id => {
       backgroundMemory.forgetWallpaper(id);
@@ -411,14 +411,14 @@ export function mountCaptureWindowEditor(
       if (status === 'idle' || status === 'error') void galleryActions.loadInventory();
     }
   }
-  function render(): void {
+  function render(inspectorOnly = false): void {
     if (destroyed) return;
     const galleryState = galleryActions.getState();
     const renderMemory = rememberCaptureWindowRender(root);
     backgroundTabs?.destroy();
     backgroundTabs = undefined;
     unwireColorPopovers.close();
-    root.innerHTML = captureWindowTemplate(state, copy, {
+    const markup = captureWindowTemplate(state, copy, {
       backgroundTabsId,
       lastBackgroundColor,
       systemWallpapers: systemWallpaperController.getState(),
@@ -426,19 +426,32 @@ export function mountCaptureWindowEditor(
       galleryStatus: galleryState.status,
       galleryBusyId: galleryState.busyId,
     });
-    const tabsContainer = root.querySelector<HTMLElement>("[data-background-tabs]");
+    let controlsRoot: HTMLElement = root;
+    if (inspectorOnly) {
+      // +--- 库存通知不归拥有手势的舞台；保留原生 pointer capture。 ---+
+      const template = document.createElement("template");
+      template.innerHTML = markup;
+      const inspector = template.content.querySelector<HTMLElement>(".pdsh-capture-inspector");
+      const current = root.querySelector<HTMLElement>(".pdsh-capture-inspector");
+      if (!inspector || !current) return;
+      current.replaceWith(inspector);
+      controlsRoot = inspector;
+    } else root.innerHTML = markup;
+    const tabsContainer = controlsRoot.querySelector<HTMLElement>("[data-background-tabs]");
     if (tabsContainer && options.mountBackgroundTabs) backgroundTabs = options.mountBackgroundTabs(tabsContainer, {
       id: backgroundTabsId, value: captureBackgroundMode(state.background), label: copy.background,
       labels: { none: copy.backgroundTabs.none, "plain-color": copy.backgroundTabs.color,
         gradients: copy.backgroundTabs.gradient, wallpapers: copy.backgroundTabs.image },
       disabled: root.dataset.state !== "editing", onChange: selectBackgroundMode,
     });
-    root.setAttribute("data-tool", state.tool);
-    root.querySelector<HTMLElement>(".pdsh-capture-backdrop")?.addEventListener("click", close);
-    root.querySelector<HTMLElement>("[data-action='close']")?.addEventListener("click", close);
-    renderCanvas();
-    wireToolbarActions(root, dispatch, dispatchRegion, editorViewport);
-    wireCaptureBackgroundActions(root, {
+    if (!inspectorOnly) {
+      root.setAttribute("data-tool", state.tool);
+      root.querySelector<HTMLElement>(".pdsh-capture-backdrop")?.addEventListener("click", close);
+      root.querySelector<HTMLElement>("[data-action='close']")?.addEventListener("click", close);
+      renderCanvas();
+      wireToolbarActions(root, dispatch, dispatchRegion, editorViewport);
+    }
+    wireCaptureBackgroundActions(controlsRoot, {
       dispatch,
       pickWallpaper: () => root.querySelector<HTMLInputElement>("[data-input='wallpaper']")?.click(),
       gallery: {
@@ -459,17 +472,19 @@ export function mountCaptureWindowEditor(
         select: id => selectSystemWallpaper(id),
       },
     });
-    wireInputs(root, dispatch, preview, file => galleryActions.import(file), setPrivacy, setIdentityMask);
-    wireKeyboard(root, state, dispatchRegion, close, exportCopy);
-    root.querySelector<HTMLElement>("[data-action='retake']")?.addEventListener("click", () => {
-      void retake();
-    });
-    root.querySelector<HTMLElement>("[data-action='copy']")?.addEventListener("click", () => {
-      void exportCopy();
-    });
-    root.querySelector<HTMLElement>("[data-action='save']")?.addEventListener("click", () => {
-      void exportSave();
-    });
+    wireInputs(controlsRoot, dispatch, preview, file => galleryActions.import(file), setPrivacy, setIdentityMask);
+    if (!inspectorOnly) {
+      wireKeyboard(root, state, dispatchRegion, close, exportCopy);
+      root.querySelector<HTMLElement>("[data-action='retake']")?.addEventListener("click", () => {
+        void retake();
+      });
+      root.querySelector<HTMLElement>("[data-action='copy']")?.addEventListener("click", () => {
+        void exportCopy();
+      });
+      root.querySelector<HTMLElement>("[data-action='save']")?.addEventListener("click", () => {
+        void exportSave();
+      });
+    }
     restoreCaptureWindowRender(root, renderMemory);
     inspectorScroll.refresh();
   }
