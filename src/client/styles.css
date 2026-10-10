@@ -1,6 +1,6 @@
 /*
  * [INPUT]: Harness ui-theme 的语义色/圆角/字号，以及可卸载的原生 Input/Button/Switch/SettingsValueField/Tooltip/图标探针的实时计算参数。
- * [OUTPUT]: 提供遮挡、设置、页脚和相机样式。未登录头像借用官方身份样式。
+ * [OUTPUT]: 提供遮挡、设置、页脚、更新状态和相机布局。Host StateDot 独占 loading 绘制与动效。
  * [POS]: PDSH 的展示层；来源和使用处记录于 style-sources.json，卸载时整体移除。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -45,6 +45,7 @@ html.pdsh-capture-redact [data-pdsh-capture-redact="text"]::after {
 }
 .pdsh-update-trigger svg { width: var(--pdsh-native-icon-size); height: var(--pdsh-native-icon-size); stroke-width: calc(24 * var(--pdsh-native-icon-stroke-ratio)); opacity: var(--pdsh-native-icon-opacity); color: var(--dsw-alias-state-success-primary); }
 .pdsh-update-confirm { font: var(--dsw-font-xxs-12); color: var(--dsw-alias-label-secondary); }
+.pdsh-update-status { display: inline-flex; align-items: center; gap: var(--pdsh-field-gap); }
 .pdsh-group h4, .pdsh-profile-name { font: var(--dsw-font-s-strong-14); }
 .pdsh-hint { font: var(--dsw-font-xxs-12); color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
 /* +--- 项目页脚沿用设置字体和实时控件几何，不新增卡片或主题常量 ---+ */

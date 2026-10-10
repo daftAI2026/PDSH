@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实 UpdateBadge JSX、React/jsdom 与可订阅的更新控制器桩。
- * [OUTPUT]: 验证仅当前 Client 探测、二次确认安装，以及清单前移后保留安装/重启结果；同 updater 详情重挂保留失败，失配不提供旧 Client 重试；已知网络失败不使用未知结果文案。
+ * [OUTPUT]: 验证真实安装等待委托 Host StateDot，终态移除 loading；清单前移保留状态，失败与重启独立呈现。
  * [POS]: 官方 detail.badge slot 的交互合同；不把 fixture 结果当成 Desktop 网络证明。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -29,6 +29,7 @@ async function mountBadge(subject = { kind: 'bundle', pkg: { name: '@daftai/pdsh
         Button: ({ children, variant, size, ...props }) => React.createElement('button', { type: 'button', ...props }, children),
         Tooltip: ({ children, label, side, delayMs, focusDelayMs, portal }) => React.cloneElement(children, { 'data-native-tooltip': label, 'data-side': side, 'data-delay-ms': delayMs, 'data-focus-delay-ms': focusDelayMs, 'data-portal': String(portal) }),
         Modal: ({ open, title, description, closeLabel, onClose, footer }) => open ? React.createElement('div', { role: 'dialog', 'aria-label': title }, description, React.createElement('button', { 'aria-label': closeLabel, onClick: onClose }, closeLabel), footer) : null,
+        StateDot: ({ state, className }) => React.createElement('svg', { 'data-host-state-dot': state, 'aria-hidden': 'true', className }),
       };
       throw new Error(id);
     },
@@ -59,6 +60,46 @@ async function mountBadge(subject = { kind: 'bundle', pkg: { name: '@daftai/pdsh
 }
 
 const requireJsx = await import('react/jsx-runtime');
+
+test('只有安装等待显示 Host loading，成功、失败和重启终态立即移除', async () => {
+  const h = await mountBadge();
+  try {
+    await h.render();
+    for (const phase of ['idle', 'checking', 'current', 'available']) {
+      await h.state({ phase, version: '0.2.0' });
+      assert.equal(h.doc.querySelector('[data-host-state-dot]'), null, phase);
+    }
+    for (const phase of ['installed', 'restart', 'failed']) {
+      await h.state({ phase: 'installing', version: '0.2.0' });
+      const status = h.doc.querySelector('[role="status"]');
+      assert.equal(status?.getAttribute('aria-busy'), 'true');
+      assert.equal(status?.querySelector('[data-host-state-dot]')?.getAttribute('data-host-state-dot'), 'ongoing');
+      assert.equal(status?.querySelector('[data-host-state-dot]')?.getAttribute('aria-hidden'), 'true');
+      assert.match(status?.textContent ?? '', /update.installing 0.2.0/);
+      assert.equal(h.doc.querySelector('[role="progressbar"]'), null, '没有可证明的百分比，不伪造进度');
+      assert.equal(h.doc.querySelector('[data-pdsh-update-install]'), null, '等待期间不能重复确认安装');
+      await h.state({ phase, version: '0.2.0', ...(phase === 'failed' ? { operation: 'install' } : {}) });
+      assert.equal(h.doc.querySelector('[data-host-state-dot]'), null, phase);
+      assert.equal(h.doc.querySelector('[aria-busy="true"]'), null, phase);
+      assert.ok(h.doc.querySelector(phase === 'failed' ? '[role="alert"]' : '[role="status"]'), phase);
+    }
+  } finally { await h.close(); }
+});
+
+test('安装重试及磁盘版本前移保留 loading；卸载后无自有订阅', async () => {
+  const h = await mountBadge();
+  try {
+    await h.render();
+    await h.state({ phase: 'installing', version: '0.3.0', attempt: 2 });
+    await h.installedVersion('0.3.0');
+    assert.equal(h.doc.querySelector('[data-host-state-dot]')?.getAttribute('data-host-state-dot'), 'ongoing');
+    assert.match(h.doc.querySelector('[role="status"]')?.textContent ?? '', /update.retrying 0.3.0/);
+    assert.equal(h.checks(), 1);
+    await h.state({ phase: 'failed', operation: 'install', version: '0.3.0', reason: 'timeout', attempt: 2 });
+    assert.equal(h.doc.querySelector('[data-host-state-dot]'), null);
+    assert.match(h.doc.querySelector('[role="alert"]')?.textContent ?? '', /update.installRetryTimeout/);
+  } finally { await h.close(); }
+});
 
 test('仅自身已安装 Bundle 自动探测；无更新或探测失败不显示按钮', async () => {
   const h = await mountBadge();
