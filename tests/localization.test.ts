@@ -69,3 +69,15 @@ test('三个功能区有离线 zh/en 文案，不用包路径作为名称', asyn
     assert.doesNotMatch(dictionaries[lang][key], /@daftai|file:/);
   }
 });
+
+
+test('更新文案按用户定稿，取消与应用阶段独立双语表达', async () => {
+  const { dictionaries: d } = await import('../src/shared/locales.ts');
+  assert.equal(d.zh['update.available'], '有可用更新');
+  assert.equal(d.zh.installSourceHint, '从 GitHub 安装此版本。');
+  assert.equal(d.zh['update.installing'], '更新中…');
+  assert.equal(d.en['update.available'], 'Update available');
+  assert.equal(d.en.installSourceHint, 'Install this version from GitHub.');
+  assert.equal(d.en['update.installing'], 'Updating…');
+  for (const language of ['zh', 'en']) for (const key of ['update.cancelling', 'update.cancelled', 'update.applying', 'update.cancelUnconfirmed']) assert.ok(d[language][key]);
+});

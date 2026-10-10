@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖版本标签选择与官方 pluginManager 适配器的可控桩。
- * [OUTPUT]: 验证仅高版本固定 SHA 可更新、显式确认、失败保留目标版本；第四参只有确认实现后才将 restart-required 标为 installed，旧三参与卸载围栏不变。
+ * [OUTPUT]: 验证仅高版本固定 SHA 可更新、显式确认、取消回包独立终态，失败保留目标版本；第四参只有确认实现后才将 restart-required 标为 installed，旧三参与卸载围栏不变。
  * [POS]: 自更新合同；不以网络 fixture 充当 Desktop 远端安装证明。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -202,7 +202,7 @@ test('重试最多一次；PNPM超时、Remote未知结果、磁盘前移与取�
     const update = createUpdateController(manager, async () => [newer], '0.1.0')
     await update.check(); await update.install()
     assert.equal(calls, index === 0 ? 2 : 1)
-    assert.equal(update.getSnapshot().phase, 'failed')
+    assert.equal(update.getSnapshot().phase, value.application === 'cancelled' ? 'cancelled' : 'failed')
     update.dispose()
   }
   for (const result of ['transport', 'dispose']) {

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实 UpdateBadge JSX、React/jsdom 与可订阅的更新控制器桩。
- * [OUTPUT]: 验证真实安装等待委托 Host StateDot，终态移除 loading；清单前移保留状态，失败与重启独立呈现。
+ * [OUTPUT]: 验证真实安装等待委托 Host StateDot，取消与应用等待保留 loading；终态移除。取消未知独立告警。
  * [POS]: 官方 detail.badge slot 的交互合同；不把 fixture 结果当成 Desktop 网络证明。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -37,13 +37,14 @@ async function mountBadge(subject = { kind: 'bundle', pkg: { name: '@daftai/pdsh
   const { createRoot } = await import('react-dom/client');
   const root = createRoot(dom.window.document.querySelector('main'));
   let state = { phase: 'idle' };
-  let checks = 0, installs = 0;
+  let checks = 0, installs = 0, cancels = 0;
   const listeners = new Set();
   const updater = {
     getSnapshot: () => state,
     subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     check() { ++checks; },
     install() { ++installs; },
+    cancel() { ++cancels; },
   };
   const doc = dom.window.document;
   return {
@@ -52,7 +53,7 @@ async function mountBadge(subject = { kind: 'bundle', pkg: { name: '@daftai/pdsh
     async remount() { await act(async () => root.render(null)); await this.render(); },
     async installedVersion(version) { subject = { ...subject, pkg: { ...subject.pkg, version } }; await this.render(); },
     async state(next) { await act(async () => { state = next; for (const listener of listeners) listener(); }); },
-    checks: () => checks, installs: () => installs,
+    checks: () => checks, installs: () => installs, cancels: () => cancels,
     async close() { await act(async () => root.unmount()); assert.equal(listeners.size, 0); dom.window.close();
       for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; }
     },
@@ -75,7 +76,7 @@ test('只有安装等待显示 Host loading，成功、失败和重启终态立�
       assert.equal(status?.getAttribute('aria-busy'), 'true');
       assert.equal(status?.querySelector('[data-host-state-dot]')?.getAttribute('data-host-state-dot'), 'ongoing');
       assert.equal(status?.querySelector('[data-host-state-dot]')?.getAttribute('aria-hidden'), 'true');
-      assert.match(status?.textContent ?? '', /update.installing 0.2.0/);
+      assert.match(status?.textContent ?? '', /update.installing/);
       assert.equal(h.doc.querySelector('[role="progressbar"]'), null, '没有可证明的百分比，不伪造进度');
       assert.equal(h.doc.querySelector('[data-pdsh-update-install]'), null, '等待期间不能重复确认安装');
       await h.state({ phase, version: '0.2.0', ...(phase === 'failed' ? { operation: 'install' } : {}) });
@@ -93,7 +94,7 @@ test('安装重试及磁盘版本前移保留 loading；卸载后无自有订阅
     await h.state({ phase: 'installing', version: '0.3.0', attempt: 2 });
     await h.installedVersion('0.3.0');
     assert.equal(h.doc.querySelector('[data-host-state-dot]')?.getAttribute('data-host-state-dot'), 'ongoing');
-    assert.match(h.doc.querySelector('[role="status"]')?.textContent ?? '', /update.retrying 0.3.0/);
+    assert.match(h.doc.querySelector('[role="status"]')?.textContent ?? '', /update.retrying/);
     assert.equal(h.checks(), 1);
     await h.state({ phase: 'failed', operation: 'install', version: '0.3.0', reason: 'timeout', attempt: 2 });
     assert.equal(h.doc.querySelector('[data-host-state-dot]'), null);
@@ -133,7 +134,7 @@ test('新版本图标只展开确认；确认按钮才安装固定提交，失�
     const probe = readFileSync(new URL('../src/client/native-style-probe.ts', import.meta.url), 'utf8');
     for (const variable of ['--pdsh-native-icon-stroke-ratio', '--pdsh-native-icon-opacity', '--pdsh-native-icon-size']) assert.ok(probe.includes(variable), variable);
     assert.equal(trigger.getAttribute('title'), null);
-    assert.equal(trigger.getAttribute('data-native-tooltip'), 'update.available v0.1.2');
+    assert.equal(trigger.getAttribute('data-native-tooltip'), 'update.available');
     assert.equal(trigger.getAttribute('data-delay-ms'), '500');
     assert.equal(trigger.querySelector('svg path')?.getAttribute('d'), 'm16 12-4-4-4 4');
     assert.equal(h.installs(), 0);
@@ -165,7 +166,7 @@ test('安装清单先变成新版不能隐藏旧 Client 持有的重启提示', 
     await h.render();
     await h.state({ phase: 'installing', version: '0.3.0' });
     await h.installedVersion('0.3.0');
-    assert.match(h.doc.querySelector('[role="status"]')?.textContent ?? '', /update.installing 0.3.0/);
+    assert.match(h.doc.querySelector('[role="status"]')?.textContent ?? '', /update.installing/);
     assert.equal(h.doc.querySelector('[role="dialog"]'), null, '安装结果尚未确认，不提前要求重启');
     await h.state({ phase: 'restart', version: '0.3.0' });
     assert.match(h.doc.querySelector('[role="status"]')?.textContent ?? '', /update.restart 0.3.0/);
@@ -250,3 +251,38 @@ test('第二次预检查期间明确提示只自动重试一次，不显示未�
     assert.equal(h.doc.querySelector('[role="alert"]')?.textContent, 'update.installRetryTimeout')
   } finally { await h.close() }
 })
+
+
+test('取消入口只在可取消等待出现，取消中与应用中仍有 loading，终态移除', async () => {
+  const h = await mountBadge();
+  try {
+    await h.render();
+    await h.state({ phase: 'installing', version: '0.2.0', canCancel: true });
+    const cancel = h.doc.querySelector('[data-pdsh-update-cancel]');
+    assert.ok(cancel); await act(async () => cancel.click()); assert.equal(h.cancels(), 1);
+    for (const phase of ['cancelling', 'applying']) {
+      await h.state({ phase, version: '0.2.0' });
+      assert.equal(h.doc.querySelector('[data-pdsh-update-cancel]'), null);
+      assert.ok(h.doc.querySelector('[data-host-state-dot]'));
+      assert.equal(h.doc.querySelector('[role="status"]')?.getAttribute('aria-busy'), 'true');
+      assert.match(h.doc.querySelector('[role="status"]')?.textContent ?? '', new RegExp('update.' + phase));
+    }
+    await h.state({ phase: 'cancelled', version: '0.2.0' });
+    assert.equal(h.doc.querySelector('[data-host-state-dot]'), null);
+    assert.match(h.doc.querySelector('[role="status"]')?.textContent ?? '', /update.cancelled/);
+    assert.equal(h.doc.querySelector('[aria-busy="true"]'), null);
+    assert.ok(h.doc.querySelector('[data-pdsh-update-recheck]'));
+  } finally { await h.close(); }
+});
+
+test('取消结果未知保留等待与独立告警，不出现取消成功或再次安装', async () => {
+  const h = await mountBadge();
+  try {
+    await h.render();
+    await h.state({ phase: 'installing', version: '0.2.0', cancelUnconfirmed: true });
+    assert.ok(h.doc.querySelector('[data-host-state-dot]'));
+    assert.match(h.doc.querySelector('[role="alert"]')?.textContent ?? '', /update.cancelUnconfirmed/);
+    assert.equal(h.doc.querySelector('[data-pdsh-update-install]'), null);
+    assert.equal(h.doc.querySelector('[data-pdsh-update-cancel]'), null);
+  } finally { await h.close(); }
+});

@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖 ConfigForm、基础/能力 Remote、独立几何握手、只读侧栏状态及详情字形适配器。
- * [OUTPUT]: 装配身份、标题、两相机入口、详情字形对齐及设置页脚；macOS/Windows入口仍经独立 capability 握手。
+ * [INPUT]: 依赖 ConfigForm、基础/能力 Remote、独立几何握手、只读侧栏状态、详情字形适配器及官方更新阶段事件。
+ * [OUTPUT]: 装配身份、标题、两相机入口、详情字形对齐及设置页脚；更新事件跟随 Bundle 释放；macOS/Windows入口仍经独立 capability 握手。
  * [POS]: 单 Bundle 组合根。迟到扩展不重建工作台，不阻断基础截图。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -126,7 +126,9 @@ export function mountComponent(ctx, doc: Document = document) {
         const geometryReady = !doc.defaultView.navigator.platform.startsWith('Win') || await isCaptureGeometryCapabilityReady(capabilities, version);
         return ready && geometryReady && captureRemote === capture && captureRemoteGeneration === captureGeneration
           && runtimeCapabilitiesGeneration === capabilitiesGeneration && runtimeCapabilitiesRemote === capabilities;
-      });
+      }, typeof ctx.remote.$on === 'function'
+        ? listener => ctx.remote.$on('plugin-manager/install-state', listener)
+        : undefined);
       cleanup.push(() => updater.dispose());
 
       const presentation = mountPresentation(doc);

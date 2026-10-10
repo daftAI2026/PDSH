@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖官方 remote.pluginManager 的 {ok,value} 调用封套、经校验的 GitHub tag 数据、官方 Git 安装与可选实现版本确认回调。
- * [OUTPUT]: 提供详情挂载自动探测、用户确认安装和可订阅状态；restart-required 仅在回调确认目标实现已加载时标记 installed，否则保留 restart。
+ * [INPUT]: 依赖官方 Manager 回包、requestId 取消、install-state 事件及固定 GitHub tag。
+ * [OUTPUT]: 提供更新与显式取消状态；确认停止才报取消，应用阶段撤回取消。迟到回包不能覆盖新操作。
  * [POS]: Client Fiber 内的更新决策状态；临时 RC 禁止更新，探测无副作用，固定提交安装需确认，只保留失败原因白名单、仅未安装的预检查超时重试一次且末次失败按实际阶段提示、不自行重启、不重装未知结果、不切设置，也不持久化跨 Fiber 结果。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -16,12 +16,18 @@ interface InstallResult {
 }
 interface Manager {
   listBundles(): Promise<RemoteReply<Bundle[]>>;
-  installBundle(spec: string, options: { enabled: boolean }): Promise<RemoteReply<InstallResult>>;
+  installBundle(spec: string, options: { enabled: boolean; requestId?: string }): Promise<RemoteReply<InstallResult>>;
+  cancelInstall?(requestId: string): Promise<RemoteReply<{ status: 'cancelled' | 'not-running' | 'too-late' }>>;
 }
-type Phase = 'idle' | 'checking' | 'current' | 'available' | 'installing' | 'installed' | 'restart' | 'failed';
+type Phase = 'idle' | 'checking' | 'current' | 'available' | 'installing' | 'cancelling' | 'applying' | 'cancelled' | 'installed' | 'restart' | 'failed';
 const INSTALL_FAILURE_REASONS = ['network', 'timeout', 'integrity', 'disk-full', 'permission', 'pnpm-missing', 'build-blocked', 'not-found', 'no-matching-version'] as const;
 export type UpdateFailureReason = typeof INSTALL_FAILURE_REASONS[number];
-export interface UpdateState { phase: Phase; version?: string; operation?: 'check' | 'install'; reason?: UpdateFailureReason; attempt?: 2 }
+export interface UpdateState { phase: Phase; version?: string; operation?: 'check' | 'install'; reason?: UpdateFailureReason; attempt?: 2; canCancel?: boolean; cancelUnconfirmed?: boolean }
+interface InstallRequest {
+  requestId: string; version: string; sent: boolean; acknowledged: boolean;
+  cancelRequested: boolean; cancelCalls: number; cancelPending: boolean;
+  waitingForStart: boolean; applying: boolean; attempt?: 2;
+}
 const PACKAGE = BUNDLE_NAME;
 const REPOSITORY = 'github:daftAI2026/PDSH#';
 
@@ -58,11 +64,14 @@ export function createUpdateController(
   loadTags: () => Promise<ReleaseTag[]>,
   version: string,
   activateInstalled?: (version: string) => Promise<boolean>,
+  subscribeInstallState?: (listener: (progress: unknown) => void) => () => void,
 ) {
   let state: UpdateState = { phase: 'idle' };
   let candidate: { version: string; sha: string } | null = null;
   let disposed = false;
   let busy = false;
+  let request: InstallRequest | undefined;
+  const cancellationSupported = !IS_RC_BUNDLE && typeof manager.cancelInstall === 'function' && typeof subscribeInstallState === 'function';
   const listeners = new Set<() => void>();
   function setState(next: UpdateState) {
     if (disposed) return;
@@ -76,9 +85,65 @@ export function createUpdateController(
     const matches = bundles.filter(bundle => bundle.name === PACKAGE && bundle.installed);
     return matches.length === 1 && matches[0].version === version ? matches[0] : null;
   }
+  const owns = (run: InstallRequest) => !disposed && request === run;
+  function pending(run: InstallRequest, phase: 'installing' | 'cancelling' | 'applying', cancelUnconfirmed = false) {
+    if (!owns(run)) return;
+    setState({ phase, version: run.version, ...(run.attempt ? { attempt: run.attempt } : {}),
+      ...(cancellationSupported && phase === 'installing' && !run.cancelRequested ? { canCancel: true } : {}),
+      ...(cancelUnconfirmed ? { cancelUnconfirmed: true } : {}) });
+  }
+  function finish(run: InstallRequest, next: UpdateState) {
+    if (!owns(run)) return;
+    request = undefined; busy = false;
+    setState(next);
+  }
+  // +--- not-running 不证明停止；仅匹配的首次 installing 确认允许补发一次 ---+
+  async function sendCancellation(run: InstallRequest): Promise<void> {
+    if (!owns(run) || run.cancelPending || run.applying || run.cancelCalls >= 2) return;
+    const acknowledgedBeforeCall = run.acknowledged;
+    run.cancelPending = true; run.waitingForStart = false; ++run.cancelCalls;
+    try {
+      const reply = await manager.cancelInstall!(run.requestId);
+      if (!owns(run)) return;
+      if (!reply.ok) { pending(run, run.applying ? 'applying' : 'installing', !run.applying); return; }
+      if (reply.value.status === 'cancelled') {
+        finish(run, { phase: 'cancelled', version: run.version });
+      } else if (reply.value.status === 'too-late' || run.applying) {
+        run.applying = true; pending(run, 'applying');
+      } else if (reply.value.status === 'not-running' && run.cancelCalls === 1 && !acknowledgedBeforeCall) {
+        run.waitingForStart = true;
+      } else pending(run, 'installing', true);
+    } catch { if (owns(run)) pending(run, run.applying ? 'applying' : 'installing', !run.applying); }
+    finally {
+      run.cancelPending = false;
+      if (owns(run) && run.waitingForStart && run.acknowledged && !run.applying) void sendCancellation(run);
+    }
+  }
+  function installProgress(progress: unknown) {
+    if (!request || !progress || typeof progress !== 'object') return;
+    const event = progress as { requestId?: unknown; phase?: unknown };
+    const run = request;
+    if (!owns(run) || event.requestId !== run.requestId) return;
+    if (event.phase === 'applying') {
+      run.acknowledged = true; run.applying = true; run.waitingForStart = false;
+      pending(run, 'applying');
+    } else if (event.phase === 'installing') {
+      run.acknowledged = true;
+      if (run.waitingForStart && !run.applying) void sendCancellation(run);
+    }
+  }
+  const offInstallState = cancellationSupported ? subscribeInstallState!(installProgress) : undefined;
   return {
     getSnapshot: () => state,
     subscribe(notify: () => void) { listeners.add(notify); return () => listeners.delete(notify); },
+    installProgress,
+    async cancel() {
+      const run = request;
+      if (!cancellationSupported || !run || !owns(run) || run.cancelRequested || run.applying) return;
+      run.cancelRequested = true; pending(run, 'cancelling');
+      if (run.sent) await sendCancellation(run);
+      else finish(run, { phase: 'cancelled', version: run.version });
+    },
     async check() {
       if (IS_RC_BUNDLE || disposed || busy || state.phase === 'restart' || state.phase === 'installed') return;
       busy = true; candidate = null; setState({ phase: 'checking' });
@@ -95,23 +160,42 @@ export function createUpdateController(
       if (IS_RC_BUNDLE || disposed || busy || state.phase !== 'available' || !candidate) return;
       busy = true;
       const target = candidate;
-      setState({ phase: 'installing', version: target.version });
+      const run: InstallRequest = { requestId: cancellationSupported ? crypto.randomUUID() : '', version: target.version,
+        sent: false, acknowledged: false, cancelRequested: false, cancelCalls: 0, cancelPending: false, waitingForStart: false, applying: false };
+      request = run;
+      pending(run, 'installing');
       let failureReason: UpdateState['reason'];
       let retryAttempt: 2 | undefined;
       let finalGitTimeout = false;
       try {
+        if (!owns(run)) return;
         if (!await ownBundle()) throw new Error('installed bundle changed');
-        if (disposed) return;
+        if (!owns(run)) return;
+        if (run.cancelRequested) { finish(run, { phase: 'cancelled', version: target.version }); return; }
         const spec = `${REPOSITORY}${target.sha}`;
-        let reply = await manager.installBundle(spec, { enabled: true });
+        const install = async () => {
+          run.sent = true;
+          try { return await manager.installBundle(spec, { enabled: true, ...(cancellationSupported ? { requestId: run.requestId } : {}) }); }
+          finally { run.sent = false; }
+        };
+        let reply = await install();
+        if (!owns(run)) return;
         // +--- 只有 PNPM 之前明确未安装的 Git 预检查超时允许第二次尝试 ---+
-        if (!disposed && isUnchangedGitTimeout(reply)) {
+        if (!run.cancelRequested && isUnchangedGitTimeout(reply)) {
           if (!await ownBundle()) throw new Error('installed bundle changed before retry');
-          if (disposed) return;
+          if (!owns(run)) return;
+          if (run.cancelRequested) { finish(run, { phase: 'cancelled', version: target.version }); return; }
           retryAttempt = 2;
-          setState({ phase: 'installing', version: target.version, attempt: 2 });
-          if (disposed) return;
-          reply = await manager.installBundle(spec, { enabled: true });
+          run.requestId = cancellationSupported ? crypto.randomUUID() : '';
+          run.sent = false; run.acknowledged = false; run.attempt = 2;
+          pending(run, 'installing');
+          if (!owns(run)) return;
+          if (run.cancelRequested) { finish(run, { phase: 'cancelled', version: target.version }); return; }
+          reply = await install();
+          if (!owns(run)) return;
+        }
+        if (reply.ok && reply.value?.application === 'cancelled') {
+          finish(run, { phase: 'cancelled', version: target.version }); return;
         }
         // +--- 官方明确未改变安装状态时才使用已知原因；异常/磁盘前移仍是未知结果 ---+
         finalGitTimeout = isUnchangedGitTimeout(reply);
@@ -121,16 +205,16 @@ export function createUpdateController(
         }
         if (!reply.ok || !reply.value?.changed || !['restart-required', 'applied'].includes(reply.value.application ?? '')) throw new Error('installation not accepted');
         candidate = null;
-        if (disposed) return;
+        if (!owns(run)) return;
         let active = reply.value.application === 'applied';
         if (!active && activateInstalled) {
           try { active = await activateInstalled(target.version) === true; }
           catch { /* 安装已被官方接受；无法确认运行实现时仍要求重启。 */ }
         }
-        setState({ phase: active ? 'installed' : 'restart', version: target.version });
-      } catch { setState({ phase: 'failed', operation: 'install', version: target.version, ...(failureReason ? { reason: failureReason } : {}), ...(retryAttempt && finalGitTimeout ? { attempt: retryAttempt } : {}) }); }
-      finally { busy = false; }
+        finish(run, { phase: active ? 'installed' : 'restart', version: target.version });
+      } catch { finish(run, { phase: 'failed', operation: 'install', version: target.version, ...(failureReason ? { reason: failureReason } : {}), ...(retryAttempt && finalGitTimeout ? { attempt: retryAttempt } : {}) }); }
+      finally { if (request === run) { request = undefined; busy = false; } }
     },
-    dispose() { disposed = true; candidate = null; listeners.clear(); },
+    dispose() { if (disposed) return; disposed = true; candidate = null; request = undefined; offInstallState?.(); listeners.clear(); },
   };
 }
