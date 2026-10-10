@@ -53,7 +53,7 @@
 - `styles.test.ts`: 视觉规则与上游 token 来源；整排页脚紧凑靠右，正文同字号，GitHub 图稿不带内联基线空白。保留间距、主题与焦点。入口只合成根透明度；原生探针独占测量并隐藏绘制。验证来源文本间距和昵称留白，不抢焦点。
 - `title-toggle.test.ts`: Host 单路径切换及失败状态。
 - `updater.test.ts`: 首次清单等待卸载不安装、重试通知卸载围栏、第二次 PNPM 超时不误报 GitHub；稳定 tag、固定 Git 提交、官方 Remote 回包封套、显式安装、预检查超时最多重试一次与失败原因白名单；第四参 activation hook 仅以 `true` 确认升格 `restart-required`，false/throw 保留 restart，旧三参兼容且 dispose 拒绝迟到成功；安装失败保留目标版本，不假定 Manager 回滚磁盘清单，提示覆盖全部已知结果白名单。
-- `update-badge.test.ts`: 官方详情更新状态只由当前 Client 版本探测；验证 installing 中磁盘版本先变仍显示进度、成功/失败终态保留、失配时无旧 Client 检查/重试，restart Modal 与“稍后”只关闭提示且不模拟一键重启；restart 行内测试只覆盖同一挂载；另以真正详情卸载/重挂验证同 updater 的失败结果，不作跨 Fiber 承诺。
+- `update-badge.test.ts`: 官方详情安装等待委托 Host StateDot；重试和磁盘前移保留 loading，成功/失败/重启立即移除。保留当前 Client 探测、失败重挂及官方 Modal 合同；不代替 Desktop 绘制。
 - `update-source.test.ts`: 公共 GitHub tag 请求的无凭据网络边界；不冒充 Desktop CSP 证明。
 - `dom-tooltip.test.ts`: 非 React 控件跟随宿主 Tooltip 延时与方位参数，卸载彻底清理。
 - `release-check.test.ts`: 隔离 Git 验发布门。长期 Release 章节与双语 README 当前版本分离。拒绝缺章、漂移、脏树及异位 tag。假 gh 拒绝写请求，不创建 tag。

@@ -1,13 +1,13 @@
 /**
- * [INPUT]: 依赖 shared/components 的稳定/RC 身份、官方 plugins.detail.badge 的 Bundle subject、更新控制器、宿主 Button/Tooltip/Modal 与实时原生图标样式探针。
- * [OUTPUT]: 仅正式 Client 匹配自身 Bundle 时探测，RC 不提供更新；清单前移仍显示当前控制器的安装/重启/失败结果，已知安装失败与未知结果分开呈现，失败重试仅对运行版本开放，不承诺跨 Fiber 恢复。
+ * [INPUT]: 依赖稳定/RC 身份、官方 detail.badge、更新控制器与 Host Button/Tooltip/Modal/StateDot。
+ * [OUTPUT]: 安装等待显示 Host loading；终态立即移除。保留固定版本确认、清单前移提示与官方重启 Modal，不承诺跨 Fiber 恢复。
  * [POS]: 更新交互的独立 detail slot；探测跟随详情挂载，不增设后台轮询或设置卡片。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { BUNDLE_NAME, IS_RC_BUNDLE } from '../shared/components.ts';
 import type { UpdateFailureReason } from './updater.ts';
 import React, { useEffect, useState, useSyncExternalStore } from 'react';
-import { Button, Tooltip, Modal } from '@deepseek-ai/dsh-client-ui-primitives';
+import { Button, Tooltip, Modal, StateDot } from '@deepseek-ai/dsh-client-ui-primitives';
 
 const PACKAGE = BUNDLE_NAME;
 const FAILURE_MESSAGES: Record<UpdateFailureReason, string> = {
@@ -55,7 +55,10 @@ export function UpdateBadge({ subject, updater, version, t }) {
         <Button size="sm" data-pdsh-update-install onClick={() => void updater.install()}>{t('installUpdate')}</Button>
         <Button size="sm" variant="ghost" onClick={() => setExpanded(false)}>{t('update.cancel')}</Button>
       </>}
-      {['installing', 'installed', 'restart'].includes(update.phase) && <span role="status">{t(update.phase === 'installing' && update.attempt === 2 ? 'update.retrying' : `update.${update.phase}`)} {update.version}</span>}
+      {inProgress && <span role="status" className="pdsh-update-status" aria-busy={update.phase === 'installing' || undefined}>
+        {update.phase === 'installing' && <StateDot state="ongoing" />}
+        <span>{t(update.phase === 'installing' && update.attempt === 2 ? 'update.retrying' : `update.${update.phase}`)} {update.version}</span>
+      </span>}
       {failedInstall && <>
         <span role="alert" className="pdsh-error">{t(update.reason === 'timeout' && update.attempt === 2 ? 'update.installRetryTimeout' : FAILURE_MESSAGES[update.reason] ?? 'update.installFailed')}</span>
         {runningBundle && <Button size="sm" variant="ghost" onClick={() => void updater.check()}>{t('update.retry')}</Button>}

@@ -13,6 +13,13 @@
   "captureShell": {"implementation": "src/client/capture/capture-window.css", "spacingSource": "--pdsh-field-gap", "spacingSourceFile": "packages/client/ui-primitives/src/settings-form/fields.module.css", "spaceDivisor": 2, "insetMultiplier": 5, "decision": "用户2026-10-04要求外壳上下留白按现有左右对齐；header顶部、workspace左右、footer底部复用同一inset。段落间隔与视口边距不属于外壳inset，保留原值；chrome高度预算补上新增的上下两格。"},
   "detailHeading": {"implementation": "src/client/plugin-detail-typography.ts / styles.css", "scope": "唯一自身 data-plugin-detail 的纯文本 h3", "decision": "标题使用浏览器 text-box: trim-both cap alphabetic 裁去字体留白。版本胶囊与宿主字号不变；不测 Canvas、不写位移。未知结构或不支持的浏览器保留原布局。", "source": "https://developer.chrome.com/blog/css-text-box-trim"},
   "styles": [
+    {
+      "role": "plugin update pending indicator", "providerVersion": "0.2.0-rc.2",
+      "file": "packages/client/ui-primitives/src/StateDot.tsx", "component": "StateDot", "props": { "state": "ongoing" },
+      "runtimeFile": "dsh/node_modules/@deepseek-ai/dsh-client-ui-primitives/lib/index.js#lib/types/StateDot.js",
+      "cssFile": "packages/client/ui-primitives/src/StateDot.module.css",
+      "acquisition": "核对本机精确rc.2导出与实现。直接调用Host组件，由Host提供大小、颜色、旋转及reduced-motion；PDSH只排列状态文字，不复制SVG或动画。"
+    },
     { "role": "collapsed sidebar session camera",
       "file": "packages/client/ui-conversation/src/client/contract/slots.ts / packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx / packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css / packages/client/ui-layout/src/client/AppFrame.tsx / packages/client/ui-primitives/src/Button.tsx",
       "selector": "conversation.session.header.utilities / root AppFrame data-sidebar-collapsed / Button size=sm",
