@@ -89,21 +89,21 @@
   },
   "dependencies": {
     "@deepseek-ai/dsh-typert-protocol": "0.2.0-rc.2",
-    "@deepseek-ai/schemastery": "3.18.4",
+    "@deepseek-ai/schemastery": "3.18.5",
     "blobatar": "2.7.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "4.0.4",
+    "@deepseek-ai/cordis": "4.0.5",
     "@deepseek-ai/dsh-typert-generator": "0.2.0-rc.2",
     "@deepseek-ai/dsh-typert-registry": "0.2.0-rc.2",
     "@types/node": "22",
-    "@types/react": "18",
-    "@types/react-dom": "18",
-    "esbuild": "0.25.12",
+    "@types/react": "19",
+    "@types/react-dom": "19",
+    "esbuild": "0.28.2",
     "jsdom": "26.1.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "typescript": "6.0.3"
   },
   "peerDependencies": {

@@ -27,7 +27,7 @@ jobs:
       - name: Install locked test dependencies
         shell: pwsh
         run: |
-          npm install --global pnpm@10.6.1
+          npm install --global pnpm@10.34.7
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           pnpm install --frozen-lockfile
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
