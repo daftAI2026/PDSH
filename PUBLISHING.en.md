@@ -237,6 +237,30 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
 
+## 0.5.12 Repair-Tag Validation: Host Upgrade Adaptation
+
+Restore entry integration with DeepSeek Harness Desktop 0.2.2-rc.1.
+Read live artwork and stroke data after native search icons move to same-document symbols.
+Resolve the search label from the Host dictionary instead of embedding native translations.
+Read sidebar state from its unique layout owner instead of fixed wrapper depths.
+Use one-line Chinese and English Markdown details with Host locale fallback.
+Unknown or ambiguous structures still hide the entry; do not guess future hosts.
+
+The same-source Mac RC passed both workspace entries, the title toggle, and short details.
+The collapsed-sidebar session camera, initial capture, retake, and close passed.
+The RC was uninstalled; the stable bundle and its original settings were restored.
+Desktop was not quit or restarted during these actions.
+The stable archive and exact Host must still pass their independent gates.
+The user authorized pushing main and v0.5.12 before testing the green update entry.
+That upgrade must confirm the fixed SHA, actual features, and unchanged processes.
+An RC first installation does not prove the stable-tag upgrade.
+
+The user will arrange Windows Desktop verification after the tag is available.
+Final pixel-by-pixel native PNG alignment and restart persistence remain unverified.
+This version does not change the native helpers, capture, save, or wallpaper contracts.
+Existing unverified gates remain separate; do not report them as passed.
+Do not create a GitHub Release or publish to npm for this version.
+
 ## 0.5.11 Repair-Tag Validation: Root Config Hot Reload
 
 Keep one Bundle, one root Entry, and the existing settings address.
