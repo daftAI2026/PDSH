@@ -1,7 +1,7 @@
 <!--
-[INPUT]: 依赖 locale/en.json 的 meta.detail 语言选择。
-[OUTPUT]: 提供插件页的一行英文详情。
-[POS]: 包内短详情；完整产品说明留在根 README。
+[INPUT]: 依赖 locale/en.json 的语言选择与根 README.en.md 的使用文档。
+[OUTPUT]: 提供插件详情页的英文使用说明链接。
+[POS]: 包内详情只提供文档入口，不重复简介或展开 README。
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 -->
-Configure identity, title masking, and screenshots below. No session isolation.
+[Usage guide](https://github.com/daftAI2026/PDSH/blob/main/README.en.md)

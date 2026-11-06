@@ -237,6 +237,18 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
 
+## 0.5.13 Release Decision: Usage Guide Entry
+
+Keep the existing summary; each localized detail contains only a usage guide link.
+The Chinese link opens the repository README; the English link opens the English README.
+Keep meta.detail so the full README does not return above the settings.
+Do not change features, Config, Remote protocols, native helpers, or the update path.
+The user authorized publishing main and v0.5.13 directly for this documentation change.
+Do not create an RC, install the bundle, or restart Desktop for this release.
+Check the full contracts, stable archive, and exact Host independently.
+Do not report earlier Desktop results as this version's Desktop acceptance.
+Keep existing unverified boundaries; do not create a GitHub Release or publish to npm.
+
 ## 0.5.12 Repair-Tag Validation: Host Upgrade Adaptation
 
 Restore entry integration with DeepSeek Harness Desktop 0.2.2-rc.1.

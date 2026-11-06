@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖发布清单、官方 locale 资源入口与 Client 的语言字典。
- * [OUTPUT]: 验证双语元信息、短详情及运行文案，核对图标跟随宿主色彩方案。
+ * [INPUT]: 依赖发布清单、双语说明入口、官方 locale 与 Client 字典。
+ * [OUTPUT]: 验证双语元信息、固定说明链接及运行文案，核对宿主图标色彩。
  * [POS]: PDSH 本地化与清单图标合同；实际宿主热切换/草稿保留由独立 runtime 另验。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -20,7 +20,7 @@ test('官方资源入口公开两种包文本，且发行包包含发现入口',
   }
 });
 
-test('meta.detail 随宿主语言指向包内短 Markdown，完整 README 不作详情正文', () => {
+test('meta.detail 随宿主语言提供说明链接，不重复简介或展开 README', () => {
   assert.equal(manifest.files.includes('locale/*.md'), false, '不把局部 CLAUDE.md 打入归档');
   const details = [];
   for (const language of ['zh', 'en']) {
@@ -35,7 +35,8 @@ test('meta.detail 随宿主语言指向包内短 Markdown，完整 README 不作
     details.push(body);
   }
   assert.notEqual(details[0], details[1]);
-  assert.match(details[0], /下方/); assert.match(details[1], /below/);
+  assert.equal(details[0], '[使用说明](https://github.com/daftAI2026/PDSH#readme)');
+  assert.equal(details[1], '[Usage guide](https://github.com/daftAI2026/PDSH/blob/main/README.en.md)');
 });
 
 test('运行文案两种语言键一致，语言提示使用宿主设置而非自建状态', async () => {
