@@ -7,7 +7,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,6 +15,12 @@ import { assertWindowsPrivateOwnership } from '../tools/windows-temp-ownership.t
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const verifier = process.env.PDSH_HOST_VERIFIER ?? join(root, 'verify-host.ts');
+
+test('隔离验收装配官方 HMR，不用排队桩冒充新版 profile reconciliation', () => {
+  const source = readFileSync(verifier, 'utf8');
+  assert.match(source, /importHostModule\(requireFromHost, '@deepseek-ai\/dsh-hmr'\)/);
+  assert.doesNotMatch(source, /ctx\.provide\('hmr'|hmrScheduleStub/);
+});
 
 function createDirectoryLink(target: string, linkPath: string): void {
   symlinkSync(target, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
@@ -49,16 +55,18 @@ function fixture() {
   const dir = mkdtempSync(join(tmpdir(), 'pdsh-host-safety-'));
   const host = join(dir, 'host');
   mkdirSync(host);
-  writeFileSync(join(host, 'package.json'), '{"name":"empty-host-fixture"}\n');
+  writeFileSync(join(host, 'package.json'), '{"name":"empty-host-fixture","version":"0.2.2-rc.1"}\n');
+  const runtimeManifest = join(dir, 'runtime.json');
+  writeFileSync(runtimeManifest, JSON.stringify({ desktopVersion: '0.2.2-rc.1', node: '24.21.0', pnpm: '11.28.5' }));
   const tgz = join(dir, 'never-installed.tgz');
   writeFileSync(tgz, 'Not an installable package: preflight must reject first.\n');
   const fakePnpm = join(dir, 'old-pnpm.cjs');
   const argsPath = join(dir, 'observed-args.json');
   writeFileSync(fakePnpm, `require('node:fs').writeFileSync(${JSON.stringify(argsPath)}, JSON.stringify(process.argv.slice(2)));\nprocess.stdout.write('10.0.0\\n');\n`, { mode: 0o700 });
   return {
-    dir, argsPath,
+    dir, argsPath, runtimeManifest,
     run(profile: string, command = { command: process.execPath, args: [fakePnpm] as unknown[] }, candidateRoot?: string) {
-      const result = spawnSync(process.execPath, ['--experimental-strip-types', verifier, host, profile, tgz, JSON.stringify(command),
+      const result = spawnSync(process.execPath, ['--experimental-strip-types', verifier, host, profile, tgz, JSON.stringify({runtimeManifest, ...command}),
         ...(candidateRoot ? ['green', candidateRoot] : [])], {
         encoding: 'utf8', timeout: 60_000,
       });
@@ -159,7 +167,7 @@ test('合法临时 profile 通过路径门，但旧版包管理器不能冒充�
   try {
     const result = h.run(join(h.dir, 'consumer'));
     assert.notEqual(result.status, 0);
-    assert.match(result.output, /PNPM 11\.7/);
+    assert.match(result.output, /PNPM.*11\.28\.5/);
     assert.doesNotMatch(result.output, /非 OS 临时目录/);
     const args = JSON.parse(readFileSync(h.argsPath, 'utf8'));
     assert.ok(args.includes(`--store-dir=${join(h.dir, 'consumer', '.plugin-manager', 'pnpm-store')}`), '必须使用当前临时 profile 的独立 store，不改写全局缓存');
@@ -172,6 +180,29 @@ test('验收器拒绝非字符串的 PNPM 参数', () => {
     const result = h.run(join(h.dir, 'consumer'), { command: process.execPath, args: [42] });
     assert.notEqual(result.status, 0);
     assert.match(result.output, /args 必须全为字符串/);
+  } finally { h.dispose(); }
+});
+
+test('包管理器精确版本来自目标 runtime 清单，不固定为历史 minor', () => {
+  const h = fixture();
+  try {
+    const current = join(h.dir, 'current-pnpm.cjs');
+    writeFileSync(current, "process.stdout.write('11.28.5\\n')");
+    const result = h.run(join(h.dir, 'consumer'), { command: process.execPath, args: [current] });
+    assert.notEqual(result.status, 0, '坏归档仍不能通过后续真实产物门');
+    assert.match(result.output, /Host package manager: pnpm 11\.28\.5/);
+    assert.match(result.output, /Unrecognized archive format|not a tar archive/);
+  } finally { h.dispose(); }
+});
+
+test('其他宿主的 runtime 清单不能证明当前包管理器来源', () => {
+  const h = fixture();
+  try {
+    writeFileSync(h.runtimeManifest, JSON.stringify({ desktopVersion: '0.1.0', pnpm: '10.0.0', node: '24.21.0' }));
+    const result = h.run(join(h.dir, 'consumer'));
+    assert.notEqual(result.status, 0);
+    assert.match(result.output, /runtime.*宿主版本/);
+    assert.equal(existsSync(h.argsPath), false, '不运行来源失配的包管理器');
   } finally { h.dispose(); }
 });
 

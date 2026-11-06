@@ -1,6 +1,7 @@
 {
   "meta": {
     "title": "DSH Private Mode",
-    "description": "Mask sidebar titles, customize display aliases, and capture and redact this window. No session isolation."
+    "description": "Mask sidebar titles, customize display aliases, and capture and redact this window. No session isolation.",
+    "detail": "locale/detail.en.md"
   }
 }

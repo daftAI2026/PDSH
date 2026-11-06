@@ -111,6 +111,14 @@ macOS 最终正式安装件的原生 PNG 候选对位仍未验。
 
 ## 必须分开的检查
 
+隔离 Host 验收读取同代官方 runtime 清单。
+`verify-host.ts` 的 PNPM 命令 JSON 须含 `runtimeManifest`。
+该字段指向官方 `primary-runtime/runtime.json`。
+清单宿主版本须匹配 fixture，实际 PNPM 须匹配清单。
+工具记录两者摘要，不固定历史 PNPM minor。
+验收进程传 `--expose-internals`，装配官方 HMR。
+不再用排队桩代替官方 profile reconciliation。
+
 ### 系统壁纸与本地图库
 
 0.5.5 增加 Windows x64 本机系统壁纸获取。

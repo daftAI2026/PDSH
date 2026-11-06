@@ -133,7 +133,13 @@ function environment({ value = {}, status = 'ready', bridge = false, failRoot = 
   };
   const locale = {
     register(ns, values) { assert.equal(ns, NS); assert.ok(!dictionariesByNamespace.has(ns)); dictionariesByNamespace.set(ns, values); return () => dictionariesByNamespace.delete(ns); },
-    bind(ns) { return key => dictionariesByNamespace.get(ns)[locale.getSnapshot().active][key]; },
+    bind(ns) {
+      if (ns === 'workspace') return key => {
+        assert.equal(key, 'search.sessions.aria');
+        return activeLocale === 'en' ? 'Search sessions' : '搜索会话';
+      };
+      return key => dictionariesByNamespace.get(ns)[locale.getSnapshot().active][key];
+    },
     getSnapshot() { return { active: activeLocale }; },
     subscribe(fn) { localeListeners.add(fn); return () => localeListeners.delete(fn); },
   };
@@ -199,7 +205,11 @@ function environment({ value = {}, status = 'ready', bridge = false, failRoot = 
       return { node, render, close };
     },
     changeLocale(next) {
-      act(() => { activeLocale = next; for (const listener of [...localeListeners]) listener(); });
+      act(() => {
+        activeLocale = next;
+        doc.querySelector('button[aria-label="搜索会话"], button[aria-label="Search sessions"]')?.setAttribute('aria-label', next === 'en' ? 'Search sessions' : '搜索会话');
+        for (const listener of [...localeListeners]) listener();
+      });
     },
     async update(fields, nextStatus = snapshot.status) {
       snapshot.status = nextStatus; snapshot.revision++;

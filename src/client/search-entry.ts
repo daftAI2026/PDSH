@@ -1,12 +1,10 @@
 /**
- * [INPUT]: 依赖原生搜索结构、实时 class/显示尺寸/viewBox/计算线宽/根透明度/CSS 变量、可选标题/截图控制器；两者可分别关闭。
+ * [INPUT]: 依赖当前 Host 搜索标签、实时原生图稿与样式，以及两项独立控制器。
  * [OUTPUT]: 提供拍摄时保留的帽子及右侧相机入口与局部焦点修复；线宽按原生坐标比例换算、整体合成透明度，未知几何退让，卸载还原搜索。
  * [POS]: PDSH 版本相关 DOM 适配边界；非官方 child slot，与身份显示控制器相互独立。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import { matchNativeIconStroke } from './native-icon.ts';
-
-const SEARCH = 'button[aria-label="搜索会话"], button[aria-label="Search sessions"]';
 
 // +--- 跟踪实际命中的CSS声明，不把主题颜色冻结为RGB ---+
 function colorReference(doc, element) {
@@ -36,10 +34,11 @@ function colorReference(doc, element) {
   return null;
 }
 
-function locate(doc) {
+function locate(doc, searchLabel: string) {
+  if (!searchLabel) return null;
   const regions = doc.querySelectorAll('[data-slot="sidebar.workspaces"]');
   if (regions.length !== 1) return null;
-  const buttons = regions[0].querySelectorAll(SEARCH);
+  const buttons = [...regions[0].querySelectorAll('button[aria-label]')].filter(button => button.getAttribute('aria-label') === searchLabel);
   if (buttons.length !== 1) return null;
   const button = buttons[0], search = button.parentElement, root = regions[0].firstElementChild;
   if (!root || !search || button.type !== 'button' || !button.className || !button.querySelector('svg')) return null;
@@ -58,7 +57,7 @@ function attribute(node, name, value) {
   if (node.getAttribute(name) !== value) node.setAttribute(name, value);
 }
 
-export function mountSearchEntry(doc: Document, { icon = null, label = (): string => '', state = () => ({ pressed: false, busy: false, disabled: false }), onActivate = () => {}, capture = null } = {}) {
+export function mountSearchEntry(doc: Document, { icon = null, searchLabel = (): string => '', label = (): string => '', state = () => ({ pressed: false, busy: false, disabled: false }), onActivate = () => {}, capture = null } = {}) {
   let shell: HTMLElement | null = null, disposed = false, sampledElement = null, sampledKey = '', sampledColor = null;
   function makeControl(source, marker, readState, readLabel, activate, pressed = false) {
     const template = doc.createElement('template'); template.innerHTML = source;
@@ -82,7 +81,7 @@ export function mountSearchEntry(doc: Document, { icon = null, label = (): strin
   }
   function synchronize() {
     if (disposed || !controls.length) return;
-    const native = locate(doc);
+    const native = locate(doc, searchLabel());
     if (!native) { detach(); return; }
     const nativeSvg = native.button.querySelector('svg'), size = doc.defaultView.getComputedStyle(nativeSvg);
     if (!(Number.parseFloat(size.width) > 0 && Number.parseFloat(size.height) > 0)) { detach(); return; }
@@ -143,7 +142,7 @@ export function mountSearchEntry(doc: Document, { icon = null, label = (): strin
     if (records.some(record => doc.head.contains(record.target))) sampledKey = '';
     synchronize();
   });
-  if (controls.length) observer.observe(doc.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-theme', 'data-dsw-theme', 'aria-label', 'aria-expanded', 'style', 'width', 'height', 'viewBox', 'stroke-width', 'vector-effect'] });
+  if (controls.length) observer.observe(doc.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-theme', 'data-dsw-theme', 'aria-label', 'aria-expanded', 'style', 'width', 'height', 'viewBox', 'stroke-width', 'vector-effect', 'href', 'id', 'transform'] });
   const refreshStyles = () => { sampledKey = ''; synchronize(); };
   doc.defaultView.addEventListener('resize', refreshStyles);
   synchronize();

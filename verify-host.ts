@@ -1,8 +1,14 @@
 /**
- * [INPUT]: 精确 DSH Host、候选归档与官方 PNPM。Windows 用真实 ACL 验临时路径所有权。
- * [OUTPUT]: 验官方安装、可选固定旧版升级、身份原子配置、基础与扩展注册及生命周期。不取像或下载媒体。
+ * [INPUT]: 精确 Host、候选归档及同代 runtime 清单与 PNPM。Windows 验真实 ACL。
+ * [OUTPUT]: 验官方 Manager/HMR 安装、身份配置与业务生命周期。不取像或下载媒体。
  * [POS]: 仓库根目录的集成验收入口；只操作调用方指定且 owner/权限验证的临时 profile，不改写 DSH 用户 profile 或替代官方解析器。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ *
+ * +--- PNPM 命令 JSON ---+
+ * command/args 指向目标安装件的 PNPM。
+ * runtimeManifest 指向官方 primary-runtime/runtime.json。
+ * 清单的 desktopVersion 须匹配 fixture；实际 PNPM 须匹配清单。
+ * 启动此验收进程时传 --expose-internals；官方 HMR 自行使用 Loader 能力。
  */
 
 import assert from 'node:assert/strict'
@@ -22,6 +28,7 @@ type PackageManagerCommand = {
   command: string
   args?: string[]
   env?: Record<string, string>
+  runtimeManifest?: string
 }
 
 function usage(): never {
@@ -97,6 +104,7 @@ function readPackageManagerCommand(input: string, profile: string): PackageManag
   assertOwnedTempDirectory(join(managerDir, 'pnpm-store'))
   return {
     command: command.command!,
+    runtimeManifest: command.runtimeManifest,
     args: [...(command.args ?? []), `--store-dir=${join(managerDir, 'pnpm-store')}`],
     env: {
       ...safeEnv,
@@ -222,7 +230,17 @@ async function assertRuntimeCapabilities(ctx: any, identity: AcceptanceIdentity,
   console.log(`PASS runtime-capabilities: implementationVersion=${version}; real owner, strict descriptors, wallpaper/geometry handshakes and empty record (no media requested)`)
 }
 
-function assertPnpm11(manager: PackageManagerCommand, profile: string): void {
+function assertHostPackageManager(manager: PackageManagerCommand, profile: string, fixtureRoot: string): void {
+  // +--- 精确版本来自目标安装件；不能用历史 minor 或任意全局 PNPM 冒充 ---+
+  const manifest = manager.runtimeManifest
+  assert.ok(typeof manifest === 'string' && isAbsolute(manifest) && existsSync(manifest),
+    'PNPM runtimeManifest 必须指向官方 runtime 清单的绝对路径')
+  const entry = lstatSync(manifest)
+  assert.ok(entry.isFile() && !entry.isSymbolicLink(), 'runtime 清单必须是普通文件')
+  const runtime = JSON.parse(readFileSync(manifest, 'utf8'))
+  const host = JSON.parse(readFileSync(join(fixtureRoot, 'package.json'), 'utf8'))
+  assert.ok(typeof host.version === 'string' && runtime.desktopVersion === host.version, 'runtime 清单与宿主版本不一致')
+  assert.ok(typeof runtime.pnpm === 'string' && /^\d+\.\d+\.\d+$/.test(runtime.pnpm), 'runtime 清单缺少精确 PNPM 版本')
   const hostEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(?:npm|pnpm)_config_/i.test(key)))
   const output = execFileSync(manager.command, [...manager.args!, '--version'], {
     cwd: profile,
@@ -230,10 +248,10 @@ function assertPnpm11(manager: PackageManagerCommand, profile: string): void {
     env: { ...hostEnv, ...manager.env },
     timeout: 10_000,
   }).trim()
-  assert.match(output, /^11\.7\./, `验收必须运行 DSH 随附 PNPM 11.7，实际为 ${output}`)
+  assert.equal(output, runtime.pnpm, `验收必须运行目标 runtime 随附 PNPM ${runtime.pnpm}，实际为 ${output}`)
   const fingerprint = (path: string) => ({ path: realpathSync.native(path), sha256: createHash('sha256').update(readFileSync(path)).digest('hex') })
   const entrypoint = manager.args?.find(arg => isAbsolute(arg) && existsSync(arg) && lstatSync(arg).isFile())
-  console.log(`Host package manager: pnpm ${output}; tool proof=${JSON.stringify({command:fingerprint(manager.command), entrypoint:entrypoint ? fingerprint(entrypoint) : undefined})}`)
+  console.log(`Host package manager: pnpm ${output}; tool proof=${JSON.stringify({command:fingerprint(manager.command), entrypoint:entrypoint ? fingerprint(entrypoint) : undefined, runtimeManifest:fingerprint(manifest)})}`)
 }
 
 async function main(): Promise<void> {
@@ -259,13 +277,13 @@ async function main(): Promise<void> {
   assertEmptyConsumer(consumerProfile)
   const registry = managerRegistry(consumerProfile)
   const packageManager = readPackageManagerCommand(pmArg, consumerProfile)
-  assertPnpm11(packageManager, consumerProfile)
+  assertHostPackageManager(packageManager, consumerProfile, fixtureRoot)
   const packedProof = expectedResult === 'green' && !isGithub ? validatePackedBundle(candidateRoot, installSource) : undefined
   if (packedProof) console.log(`Artifact proof: ${JSON.stringify(packedProof)}`)
   const requireFromHost = createRequire(installAnchor)
 
   // 使用 Host 安装树中的模块，不从当前项目 node_modules 偷渡 Host 版本。
-  const [cordis, loaderModule, settingsModule, editorModule, boot, clientModules, registryModule, typertLoaderModule, managerModule] = await Promise.all([
+  const [cordis, loaderModule, settingsModule, editorModule, boot, clientModules, registryModule, typertLoaderModule, managerModule, hmrModule, timerModule] = await Promise.all([
     importHostModule(requireFromHost, '@deepseek-ai/cordis'),
     importHostModule(requireFromHost, '@deepseek-ai/cordis-plugin-loader'),
     importHostModule(requireFromHost, '@deepseek-ai/dsh-settings'),
@@ -275,6 +293,8 @@ async function main(): Promise<void> {
     importHostModule(requireFromHost, '@deepseek-ai/dsh-typert-registry'),
     importHostModule(requireFromHost, '@deepseek-ai/dsh-typert-loader'),
     importHostModule(requireFromHost, '@deepseek-ai/dsh-plugin-manager'),
+    importHostModule(requireFromHost, '@deepseek-ai/dsh-hmr'),
+    importHostModule(requireFromHost, '@deepseek-ai/cordis-plugin-timer'),
   ])
 
   const Context = cordis.Context ?? cordis.default?.Context
@@ -285,7 +305,9 @@ async function main(): Promise<void> {
   const ClientModuleRegistry = clientModules.ClientModuleRegistry
   const TypertRegistry = registryModule.default ?? registryModule.TypertRegistry
   const PluginManager = managerModule.PluginManager ?? managerModule.default
-  assert.ok(Context && Loader && Settings && ConfigEditor && PluginPackages && ClientModuleRegistry && TypertRegistry && typertLoaderModule.apply && PluginManager,
+  const Hmr = hmrModule.default
+  const Timer = timerModule.default
+  assert.ok(Context && Loader && Settings && ConfigEditor && PluginPackages && ClientModuleRegistry && TypertRegistry && typertLoaderModule.apply && PluginManager && Hmr && Timer,
     '精确 DSH fixture 缺少验收所需官方模块')
 
   const profileName = basename(consumerProfile)
@@ -303,19 +325,10 @@ async function main(): Promise<void> {
   const baseUrl = pathToFileURL(join(consumerProfile, 'package.json')).href
   const ctx = new Context()
   ctx.baseUrl = baseUrl
-  let queue = Promise.resolve()
-  const hmrScheduleStub = {
-    runExclusive<T>(operation: () => Promise<T> | T): Promise<T> {
-      const run = queue.then(operation)
-      queue = run.then(() => undefined, () => undefined)
-      return run
-    },
-  }
 
   try {
     await ctx.plugin(TypertRegistry).await()
     ctx.provide('profileContext', profileContext)
-    ctx.provide('hmr', hmrScheduleStub)
 
     const empty = boot.loadProfileDirectory('dsh', consumerProfile, installAnchor)
     assert.deepEqual(empty.layers, [], '起始 profile 意外加载了 Bundle layer')
@@ -330,6 +343,12 @@ async function main(): Promise<void> {
     await boot.mountRootInclude(ctx, join(consumerProfile, 'cordis.yml'), [], baseUrl)
     await ctx.loader.await()
     assert.equal(activePdshRows(ctx, rootEntry).length, 0, '安装前必须没有 PDSH Host 行')
+
+    // +--- 临时 Host 已完成真实 Loader 装配；readiness 只属于此无 UI 夹具 ---+
+    assert.equal(ctx.fiber.state, 2, '临时 Host 尚未活动')
+    ctx.provide('appReady', { onReady(listener: () => void) { listener(); return () => {} } })
+    await ctx.plugin(Timer).await()
+    await ctx.plugin(Hmr, { base: pathToFileURL(`${consumerProfile}${sep}`).href, root: [], ignored: ['**/node_modules'] }).await()
 
     await ctx.plugin(PluginManager, {
       registry,

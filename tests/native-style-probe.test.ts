@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 jsdom 的计算样式、原生控件探针 fixture 与 native-style-probe.ts 生命周期适配器。
+ * [INPUT]: 依赖原生控件探针、内联与 symbol 图稿、jsdom 计算样式。
  * [OUTPUT]: 验证原生控件、图标与 Tooltip 测量随变化同步，合法零长度保真、目标缺席时清理陈旧值且卸载归还原值。
  * [POS]: 原生样式边界的回归合同；真实 Tooltip bubble fixture 只证明计算样式读取，不冒充真实 DSH Desktop 验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -95,6 +95,22 @@ function assertLightMeasurements(doc) {
     ['--pdsh-tooltip-max-width', '48vw'], ['--pdsh-tooltip-layer', '2400'],
   ]) assert.equal(value(doc, property), expected, property);
 }
+
+test('原生探针同步读取 symbol 实际图稿，替换图稿后重采且不保留旧密度', async () => {
+  const { dom, doc, root } = setup();
+  const svg = root.querySelector('button svg');
+  svg.removeAttribute('viewBox'); svg.innerHTML = '<use href="#native-check" />';
+  doc.body.insertAdjacentHTML('afterbegin', '<svg data-dsh-icon-sprite><symbol id="native-check" viewBox="0 0 28 28" style="stroke-width:1.75px"><path stroke="currentColor" d="M1 1L8 8" /></symbol></svg>');
+  const controller = mountNativeStyleProbe(doc, root);
+  assert.equal(value(doc, '--pdsh-native-icon-stroke-ratio'), '0.0625');
+  doc.querySelector('symbol').setAttribute('viewBox', '0 0 56 56');
+  await tick(dom.window);
+  assert.equal(value(doc, '--pdsh-native-icon-stroke-ratio'), '0.03125');
+  doc.querySelector('symbol').remove();
+  await tick(dom.window);
+  assert.equal(value(doc, '--pdsh-native-icon-stroke-ratio'), '');
+  controller.dispose(); dom.window.close();
+});
 
 test('初次读取 Input wrap、Button、Switch 与设置字段的宿主几何', () => {
   const { dom, doc, root } = setup();

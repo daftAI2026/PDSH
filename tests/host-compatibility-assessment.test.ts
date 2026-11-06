@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖只读静态扫描 API、隔离临时目录与平台目录重解析点。
+ * [INPUT]: 依赖真实 manifest、只读扫描 API 与隔离目录夹具。
  * [OUTPUT]: 验证只读清单、七类触点、重解析点拒绝和 CLI/导入无副作用。
  * [POS]: 宿主依赖盘点器的黑盒合同；只读合成 fixture，不访问 DSH、远端或用户 profile。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -16,6 +16,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { assessHostCompatibility } from '../tools/assess-host-compatibility.ts';
 
 const TOOL = fileURLToPath(new URL('../tools/assess-host-compatibility.ts', import.meta.url));
+
+test('公开 peer 接受已验的 Cordis 两代，不宣称任意未来主版本兼容', () => {
+  const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.equal(manifest.peerDependencies['@deepseek-ai/cordis'], '~4.0.4 || ~4.1.0');
+});
 
 function createDirectoryLink(target: string, linkPath: string): void {
   symlinkSync(target, linkPath, process.platform === 'win32' ? 'junction' : 'dir')

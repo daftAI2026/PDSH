@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖宿主实际渲染的 Input/Button/Switch/SettingsValueField/Tooltip 探针和 native-icon 的坐标换算。
+ * [INPUT]: 依赖真实控件探针与 native-icon 的内联或 symbol 图稿采样。
  * [OUTPUT]: 提供 mountNativeStyleProbe 控制器；主题、样式、尺寸变化重采并跟随控件重建转移观察权，数值未变不写回，来源缺失撤销旧值，卸载归还自有变量。
  * [POS]: Client 的原生样式效果边界；React 只装配真实控件，设置、截图和 DOM Tooltip 共用实时测量值。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -111,7 +111,7 @@ export function mountNativeStyleProbe(doc: Document, root: HTMLElement) {
   const observer = new view.MutationObserver(schedule);
   const resize = view.ResizeObserver ? new view.ResizeObserver(schedule) : null;
   const media = ['(prefers-color-scheme: dark)', '(prefers-reduced-motion: reduce)'].map(query => view.matchMedia?.(query)).filter(Boolean);
-  observer.observe(doc.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'style', 'data-theme', 'data-dsw-theme', 'href', 'disabled', 'viewBox', 'stroke-width', 'vector-effect', 'width', 'height'] });
+  observer.observe(doc.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'style', 'data-theme', 'data-dsw-theme', 'href', 'id', 'disabled', 'viewBox', 'stroke-width', 'vector-effect', 'transform', 'width', 'height'] });
   view.addEventListener('resize', schedule);
   doc.addEventListener('load', schedule, true);
   for (const query of media) query.addEventListener('change', schedule);

@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实侧栏适配器、相机 JSX 和 React/jsdom。
- * [OUTPUT]: 验证收起态、点击围栏、语言及资源归还。
+ * [OUTPUT]: 验证包装层变化、收起态、点击围栏、语言及资源归还。
  * [POS]: 会话入口合同。控件桩不证明 Desktop 排版。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -86,6 +86,49 @@ async function fixture({ collapsed = false } = {}) {
     },
   };
 }
+
+test('主内容包装层变化后仍读取共同 AppFrame，首轮及移动后均保留会话相机', async () => {
+  const h = await fixture({ collapsed: true });
+  try {
+    const main = h.doc.querySelector('[data-slot="main"]');
+    await h.mutate(() => {
+      const wrapper = h.doc.createElement('div');
+      main.replaceWith(wrapper); wrapper.append(main);
+    });
+    assert.equal(h.sidebar.getSnapshot(), true);
+    assert.ok(h.button());
+    await h.collapse(false); assert.equal(h.button(), null);
+    await h.collapse(true); assert.ok(h.button());
+    const fresh = createSidebarState(h.doc);
+    assert.equal(fresh.getSnapshot(), true, '初次挂载不等待后续布局事件');
+    fresh.dispose();
+    assert.equal(h.calls.length, 0);
+  } finally { await h.close(); }
+});
+
+test('sidebar/main 彼此嵌套或分属不同布局时不猜收起状态', () => {
+  for (const html of [
+    '<div data-slot="root"><div data-sidebar-collapsed><div data-slot="sidebar"><div data-slot="main"></div></div></div></div>',
+    '<div data-slot="root"><div><div data-slot="sidebar"></div></div><div><div data-slot="main"></div></div></div>',
+  ]) {
+    const dom = new JSDOM(html), state = createSidebarState(dom.window.document);
+    assert.equal(state.getSnapshot(), undefined);
+    state.dispose(); dom.window.close();
+  }
+});
+
+test('两列新增共同包装层后，仍跟随外层实际收起属性与再次展开', async () => {
+  const h = await fixture({ collapsed: true });
+  try {
+    await h.mutate(() => {
+      const frame = h.frame(), wrapper = h.doc.createElement('div');
+      wrapper.append(...frame.children); frame.append(wrapper);
+    });
+    assert.equal(h.sidebar.getSnapshot(), true); assert.ok(h.button());
+    await h.collapse(false); assert.equal(h.sidebar.getSnapshot(), false); assert.equal(h.button(), null);
+    await h.collapse(true); assert.equal(h.sidebar.getSnapshot(), true); assert.ok(h.button());
+  } finally { await h.close(); }
+});
 
 test('真实相机视图只在唯一 AppFrame 收起时呈现，展开撤回', async () => {
   const h = await fixture();

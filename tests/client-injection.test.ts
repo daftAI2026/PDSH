@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖唯一生成 Client、Cordis 真注册器、ReactDOM portal 与 Mac/Win Navigator 夹具。
+ * [INPUT]: 依赖生成 Client、Cordis 真注册器、Host 搜索字典与平台夹具。
  * [OUTPUT]: 验证截图字段、两入口注册和 Remote 撤回。
  * [POS]: Client 服务图回归；不直调 apply 绕过注入，React root 仅作生命周期桩，不冒充界面或 Main 取像。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -16,6 +16,11 @@ import * as jsx from 'react/jsx-runtime';
 import { JSDOM } from 'jsdom';
 import { DEFAULTS } from '../src/shared/model.ts';
 import { DEFAULT_CAPTURE_EXPORT } from '../src/shared/capture-export.ts';
+
+// +--- Host workspace 字典由宿主先注册，不属于 PDSH 的注册与卸载 ---+
+function bindHostLocale(namespace: string) {
+  return (key: string) => namespace === 'workspace' && key === 'search.sessions.aria' ? '搜索会话' : key;
+}
 
 function fixture(platform = 'MacIntel') {
   const dom = new JSDOM(`<body><main>原页面</main><div data-slot="settings.launcher"><button type="button" data-collapsed="false" data-signed-out="false" aria-haspopup="menu" aria-expanded="false"><span><img src="native.png"></span><span>原身份</span></button></div><div data-slot="sidebar.workspaces"><div><div><div><div><button type="button" class="native-search" aria-label="搜索会话" aria-expanded="false"><svg viewBox="0 0 16 16" style="width:14px;height:14px;stroke-width:1"><circle cx="7" cy="7" r="4"></circle><path d="m10 10 4 4"></path></svg></button><input type="text"></div></div></div><div role="tree" aria-label="工作区与会话"><div role="treeitem" data-row-key="session:one" aria-selected="false"><span><span>状态</span></span><span>秘密标题</span><span>现在</span><span>操作</span></div></div></div></div></body>`, { url: 'dsh-app://app/', pretendToBeVisual: true });
@@ -51,7 +56,7 @@ test('正式单根 Client 无取像服务也启动；官方 Remote namespace 加
       child.provide('slots', { inject: (_name, callback) => callback(), register(options) {
         const key = options.name; assert.ok(!registrations.has(key)); registrations.add(key); return () => registrations.delete(key);
       } });
-      child.provide('locale', { register() { registeredLocale = true; return () => { registeredLocale = false; }; }, bind: () => key => key, subscribe: () => () => {}, getSnapshot: () => ({ active: 'zh' }) });
+      child.provide('locale', { register() { registeredLocale = true; return () => { registeredLocale = false; }; }, bind: bindHostLocale, subscribe: () => () => {}, getSnapshot: () => ({ active: 'zh' }) });
       child.provide('configForms', { get(id) { assert.equal(id, 'pdsh'); return form; }, whileServed(ids, callback) {
         assert.deepEqual([...ids], ['pdsh']); served++; const dispose = callback(); return () => { served--; dispose(); };
       } });
@@ -101,7 +106,7 @@ test('旧 ready Host config 保留身份/标题但不装相机；完整 accepted
   try {
     await ctx.plugin(child => {
       child.provide('slots', { inject: (_name, callback) => callback(), register: () => () => {} });
-      child.provide('locale', { register: () => () => {}, bind: () => key => key, subscribe: () => () => {}, getSnapshot: () => ({ active: 'zh' }) });
+      child.provide('locale', { register: () => () => {}, bind: bindHostLocale, subscribe: () => () => {}, getSnapshot: () => ({ active: 'zh' }) });
       child.provide('configForms', { get: () => form, whileServed: (_ids, callback) => callback() });
       child.provide('remote', { pluginManager: manager, async $mount() { return () => {}; } });
       child.provide('remote.pluginManager', manager);
@@ -139,7 +144,7 @@ test('Windows Client camera requires both a Win navigator and the actual Host Re
   try {
     await ctx.plugin(child => {
       child.provide('slots', { inject: (_name, callback) => callback(), register: () => () => {} });
-      child.provide('locale', { register: () => () => {}, bind: () => key => key, subscribe: () => () => {}, getSnapshot: () => ({ active: 'zh' }) });
+      child.provide('locale', { register: () => () => {}, bind: bindHostLocale, subscribe: () => () => {}, getSnapshot: () => ({ active: 'zh' }) });
       child.provide('configForms', { get: () => form, whileServed: (_ids, callback) => callback() });
       const manager = { listBundles: async () => ({ ok: true, value: [] }) };
       child.provide('remote', { pluginManager: manager, async $mount(){return ()=>{};} });
@@ -197,7 +202,7 @@ test('生成 Client 仅使用官方取像流；旧 pageCapture/Connection 不影
   try {
     await ctx.plugin(child => {
       child.provide('slots', { inject: (_name, callback) => callback(), register: () => () => {} });
-      child.provide('locale', { register: () => () => {}, bind: () => key => key, subscribe: () => () => {}, getSnapshot: () => ({ active: 'zh' }) });
+      child.provide('locale', { register: () => () => {}, bind: bindHostLocale, subscribe: () => () => {}, getSnapshot: () => ({ active: 'zh' }) });
       child.provide('configForms', { get: () => form, whileServed: (_ids, callback) => callback() });
       const manager = { listBundles: async () => ({ ok: true, value: [] }) };
       child.provide('remote', { pluginManager: manager, async $mount(){return ()=>{};} }); child.provide('remote.pluginManager', manager);

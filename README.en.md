@@ -41,7 +41,7 @@ Choose the fixed version `v0.5.11`. Existing users can confirm an upgrade on the
 
 ## Environment and Limits
 
-- Target host: **DeepSeek Harness Desktop 0.2.0-rc.2**, on macOS 14+ (Apple Silicon or Intel) or Windows 10 1903+ x64.
+- Host baseline: **DeepSeek Harness Desktop 0.2.0-rc.2**, with API and layout adapters for **0.2.2-rc.1**. Desktop behavior, native capture alignment, and Windows compatibility on newer hosts require separate acceptance. Supported platforms: macOS 14+ (Apple Silicon or Intel) and Windows 10 1903+ x64.
 - Save as PNG, JPEG, or WebP; copy as PNG. The default folder is `Downloads` under your home directory. You can choose another folder. Duplicate filenames receive a number; existing files are not overwritten. If the save result is unknown, check the folder before retrying.
 - macOS fetches up to five representative wallpapers. Windows selects up to five installed default and theme images; it does not read the user's current wallpaper or download from the network.
 - The gallery and editing preferences stay on your device. The gallery stores no screenshots, source videos, or original filenames. A full store rejects imports rather than deleting images.

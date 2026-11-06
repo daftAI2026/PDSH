@@ -19,7 +19,9 @@
 - 稳定包名为 `@daftai/pdsh`。npm 发布保持关闭。
 - 技术栈：TypeScript + React + Cordis + Typert。
 - 原生助手使用 Objective-C++ 和 Windows C++。
-- 目标宿主为 DeepSeek Harness Desktop `0.2.0-rc.2`。
+- 宿主接口基线为 Desktop `0.2.0-rc.2`。
+- 源码含 `0.2.2-rc.1` 的接口与布局适配。
+- Desktop 与原生像素兼容须独立验收。
 - PDSH 是一个外置 Cordis Bundle，不是独立应用。
 - 保留一个 `pdsh` 根 Config 和一个根 Client。
 - 身份、标题、截图是内部模块，不是三个依赖包。
@@ -81,7 +83,7 @@ InCodex 的所有权与路径安全约束应按目标场景保留。
 | `native/` | 包内 macOS universal 与 Windows x64 助手。 |
 | `lib/` | 官方基础/内部能力面、声明和版本化运行产物。 |
 | `tests/` | Node/jsdom 合同及 Windows 合成窗口原生夹具；不代替 Desktop 验收。 |
-| `locale/` | 中英文导出包元信息。 |
+| `locale/` | 中英文包元信息与语言跟随的短详情。 |
 | `tools/` | 构建、协议生成、RC staging 和只读宿主评估。 |
 | `.agents/skills/pdsh-host-compatibility/` | 宿主升级评估与授权迁移；不安装普通插件更新。 |
 | `.agents/skills/pdsh-release-lifecycle/` | RC 与正式版的验收、恢复和发布；不增加安装器。 |
@@ -96,8 +98,8 @@ InCodex 的所有权与路径安全约束应按目标场景保留。
 | `package.json` / `pnpm-lock.yaml` | 单 Bundle manifest、唯一版本及锁定依赖。 |
 | `cordis.patch.yml` | 唯一 Cordis 插入层。 |
 | `build.ts` / `tsconfig*.json` | 构建与源码类型边界。 |
-| `bundle-artifacts.ts` | 入口、双语 README、二进制、tgz 字节与权限验真。 |
-| `verify-host.ts` | 临时 profile 的官方安装、固定旧版升级、实际业务与生命周期门；Windows 路径须验真实 ACL。 |
+| `bundle-artifacts.ts` | 入口、双语 README 与短详情、二进制及 tgz 字节和权限验真。 |
+| `verify-host.ts` | 临时 profile 的官方安装、旧版升级和生命周期门。PNPM 精确版本来自同代官方 runtime 清单；Windows 验真实 ACL。 |
 | `check-release.ts` | 长期发布章节、双语版本、产物与清洁树门。 |
 | `tools/release-metadata.ts` | 公开简介和 Topics 的唯一声明。 |
 | `tools/pack-rc.ts` | 同源临时 RC 构建；不安装到用户 profile。 |
@@ -326,7 +328,8 @@ L2/L3 必须带固定 PROTOCOL 行。
 - 两相机入口共用一个截图 controller。
 - 会话相机只在侧栏收起时显示。
 - 无 Session 的首页不渲染该会话插槽。
-- 侧栏状态只读 rc.2 AppFrame 语义属性。
+- 侧栏状态只读 AppFrame 的语义收起属性。
+- 侧栏状态核对共同布局归属，不固定祖先层数。
 - root/main/sidebar 归属未知时隐藏会话相机。
 - 根表单完整 accepted 且 revision 一致时才提交。
 - 身份覆盖只作用于唯一识别的 rc.2 sidebar launcher。
@@ -372,6 +375,8 @@ L2/L3 必须带固定 PROTOCOL 行。
 - 不回退到浏览器 title 气泡。
 - 本地图标遵循固定 Lucide 1.51.0 路径。
 - size、stroke 和 opacity 仍由实时 Host probe 决定。
+- 原生图稿支持内联 SVG 与同页官方 symbol。
+- symbol 的 ID、坐标与描边来自当前引用，不写死图标名。
 - 不添加运行时图标库，不替换 Host 原生控件。
 - `background-modes.ts` 对接受控 Host SegmentedControl。
 - None/Color/Gradient/Image 保留四个稳定 ARIA 面板。

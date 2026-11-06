@@ -157,6 +157,14 @@ See [this version's acceptance status](#0510-release-decision-recent-avatars) fo
 
 ## Separate Verification Gates
 
+Isolated Host acceptance reads the matching official runtime manifest.
+The PNPM command JSON passed to `verify-host.ts` must include `runtimeManifest`.
+It points to the official `primary-runtime/runtime.json`.
+Its desktop version must match the fixture, and the executed PNPM version must match the manifest.
+The verifier records both digests instead of pinning a historical PNPM minor.
+Start the verifier with `--expose-internals` so it can mount the official HMR service.
+A queue stub does not replace official profile reconciliation.
+
 ### System Wallpapers and Local Gallery
 
 Version 0.5.5 adds local Windows x64 retrieval of system wallpapers.

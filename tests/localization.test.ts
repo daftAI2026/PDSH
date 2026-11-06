@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖发布清单、官方 locale 资源入口与 Client 的语言字典。
- * [OUTPUT]: 验证包文本可离线发现、zh/en 键齐全，并约束插件图标按宿主色彩方案切换前景。
+ * [OUTPUT]: 验证双语元信息、短详情及运行文案，核对图标跟随宿主色彩方案。
  * [POS]: PDSH 本地化与清单图标合同；实际宿主热切换/草稿保留由独立 runtime 另验。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -18,6 +18,24 @@ test('官方资源入口公开两种包文本，且发行包包含发现入口',
     assert.equal(value.meta.title, language === 'zh' ? 'DSH 私密模式' : 'DSH Private Mode');
     assert.ok(value.meta.description.trim());
   }
+});
+
+test('meta.detail 随宿主语言指向包内短 Markdown，完整 README 不作详情正文', () => {
+  assert.equal(manifest.files.includes('locale/*.md'), false, '不把局部 CLAUDE.md 打入归档');
+  const details = [];
+  for (const language of ['zh', 'en']) {
+    const { meta } = JSON.parse(readFileSync(new URL(`../locale/${language}.json`, import.meta.url), 'utf8'));
+    assert.equal(meta.detail, `locale/detail.${language}.md`);
+    assert.ok(manifest.files.includes(meta.detail));
+    const document = readFileSync(new URL(`../${meta.detail}`, import.meta.url), 'utf8');
+    assert.match(document, /\[PROTOCOL\]: 变更时更新此头部，然后检查 CLAUDE.md/);
+    const body = document.replace(/<!--[\s\S]*?-->/g, '').trim();
+    assert.ok(body.length > 0 && body.length <= 160);
+    assert.equal(body.split('\n').length, 1, '短详情只有一行，不复制产品 README');
+    details.push(body);
+  }
+  assert.notEqual(details[0], details[1]);
+  assert.match(details[0], /下方/); assert.match(details[1], /below/);
 });
 
 test('运行文案两种语言键一致，语言提示使用宿主设置而非自建状态', async () => {

@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 search-entry.ts、帽子/相机线稿资产、原生 SVG 实时 viewBox/strokeWidth/显示尺寸与 rc.2 搜索结构夹具。
+ * [INPUT]: 依赖真实入口适配器、线稿与内联 SVG/symbol 搜索夹具。
  * [OUTPUT]: 验证邻接挂载、状态/导航隔离、拍摄时保留两入口、动态等效笔画、原生样式/透明度、未知几何退让与资源释放。
  * [POS]: PDSH 入口适配合同；不能替代确切 runtime 的真实 React/布局验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -16,9 +16,59 @@ const browser = (wide = true, language = 'zh') => `<div data-slot="sidebar.works
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 function setup(html = browser()) {
   const dom = new JSDOM(`<head><style>.native-search{color:var(--host-search-color)} .native-rail-search{color:var(--host-rail-color)}</style></head><body>${html}</body>`), doc = dom.window.document;
-  const opened = [], options = { icon, label: () => '遮挡侧栏标题', state: () => ({ pressed: false, disabled: false, busy: false }), onActivate: () => opened.push('toggle') };
-  return { dom, doc, opened, options };
+  let hostLabel = html.includes('Search sessions') ? 'Search sessions' : '搜索会话';
+  const opened = [], options = { icon, searchLabel: () => hostLabel, label: () => '遮挡侧栏标题', state: () => ({ pressed: false, disabled: false, busy: false }), onActivate: () => opened.push('toggle') };
+  return { dom, doc, opened, options, setSearchLabel: (value: string) => { hostLabel = value; } };
 }
+
+test('搜索标签取当前宿主语言，不内置中英文属性值', async () => {
+  const { dom, doc, options, setSearchLabel } = setup();
+  const native = doc.querySelector('button');
+  native.setAttribute('aria-label', 'Rechercher des sessions'); setSearchLabel('Rechercher des sessions');
+  const entry = mountSearchEntry(doc, options);
+  assert.ok(doc.querySelector('[data-pdsh-search-entry]'));
+  native.setAttribute('aria-label', 'セッションを検索'); setSearchLabel('セッションを検索');
+  await tick(); assert.ok(doc.querySelector('[data-pdsh-search-entry]'));
+  entry.dispose(); dom.window.close();
+});
+
+test('symbol 图标无外层 viewBox 时立即挂载两入口，图稿替换和 href 变化重新采样', async () => {
+  const { dom, doc, options } = setup();
+  const nativeSvg = doc.querySelector('button svg');
+  nativeSvg.removeAttribute('viewBox');
+  nativeSvg.innerHTML = '<use href="#native-search-artwork" />';
+  doc.body.insertAdjacentHTML('afterbegin', '<svg data-dsh-icon-sprite><symbol id="native-search-artwork" viewBox="0 0 32 32" style="stroke-width:2px"><path stroke="currentColor" d="M1 1L8 8" /></symbol></svg>');
+  options.capture = { icon, label: () => '截图', state: options.state, onActivate() {} };
+  const entry = mountSearchEntry(doc, options);
+  const buttons = () => [...doc.querySelectorAll('[data-pdsh-search-entry], [data-pdsh-capture-entry]')];
+  assert.equal(buttons().length, 2, '首轮同步采样，不等待定时器或下一帧');
+  for (const button of buttons()) assert.equal(button.querySelector('svg').getAttribute('stroke-width'), '1.5');
+  doc.querySelector('symbol').outerHTML = '<symbol id="next-artwork" viewBox="0 0 20 20" style="stroke-width:2px"><path stroke="currentColor" d="M1 1L8 8" /></symbol>';
+  await tick();
+  assert.equal(buttons().length, 0, '原引用撤回时不能复用旧几何');
+  nativeSvg.querySelector('use').setAttribute('href', '#next-artwork');
+  await tick();
+  assert.equal(buttons().length, 2);
+  for (const button of buttons()) assert.ok(Math.abs(Number(button.querySelector('svg').getAttribute('stroke-width')) - 2.4) < 1e-10);
+  assert.equal(nativeSvg.hasAttribute('viewBox'), false, '不修补或修改宿主 SVG');
+  entry.dispose(); dom.window.close();
+});
+
+test('symbol 只接受同页唯一受控图稿，拒绝远程引用、重复 ID 和嵌套 use', () => {
+  for (const [href, artwork] of [
+    ['https://example.invalid/icons.svg#search', '<symbol id="search" viewBox="0 0 16 16" style="stroke-width:1px" />'],
+    ['#search', '<symbol id="search" viewBox="0 0 16 16" style="stroke-width:1px" /><symbol id="search" viewBox="0 0 16 16" style="stroke-width:1px" />'],
+    ['#search', '<symbol id="search" viewBox="0 0 16 16" style="stroke-width:1px"><use href="#cycle" /></symbol>'],
+  ]) {
+    const { dom, doc, options } = setup();
+    const nativeSvg = doc.querySelector('button svg');
+    nativeSvg.removeAttribute('viewBox'); nativeSvg.innerHTML = `<use href="${href}" />`;
+    doc.body.insertAdjacentHTML('afterbegin', `<svg data-dsh-icon-sprite>${artwork}</svg>`);
+    const entry = mountSearchEntry(doc, options);
+    assert.equal(doc.querySelector('[data-pdsh-search-entry]'), null);
+    entry.dispose(); dom.window.close();
+  }
+});
 
 test('展开态紧接搜索左侧追加；复用 live class/图标尺寸，不改原生搜索', () => {
   const { dom, doc, options, opened } = setup(), before = doc.body.outerHTML;
@@ -175,25 +225,26 @@ test('未知viewBox、无有效原生stroke或非等比显示退让，不回退�
 });
 
 test('搜索展开时隐藏；关闭后复现；翻译和原生 class 改动同步', async () => {
-  const { dom, doc, options, opened } = setup();
+  const { dom, doc, options, opened, setSearchLabel } = setup();
   const entry = mountSearchEntry(doc, options), native = doc.querySelector('button[aria-expanded]');
   const button = doc.querySelector('[data-pdsh-search-entry]');
   native.setAttribute('aria-expanded', 'true'); await tick();
   assert.equal(button.hidden, true); button.click(); assert.equal(opened.length, 0);
   native.setAttribute('aria-expanded', 'false'); native.className = 'new-native-class';
   native.setAttribute('aria-label', 'Search sessions');
+  setSearchLabel('Search sessions');
   await tick(); assert.equal(button.hidden, false); assert.equal(button.className, 'new-native-class');
   entry.dispose(); dom.window.close();
 });
 
 test('收起态复用原生 rail 外壳，重挂/展开后无残留或重复入口', async () => {
-  const { dom, doc, options } = setup(browser(false, 'en'));
+  const { dom, doc, options, setSearchLabel } = setup(browser(false, 'en'));
   const entry = mountSearchEntry(doc, options), native = doc.querySelector('button[aria-label="Search sessions"]');
   const shell = doc.querySelector('[data-pdsh-entry-shell]');
   assert.equal(shell.className, native.parentElement.className);
   assert.equal(shell.nextElementSibling, native.parentElement);
   assert.equal(shell.querySelector('svg').getAttribute('height'), '18px');
-  doc.body.innerHTML = browser(); await tick();
+  setSearchLabel('搜索会话'); doc.body.innerHTML = browser(); await tick();
   assert.equal(doc.querySelectorAll('[data-pdsh-search-entry]').length, 1);
   assert.equal(doc.querySelector('[data-pdsh-entry-shell]'), null);
   doc.body.innerHTML = browser(false); await tick();
@@ -282,9 +333,9 @@ test('相机位于帽子右侧、搜索左侧；整枚图标透明度与原生�
 test('标题组件关闭后，相机单独挂载、搜索展开隐藏并卸载归还', () => {
   const cameraIcon = readFileSync(new URL('../src/client/camera-icon.svg', import.meta.url), 'utf8');
   for (const wide of [true, false]) {
-    const { dom, doc } = setup(browser(wide)), before = doc.body.outerHTML;
+    const { dom, doc, options } = setup(browser(wide)), before = doc.body.outerHTML;
     let count = 0;
-    const entry = mountSearchEntry(doc, { icon: null, capture: {
+    const entry = mountSearchEntry(doc, { icon: null, searchLabel: options.searchLabel, capture: {
       icon: cameraIcon, label: () => '截取窗口', state: () => ({ busy: false, disabled: false }), onActivate: () => ++count,
     } });
     assert.equal(doc.querySelector('[data-pdsh-search-entry]'), null);

@@ -27,7 +27,7 @@
 - `component-host.test.ts`: 生成唯一Config、root owner captureEnabled observer、配置不触发旧连接与Mac/Windows helper包内相对路径；新代码的单航班/结算另列专门合同，不冒充真实Loader或实机。
 - `client-injection.test.ts`: Cordis 真注册器与 ReactDOM portal 加载唯一生成 Client；两入口只追加既有 Bundle 的 UI 注册。旧 ready Host 缺少截图字段时身份/标题照常而相机撤回，完整 snapshot 可恢复；另验平台/Remote provider、旧桥隔离与 namespace 生命周期，不冒充实机像素验收。
 - `client.test.ts`: 生成 Client 的八组合、取消、回滚和页脚。真实 ReactDOM root/portal 接入模块表，Host 浮层 hooks 仅作外观桩。会话相机追加 utilities，不覆盖 corner。内存编译真实组合根，验证同 proxy 握手世代；两个 mutant 须失败。spy 不证明像素、Host 或 Desktop。
-- `header-camera.test.ts`: 真实 JSX 与侧栏 DOM 适配合同。验证收起态、语义失配、点击重读、忙碌、语言及卸载。歧义锚点改名后必须恢复。聊天增删不得触发全局锚点查询。控件外观桩不证明 Desktop 排版或取像。
+- `header-camera.test.ts`: 真实 JSX 与侧栏归属合同。两列包装层变化后仍跟随实际收起属性。验证歧义恢复、点击重读、忙碌与卸载；聊天增删不扫描全局锚点。控件桩不证明 Desktop 排版。
 - `capture-bootstrap.test.ts`: 副作用适配下的真实启动编排，拒绝身份/端口、ACK 失败、关闭 unknown 与取消，系统临时根内私有目录独占创建/分别归还，只读真实 macOS ps 路径格式；不操作真实 Main。
 - `capture-control.test.ts`: 生成 Main 与真实 Host socket transport 的畸形帧、握手、控制 ACK、取消与资源归还；新增系统临时根内真实 Unix socket 两端握手及目录边界/权限/符号链接拒绝及根别名接受；不打开真实应用调试端口。
 - `capture-route.test.ts`: 官方 RPC 控制封套、owner 世代与迟到 release 围栏；Host 自己撤回 consent 即刻取消，不依赖 Renderer 消息；确认归还后的断连不永久缓存；Main/control 关闭未知不随新 owner/排队/release/重装清除。
@@ -43,15 +43,15 @@
 - `capture-view.test.ts`: 生产布局锁住标题下留白、图标顶沿与滑轨刻度。私密标题/私密身份使用双语短文案，编辑器独立关联标题。检测区域保留可访问名称与共享点击命令。标题遮罩独立于单一身份遮罩；无系统壁纸 adapter 时不伪造入口。
 - `runtime-root-reload.test.ts`: 真实 Registry 换根、并发合并、惰性就绪、失败恢复与卸载围栏。拒绝异包、错误版本和符号链接入口；Entry 夹具不代替官方升级或 Desktop 验收。
 - `host.test.ts`: 真实 Schemastery Config、历史头像两项预算、路径边界与平台provider分流；默认 Downloads 使用宿主 `homedir()` 与 `path.join` 精确比较，覆盖 POSIX/Windows drive-root/UNC 并拒绝相对、非canonical及device namespace；缺 helper/不支持架构仍保留设置。
-- `localization.test.ts`: 单 Bundle 离线品牌元信息与内部三功能 zh/en 文案；透明底单路径图标响应 Host color-scheme；更新定稿与取消阶段双语键同源。
+- `localization.test.ts`: 单 Bundle 双语元信息与 meta.detail 的包内短 Markdown。短详情与运行文案跟随宿主语言；图标响应 Host color-scheme。
 - `model.test.ts`: 昵称、头像和旧字段投影验证。
 - `presentation.test.ts`: 视觉身份的唯一归属与卸载。未登录借用官方头像和身份行；收起及停用恢复原样。样式缺失、重复和错属拒绝覆盖。菜单、临时头像和登录恢复独立于配置写入。
 - `plugin-detail-typography.test.ts`: 自身大标题标记、版本胶囊不变、未知结构及外部接管合同。原生 CSS 的实际字形另在浏览器验收。
-- `search-entry.test.ts`: 初拍/重拍CSS阶段保留两入口并隐藏工作台；原生搜索邻接、折叠/展开、实时 SVG strokeWidth 按 viewBox 尺寸匹配、两入口同笔画与不可靠几何退让；保留根透明度/颜色/class/点击和卸载合同。
+- `search-entry.test.ts`: 两入口首轮挂载、邻接、折叠与卸载合同。标签取当前 Host 语言，图稿在 symbol 变化后重采。拒绝外部引用、重复 ID 与未知几何。
 - `avatar-history.test.ts`: 基础/历史能力判别、MRU 纯合同与短数组穷举；缺失与损坏分开，验证两项预算、去重与输入不变。
 - `settings-card.test.ts`: 验历史与实际预览共用头像几何。 正常头像读取只发布忙碌语义，不增提示行。 React 字段写入、取消、冲突与焦点合同。旧 Host 保留基础头像写入和 picker；历史独立就绪，能力切换拒绝迟到事务。迟到清除回调重验完整配置。真实 MutationObserver 驱动退出与登录恢复，不写配置。未登录禁用账号来源；默认 SVG 账号仍可选。来源标签归右侧操作组。
 - `sidebar-redaction.test.ts`: 普通/空白会话、搜索与 HoverCard 标记和恢复。
-- `native-style-probe.test.ts`: 原生 Input/Button/Switch/设置字段/Tooltip 几何与动效采样，SVG 笔画比例/透明度/尺寸及主题/DOM/resize 重采；合法零长度保真、无效值或探针节点缺席时撤销旧值，节点重建后重采，root 脱离后清空且卸载恢复原值。
+- `native-style-probe.test.ts`: 原生控件与 Tooltip 的几何和动效采样。内联及 symbol 图稿在首轮读取；图稿撤回后清除密度。验证重采、合法零长度、节点重建与卸载恢复。
 - `styles.test.ts`: 历史头像独立正圆裁切、宿主细边框、样式优先级及操作层级。 视觉规则与上游 token 来源；整排页脚紧凑靠右，正文同字号，GitHub 图稿不带内联基线空白。保留间距、主题与焦点。入口只合成根透明度；原生探针独占测量并隐藏绘制。验证来源文本间距和昵称留白，不抢焦点。
 - `title-toggle.test.ts`: Host 单路径切换及失败状态。
 - `client-runtime-fixture.ts`: 共享组合根内存加载器，功能边界显式设桩，不启动Host。
@@ -81,7 +81,7 @@
 - `capture-editor-export.test.ts`: 身份开关失败时保留旧图和旧值，成功重拍统一更新头像与名称且不持久化；标题仍独立。另验背景 Tabs、取消、保存与导出共用新源；Canvas 桩不证明视觉或本机文件面板。
 - `capture-editor-viewport.test.ts`: 真实编辑器设色器显隐、纯色同源投影与工具切换恢复。初始 Image 面板仅读本地元数据，不调用 Host 目录/媒体；异步库存结算保留首笔舞台与捕获。覆盖滚轮 deltaMode/限幅、统一缩放源、无像素重合成、帧合并与越界裁剪。另验忙碌、失捕获、失焦、重复指针、终态重入和 dispose；不冒充 Desktop 动效实测。
 
-- `host-acceptance.test.ts`: 集成 CLI 安全前置；自有临时目录验证 owner/路径/符号链接/凭据、stable/RC候选身份和精确PNPM版本门，不启动DSH或替代安装件验收。
+- `host-acceptance.test.ts`: 集成 CLI 安全前置。核 owner、路径、凭据与候选身份。PNPM 精确版本来自同代 runtime 清单；失配须在执行前拒绝。不启动 DSH。
 
 - `bundle-artifacts.test.ts`: 双语 README 与内部能力面的真实 tgz 闭包。核 Mac universal、Windows x64/asInvoker、执行位和字节。POSIX先改隔离文件模式，Windows改归档mode，确保坏权限样本真实变坏。拒绝子依赖、宽泛 files 与安装 hook，不执行安装。
 - `capture-defaults.test.ts`: 旧导出默认只通过根 pdsh revision 修正；自定义值、已移除子域与迟到卸载不覆盖偏好。

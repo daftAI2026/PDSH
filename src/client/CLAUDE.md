@@ -2,15 +2,15 @@
 > L2 | 父级: ../CLAUDE.md
 
 - `client-entry.tsx`: 唯一 `@daftai/pdsh` Client 入口；顺序挂载真实基础/内部能力 Remote 面，不触发取像/权限；必需 Cordis 服务只声明一次，身份/标题/拍照为共享 Bundle 内的独立设置而非运行时子入口。
-- `component-runtime.tsx`: 唯一 Bundle 装配、设置与语言订阅。两相机共用截图控制器。基础版本与壁纸、几何分别握手；几何读取绑定捕获时的两个代理世代。迟到扩展不重建工作台。更新阶段订阅归 updater，随 Bundle 释放。
-- `sidebar-state.ts`: 只读 rc.2 AppFrame 语义属性。root/main/sidebar 唯一归属成立才返回收起态；未知或歧义布局退让。观察器先过滤边界变化，聊天增删不触发全局查询。订阅跟随 Bundle 释放，不读取搜索展开态。
+- `component-runtime.tsx`: 唯一 Bundle 装配、设置与语言订阅。搜索标签来自 Host workspace 字典，不内置原生翻译。两相机共用控制器。基础、壁纸与几何分别握手；迟到扩展不重建工作台。更新阶段订阅归 updater，随 Bundle 释放。
+- `sidebar-state.ts`: 从唯一 root/main/sidebar 的共同布局祖先读取收起态，不固定包装层数。未知或歧义归属退让。观察器先过滤边界变化，聊天增删不触发全局查询。订阅跟随 Bundle 释放，不读取搜索展开态。
 - `header-camera.tsx`: 官方 utilities 会话相机视图。仅侧栏收起且截图控制器存在时呈现。复用 Host Button/Tooltip，点击重读当前控制器，不创建取像链路。
 - `native-style-view.tsx`: 唯一真实原生控件探针视图；布局测量与 React 生命周期绑定，不持有功能配置。
 - `title-settings.tsx`: 共享唯一 `pdsh` ConfigForm 的标题即时开关；复用帽子控制器和官方控件，不建立独立 namespace，也不读身份偏好。
 - `capture-settings.tsx`: Plugins 截图区提供独立身份遮挡开关与询问/直接保存、完整目录、格式/文件名模板；旧/无效 ready 配置显示中英重启提示并锁住全部字段与目录 picker，目录位不泄漏 fallback/不误报目录故障；loading 不误报，完整后续快照恢复原 revision 写入；身份开关不改常驻 maskIdentity 或工作台标题偏好。
 - `capture-notice.tsx`: DOM 控制器到官方 React Toast 的适配边界；宿主拥有样式、portal 和默认消失周期，序号重挂载与完成围栏防止同文重显或旧回调干扰。
 - `native-style-probe.ts`: 原生样式效果边界；测量真实 Input/Button/Switch/字段/Tooltip，监听主题、DOM、资源加载和尺寸变化，未变不写、来源消失撤销旧值、控件重建转移局部观察权，停用精确恢复变量与观察器。
-- `native-icon.ts`: 原生 SVG 描边密度与图稿坐标换算；非等比、缺失或未知几何拒绝猜测，供入口和控件探针共用。
+- `native-icon.ts`: 内联 SVG 与同页官方 symbol 共用描边采样。外层提供显示尺寸，实际图稿提供坐标与描边。拒绝外部引用、重复 ID、嵌套 use 及未知几何，供入口和探针共用。
 - `avatar-image.tsx`: 设置预览与历史缩略图的同一图像组件。唯一 CSS 类定义尺寸、圆形裁切与细描边；只转发来源和加载事件，不读配置或账号。
 - `avatar-history-popover.tsx`: 一张或两张头像按实际数量居中。复用 AvatarImage，不单独缩放图片。清除使用紧凑次级操作，新图使用 outline 入口。Host MenuSurface 与定位/外点 hooks 构成非模态单层 dialog。父层独占配置；本层拥有展开、图片加载与焦点。Tab 只遍历，坏图禁选。
 - `settings-card.tsx`: 正常读取只用 aria-busy，不增可见提示行。 头像、来源与两个旧本地图通过同一 revision 原子提交。历史按 MRU 去重轮换；失败不推进。旧 Host 缺历史字段时保留基础换头像，只提交既有字段，不展示兼容提示；损坏字段不降级。能力切换使在途旧事务失效。React 身份设置消费独立账号状态。未登录禁用账号来源，退出临时生成预览，不写配置。来源标签归右侧操作组，保留原生文字间距。Host 拥有开关与来源；昵称只持有局部草稿。
@@ -19,7 +19,7 @@
 - `presentation.ts`: 唯一账号结构识别与视觉覆盖。独立发布账号状态。未登录头像借用官方 AccountMenu 样式。身份行复用登录布局，保留原按钮和菜单。未知样式撤销覆盖。退出后临时生成头像，不改配置。拍照复用可见身份边界。
 - `plugin-detail-typography.ts`: 唯一自身详情标题的排版标记。CSS text-box 裁去标题字体留白；不改变版本胶囊。未知结构撤销标记，卸载归还自有属性。
 - `sidebar-redaction.ts`: rc.2 侧栏文本叶适配器；识别工作区、普通/空白会话与搜索标题，窄约束关联 HoverCard。
-- `search-entry.ts`: 搜索邻接帽子与右侧相机的版本相关 DOM 适配；从原生 SVG 实时换算 viewBox/描边/尺寸/根透明度，未知几何退让，不替换搜索，初拍/重拍保留两个入口。
+- `search-entry.ts`: 搜索邻接帽子与相机的窄 DOM 适配。实时采样原生图稿、尺寸与透明度，跟随 symbol 替换及引用变化。未知几何退让，不替换搜索，初拍/重拍保留两个入口。
 - `dom-tooltip.css`: 非 React 提示泡消费真实 Host Tooltip 的实时计算参数与主题变量。
 - `dom-tooltip.ts`: 为侧栏和工作台的非 React 按钮提供单例委托提示；参数/视觉跟随 DSH Tooltip，React 控件直接用原生组件。
 - `camera-icon.svg`: 截图入口的 Lucide 线条图形；交互几何与整体透明度由原生搜索同步。

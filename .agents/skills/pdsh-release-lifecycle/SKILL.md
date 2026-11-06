@@ -86,6 +86,11 @@ Windows 源码未变时，可绑定既有构建 SHA 和当前 EXE 摘要。
 读取 `verify-host.ts` 的 L3 与参数，再运行现有入口。
 只使用全新、自有的 OS 临时 profile。
 核对精确宿主和官方 PNPM 的来源与版本。
+PNPM 命令 JSON 的 runtimeManifest 指向官方 runtime 清单。
+清单的 desktopVersion 须匹配 Host fixture。
+实际 PNPM 须匹配清单，不固定历史 minor。
+验收进程传 --expose-internals，使用官方 HMR。
+禁止用排队桩代替 profile reconciliation。
 不复制凭据，不改 resolver 或 exotic-subdependency 策略。
 官方 Manager、Loader 和 Settings 的结果不得伪造。
 

@@ -38,7 +38,9 @@
     "style-sources.json",
     "THIRD_PARTY_NOTICES.md",
     "LICENSE",
-    "locale/*.json"
+    "locale/*.json",
+    "locale/detail.zh.md",
+    "locale/detail.en.md"
   ],
   "exports": {
     ".": "./index.js",
@@ -107,7 +109,7 @@
     "typescript": "6.0.3"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "~4.0.4"
+    "@deepseek-ai/cordis": "~4.0.4 || ~4.1.0"
   },
   "repository": {
     "type": "git",

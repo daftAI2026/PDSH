@@ -61,7 +61,8 @@ Mac universal 与 Windows x64/asInvoker 分别核对。
 它经官方 Gateway 调用基础与能力版本。
 核对实际根 Fiber 换代、Config 与历史头像原子写入。
 再验证停用、重新启用和实际能力。
-隔离 Host 的 HMR 队列是串行调度桩。
+隔离 Host 使用目标安装件的官方 HMR。
+启动参数和 runtime 清单遵守 verify-host 契约。
 该门不证明 Desktop Client 或真实传输完成。
 最终仍须从同一旧版实跑官方 tag 升级。
 换载期间重新读取服务，不复用已撤销的实例。

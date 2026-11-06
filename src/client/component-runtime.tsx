@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 ConfigForm、基础/能力 Remote、独立几何握手、只读侧栏状态、详情字形适配器及官方更新阶段事件。
+ * [INPUT]: 依赖 Host 语言及搜索文案、ConfigForm、Remote、侧栏状态与详情适配器。
  * [OUTPUT]: 装配身份、标题、两相机入口、详情字形对齐及设置页脚；更新事件跟随 Bundle 释放；macOS/Windows入口仍经独立 capability 握手。
  * [POS]: 单 Bundle 组合根。迟到扩展不重建工作台，不阻断基础截图。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -82,6 +82,7 @@ export function mountComponent(ctx, doc: Document = document) {
     let entryHasCamera = false;
     const listeners = new Set<() => void>();
     const t = ctx.locale.bind(NS);
+    const workspaceText = ctx.locale.bind('workspace');
     function disposeBundle() {
       if (disposed) return;
       disposed = true;
@@ -153,6 +154,7 @@ export function mountComponent(ctx, doc: Document = document) {
         entryHasCamera = hasCamera;
         entry = mountSearchEntry(doc, {
           icon: entryIcon,
+          searchLabel: () => workspaceText('search.sessions.aria'),
           state: titleControl.state,
           label: () => `${t(titleControl.state().pressed ? 'entryOn' : 'entry')}${titleControl.state().failed ? ` · ${t('toggleFailed')}` : ''}`,
           onActivate: () => void titleControl.activate(),

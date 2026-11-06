@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖单包 manifest、双语 README、双官方 Typert 面、能力 DTO 闭包与 helper。
+ * [INPUT]: 依赖单包 manifest、双语说明及短详情、官方 Typert 面、DTO 与 helper。
  * [OUTPUT]: 验拓扑、接口、架构和字节。POSIX 源文件与所有平台真实 tgz 独立验 0755。
  * [POS]: 构建与发布共用的静态分发门；支持独立临时 RC 身份且维持同一产物门；只读本包与明确版本 tgz，不执行 bundle/helper，不访问用户 profile。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -26,7 +26,7 @@ const ARCHIVE_FILES = [
   'lib/runtime-capabilities/types/shared/window-save-protocol.d.ts',
   'lib/runtime-capabilities/types/shared/system-wallpaper-protocol.d.ts',
   'native/window-capture', 'native/windows/window-capture-x64.exe', 'cordis.patch.yml', 'plugin-icon.svg', 'style-sources.json',
-  'THIRD_PARTY_NOTICES.md', 'LICENSE', 'locale/*.json',
+  'THIRD_PARTY_NOTICES.md', 'LICENSE', 'locale/*.json', 'locale/detail.zh.md', 'locale/detail.en.md',
 ];
 const PACKAGED_TEXT = ARCHIVE_FILES.filter(file => !file.startsWith('native/') && !file.includes('*'));
 const MAX_ARTIFACT_BYTES = 32 * 1024 * 1024;
@@ -56,10 +56,9 @@ export function validateBundleArtifacts(root: string): void {
   }
   if (manifest.dependencies?.['@deepseek-ai/dsh-typert-protocol'] !== '0.2.0-rc.2' || manifest.dependencies?.zod !== '4.4.3') throw new Error('Host Typert runtime dependencies must stay on the verified rc.2 protocol and generated-schema version');
   if (manifest.devDependencies?.['@deepseek-ai/dsh-typert-generator'] !== '0.2.0-rc.2') throw new Error('Typert generation must use the exact official rc.2 compiler');
-  if (manifest.peerDependencies?.['@deepseek-ai/cordis'] !== '~4.0.4') throw new Error('Host Cordis must resolve through the compatible official Host peer');
-  for (const [name, version] of Object.entries(manifest.peerDependencies ?? {})) {
-    if (name !== '@deepseek-ai/cordis' || version !== '~4.0.4') throw new Error(`unexpected bundle peer dependency ${name}`);
-  }
+  const peers = Object.entries(manifest.peerDependencies ?? {});
+  if (peers.length !== 1 || peers[0][0] !== '@deepseek-ai/cordis' || peers[0][1] !== '~4.0.4 || ~4.1.0')
+    throw new Error('unsupported bundle Host peer declaration');
   for (const hook of ['preinstall', 'install', 'postinstall', 'prepare']) if (manifest.scripts?.[hook]) throw new Error(`bundle must not require ${hook} installation hook`);
   for (const file of ['index.js', 'client.js', 'client.js.map', 'lib/typert.host.js', 'lib/typert.host.d.ts', 'lib/typert.remote-client.js', 'lib/typert.remote-client.d.ts', 'native/window-capture', 'cordis.patch.yml', 'plugin-icon.svg', 'locale/*.json']) {
     if (!manifest.files?.includes(file)) throw new Error(`bundle archive membership missing ${file}`);
