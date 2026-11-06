@@ -1,6 +1,6 @@
 /**
- * [INPUT]: 依赖发布清单、双语说明入口、官方 locale 与 Client 字典。
- * [OUTPUT]: 验证双语元信息、固定说明链接及运行文案，核对宿主图标色彩。
+ * [INPUT]: 依赖发布清单、双语支持入口、官方 locale 与 Client 字典。
+ * [OUTPUT]: 验证双语元信息、支持链接及运行文案，核对宿主图标色彩。
  * [POS]: PDSH 本地化与清单图标合同；实际宿主热切换/草稿保留由独立 runtime 另验。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -20,7 +20,7 @@ test('官方资源入口公开两种包文本，且发行包包含发现入口',
   }
 });
 
-test('meta.detail 随宿主语言提供说明链接，不重复简介或展开 README', () => {
+test('meta.detail 随宿主语言提供唯一 Star 与作者入口，不重复简介', () => {
   assert.equal(manifest.files.includes('locale/*.md'), false, '不把局部 CLAUDE.md 打入归档');
   const details = [];
   for (const language of ['zh', 'en']) {
@@ -30,13 +30,13 @@ test('meta.detail 随宿主语言提供说明链接，不重复简介或展开 R
     const document = readFileSync(new URL(`../${meta.detail}`, import.meta.url), 'utf8');
     assert.match(document, /\[PROTOCOL\]: 变更时更新此头部，然后检查 CLAUDE.md/);
     const body = document.replace(/<!--[\s\S]*?-->/g, '').trim();
-    assert.ok(body.length > 0 && body.length <= 160);
+    assert.ok(body.length > 0 && body.length <= 256);
     assert.equal(body.split('\n').length, 1, '短详情只有一行，不复制产品 README');
     details.push(body);
   }
   assert.notEqual(details[0], details[1]);
-  assert.equal(details[0], '[使用说明](https://github.com/daftAI2026/PDSH#readme)');
-  assert.equal(details[1], '[Usage guide](https://github.com/daftAI2026/PDSH/blob/main/README.en.md)');
+  assert.equal(details[0], '如果 PDSH 对你有帮助，欢迎在 [GitHub 点个 Star](https://github.com/daftAI2026/PDSH) 支持我们 👉 [@daftAI](https://x.com/singkid9527)');
+  assert.equal(details[1], 'If PDSH helps you, please support us with a [Star on GitHub](https://github.com/daftAI2026/PDSH) 👉 [@daftAI](https://x.com/singkid9527)');
 });
 
 test('运行文案两种语言键一致，语言提示使用宿主设置而非自建状态', async () => {

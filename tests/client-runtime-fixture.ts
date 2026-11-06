@@ -79,7 +79,7 @@ export async function loadComponentRuntime(assemblies, mutateSource = source => 
     } }],
     ['/capture/window-save.ts', { saveWindowImage: async () => {}, prepareWindowSaveDirectory: async () => null }],
     ['/settings-card.tsx', { SettingsCard: component }], ['/capture-settings.tsx', { CaptureSettingsCard: component }],
-    ['/title-settings.tsx', { TitleSettingsCard: component }], ['/project-footer.tsx', { ProjectFooter: component }],
+    ['/title-settings.tsx', { TitleSettingsCard: component }],
     ['/updater.ts', { createUpdateController: (_manager, _load, _version, activateInstalled, subscribeInstallState) => {
       assemblies.activateInstalled = activateInstalled;
       const off = subscribeInstallState?.(progress => { assemblies.updateProgress = progress; });

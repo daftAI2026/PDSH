@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 Host 语言及搜索文案、ConfigForm、Remote、侧栏状态与详情适配器。
- * [OUTPUT]: 装配身份、标题、两相机入口、详情字形对齐及设置页脚；更新事件跟随 Bundle 释放；macOS/Windows入口仍经独立 capability 握手。
+ * [OUTPUT]: 装配身份、标题、两相机入口、详情字形对齐及设置；更新事件跟随 Bundle 释放；macOS/Windows入口仍经独立 capability 握手。
  * [POS]: 单 Bundle 组合根。迟到扩展不重建工作台，不阻断基础截图。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -31,7 +31,6 @@ import { saveWindowImage, prepareWindowSaveDirectory } from './capture/window-sa
 import { SettingsCard } from './settings-card.tsx';
 import { CaptureSettingsCard } from './capture-settings.tsx';
 import { TitleSettingsCard } from './title-settings.tsx';
-import { ProjectFooter } from './project-footer.tsx';
 import { createUpdateController } from './updater.ts';
 import { loadReleaseTags } from './update-source.ts';
 import { UpdateBadge } from './update-badge.tsx';
@@ -58,7 +57,6 @@ function BundleSettings({ view, form, t, presentation, titleControl, subscribe, 
     <SettingsCard view={view} preferencesForm={form} presentation={presentation} t={t} showTitles={false} />
     <TitleSettingsCard view={view} form={form} control={titleControl} t={t} />
     <CaptureSettingsCard view={view} form={form} t={t} chooseDirectory={chooseDirectory} />
-    <ProjectFooter t={t} />
   </>;
 }
 

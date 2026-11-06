@@ -1,12 +1,12 @@
 /**
  * [INPUT]: 依赖 styles.css 的真实 selector 与 rc.2 原生样式来源账。
- * [OUTPUT]: 验证历史头像正圆与操作分层、标题灰条、控件几何及入口透明度；整排页脚靠右、正文同字号、图标无基线空白，保留 Host 主题和焦点。
+ * [OUTPUT]: 验证历史头像正圆与操作分层、标题灰条、控件几何及入口透明度；支持入口不再保留自有页脚样式，保留 Host 主题和焦点。
  * [POS]: PDSH 的样式合同，追溯语义视觉来源并保护原生入口按钮交互、来源标签邻接、昵称留白与实时原生控件测量边界。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 const css = readFileSync(new URL('../src/client/styles.css', import.meta.url), 'utf8');
 test('拍照标题后首行不画分隔线，后续字段和身份原有分隔仍保留',()=>{
@@ -42,46 +42,19 @@ test('升级箭头采用宿主成功色，限定在自有 SVG 而不覆盖原生
   assert.match(css, /\.pdsh-update-trigger svg\s*\{[^}]*color:\s*var\(--dsw-alias-state-success-primary\)/);
 });
 
-test('项目页脚复用主题、换行和键盘焦点；GitHub 填充图稿不叠加描边', () => {
-  assert.match(css, /\.pdsh-project-footer\s*\{[^}]*flex-wrap:\s*wrap/);
-  assert.match(css, /\.pdsh-project-footer\s*\{[^}]*font:\s*var\(--dsw-font-xs-13\)/);
-  assert.match(css, /\.pdsh-project-footer\s*\{[^}]*color:\s*var\(--dsw-alias-label-secondary\)/);
-  assert.match(css, /\.pdsh-project-link:focus-visible\s*\{[^}]*outline:\s*var\(--dsw-focus-ring-width\)/);
-  const glyphRule = css.match(/\.pdsh-project-github svg\s*\{[^}]*\}/)?.[0] ?? '';
-  assert.match(glyphRule, /width:\s*var\(--pdsh-native-icon-size\)/);
-  assert.match(glyphRule, /opacity:\s*var\(--pdsh-native-icon-opacity\)/);
-  assert.doesNotMatch(glyphRule, /stroke(?:-width)?\s*:/);
+test('支持入口不再保留客户端项目页脚样式', () => {
+  assert.doesNotMatch(css, /\.pdsh-project-/);
 });
 
-test('页脚整排紧凑靠右，正文同字号且 GitHub 图稿不保留内联基线空白', () => {
-  const footer = css.match(/\.pdsh-project-footer\s*\{[^}]*\}/)?.[0] ?? '';
-  assert.match(footer, /padding-inline:\s*calc\(var\(--pdsh-section-inset\) \+ var\(--pdsh-outline-width\)\)/);
-  assert.doesNotMatch(footer, /padding-block|background|border(?:-top)?\s*:/);
-  const support = css.match(/\.pdsh-project-support\s*\{[^}]*\}/)?.[0] ?? '';
-  assert.match(support, /min-width:\s*0/);
-  assert.match(support, /max-width:\s*100%/);
-  assert.match(support, /gap:\s*var\(--pdsh-field-gap\)/);
-  assert.match(footer, /justify-content:\s*flex-end/);
-  assert.match(support, /flex:\s*0 1 auto/);
-  assert.doesNotMatch(css.match(/\.pdsh-project-author\s*\{[^}]*\}/)?.[0] ?? '', /margin-inline-start:\s*auto/);
-  assert.match(css, /\.pdsh-project-footer p\s*\{[^}]*text-align:\s*right/);
-  assert.match(css, /\.pdsh-project-link\s*\{[^}]*font:\s*inherit/);
-  assert.match(css, /\.pdsh-project-link\s*\{[^}]*min-height:\s*var\(--pdsh-action-size\)/);
-  assert.match(css, /\.pdsh-project-github > span\s*\{[^}]*display:\s*flex/);
-  assert.match(css, /\.pdsh-project-github svg\s*\{[^}]*display:\s*block/);
+test('支持入口不再依赖 React 页脚组件或独立外链绘制', () => {
+  assert.equal(existsSync(new URL('../src/client/project-footer.tsx', import.meta.url)), false);
+  const source = readFileSync(new URL('../src/client/component-runtime.tsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /ProjectFooter|project-footer/);
 });
 
-test('页脚图标和外链有真实 Host 来源，不复制品牌路径或创建新桥', () => {
-  const source = readFileSync(new URL('../src/client/project-footer.tsx', import.meta.url), 'utf8');
-  const sources = JSON.parse(readFileSync(new URL('../style-sources.json', import.meta.url), 'utf8'));
-  assert.match(source, /<LinkIconRegular kind="url" href=\{PROJECT_URL\}/);
-  assert.doesNotMatch(source, /<path\b|dangerouslySetInnerHTML|window\.open|fetch\s*\(|useEffect|useState/);
-  for (const role of ['settings project footer layout', 'settings project footer GitHub glyph', 'settings project footer external navigation']) {
-    const entry = sources.styles.find(item => item.role === role);
-    assert.equal(entry?.providerVersion, '0.2.0-rc.2');
-    assert.equal(entry?.sourceCommit, '639ed015397290b3745d163aafe02ffee4aa3f84');
-    assert.ok(entry?.file && entry?.selector && entry?.pdshConsumer);
-  }
+test('来源账不残留已删除的页脚组件与图标消费者', () => {
+  const sources = readFileSync(new URL('../style-sources.json', import.meta.url), 'utf8');
+  assert.doesNotMatch(sources, /project-footer|settings project footer/);
 });
 
 test('头像与昵称横向编排；入口自己承担自动留白，隐藏时不覆盖原生搜索对齐', () => {

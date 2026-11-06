@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖生成 Client、Cordis、ReactDOM root/portal、Host 浮层 hooks 桩与平台标识。
- * [OUTPUT]: 验证两 Remote、平台 provider 门、几何代际、字形清理、相机插槽。
+ * [OUTPUT]: 验证两 Remote、平台 provider 门、几何代际、字形清理、相机插槽及设置不重复支持入口。
  * [POS]: 组合根合同；不冒充 Host、原生像素或 Desktop 验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -496,103 +496,47 @@ test('真实 component-runtime 分离基础截图与 capability 的迟到握手�
     /基础壳即使保留旧 wallpaper 方法也不能授权新增入口/);
 });
 
-test('项目页脚只在两种实际设置详情底部呈现；摘要不添加链接或设置写入', async () => {
+test('两种实际设置详情不再追加项目页脚；摘要与设置不重复支持入口', async () => {
   const h = environment({ bridge: false });
   try {
     await h.start();
     for (const slot of ['plugins.bundle.config', 'plugins.row.config']) {
       const settings = h.renderSettings('detail', slot);
-      const footer = settings.node.querySelector('footer.pdsh-project-footer');
-      assert.ok(footer, '设置详情缺少底部项目链接');
-      assert.equal(settings.node.lastElementChild, footer, '页脚必须在全部功能设置之后');
-      const project = footer.querySelector('a[href="https://github.com/daftAI2026/PDSH"]');
-      assert.ok(project, 'GitHub 图标必须链接当前项目，而非 Star API');
-      assert.equal(project.target, '_blank');
-      assert.deepEqual(project.rel.split(' ').sort(), ['noopener', 'noreferrer']);
-      assert.ok(project.getAttribute('aria-label')?.includes('GitHub'));
-      assert.ok(project.querySelector('svg')?.closest('[aria-hidden="true"]'));
-      assert.equal(project.querySelector('svg')?.getAttribute('data-native-link-kind'), 'url');
-      assert.equal(project.querySelector('svg')?.getAttribute('data-native-link-href'), project.href);
-      assert.equal(project.querySelector('svg')?.hasAttribute('tabindex'), false);
-      assert.equal(project.getAttribute('title'), null, '使用官方 Tooltip，不添加浏览器气泡');
-      assert.ok(footer.querySelector('[role="tooltip"]'), '无文字 GitHub 链接保留原生 Tooltip');
-      assert.equal(project.tabIndex, 0, '项目链接保留键盘焦点');
-      assert.equal(project.textContent, '', '项目入口只显示 GitHub 图标');
-      const author = footer.querySelector('a[href="https://x.com/singkid9527"]');
-      assert.ok(author, '作者链接必须指向用户确认的 X 地址');
-      assert.equal(author.textContent, '@daftAI', '显示名不能从 URL 用户名推导');
-      assert.equal(author.target, '_blank');
-      assert.deepEqual(author.rel.split(' ').sort(), ['noopener', 'noreferrer']);
-      assert.equal(author.tabIndex, 0);
-      assert.equal(author.querySelector('svg'), null, '作者入口只显示 @daftAI');
+      assert.equal(settings.node.querySelector('footer.pdsh-project-footer') === null, true, '设置不再渲染底部项目页脚');
+      assert.equal(settings.node.querySelector('a[href="https://github.com/daftAI2026/PDSH"], a[href="https://x.com/singkid9527"]'), null);
+      assert.doesNotMatch(settings.node.textContent, /Star|@daftAI/);
+      assert.ok(settings.node.textContent.includes(dictionaries.zh.maskIdentity), '功能设置仍须呈现');
       settings.render('summary');
-      assert.equal(settings.node.querySelector('footer'), null);
-      assert.equal(settings.node.querySelector('a'), null);
+      assert.equal(settings.node.querySelector('footer, a'), null);
       assert.equal(settings.node.textContent, dictionaries.zh.description);
       settings.close();
     }
-    assert.deepEqual(h.writes, [], '项目链接与文案不写 Host Settings');
-    assert.equal(h.pageCapture.pending.size, 0, '展示项目链接不取像');
+    assert.deepEqual(h.writes, [], '支持入口迁移不得写 Host Settings');
+    assert.equal(h.pageCapture.pending.size, 0, '支持入口迁移不得取像');
   } finally { await h.close(); }
   assert.equal(h.roots.size, 0); assert.equal(h.localeListeners.size, 0);
 });
 
-test('页脚整排把 Star 与 GitHub 成组，作者保留独立末端入口', async () => {
+test('Host 语言变化仍更新功能设置，不重建旧项目页脚', async () => {
   const h = environment({ bridge: false });
   try {
     await h.start(); const settings = h.renderSettings();
-    const footer = settings.node.querySelector('footer.pdsh-project-footer');
-    const support = footer?.querySelector('.pdsh-project-support');
-    assert.ok(support, 'Star 提示与 GitHub 必须属于同一可换行组');
-    assert.equal(footer.firstElementChild, support);
-    assert.equal(support.firstElementChild.tagName, 'P');
-    assert.equal(support.querySelector('p').textContent, dictionaries.zh['project.star']);
-    assert.ok(support.querySelector('a.pdsh-project-github'));
-    const author = footer.querySelector('a.pdsh-project-author');
-    assert.ok(author, '作者入口须有独立排版边界');
-    assert.equal(author.closest('.pdsh-project-support'), null);
-    assert.equal(footer.querySelectorAll('a').length, 2);
-    h.changeLocale('en');
-    assert.equal(support.querySelector('p').textContent, dictionaries.en['project.star']);
-    assert.equal(footer.querySelector('.pdsh-project-support'), support);
+    for (const language of ['zh', 'en', 'zh']) {
+      h.changeLocale(language);
+      assert.ok(settings.node.textContent.includes(dictionaries[language].maskIdentity));
+      assert.equal(settings.node.querySelector('footer.pdsh-project-footer') === null, true, '设置不再渲染底部项目页脚');
+      assert.doesNotMatch(settings.node.textContent, /Star|@daftAI/);
+    }
     assert.deepEqual(h.writes, []);
   } finally { await h.close(); }
 });
 
-test('Host 语言变化即时更新 Star 文案与项目可访问名称，无独立语言状态', async () => {
-  const h = environment({ bridge: false });
-  try {
-    await h.start(); const settings = h.renderSettings();
-    const footer = () => settings.node.querySelector('footer.pdsh-project-footer');
-    assert.ok(footer());
-    assert.equal(footer().querySelector('p')?.textContent, '如果 PDSH 对你有帮助，欢迎在 GitHub 点个 Star 支持我们 👉');
-    const project = footer().querySelector('a');
-    const author = footer().querySelector('a[href="https://x.com/singkid9527"]');
-    assert.ok(author);
-    const chineseLabel = project.getAttribute('aria-label');
-    h.changeLocale('en');
-    assert.equal(footer().querySelector('p')?.textContent, 'If PDSH helps you, please support us with a Star on GitHub 👉');
-    assert.equal(footer().querySelector('a'), project, '语言切换不重建项目链接');
-    assert.notEqual(project.getAttribute('aria-label'), chineseLabel);
-    assert.equal(author.textContent, '@daftAI', '英文界面不翻译固定作者名');
-    assert.equal(footer().querySelector('a[href="https://x.com/singkid9527"]'), author);
-    assert.equal(author.getAttribute('aria-label'), 'Follow @daftAI on X / Twitter');
-    h.changeLocale('zh');
-    assert.equal(footer().querySelector('p')?.textContent, '如果 PDSH 对你有帮助，欢迎在 GitHub 点个 Star 支持我们 👉');
-    assert.equal(project.getAttribute('aria-label'), chineseLabel);
-    assert.equal(author.textContent, '@daftAI');
-    assert.equal(author.getAttribute('aria-label'), '在 X / Twitter 关注 @daftAI');
-    assert.deepEqual(h.writes, []);
-  } finally { await h.close(); }
-});
-
-test('Host 配置 loading 不阻断静态项目链接，也不增加可提交字段', async () => {
+test('Host 配置 loading 不增加客户端支持入口或可提交字段', async () => {
   const h = environment({ status: 'loading', bridge: false });
   try {
     await h.start(); const settings = h.renderSettings();
-    const footer = settings.node.querySelector('footer.pdsh-project-footer');
-    assert.ok(footer?.querySelector('a[href="https://github.com/daftAI2026/PDSH"]'));
-    assert.equal(footer.querySelector('input, button, [role="switch"]'), null);
+    assert.equal(settings.node.querySelector('footer.pdsh-project-footer') === null, true, '设置不再渲染底部项目页脚');
+    assert.equal(settings.node.querySelector('a[href="https://github.com/daftAI2026/PDSH"], a[href="https://x.com/singkid9527"]'), null);
     assert.deepEqual(h.writes, []);
   } finally { await h.close(); }
 });
