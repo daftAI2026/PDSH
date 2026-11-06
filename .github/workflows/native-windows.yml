@@ -12,6 +12,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   build:
     runs-on: windows-2022
@@ -21,14 +24,17 @@ jobs:
       - name: Compile without running capture
         shell: pwsh
         run: ./native/windows/build.ps1
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 10.34.7
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '22.23.1'
+          node-version: '22.23.4'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
       - name: Install locked test dependencies
         shell: pwsh
         run: |
-          npm install --global pnpm@10.6.1
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           pnpm install --frozen-lockfile
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify native Windows save paths without capture

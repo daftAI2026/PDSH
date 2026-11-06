@@ -1,13 +1,13 @@
 /**
  * [INPUT]: src/host/index.ts 与官方 Typert service，由 build.ts 生成。
  * [OUTPUT]: 唯一 pdsh Config/name/apply 与 owned-window capture/save/wallpaper。
- * [POS]: 单包运行产物；PDSH build "0.5.11"，不手工修改。
+ * [POS]: 单包运行产物；PDSH build "0.5.12"，不手工修改。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __knownSymbol = (name2, symbol) => (symbol = Symbol[name2]) ? symbol : Symbol.for("Symbol." + name2);
+var __knownSymbol = (name2, symbol) => (symbol = Symbol[name2]) ? symbol : /* @__PURE__ */ Symbol.for("Symbol." + name2);
 var __typeError = (msg) => {
   throw TypeError(msg);
 };
@@ -412,7 +412,7 @@ function apply2(ctx, config) {
   }, import.meta.url)) ctx.plugin(WindowCaptureService);
   observeCaptureEnabled(ctx);
 }
-Object.defineProperty(apply2, "pdshVersion", { value: "0.5.11" });
+Object.defineProperty(apply2, "pdshVersion", { value: "0.5.12" });
 export {
   Config,
   WindowCaptureService,

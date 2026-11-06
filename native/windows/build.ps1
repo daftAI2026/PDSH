@@ -1,5 +1,5 @@
 # [INPUT]: Windows SDK、Visual Studio x64 工具链、capture/geometry/owner/wallpaper 原生源码。
-# [OUTPUT]: 构建并嵌入 asInvoker manifest；显式 staging 输出须有固定 owner marker。
+# [OUTPUT]: 并行编译独立翻译单元并嵌入 asInvoker manifest；显式 staging 输出须有固定 owner marker。
 # [POS]: Windows x64 唯一构建入口；默认输出原位，显式输出只写自有临时 staging。
 # [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 param([string]$OutputPath = '')
@@ -101,7 +101,7 @@ try {
   Push-Location $temp
   $source = Join-Path $module 'window-capture.cpp'
   $clArgs = @(
-    '/nologo', '/std:c++17', '/EHsc', '/W4', '/utf-8', '/MT', '/DUNICODE', '/D_UNICODE',
+    '/nologo', '/MP', '/std:c++17', '/EHsc', '/W4', '/utf-8', '/MT', '/DUNICODE', '/D_UNICODE',
     '/D_WIN32_WINNT=0x0A00', '/DWINVER=0x0A00',
     "/I$cppwinrt", "/I$(Join-Path $sdk.FullName 'shared')",
     "/Fe$output", $source,
