@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖发布清单、双语支持入口、官方 locale 与 Client 字典。
- * [OUTPUT]: 验证双语元信息、支持链接及运行文案，核对宿主图标色彩。
+ * [OUTPUT]: 验证双语元信息、支持链接语序、间隔及运行文案，核对宿主图标色彩。
  * [POS]: PDSH 本地化与清单图标合同；实际宿主热切换/草稿保留由独立 runtime 另验。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -34,9 +34,18 @@ test('meta.detail 随宿主语言提供唯一 Star 与作者入口，不重复�
     assert.equal(body.split('\n').length, 1, '短详情只有一行，不复制产品 README');
     details.push(body);
   }
+  for (const body of details) {
+    const parts = body.split(' 👉 ');
+    assert.equal(parts.length, 2, '手指前后各保留一个普通空格');
+    assert.doesNotMatch(parts[0], /\[|\]/, '提示整句是普通文字，不挂链接');
+    const links = [...parts[1].matchAll(/\[[^\]]+\]\(https:\/\/[^)]+\)/g)].map(match => match[0]);
+    assert.equal(links.length, 2);
+    assert.equal(parts[1], links.join(' '), '项目与作者链接只隔一个普通空格');
+    assert.doesNotMatch(body, /𝕏/, '站点图标交给宿主，不手工重复添加');
+  }
   assert.notEqual(details[0], details[1]);
-  assert.equal(details[0], '如果 PDSH 对你有帮助，欢迎在 [GitHub 点个 Star](https://github.com/daftAI2026/PDSH) 支持我们 👉 [@daftAI](https://x.com/singkid9527)');
-  assert.equal(details[1], 'If PDSH helps you, please support us with a [Star on GitHub](https://github.com/daftAI2026/PDSH) 👉 [@daftAI](https://x.com/singkid9527)');
+  assert.equal(details[0], '如果 PDSH 对你有帮助，欢迎在 GitHub 点个 Star 支持我们 👉 [GitHub](https://github.com/daftAI2026/PDSH) [@daftAI](https://x.com/singkid9527)');
+  assert.equal(details[1], 'If PDSH helps you, please support us with a Star on GitHub 👉 [GitHub](https://github.com/daftAI2026/PDSH) [@daftAI](https://x.com/singkid9527)');
 });
 
 test('运行文案两种语言键一致，语言提示使用宿主设置而非自建状态', async () => {

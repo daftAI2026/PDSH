@@ -237,6 +237,19 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
 
+## 0.5.15 Release Decision: Support Message Order
+
+Restore the original plain-text sentence without linking words inside it.
+Place the project link, then the author link, after the pointing finger.
+Keep one ASCII space on each side of the finger and between the two links.
+Let the Host generate site icons; do not add a separate X symbol or custom icon.
+Keep the default text size, spacing, and left alignment; do not change CSS.
+Keep the summary, features, protocols, native helpers, and update path unchanged.
+The user requested a direct stable release; push main and v0.5.15 for this correction.
+Do not create an RC, install the bundle, or restart Desktop.
+Check the full contracts, stable archive, and exact Host independently.
+Keep unverified Desktop gates separate; do not create a GitHub Release or publish to npm.
+
 ## 0.5.14 Release Decision: Support Entry Placement
 
 Keep the summary; localized details contain the Star message and author link.

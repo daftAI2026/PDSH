@@ -43,7 +43,7 @@
 - `capture-view.test.ts`: 生产布局锁住标题下留白、图标顶沿与滑轨刻度。私密标题/私密身份使用双语短文案，编辑器独立关联标题。检测区域保留可访问名称与共享点击命令。标题遮罩独立于单一身份遮罩；无系统壁纸 adapter 时不伪造入口。
 - `runtime-root-reload.test.ts`: 真实 Registry 换根、并发合并、惰性就绪、失败恢复与卸载围栏。拒绝异包、错误版本和符号链接入口；Entry 夹具不代替官方升级或 Desktop 验收。
 - `host.test.ts`: 真实 Schemastery Config、历史头像两项预算、路径边界与平台provider分流；默认 Downloads 使用宿主 `homedir()` 与 `path.join` 精确比较，覆盖 POSIX/Windows drive-root/UNC 并拒绝相对、非canonical及device namespace；缺 helper/不支持架构仍保留设置。
-- `localization.test.ts`: 单 Bundle 双语元信息与 meta.detail 的包内支持链接。链接与运行文案跟随宿主语言；图标响应 Host color-scheme。
+- `localization.test.ts`: 单 Bundle 双语元信息与 meta.detail 的包内支持链接。提示保持纯文字，箭头后两个链接以单空格分隔。运行文案跟随宿主语言，图标响应 Host color-scheme。
 - `model.test.ts`: 昵称、头像和旧字段投影验证。
 - `presentation.test.ts`: 视觉身份的唯一归属与卸载。未登录借用官方头像和身份行；收起及停用恢复原样。样式缺失、重复和错属拒绝覆盖。菜单、临时头像和登录恢复独立于配置写入。
 - `plugin-detail-typography.test.ts`: 自身大标题标记、版本胶囊不变、未知结构及外部接管合同。原生 CSS 的实际字形另在浏览器验收。
