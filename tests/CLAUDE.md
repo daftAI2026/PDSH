@@ -133,7 +133,7 @@
 
 - `rc-identity.test.ts`: 以 esbuild 注入 stable/RC 名称验证根配置、locale、编辑偏好键与更新边界；实例化版本化 capture 业务闭包，以 Remote iterable 终态黑盒验证只读自身 accepted Settings、启停和迟挂载恢复，不启动 helper；不验证 Manager 共存或 Desktop UI。
 
-- `rc-packaging.test.ts`: 独立候选身份、双语说明与含包图生成器的白名单 staging。核私有路径排除、稳定源不变、权限及拒绝覆盖。不运行 SDK GUI 或真实安装。
+- `rc-packaging.test.ts`: 独立候选身份及白名单 staging。中英短详情随 meta.detail 保留，任意 Markdown 排除。核稳定源不变、权限与拒绝覆盖；不运行实机安装。
 - `system-wallpaper-host-fixtures.ts`: 共用受控子进程、最小 JPEG 和 iterable 夹具。不作为真实原生目录或像素证据。
 - `system-wallpaper-runtime-windows.test.ts`: Windows CaptureRuntime 重读 roster、陈旧 hash ID 拒绝及静图路由合同。不读取系统目录或验收像素。
 - `system-wallpaper-host.test.ts`: Mac 与 Windows helper 路由、Windows五项hash roster接受/六项拒绝、固定错误码、预算、取消 close 及下载门合同。不执行真实 helper 或联网。

@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖公开源码白名单、主题包图生成器、双语 README 与平台打包适配。
+ * [INPUT]: 依赖源码白名单、双语短详情与 README、包图及平台打包适配。
  * [OUTPUT]: 在私有 OS staging 派生独立 RC，保留双语测试提醒并拒绝覆盖输出。
  * [POS]: 只负责候选制作；不安装、不触碰 Desktop/profile，不能替代 Manager 或实机验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -228,7 +228,7 @@ function excludeDirectoryName(relative: string): boolean {
 function includeDirectoryFile(relative: string): boolean {
   const name = relative.slice(relative.lastIndexOf('/') + 1);
   if (relative.startsWith('src/')) return /\.(?:ts|tsx|css|svg|jpg)$/.test(name);
-  if (relative.startsWith('locale/')) return name.endsWith('.json');
+  if (relative.startsWith('locale/')) return name.endsWith('.json') || /^detail\.(?:zh|en)\.md$/.test(name);
   if (relative.startsWith('native/')) return name === 'window-capture' || /\.(?:sh|mm|exe|ps1|cpp|h|manifest)$/.test(name);
   return true;
 }

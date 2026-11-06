@@ -42,8 +42,11 @@ function sourceFixture() {
     'native/window-capture': 'mac helper bytes\n',
     'native/window-capture.mm': 'native source\n',
     'native/windows/window-capture-x64.exe': 'windows helper bytes\n',
-    'locale/zh.json': JSON.stringify({ meta: { title: 'DSH 私密模式', description: '中文功能说明。' } }, null, 2),
-    'locale/en.json': JSON.stringify({ meta: { title: 'DSH Private Mode', description: 'English description.' } }, null, 2),
+    'locale/zh.json': JSON.stringify({ meta: { title: 'DSH 私密模式', description: '中文功能说明。', detail: 'locale/detail.zh.md' } }, null, 2),
+    'locale/en.json': JSON.stringify({ meta: { title: 'DSH Private Mode', description: 'English description.', detail: 'locale/detail.en.md' } }, null, 2),
+    'locale/detail.zh.md': '中文短详情。\n',
+    'locale/detail.en.md': 'Short English detail.\n',
+    'locale/research.md': 'private research must not enter staging\n',
   };
   for (const [path, body] of Object.entries(files)) {
     const absolute = join(rootDir, path);
@@ -111,6 +114,10 @@ test('stage 只复制公开白名单，在私有副本派生包/patch/locale，�
     assert.match(zh.description, /先停用正式|先.*停用.*正式/);
     assert.equal(en.title, 'DSH Private Mode RC');
     assert.match(en.description, /disable.*stable|stable.*disable/i);
+    assert.equal(zh.detail, 'locale/detail.zh.md');
+    assert.equal(en.detail, 'locale/detail.en.md');
+    assert.equal(readFileSync(join(stage.stageDir, zh.detail), 'utf8'), '中文短详情。\n');
+    assert.equal(readFileSync(join(stage.stageDir, en.detail), 'utf8'), 'Short English detail.\n');
     const readme = readFileSync(join(stage.stageDir, 'README.md'), 'utf8');
     assert.match(readme, /official Plugin Manager test only/i);
     assert.match(readme, /uninstall only `@daftai\/pdsh-rc`/);
@@ -125,7 +132,7 @@ test('stage 只复制公开白名单，在私有副本派生包/patch/locale，�
     }
     assert.equal(lstatSync(join(stage.stageDir, 'node_modules')).isSymbolicLink(), true);
     assert.equal(realpathSync(join(stage.stageDir, 'node_modules')), realpathSync(join(h.rootDir, 'node_modules')));
-    for (const path of ['AGENTS.md', '.internal-docs', 'output', '.git', '.playwright-cli', 'src/client/user-pixels.png']) {
+    for (const path of ['AGENTS.md', '.internal-docs', 'output', '.git', '.playwright-cli', 'src/client/user-pixels.png', 'locale/research.md']) {
       assert.equal(lstatSync(join(stage.stageDir, path), { throwIfNoEntry: false }), undefined, `${path} excluded`);
     }
     assert.match(stage.source.sha256, /^[a-f0-9]{64}$/);
