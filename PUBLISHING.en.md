@@ -237,6 +237,21 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
 
+## 0.5.17 Release Decision: Automatic Region Detection
+
+Automatic suggestions no longer read Host or engine versions.
+Validate the viewport, native scale, PNG dimensions, and before/after geometry on every capture.
+Keep Mac full-window mapping and Windows same-image client-area offsets unchanged.
+Unknown or changing geometry preserves the photo and manual redaction.
+Add no dependencies, observers, polling, or capture permissions.
+The same-source RC completed official installation and user manual testing on Mac.
+The agent checked native AX selection, selection retention after retake, and stable-bundle restoration.
+The stable archive and exact Host lifecycle still require independent verification.
+Windows Desktop acceptance for this change and final pixel-by-pixel alignment remain unverified.
+The stable-tag upgrade remains unverified; RC installation is not upgrade evidence.
+The user accepted these unverified gates and authorized this repair tag.
+Publish only main and v0.5.17; do not create a GitHub Release or publish to npm.
+
 ## 0.5.16 Release Decision: Follow Prompt
 
 Add “或者关注” after the project link and before the author link in Chinese.

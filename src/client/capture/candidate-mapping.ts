@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 DOM 候选、Renderer 视口几何、画布尺寸访问器与原生 pointPixelScale。
+ * [INPUT]: 依赖 DSH 主页面的 DOM 候选、实时视口、画布尺寸与原生 pointPixelScale；不读取引擎版本。
  * [OUTPUT]: Mac 满窗使用零平移；Windows 使用同张 PNG 的原生客户区偏移。未知、缩放或变动布局返回空候选。
  * [POS]: DOM CSS 坐标→冻结整窗像素的窄边界；不以透明像素猜原点，不影响手绘或取像。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -12,12 +12,11 @@ type WindowViewport = {
   outerWidth: number; outerHeight: number; platform: 'mac' | 'windows';
 };
 
-/** 只接受 rc.2 Electron 44 主页面；Windows 客户区原点由独立原生元数据提供。 */
+/** 版本不能证明坐标原点；每次拍摄均核对实际尺寸、比例与前后快照。 */
 export function readCandidateWindowViewport(doc: Document): WindowViewport | null {
   const view = doc.defaultView;
   if (!view || view !== view.top || doc !== view.document || !doc.documentElement?.isConnected
-    || doc.location.protocol !== 'dsh-app:' || doc.location.hostname !== 'app'
-    || !/\bElectron\/44\.0\.0(?:\s|$)/.test(view.navigator.userAgent)) return null;
+    || doc.location.protocol !== 'dsh-app:' || doc.location.hostname !== 'app') return null;
   const platform = view.navigator.platform.startsWith('Mac') ? 'mac'
     : view.navigator.platform.startsWith('Win') ? 'windows' : null;
   if (!platform) return null;
