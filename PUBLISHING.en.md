@@ -252,6 +252,12 @@ The stable-tag upgrade remains unverified; RC installation is not upgrade eviden
 The user accepted these unverified gates and authorized this repair tag.
 Publish only main and v0.5.17; do not create a GitHub Release or publish to npm.
 
+### 0.5.17 Post-release Acceptance
+
+The user reported successful functional testing on Windows.
+This is user-reported acceptance, not agent-run measurements.
+Final pixel-by-pixel alignment and stable-tag upgrade gates still lack additional evidence.
+
 ## 0.5.16 Release Decision: Follow Prompt
 
 Add “或者关注” after the project link and before the author link in Chinese.
