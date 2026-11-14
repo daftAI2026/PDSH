@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖纯导出偏好/预算、真实合成尺寸、可替换画布编码器与固定枚举诊断。
- * [OUTPUT]: 验证5K边距和分配前预算、编码字节上限、basename、MIME、JPEG临时画布释放及日志脱敏。
+ * [OUTPUT]: 验证5K边距和分配前预算、编码字节上限、精简默认 basename、MIME、JPEG临时画布释放及日志脱敏。
  * [POS]: 设置到编辑导出的合同门；下载交接不冒充 Desktop 文件写入成功。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -18,6 +18,11 @@ test('文件名模板仅构造 basename，格式扩展名统一，未知字段�
   assert.equal(captureExportFileName({saveFormat:'jpeg',fileNamePattern:'.png'},date),'PDSH.jpg');
   for(const fileNamePattern of ['../private','x/y','{account}','\u0000secret','...',''])assert.equal(resolveCaptureExportPreferences({fileNamePattern}).fileNamePattern,DEFAULT_CAPTURE_EXPORT.fileNamePattern);
   assert.deepEqual(resolveCaptureExportPreferences({saveFormat:'gif',png:'secret'}),DEFAULT_CAPTURE_EXPORT);
+});
+test('默认文件名只保留品牌与日期时间', () => {
+  const date = new Date(2026, 9, 1, 13, 2, 3);
+  assert.equal(DEFAULT_CAPTURE_EXPORT.fileNamePattern, 'PDSH-{date}-{time}');
+  assert.equal(captureExportFileName({}, date), 'PDSH-2026-10-01-13-02-03.png');
 });
 function canvasFixture({mimeOverride=null,fail=false,drawFail=false}={}){
   const calls=[],ctx={fillStyle:'',fillRect(...args){calls.push(['fill',this.fillStyle,...args]);},drawImage(...args){if(drawFail)throw Error('draw');calls.push(['draw',...args]);}};

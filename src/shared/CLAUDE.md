@@ -9,7 +9,7 @@
 
 - `capture-bridge.ts`: 已退出运行时的 Main/Inspector 实验控制合同；保留历史回归，不是现行 Remote 路由，也不作为取像失败回退。
 
-- `capture-export.ts`: `captureEnabled/captureMaskIdentity/saveBehavior/saveDirectory/saveFormat/fileNamePattern` 六字段须完整且符合已有纯合同才判配置就绪（空目录仍有效），不推断 Host 版本/权限；另供询问/直接保存、格式、basename 与纯 POSIX/Windows 绝对目录语法，拒绝相对、控制字符及 device namespace；编辑输出独立32MP/128MB预算。
+- `capture-export.ts`: `captureEnabled/captureMaskIdentity/saveBehavior/saveDirectory/saveFormat/fileNamePattern` 六字段须完整且符合已有纯合同才判配置就绪（空目录仍有效），不推断 Host 版本/权限；默认文件名只含品牌与日期时间；另供询问/直接保存、格式、basename 与纯 POSIX/Windows 绝对目录语法，拒绝相对、控制字符及 device namespace；编辑输出独立32MP/128MB预算。
 - `capture-trace.ts`: 固定阶段、共享失败码白名单与 request UUID 的脱敏诊断；复用官方 logger，记录失败也不影响业务。
 
 - `window-capture-protocol.ts`: owned-window Remote stream 的固定 capture 帧、失败码运行时白名单与硬预算；scope/尺寸/点像素比例明示原生整窗语义，不传窗口标题、目录或源坐标。

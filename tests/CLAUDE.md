@@ -71,7 +71,7 @@
 - `plugin-port.test.ts`: 请求级保存取消不卸载桥、下次请求可继续； 官方 rpc 仅发控制、Main 像素接收 nonce/重放/取消围栏和 Renderer 唯一 owner 归还。
 - `page-capture-main.test.ts`: 原 mainFrame 交付、同 URL reload、取消锁保留、独立可见视图及 DPR/PNG 声明拒绝、卸载监听归还；getter 异常不泄漏共享锁，重新装配仍串行，每次采样重新验证允许页面。
 
-- `capture-export.test.ts`: 5K默认边距、合成/JPEG分配前32MP和编码后128MB预算、basename/MIME/白底归还及日志脱敏；不读用户截图。
+- `capture-export.test.ts`: 5K默认边距、合成/JPEG分配前32MP和编码后128MB预算、无 screenshot 的默认 basename/MIME/白底归还及日志脱敏；不读用户截图。
 
 - `capture-diagnosis.test.ts`: 真实 Client→Host 编排的端口冲突错误传播与统一 UUID；模拟 Main 拒绝副作用，不声称 Desktop 成功。
 
@@ -85,7 +85,7 @@
 - `host-acceptance.test.ts`: 集成 CLI 安全前置。核 owner、路径、凭据与候选身份。PNPM 来自同代 runtime 清单；失配须先拒绝。升级门守护官方访问策略与 Peer 装配，不伪造 Gateway 依赖。不启动 DSH。
 
 - `bundle-artifacts.test.ts`: 双语 README 与内部能力面的真实 tgz 闭包。核 Mac universal、Windows x64/asInvoker、执行位和字节。POSIX先改隔离文件模式，Windows改归档mode，确保坏权限样本真实变坏。拒绝子依赖、宽泛 files 与安装 hook，不执行安装。
-- `capture-defaults.test.ts`: 旧导出默认只通过根 pdsh revision 修正；自定义值、已移除子域与迟到卸载不覆盖偏好。
+- `capture-defaults.test.ts`: 两代默认模板经真实 Schemastery 及序列化归一化，不写 override；旧空目录保留根 revision 围栏，自定义值、子域和卸载不越界。
 
 - `window-capture-controller.test.ts`: 不限引擎版本的 Mac 零偏移与 Windows 客户区映射。UA 访问器抛错仍须保留候选。尺寸沿用真实画布原型访问器。拒绝未知平台、缺失、错尺寸、错比例与移动几何；照片保留手绘。不冒充实机证据。
 

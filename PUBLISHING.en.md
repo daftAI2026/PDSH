@@ -249,6 +249,18 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
 
+## 0.5.19 Release Decision: Shorter Default Filename
+
+Use `PDSH-{date}-{time}` as the default template.
+Normalize exact matches for both legacy defaults with Schemastery transform.
+Preserve raw overrides; do not nest settings writes inside Host loading transactions.
+Preserve custom templates; never replace the screenshot substring globally.
+Keep directories, formats, collision numbering, and atomic save contracts unchanged.
+This change only updates defaults and configuration normalization; do not install into live Desktop.
+Contract tests do not replace live upgrade or native pixel-alignment acceptance.
+The user authorized direct publication after the change: push only main and v0.5.19.
+Do not create a GitHub Release or publish to npm.
+
 ## 0.5.18 Release Gate: Host Settings Compatibility
 
 Fix settings render failure after the Host removed its positioning hook.

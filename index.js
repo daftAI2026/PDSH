@@ -1,7 +1,7 @@
 /**
  * [INPUT]: src/host/index.ts 与官方 Typert service，由 build.ts 生成。
  * [OUTPUT]: 唯一 pdsh Config/name/apply 与 owned-window capture/save/wallpaper。
- * [POS]: 单包运行产物；PDSH build "0.5.18"，不手工修改。
+ * [POS]: 单包运行产物；PDSH build "0.5.19"，不手工修改。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 var __create = Object.create;
@@ -89,7 +89,7 @@ import z from "@deepseek-ai/schemastery";
 // src/shared/capture-export.ts
 var CAPTURE_SAVE_DIRECTORY_PATTERN = /^(?=.{0,4096}$)(?:|\/(?!\/)[^\u0000-\u001f\u007f-\u009f]*|[A-Za-z]:\\(?:[^\\/:*?"<>|\u0000-\u001f\u007f-\u009f]+(?:\\[^\\/:*?"<>|\u0000-\u001f\u007f-\u009f]+)*\\?)?|\\\\(?!\.{1,2}\\)[^\\/:*?"<>|\u0000-\u001f\u007f-\u009f]+\\[^\\/:*?"<>|\u0000-\u001f\u007f-\u009f]+(?:\\[^\\/:*?"<>|\u0000-\u001f\u007f-\u009f]+)*\\?)$/u;
 var CAPTURE_FILE_NAME_PATTERN = /^(?=.{1,160}$)(?![\s.]+$)(?:[^{}\\/:*?"<>|\u0000-\u001f\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u206f]|\{(?:date|time|title|width|height)\})+$/u;
-var DEFAULT_CAPTURE_EXPORT = { saveBehavior: "ask", saveFormat: "png", fileNamePattern: "PDSH-screenshot-{date}-{time}", saveDirectory: "" };
+var DEFAULT_CAPTURE_EXPORT = { saveBehavior: "ask", saveFormat: "png", fileNamePattern: "PDSH-{date}-{time}", saveDirectory: "" };
 
 // src/host/capture.ts
 var INITIAL_SAVE_DIRECTORY = join(homedir(), "Downloads");
@@ -100,7 +100,8 @@ var CAPTURE_CONFIG_FIELDS = {
   saveBehavior: z.union(["ask", "direct"]).default(DEFAULT_CAPTURE_EXPORT.saveBehavior).volatile(),
   saveDirectory: z.string().pattern(CAPTURE_SAVE_DIRECTORY_PATTERN).default(INITIAL_SAVE_DIRECTORY).volatile(),
   saveFormat: z.union(["png", "jpeg", "webp"]).default(DEFAULT_CAPTURE_EXPORT.saveFormat).volatile(),
-  fileNamePattern: z.string().pattern(CAPTURE_FILE_NAME_PATTERN).default(DEFAULT_CAPTURE_EXPORT.fileNamePattern).volatile()
+  // +--- transform 会跨 Settings 序列化；回调自包含，preserve 保留原始 override。 ---+
+  fileNamePattern: z.transform(z.string().pattern(CAPTURE_FILE_NAME_PATTERN), (value) => value === "DSH {date} at {time}" || value === "PDSH-screenshot-{date}-{time}" ? "PDSH-{date}-{time}" : value, true).default(DEFAULT_CAPTURE_EXPORT.fileNamePattern).volatile()
 };
 async function normalizeLegacyCaptureExport(ctx, isDisposed = () => false) {
   await ctx.root.loader.await();
@@ -109,9 +110,6 @@ async function normalizeLegacyCaptureExport(ctx, isDisposed = () => false) {
   if (!section) return;
   const operations = [];
   if (section.value?.saveDirectory === "") operations.push({ op: "set", path: ["saveDirectory"], value: INITIAL_SAVE_DIRECTORY });
-  if (section.value?.fileNamePattern === "DSH {date} at {time}") {
-    operations.push({ op: "set", path: ["fileNamePattern"], value: DEFAULT_CAPTURE_EXPORT.fileNamePattern });
-  }
   if (operations.length && !isDisposed()) await ctx.settings.mutate(ROOT_NAMESPACE, operations, section.revision);
 }
 function observeCaptureEnabled(ctx) {
@@ -412,7 +410,7 @@ function apply2(ctx, config) {
   }, import.meta.url)) ctx.plugin(WindowCaptureService);
   observeCaptureEnabled(ctx);
 }
-Object.defineProperty(apply2, "pdshVersion", { value: "0.5.18" });
+Object.defineProperty(apply2, "pdshVersion", { value: "0.5.19" });
 export {
   Config,
   WindowCaptureService,

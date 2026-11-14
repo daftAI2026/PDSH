@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 精确 Host、归档、同代 runtime 与 PNPM；升级门使用官方访问策略和 Peer。Windows 验真实 ACL。
- * [OUTPUT]: 验官方 Manager/HMR 安装、身份配置与业务生命周期。不取像或下载媒体。
+ * [OUTPUT]: 验官方 Manager/HMR 安装、默认模板迁移、身份配置与业务生命周期。不取像或下载媒体。
  * [POS]: 仓库根目录的集成验收入口；只操作调用方指定且 owner/权限验证的临时 profile，不改写 DSH 用户 profile 或替代官方解析器。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  *
@@ -19,6 +19,7 @@ import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { createHash } from 'node:crypto'
 import { validatePackedBundle } from './bundle-artifacts.ts'
+import { DEFAULT_CAPTURE_EXPORT } from './src/shared/capture-export.ts'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 import { assertWindowsPrivateOwnership, protectWindowsOwnedDirectory } from './tools/windows-temp-ownership.ts'
 
@@ -391,6 +392,7 @@ async function main(): Promise<void> {
         { op: 'set', path: ['avatar'], value: 'data:image/png;base64,YQ==' },
         { op: 'set', path: ['useAccountAvatar'], value: false },
         { op: 'set', path: ['maskIdentity'], value: true },
+        { op: 'set', path: ['fileNamePattern'], value: 'PDSH-screenshot-{date}-{time}' },
       ], before.revision)
       const preserved = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
       assert.equal(await versionOf('pdshNativeWindowCapture'), '0.5.9')
@@ -405,8 +407,12 @@ async function main(): Promise<void> {
       const after = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
       assert.ok(after && Object.hasOwn(after.value, 'avatarHistory'), '截图 payload 更新不能代替根 Config 热加载')
       assert.notEqual(activePdshRows(ctx, rootEntry)[0].fiber, previousFiber, '根 Host 必须真正换代')
-      for (const key of Object.keys(preserved.value)) assert.deepEqual(after.value[key], preserved.value[key], `换根不得改变原配置: ${key}`)
-      assert.deepEqual(after.user, preserved.user, '换根不得改写用户 override')
+      for (const key of Object.keys(preserved.value)) {
+        const expected = key === 'fileNamePattern' ? DEFAULT_CAPTURE_EXPORT.fileNamePattern : preserved.value[key]
+        assert.deepEqual(after.value[key], expected, `换根只允许迁移已知默认模板: ${key}`)
+      }
+      assert.deepEqual(after.user, preserved.user, '默认模板归一化不得改写用户 override')
+      console.log('PASS export-default normalization: exact legacy template updated without writing overrides; all other accepted settings retained')
       console.log(`PASS same-process upgrade: fixed 0.5.9 → ${candidate.version}; real root Config and payload replaced through official Gateway; no restart or bundle toggle`)
     }
     if (expectedResult === 'historical-pnpm-red') {
@@ -491,6 +497,7 @@ async function main(): Promise<void> {
     service.refreshCaptureEnabled = () => { refreshCount++; refresh() }
     const defaults = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
     assert.ok(defaults, 'root settings missing')
+    assert.equal(defaults.value.fileNamePattern, DEFAULT_CAPTURE_EXPORT.fileNamePattern, '实际 Host 默认模板不是当前候选')
     const originalFields = FEATURE_FIELDS.map(key => ({key, own:Object.hasOwn(defaults.user ?? {}, key), value:defaults.user?.[key]}))
     for (let mask = 0; mask < 8; mask++) {
       const enabled = FEATURE_FIELDS.map((_field, index) => Boolean(mask & (1 << index)))

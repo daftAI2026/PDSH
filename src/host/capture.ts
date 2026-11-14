@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖 shared 包配置身份、export/跨平台目录语法与官方 accepted Settings revision；不再依赖 Fetch、Main 或 Inspector。
- * [OUTPUT]: 提供 root Config 的拍照身份遮挡/导出字段与仅修正历史默认值的配置 effect。
+ * [OUTPUT]: 提供 root Config 的拍照身份遮挡/导出字段与历史默认模板的无写入归一化。保留旧空目录的 revision 迁移。
  * [POS]: Host 配置适配边界；截图身份开关与常驻 maskIdentity 独立，Native Remote 生命周期由 service 单独持有。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -20,10 +20,13 @@ export const CAPTURE_CONFIG_FIELDS = {
   saveBehavior: z.union(['ask', 'direct']).default(DEFAULT_CAPTURE_EXPORT.saveBehavior).volatile(),
   saveDirectory: z.string().pattern(CAPTURE_SAVE_DIRECTORY_PATTERN).default(INITIAL_SAVE_DIRECTORY).volatile(),
   saveFormat: z.union(['png', 'jpeg', 'webp']).default(DEFAULT_CAPTURE_EXPORT.saveFormat).volatile(),
-  fileNamePattern: z.string().pattern(CAPTURE_FILE_NAME_PATTERN).default(DEFAULT_CAPTURE_EXPORT.fileNamePattern).volatile(),
+  // +--- transform 会跨 Settings 序列化；回调自包含，preserve 保留原始 override。 ---+
+  fileNamePattern: z.transform(z.string().pattern(CAPTURE_FILE_NAME_PATTERN), value =>
+    value === 'DSH {date} at {time}' || value === 'PDSH-screenshot-{date}-{time}'
+      ? 'PDSH-{date}-{time}' : value, true).default(DEFAULT_CAPTURE_EXPORT.fileNamePattern).volatile(),
 }
 
-/** 保留已有 Host revision-fenced 默认修正，不把其它用户路径或模板重写。 */
+/** 只迁移旧空目录；模板由 Config 归一化，不在加载事务内嵌套写入。 */
 export async function normalizeLegacyCaptureExport(ctx: any, isDisposed = () => false): Promise<void> {
   await ctx.root.loader.await()
   if (isDisposed()) return
@@ -31,9 +34,6 @@ export async function normalizeLegacyCaptureExport(ctx: any, isDisposed = () => 
   if (!section) return
   const operations = []
   if (section.value?.saveDirectory === '') operations.push({ op: 'set', path: ['saveDirectory'], value: INITIAL_SAVE_DIRECTORY })
-  if (section.value?.fileNamePattern === 'DSH {date} at {time}') {
-    operations.push({ op: 'set', path: ['fileNamePattern'], value: DEFAULT_CAPTURE_EXPORT.fileNamePattern })
-  }
   if (operations.length && !isDisposed()) await ctx.settings.mutate(ROOT_NAMESPACE, operations, section.revision)
 }
 

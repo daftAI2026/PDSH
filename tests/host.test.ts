@@ -31,7 +31,7 @@ test('Host 默认和 live 配置字段', () => {
   assert.equal(value.saveBehavior.get(), 'ask');
   assert.equal(value.saveDirectory.get(), join(homedir(), 'Downloads'));
   assert.equal(value.saveFormat.get(), 'png');
-  assert.equal(value.fileNamePattern.get(), 'PDSH-screenshot-{date}-{time}');
+  assert.equal(value.fileNamePattern.get(), 'PDSH-{date}-{time}');
   assert.equal(Config({ captureEnabled: false }).captureEnabled.get(), false);
   assert.throws(() => Config({ captureEnabled: 'false' }));
   assert.throws(() => Config({ saveBehavior: 'automatic' }));
