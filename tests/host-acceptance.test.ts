@@ -22,6 +22,18 @@ test('隔离验收装配官方 HMR，不用排队桩冒充新版 profile reconci
   assert.doesNotMatch(source, /ctx\.provide\('hmr'|hmrScheduleStub/);
 });
 
+test('升级门装配官方访问策略与有生命周期的 Peer，不伪造 Gateway 依赖', () => {
+  const source = readFileSync(verifier, 'utf8');
+  assert.match(source, /importHostModule\(requireFromHost, '@deepseek-ai\/dsh-api-remote-access'\)/);
+  assert.match(source, /importHostModule\(requireFromHost, '@deepseek-ai\/dsh-client-connection'\)/);
+  assert.match(source, /await ctx\.plugin\(RemoteAccess\)\.await\(\)/);
+  assert.match(source, /new connectionModule\.Peer\(ctx, \{ principal: \{ kind: 'owner' \} \}\)/);
+  assert.match(source, /Gateway\.inject\?\.includes\('remoteAccess'\)/);
+  assert.match(source, /const UPGRADE_APPLICATIONS = \['applied', 'restart-required'\]/);
+  assert.match(source, /\(upgradeMode \? UPGRADE_APPLICATIONS : \['applied'\]\)\.includes\(installed\.application\)/);
+  assert.doesNotMatch(source, /ctx\.provide\('(?:remoteAccess|typertGateway)'/);
+});
+
 function createDirectoryLink(target: string, linkPath: string): void {
   symlinkSync(target, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
 }

@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖 styles.css 的真实 selector 与 rc.2 原生样式来源账。
+ * [INPUT]: 依赖 styles.css 的真实 selector、宿主样式来源账与浏览器锚点能力检测。
  * [OUTPUT]: 验证历史头像正圆与操作分层、标题灰条、控件几何及入口透明度；支持入口不再保留自有页脚样式，保留 Host 主题和焦点。
  * [POS]: PDSH 的样式合同，追溯语义视觉来源并保护原生入口按钮交互、来源标签邻接、昵称留白与实时原生控件测量边界。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -9,6 +9,18 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 const css = readFileSync(new URL('../src/client/styles.css', import.meta.url), 'utf8');
+test('历史浮层按浏览器能力锚定，不支持时保留有界可滚动面板', () => {
+  const panel = css.match(/\.pdsh-history-popover\s*\{([^}]+)\}/)?.[1] ?? '';
+  assert.match(panel, /box-sizing:\s*border-box/);
+  assert.match(panel, /--pdsh-history-top-inset:\s*max\(var\(--pdsh-section-inset\),\s*var\(--dsh-frame-overlay-top,\s*var\(--pdsh-section-inset\)\)\)/);
+  assert.match(panel, /inset:\s*var\(--pdsh-history-top-inset\) var\(--pdsh-section-inset\) var\(--pdsh-section-inset\)/);
+  assert.match(panel, /margin:\s*auto/); assert.match(panel, /overflow:\s*auto/);
+  assert.match(panel, /max-height:\s*calc\(100vh/); assert.match(panel, /max-width:\s*calc\(100vw/);
+  assert.match(css, /@supports \(anchor-name: --pdsh-anchor\) and \(position-anchor: --pdsh-anchor\) and \(top: anchor\(bottom\)\) and \(position-try-fallbacks: --pdsh-history-above\)/);
+  assert.match(css, /position-try-fallbacks:\s*--pdsh-history-above,\s*--pdsh-history-viewport/);
+  assert.match(css, /@position-try --pdsh-history-above\s*\{[^}]*anchor\(top\)/);
+  assert.match(css, /@position-try --pdsh-history-viewport\s*\{[^}]*inset:\s*var\(--pdsh-history-top-inset\)/);
+});
 test('拍照标题后首行不画分隔线，后续字段和身份原有分隔仍保留',()=>{
   assert.match(css,/\.pdsh-fields-group\s*>\s*\.pdsh-group-header\s*\+\s*\.pdsh-detail-row\s*\{\s*border-top:\s*0;\s*\}/);
   assert.match(css,/\.pdsh-detail-row\s*\{[^}]*border-top:\s*var\(--pdsh-outline-width\) solid var\(--dsw-alias-border-l2\)/);
@@ -27,7 +39,9 @@ test('灰条仅作用于自有标题标记，不给聊天消息描边或隐藏�
 });
 test('所有 token 有提供文件，不硬编码颜色、尺寸或 fallback', () => {
   assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /#[a-f\d]{3,8}\b|rgba?\(|\b\d+(?:\.\d+)?(?:px|rem|em)\b/i);
-  assert.doesNotMatch(css, /var\([^)]*,/);
+  // +--- 可选窗框 token 只退回已有间距；其余 token 不加回退。 ---+
+  const withoutFrameFallback = css.replace('var(--dsh-frame-overlay-top, var(--pdsh-section-inset))', 'var(--pdsh-section-inset)');
+  assert.doesNotMatch(withoutFrameFallback, /var\([^)]*,/);
   const sources = JSON.parse(readFileSync(new URL('../style-sources.json', import.meta.url), 'utf8'));
   for (const [, variable] of css.matchAll(/var\((--[\w-]+)\)/g)) {
     assert.ok(sources.styles.some(entry => entry.variable === variable && entry.file), variable);

@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖真实 SettingsCard/历史面板 JSX 与 React/jsdom；primitives 桩替代外观、定位和外点 hook。
+ * [INPUT]: 依赖真实 SettingsCard/历史面板 JSX 与 React/jsdom；primitives 桩不提供 RC3 已删除的定位 hook。
  * [OUTPUT]: 验证设置即时提交、局部草稿/异步冲突，历史原子提交、迟到清除围栏与焦点边界、真实 MutationObserver 驱动的账号头像登出/恢复。
  * [POS]: PDSH 设置交互回归；真实 presentation 驱动 JSX，宿主 token 与布局由 runtime 截图另验。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -29,7 +29,6 @@ async function mountSettings({ fileReader, imageDecode, value, presentation: ini
       return React.createElement('button', { type: 'button', 'data-variant': variant, 'data-size': size, ...props }, children);
     },
     MenuSurface: React.forwardRef((props, ref) => React.createElement('div', { ...props, ref })),
-    useAnchoredPosition: ({ open }) => open ? { left: 0, top: 0 } : null,
     useDismissOnOutsidePointer: (root, open, dismiss, panel) => React.useEffect(() => {
       if (!open) return;
       const outside = event => { if (!root.current?.contains(event.target) && !panel.current?.contains(event.target)) dismiss(false); };
@@ -602,6 +601,9 @@ test('有历史时只打开一层 dialog；复用旧头像轮换历史，不改�
     await act(async () => h.button('avatar').click());
     const panel = h.doc.querySelector('[role="dialog"]');
     assert.ok(panel); assert.equal(panel.parentElement, h.doc.body);
+    const anchor = h.button('avatar').closest('.pdsh-history-anchor').style.getPropertyValue('anchor-name');
+    assert.match(anchor, /^--pdsh-avatar-history-[\w-]+$/); assert.equal(panel.style.getPropertyValue('position-anchor'), anchor);
+    assert.equal(panel.style.position, 'fixed'); assert.equal(h.writes.length, 0, '展开与定位不提交配置');
     assert.equal(h.doc.activeElement, panel); assert.equal(h.doc.querySelector('[role="menu"]'), null);
     assert.equal(h.button('avatar').getAttribute('aria-expanded'), 'true');
     const old = h.button('reuseAvatar 2'); assert.equal(old.disabled, true);
@@ -768,6 +770,19 @@ test('旧Host基础分流仍遵守登录状态，不放开账号来源', async (
   } finally { await h.close(); }
 });
 
+
+test('RC3 无旧定位 hook 时，空历史与已有历史均可渲染身份设置', async () => {
+  for (const avatarHistory of [[], ['data:image/png;base64,Yg==']]) {
+    const h = await mountSettings({ value: { avatarHistory } });
+    try {
+      await h.render();
+      assert.ok(h.doc.querySelector('[data-pdsh-settings]'), '宿主缺少旧导出不能让整块设置退出渲染');
+      assert.ok(h.button('avatar'));
+      assert.ok(h.button('generated'));
+      assert.equal(h.writes.length, 0, '渲染设置不能改写配置');
+    } finally { await h.close(); }
+  }
+});
 
 test('迟到的清除历史回调重新核对完整头像配置', async () => {
   const B = 'data:image/png;base64,Yg==';

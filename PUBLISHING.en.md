@@ -33,6 +33,18 @@ Use the project-local [pdsh-release-lifecycle skill](.agents/skills/pdsh-release
 It coordinates existing tools and binds candidate bytes to actual runtime evidence.
 It grants no installation, restart, or publication permissions and stores no session progress.
 
+## Host Update Reminders
+
+A public workflow checks official tags daily at 01:23 UTC.
+It monitors stable releases and RCs after the fixed RC3 baseline.
+A new version creates an issue requesting manual compatibility review.
+Deduplicate each tag against issues authored by the workflow bot.
+Closed issues from that bot also participate in deduplication.
+Manual runs default to dry-run; scheduled runs create actual reminders.
+It does not test Desktop rendering or prove the absence of breaking changes.
+It does not change dependencies, install the Host, or publish PDSH.
+Workflow success is not compatibility acceptance.
+
 ## Public Metadata and Tag Gate
 
 `PUBLIC_METADATA` in `tools/release-metadata.ts` is the sole source for public descriptions and Topics.
@@ -236,6 +248,24 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 1. Run `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm build`, and `pnpm run bundle`. Check the current version's actual tgz members, bytes, permissions, version, and dependency licenses. Do not substitute an older package. Include only the manifest allowlist and npm's fixed package metadata and README files; exclude node_modules, profiles, credentials, logs, and private research.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
+
+## 0.5.18 Release Gate: Host Settings Compatibility
+
+Fix settings render failure after the Host removed its positioning hook.
+Use browser CSS anchors for avatar history without Host version gates.
+Preserve frame clearance, keyboard behavior, outside dismissal, and focus return.
+Keep a bounded centered panel when anchor capabilities are unavailable.
+Add no dependencies and change neither config addresses nor capture protocols.
+The isolated upgrade gate uses official access policies and a lifecycle-owned Peer.
+It preserves the Manager result and checks actual root and implementation replacement.
+The same-source Mac RC passed Desktop settings and avatar-history acceptance.
+Nickname, avatar selection, and capture-switch writes were restored after testing.
+Tab, Escape, outside dismissal, and focus return passed.
+Full-window capture, suggestion selection, and selection retention after retake passed.
+The official Plugins page removed the RC and re-enabled the retained stable bundle.
+The user authorized Windows acceptance after the stable tag is available.
+Stable-tag upgrades and final pixel-by-pixel alignment require separate acceptance.
+Publish only main and v0.5.18; do not create a GitHub Release or publish to npm.
 
 ## 0.5.17 Release Decision: Automatic Region Detection
 

@@ -49,7 +49,6 @@ function loadBundle(createRoot, doc) {
 function primitives() {
   return {
     MenuSurface: React.forwardRef((props, ref) => React.createElement('div', { ...props, ref })),
-    useAnchoredPosition: ({ open }) => open ? { left: 0, top: 0 } : null,
     useDismissOnOutsidePointer: () => {},
     Input: props => React.createElement('input', props),
     Button: ({ children, variant: _variant, ...props }) => React.createElement('button', props, children),

@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 精确 Host、候选归档及同代 runtime 清单与 PNPM。Windows 验真实 ACL。
+ * [INPUT]: 精确 Host、归档、同代 runtime 与 PNPM；升级门使用官方访问策略和 Peer。Windows 验真实 ACL。
  * [OUTPUT]: 验官方 Manager/HMR 安装、身份配置与业务生命周期。不取像或下载媒体。
  * [POS]: 仓库根目录的集成验收入口；只操作调用方指定且 owner/权限验证的临时 profile，不改写 DSH 用户 profile 或替代官方解析器。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -23,6 +23,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url'
 import { assertWindowsPrivateOwnership, protectWindowsOwnedDirectory } from './tools/windows-temp-ownership.ts'
 
 const FEATURE_FIELDS = ['maskIdentity', 'maskTitles', 'captureEnabled'] as const
+const UPGRADE_APPLICATIONS = ['applied', 'restart-required']
 type AcceptanceIdentity = { name: '@daftai/pdsh' | '@daftai/pdsh-rc'; entryId: 'pdsh' | 'pdsh-rc' }
 type PackageManagerCommand = {
   command: string
@@ -360,9 +361,23 @@ async function main(): Promise<void> {
     const manager = ctx.get('pluginManager')
     assert.ok(manager?.installBundle && manager?.listPlugins, '官方 PluginManager service 未注册')
     const gatewayModule = upgradeMode ? await importHostModule(requireFromHost, '@deepseek-ai/dsh-api-gateway') : undefined
-    const gateway = gatewayModule ? ctx.plugin(gatewayModule.default ?? gatewayModule.TypertGatewayService) : undefined
+    const Gateway = gatewayModule?.default ?? gatewayModule?.TypertGatewayService
+    let gatewayPeer: unknown
+    // +--- 按官方注入合同装配；不按版本猜测，不用允许一切的策略桩。 ---+
+    if (Gateway && Gateway.inject?.includes('remoteAccess')) {
+      const accessModule = await importHostModule(requireFromHost, '@deepseek-ai/dsh-api-remote-access')
+      const connectionModule = await importHostModule(requireFromHost, '@deepseek-ai/dsh-client-connection')
+      const RemoteAccess = accessModule.default ?? accessModule.RemoteAccessService
+      assert.ok(RemoteAccess && connectionModule.Peer, '官方 Gateway 缺少访问策略或 Peer')
+      await ctx.plugin(RemoteAccess).await()
+      gatewayPeer = new connectionModule.Peer(ctx, { principal: { kind: 'owner' } })
+    }
+    const gateway = Gateway ? ctx.plugin(Gateway) : undefined
     await gateway?.await()
-    const versionOf = (namespace: string) => ctx.typertGateway.invoke({ namespace, method: 'implementationVersion', args: {} })
+    const gatewayService = upgradeMode ? ctx.get('typertGateway') : undefined
+    if (upgradeMode) assert.equal(typeof gatewayService?.invoke, 'function', '官方 Gateway 未就绪；不能开始升级验收')
+    const versionOf = (namespace: string) => gatewayService.invoke({ namespace, method: 'implementationVersion', args: {},
+      ...(gatewayPeer ? { peer: gatewayPeer } : {}) })
     const baselineSource = 'github:daftAI2026/PDSH#69d578592da6fba545c841cdca60d8a02e20aebc'
     let installed = await manager.installBundle(upgradeMode ? baselineSource : installSource, { enabled: true })
     if (upgradeMode) {
@@ -381,7 +396,8 @@ async function main(): Promise<void> {
       assert.equal(await versionOf('pdshNativeWindowCapture'), '0.5.9')
       const previousFiber = activePdshRows(ctx, rootEntry)[0].fiber
       installed = await manager.installBundle(installSource, { enabled: true })
-      assert.equal(installed.application, 'restart-required', '保留官方安装结果，不伪造 applied')
+      assert.ok(UPGRADE_APPLICATIONS.includes(installed.application), '官方升级未接受；拒绝跳过实际换代验收')
+      console.log(`Official upgrade application: ${installed.application}`)
       assert.equal(installed.error, undefined)
       assert.equal(await versionOf('pdshNativeWindowCapture'), candidate.version)
       assert.equal(await versionOf('pdshRuntimeCapabilities'), candidate.version)
@@ -412,7 +428,7 @@ async function main(): Promise<void> {
       console.log(`EXPECTED RED [Host activation after PNPM success]: pnpm=${installed.packageResult.exitCode}; ${JSON.stringify(installed.error)}`)
       return
     }
-    assert.equal(installed.application, upgradeMode ? 'restart-required' : 'applied', `官方 Manager 未接受 Bundle: ${JSON.stringify(installed)}`)
+    assert.ok((upgradeMode ? UPGRADE_APPLICATIONS : ['applied']).includes(installed.application), `官方 Manager 未接受 Bundle: ${JSON.stringify(installed)}`)
     assert.equal(installed.error, undefined, `官方 Manager 安装报告错误: ${JSON.stringify(installed.error)}`)
     assert.equal(installed.bundle, ROOT_BUNDLE, '官方 Manager 安装的不是目标 root Bundle')
     assert.equal(installed.packageResult?.exitCode, 0, '官方 Manager 内部 PNPM 未成功')

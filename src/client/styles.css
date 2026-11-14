@@ -1,6 +1,6 @@
 /*
  * [INPUT]: Harness ui-theme 的语义色/圆角/字号，以及可卸载的原生 Input/Button/Switch/SettingsValueField/Tooltip/图标探针的实时计算参数。
- * [OUTPUT]: 提供遮挡、设置、圆形历史头像、更新状态和相机布局。Host StateDot 独占 loading 绘制与动效。
+ * [OUTPUT]: 提供遮挡、设置、CSS 锚定历史浮层、更新状态和相机布局。Host StateDot 独占 loading 绘制与动效。
  * [POS]: PDSH 的展示层；来源和使用处记录于 style-sources.json，卸载时整体移除。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -96,7 +96,13 @@ html.pdsh-capture-redact [data-pdsh-capture-redact="text"]::after {
 
 /* +--- 两个旧头像共用非模态宿主面板，图片像素不参与主题换色 ---+ */
 .pdsh-history-anchor { display: inline-flex; column-gap: var(--pdsh-field-gap); }
-.pdsh-history-popover { z-index: 100; box-shadow: var(--dsw-elevation-prominent); display: flex; flex-direction: column; gap: var(--pdsh-field-gap); padding: var(--pdsh-section-inset); max-width: 100%; max-height: 100%; overflow: auto; font: var(--dsw-font-xs-13); color: var(--dsw-alias-label-primary); }
+.pdsh-history-popover { --pdsh-history-top-inset: max(var(--pdsh-section-inset), var(--dsh-frame-overlay-top, var(--pdsh-section-inset))); box-sizing: border-box; z-index: 100; box-shadow: var(--dsw-elevation-prominent); display: flex; flex-direction: column; gap: var(--pdsh-field-gap); padding: var(--pdsh-section-inset); inset: var(--pdsh-history-top-inset) var(--pdsh-section-inset) var(--pdsh-section-inset); margin: auto; width: max-content; height: fit-content; min-height: 0; max-width: calc(100vw - 2 * var(--pdsh-section-inset)); max-height: calc(100vh - var(--pdsh-history-top-inset) - var(--pdsh-section-inset)); overflow: auto; font: var(--dsw-font-xs-13); color: var(--dsw-alias-label-primary); }
+/* +--- 浏览器拥有锚定、翻转与视口夹取；不支持锚点时保留居中面板。 ---+ */
+@supports (anchor-name: --pdsh-anchor) and (position-anchor: --pdsh-anchor) and (top: anchor(bottom)) and (position-try-fallbacks: --pdsh-history-above) {
+  .pdsh-history-popover { position-area: none; top: max(var(--pdsh-history-top-inset), calc(anchor(bottom) + var(--pdsh-field-gap))); right: max(var(--pdsh-section-inset), anchor(right)); bottom: var(--pdsh-section-inset); left: var(--pdsh-section-inset); margin: 0; align-self: start; justify-self: end; position-try-fallbacks: --pdsh-history-above, --pdsh-history-viewport; }
+}
+@position-try --pdsh-history-above { top: var(--pdsh-history-top-inset); bottom: max(var(--pdsh-section-inset), calc(anchor(top) + var(--pdsh-field-gap))); align-self: end; }
+@position-try --pdsh-history-viewport { inset: var(--pdsh-history-top-inset) var(--pdsh-section-inset) var(--pdsh-section-inset); align-self: safe end; justify-self: safe end; }
 .pdsh-history-heading strong { font: var(--dsw-font-xs-strong-13); }
 .pdsh-history-heading .pdsh-history-clear { color: var(--dsw-alias-label-secondary); }
 .pdsh-history-new { align-self: stretch; }

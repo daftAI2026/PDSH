@@ -20,7 +20,7 @@
 - 技术栈：TypeScript + React + Cordis + Typert。
 - 原生助手使用 Objective-C++ 和 Windows C++。
 - 宿主接口基线为 Desktop `0.2.0-rc.2`。
-- 源码含 `0.2.2-rc.1` 的接口与布局适配。
+- 源码含 `0.2.2-rc.3` 的接口与布局适配。
 - Desktop 与原生像素兼容须独立验收。
 - PDSH 是一个外置 Cordis Bundle，不是独立应用。
 - 保留一个 `pdsh` 根 Config 和一个根 Client。
@@ -87,7 +87,7 @@ InCodex 的所有权与路径安全约束应按目标场景保留。
 | `tools/` | 构建、协议生成、RC staging 和只读宿主评估。 |
 | `.agents/skills/pdsh-host-compatibility/` | 宿主升级评估与授权迁移；不安装普通插件更新。 |
 | `.agents/skills/pdsh-release-lifecycle/` | RC 与正式版的验收、恢复和发布；不增加安装器。 |
-| `.github/workflows/` | 固定 Windows SDK 构建；不自动发布。 |
+| `.github/workflows/` | 固定 Windows SDK 构建与宿主新标签提醒；不自动发布或判定兼容。 |
 | `.githooks/` | 本地稳定 tag 门；不覆盖用户 hooks。 |
 | `docs/` | 用户授权的 README 展示图；不是验收回执。 |
 | `README.md` / `README.en.md` | 双语产品入口；安装、兼容提醒和致谢成对同步。 |
@@ -99,7 +99,7 @@ InCodex 的所有权与路径安全约束应按目标场景保留。
 | `cordis.patch.yml` | 唯一 Cordis 插入层。 |
 | `build.ts` / `tsconfig*.json` | 构建与源码类型边界。 |
 | `bundle-artifacts.ts` | 入口、双语 README 与短详情、二进制及 tgz 字节和权限验真。 |
-| `verify-host.ts` | 临时 profile 的官方安装、旧版升级和生命周期门。PNPM 精确版本来自同代官方 runtime 清单；Windows 验真实 ACL。 |
+| `verify-host.ts` | 临时 profile 的官方安装、旧版升级和生命周期门。Gateway 使用官方访问策略与 Peer。PNPM 来自同代 runtime 清单；Windows 验真实 ACL。 |
 | `check-release.ts` | 长期发布章节、双语版本、产物与清洁树门。 |
 | `tools/release-metadata.ts` | 公开简介和 Topics 的唯一声明。 |
 | `tools/pack-rc.ts` | 同源临时 RC 构建；不安装到用户 profile。 |
@@ -370,6 +370,9 @@ L2/L3 必须带固定 PROTOCOL 行。
 - 独立 img 不继承页面 CSS 变量，不增加 DOM 换色器。
 - 内容像素、渐变、色谱和透明棋盘不是主题 chrome。
 - React 设置和更新入口使用 Host Tooltip。
+- 自定义历史浮层由浏览器 CSS 锚点定位。
+- 锚点能力检测不依赖宿主或引擎版本。
+- 缺少锚点能力时保留有界居中面板。
 - DOM 控件共用一个可卸载 Tooltip adapter。
 - 保留 Host delay、placement、gap 和图标参数。
 - 不回退到浏览器 title 气泡。

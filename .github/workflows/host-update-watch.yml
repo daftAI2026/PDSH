@@ -1,0 +1,51 @@
+# [INPUT]: 官方 Harness tags、公用 GitHub API 与 PDSH 的 issue 写权限。
+# [OUTPUT]: 每日检查稳定版/RC；发现新标签时只创建人工兼容审查提醒。
+# [POS]: CI 的只读宿主更新观察器；不判兼容、不改依赖、不安装或发布。
+# [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+name: Watch DeepSeek Harness host tags
+on:
+  schedule:
+    # 每日 UTC 01:23，即北京时间 09:23。
+    - cron: '23 1 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '默认只报告候选，不创建 issue。'
+        type: boolean
+        required: true
+        default: true
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: host-update-watch
+  cancel-in-progress: false
+jobs:
+  watch:
+    if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          # schedule 默认写 issue；手动运行默认 dry-run。
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const { monitorHostUpdate } = await import(
+              `${process.env.GITHUB_WORKSPACE}/tools/host-update-watch.ts`
+            );
+            const result = await monitorHostUpdate({
+              github,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              dryRun: process.env.DRY_RUN !== 'false',
+            });
+            core.info(`Host update watch: ${result.kind} ${result.tag ?? result.latestTag}`);
+            if (result.kind === 'created' && result.issueUrl) {
+              core.notice(`Manual compatibility review required: ${result.issueUrl}`);
+            }
