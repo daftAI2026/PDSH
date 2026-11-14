@@ -269,9 +269,9 @@ Publish only main and v0.5.18; do not create a GitHub Release or publish to npm.
 
 ### 0.5.18 Post-release Acceptance
 
-The user reported normal functionality after updating on Windows.
-This is user-reported acceptance, not agent-run measurements.
-Final pixel-by-pixel alignment and the Mac stable-tag upgrade remain separate acceptance gates.
+The user reported normal functionality after updating on Windows and then on Mac.
+Both results are user-reported acceptance, not agent-run cross-platform measurements.
+Final pixel-by-pixel alignment, permission withdrawal, and other boundary cases remain separate acceptance gates.
 
 ## 0.5.17 Release Decision: Automatic Region Detection
 
