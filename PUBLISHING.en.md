@@ -267,6 +267,12 @@ The user authorized Windows acceptance after the stable tag is available.
 Stable-tag upgrades and final pixel-by-pixel alignment require separate acceptance.
 Publish only main and v0.5.18; do not create a GitHub Release or publish to npm.
 
+### 0.5.18 Post-release Acceptance
+
+The user reported normal functionality after updating on Windows.
+This is user-reported acceptance, not agent-run measurements.
+Final pixel-by-pixel alignment and the Mac stable-tag upgrade remain separate acceptance gates.
+
 ## 0.5.17 Release Decision: Automatic Region Detection
 
 Automatic suggestions no longer read Host or engine versions.
