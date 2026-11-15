@@ -1,7 +1,7 @@
 /**
  * [INPUT]: src/host/index.ts 与官方 Typert service，由 build.ts 生成。
  * [OUTPUT]: 唯一 pdsh Config/name/apply 与 owned-window capture/save/wallpaper。
- * [POS]: 单包运行产物；PDSH build "0.5.19"，不手工修改。
+ * [POS]: 单包运行产物；PDSH build "0.5.20"，不手工修改。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 var __create = Object.create;
@@ -100,8 +100,8 @@ var CAPTURE_CONFIG_FIELDS = {
   saveBehavior: z.union(["ask", "direct"]).default(DEFAULT_CAPTURE_EXPORT.saveBehavior).volatile(),
   saveDirectory: z.string().pattern(CAPTURE_SAVE_DIRECTORY_PATTERN).default(INITIAL_SAVE_DIRECTORY).volatile(),
   saveFormat: z.union(["png", "jpeg", "webp"]).default(DEFAULT_CAPTURE_EXPORT.saveFormat).volatile(),
-  // +--- transform 会跨 Settings 序列化；回调自包含，preserve 保留原始 override。 ---+
-  fileNamePattern: z.transform(z.string().pattern(CAPTURE_FILE_NAME_PATTERN), (value) => value === "DSH {date} at {time}" || value === "PDSH-screenshot-{date}-{time}" ? "PDSH-{date}-{time}" : value, true).default(DEFAULT_CAPTURE_EXPORT.fileNamePattern).volatile()
+  fileNamePattern: z.string().pattern(CAPTURE_FILE_NAME_PATTERN).default(DEFAULT_CAPTURE_EXPORT.fileNamePattern).volatile(),
+  fileNamePatternSource: z.union(["legacy", "custom", z.object({ defaultPattern: z.string().pattern(CAPTURE_FILE_NAME_PATTERN).required() })]).default("legacy").volatile()
 };
 async function normalizeLegacyCaptureExport(ctx, isDisposed = () => false) {
   await ctx.root.loader.await();
@@ -410,7 +410,7 @@ function apply2(ctx, config) {
   }, import.meta.url)) ctx.plugin(WindowCaptureService);
   observeCaptureEnabled(ctx);
 }
-Object.defineProperty(apply2, "pdshVersion", { value: "0.5.19" });
+Object.defineProperty(apply2, "pdshVersion", { value: "0.5.20" });
 export {
   Config,
   WindowCaptureService,

@@ -1,6 +1,7 @@
 # tools/
 > L2 | 父级: ../CLAUDE.md
 
+- `host-settings-wire.ts`: verify-host 的真实 JSON 传输门；编译精确 Host 的官方 Client 校验类，独立 Context 随门释放，不连接 Desktop。
 - `plugin-icon.ts`: 构建期生成透明单路径包图。用官方 label-primary 明暗快照响应 Host color-scheme；列表和详情无需 Client 换色器。
 - `generate-typert.ts`: 官方 Generator 生成基础与内部能力面。同步截图、保存、壁纸及几何 DTO 闭包。Windows 用 junction 与 Node 驱动 tsc；固定 SHA 拒绝来源漂移。
 - `pack-rc.ts`: 白名单源码含包图与中英短详情，派生独立 RC。拒绝任意 locale Markdown。Windows 用自有 junction 复用依赖；验真实 tgz，不安装插件。

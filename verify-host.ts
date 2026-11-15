@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 精确 Host、归档、同代 runtime 与 PNPM；升级门使用官方访问策略和 Peer。Windows 验真实 ACL。
- * [OUTPUT]: 验官方 Manager/HMR 安装、默认模板迁移、身份配置与业务生命周期。不取像或下载媒体。
+ * [OUTPUT]: 验官方 Manager/HMR 安装、JSON 快照、模板来源、身份配置与业务生命周期。不取像或下载媒体。
  * [POS]: 仓库根目录的集成验收入口；只操作调用方指定且 owner/权限验证的临时 profile，不改写 DSH 用户 profile 或替代官方解析器。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  *
@@ -19,7 +19,8 @@ import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { createHash } from 'node:crypto'
 import { validatePackedBundle } from './bundle-artifacts.ts'
-import { DEFAULT_CAPTURE_EXPORT } from './src/shared/capture-export.ts'
+import { createHostSettingsWireProbe } from './tools/host-settings-wire.ts'
+import { resolveCaptureExportPreferences, DEFAULT_CAPTURE_EXPORT } from './src/shared/capture-export.ts'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 import { assertWindowsPrivateOwnership, protectWindowsOwnedDirectory } from './tools/windows-temp-ownership.ts'
 
@@ -408,11 +409,12 @@ async function main(): Promise<void> {
       assert.ok(after && Object.hasOwn(after.value, 'avatarHistory'), '截图 payload 更新不能代替根 Config 热加载')
       assert.notEqual(activePdshRows(ctx, rootEntry)[0].fiber, previousFiber, '根 Host 必须真正换代')
       for (const key of Object.keys(preserved.value)) {
-        const expected = key === 'fileNamePattern' ? DEFAULT_CAPTURE_EXPORT.fileNamePattern : preserved.value[key]
-        assert.deepEqual(after.value[key], expected, `换根只允许迁移已知默认模板: ${key}`)
+        const expected = preserved.value[key]
+        assert.deepEqual(after.value[key], expected, `换根不得重写未知旧配置: ${key}`)
       }
       assert.deepEqual(after.user, preserved.user, '默认模板归一化不得改写用户 override')
-      console.log('PASS export-default normalization: exact legacy template updated without writing overrides; all other accepted settings retained')
+      assert.equal(after.value.fileNamePatternSource, 'legacy', '旧配置不能冒充有人工来源记录')
+      console.log('PASS export provenance: legacy template and raw overrides retained without guessing intent')
       console.log(`PASS same-process upgrade: fixed 0.5.9 → ${candidate.version}; real root Config and payload replaced through official Gateway; no restart or bundle toggle`)
     }
     if (expectedResult === 'historical-pnpm-red') {
@@ -497,7 +499,37 @@ async function main(): Promise<void> {
     service.refreshCaptureEnabled = () => { refreshCount++; refresh() }
     const defaults = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
     assert.ok(defaults, 'root settings missing')
-    assert.equal(defaults.value.fileNamePattern, DEFAULT_CAPTURE_EXPORT.fileNamePattern, '实际 Host 默认模板不是当前候选')
+    assert.equal(defaults.value.fileNamePattern, upgradeMode ? 'PDSH-screenshot-{date}-{time}' : DEFAULT_CAPTURE_EXPORT.fileNamePattern, '实际 Host 初始模板不符')
+    const wireProbe = createHostSettingsWireProbe(requireFromHost)
+    try {
+      wireProbe.verify(defaults)
+      const oldTemplate = 'PDSH-screenshot-{date}-{time}'
+      await ctx.settings.mutate(rootEntry, [
+        { op: 'set', path: ['fileNamePattern'], value: oldTemplate },
+        { op: 'set', path: ['fileNamePatternSource'], value: 'custom' },
+      ], defaults.revision)
+      const custom = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
+      wireProbe.verify(custom)
+      assert.equal(resolveCaptureExportPreferences(custom.value).fileNamePattern, oldTemplate)
+      await ctx.settings.mutate(rootEntry, [
+        { op: 'set', path: ['fileNamePattern'], value: DEFAULT_CAPTURE_EXPORT.fileNamePattern },
+        { op: 'set', path: ['fileNamePatternSource'], value: { defaultPattern: DEFAULT_CAPTURE_EXPORT.fileNamePattern } },
+      ], custom.revision)
+      const reset = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
+      wireProbe.verify(reset)
+      assert.equal(resolveCaptureExportPreferences(reset.value).fileNamePattern, DEFAULT_CAPTURE_EXPORT.fileNamePattern)
+      await ctx.settings.mutate(rootEntry, [
+        { op: 'set', path: ['fileNamePattern'], value: 'old-client-{title}' },
+      ], reset.revision)
+      const legacyEdit = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
+      assert.equal(resolveCaptureExportPreferences(legacyEdit.value).fileNamePattern, 'old-client-{title}')
+      await ctx.settings.mutate(rootEntry, ['fileNamePattern', 'fileNamePatternSource'].map(key =>
+        Object.hasOwn(defaults.user ?? {}, key) ? { op: 'set', path: [key], value: defaults.user[key] } : { op: 'unset', path: [key] }), legacyEdit.revision)
+      const restored = ctx.settings.describe().find((row: any) => row.ns === rootEntry)
+      assert.deepEqual(restored.user, defaults.user)
+      wireProbe.verify(restored)
+      console.log('PASS settings-wire: official Client accepted real JSON; same-value custom, default snapshot, old-Client edit and raw restoration')
+    } finally { await wireProbe.dispose() }
     const originalFields = FEATURE_FIELDS.map(key => ({key, own:Object.hasOwn(defaults.user ?? {}, key), value:defaults.user?.[key]}))
     for (let mask = 0; mask < 8; mask++) {
       const enabled = FEATURE_FIELDS.map((_field, index) => Boolean(mask & (1 << index)))

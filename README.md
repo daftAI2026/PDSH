@@ -12,7 +12,7 @@
 遮挡侧栏标题、自定义昵称与头像，截取并打码编辑当前窗口。不提供会话隔离。
 <!-- pdsh:description:end -->
 
-DeepSeek Harness Desktop 插件 · **0.5.19 版本** · [`v0.5.19`](https://github.com/daftAI2026/PDSH/tree/v0.5.19)
+DeepSeek Harness Desktop 插件 · **0.5.20 版本** · [`v0.5.20`](https://github.com/daftAI2026/PDSH/tree/v0.5.20)
 
 支持 macOS 和 Windows，截图助手随插件提供，无需单独安装。
 
@@ -35,7 +35,7 @@ DeepSeek Harness Desktop 插件 · **0.5.19 版本** · [`v0.5.19`](https://gith
 https://github.com/daftAI2026/PDSH
 ```
 
-固定版本请选择 `v0.5.19`；已安装用户可在插件详情页确认升级。
+固定版本请选择 `v0.5.20`；已安装用户可在插件详情页确认升级。
 
 **旧版提醒**：`0.3.2` 及更早版本首次升级需正常加载一次；运行中的 `0.5.0` 不支持免重启升级。[兼容说明](PUBLISHING.md#升级兼容)。
 
@@ -43,6 +43,7 @@ https://github.com/daftAI2026/PDSH
 
 - 宿主基线为 **DeepSeek Harness Desktop 0.2.0-rc.2**，包含 **0.2.2-rc.1** 的接口与布局适配。新版 Desktop 行为、原生截图对位和 Windows 实机兼容须单独验收。支持 macOS 14+（Apple Silicon 和 Intel）与 Windows 10 1903+ x64。
 - 保存 PNG、JPEG 或 WebP，复制为 PNG。默认存入主目录下的 `Downloads`，可另选目录；重名自动编号，不覆盖文件。保存结果未知时，先检查目录，不要立即重试。
+- 文件名默认采用 `PDSH-{date}-{time}`。旧配置保留原值；点击“恢复默认”后跟随当前默认。手动保存会记录为自定义，即使与旧默认字符串相同。
 - macOS 获取最多五张代表壁纸；Windows 选取最多五张已安装的默认与主题图片，不读取当前壁纸或联网下载。
 - 图库和编辑偏好保存在本机，不保存截图、源视频或原文件名。空间满时拒绝导入，不自动删除图片。
 - 遮挡只改变显示，不改账号、原始文字、历史、日志或模型请求。不提供会话隔离、凭据迁移或取证级隐私保证。

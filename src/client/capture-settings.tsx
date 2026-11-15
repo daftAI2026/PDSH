@@ -1,21 +1,22 @@
 /**
  * [INPUT]: 依赖拍照 ConfigForm、Host Input/Button 与完整配置就绪/纯导出合同。
- * [OUTPUT]: 对 ready 但缺失或无效的旧 Host 配置提示重启并禁用全部截图写入/目录 picker；完整配置仍以 Host revision 保存。
+ * [OUTPUT]: 对 ready 但缺失或无效的旧 Host 配置提示重启并禁用全部截图写入/目录 picker；完整配置仍以 Host revision 保存。模板和来源同一事务提交。
  * [POS]: 官方 Plugins 拍照设置边界；配置恢复由后续 accepted snapshot 驱动，截图身份偏好与常驻身份替换、标题预遮挡相互独立。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Button, Input, Switch, Tooltip, IconEditOutlineRegular, IconCheckOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives';
-import { CAPTURE_SAVE_BEHAVIORS, CAPTURE_SAVE_FORMATS, CAPTURE_FILE_NAME_PATTERN, isCaptureConfigurationReady, resolveCaptureExportPreferences } from '../shared/capture-export.ts';
+import { CAPTURE_SAVE_BEHAVIORS, CAPTURE_SAVE_FORMATS, CAPTURE_FILE_NAME_PATTERN, isCaptureFileNameSource, DEFAULT_CAPTURE_EXPORT, isCaptureConfigurationReady, resolveCaptureExportPreferences } from '../shared/capture-export.ts';
 export function CaptureSettingsCard({ form, t, view, chooseDirectory = null }) {
   const accepted = useSyncExternalStore(fn => form.subscribe(fn), () => form.getSnapshot());
   const captureReady = accepted.status === 'ready' && isCaptureConfigurationReady(accepted.value);
   const preferences = resolveCaptureExportPreferences(accepted.value);
   const captureEnabled = captureReady && accepted.value?.captureEnabled === true;
   const captureMaskIdentity = captureReady && accepted.value?.captureMaskIdentity === true;
+  const hasFileNameSource = isCaptureFileNameSource(accepted.value?.fileNamePatternSource);
   const [pending, setPending] = useState(false), [failed, setFailed] = useState(false), [draft, setDraft] = useState<string | null>(null);
   const templateRow = useRef(null), returnFocus = useRef(null);
-  const alive = useRef(true), busy = useRef(false), base = useRef<string | null>(null);
+  const alive = useRef(true), busy = useRef(false), base = useRef<{ pattern: string; source: string | undefined } | null>(null);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   useEffect(() => {
     if (pending || !returnFocus.current) return;
@@ -30,15 +31,19 @@ export function CaptureSettingsCard({ form, t, view, chooseDirectory = null }) {
   }
   if (view === 'summary') return t('capture');
   const writable = captureReady && accepted.writable && !pending;
-  async function save(key, value, origin?) {
+  async function save(key, value, origin?, useDefault = false) {
     const current = form.getSnapshot(); if (busy.current || current.status !== 'ready' || !current.writable || !isCaptureConfigurationReady(current.value)) return;
     rememberFocus(origin, key === 'fileNamePattern');
+    const tracksSource = key === 'fileNamePattern' && isCaptureFileNameSource(current.value?.fileNamePatternSource);
+    const source = useDefault ? { defaultPattern: DEFAULT_CAPTURE_EXPORT.fileNamePattern } : 'custom';
     const currentValue = key in (current.value ?? {}) ? current.value?.[key] : resolveCaptureExportPreferences(current.value)[key];
-    if (currentValue === value) { if (key === 'fileNamePattern') { setDraft(null); base.current = null; } return; }
-    if (key === 'fileNamePattern' && (!CAPTURE_FILE_NAME_PATTERN.test(value) || base.current !== resolveCaptureExportPreferences(current.value).fileNamePattern)) { setFailed(true); return; }
+    if (currentValue === value && (!tracksSource || JSON.stringify(current.value.fileNamePatternSource) === JSON.stringify(source))) { if (key === 'fileNamePattern') { setDraft(null); base.current = null; } return; }
+    if (key === 'fileNamePattern' && (!CAPTURE_FILE_NAME_PATTERN.test(value) || (!useDefault && (base.current?.pattern !== resolveCaptureExportPreferences(current.value).fileNamePattern || base.current?.source !== JSON.stringify(current.value?.fileNamePatternSource))))) { setFailed(true); return; }
     busy.current = true; setPending(true); setFailed(false);
     try {
-      const saved = await form.mutate([{ op: 'set', path: [key], value }], current.revision);
+      const operations = [{ op: 'set', path: [key], value }];
+      if (tracksSource) operations.push({ op: 'set', path: ['fileNamePatternSource'], value: source });
+      const saved = await form.mutate(operations, current.revision);
       if (alive.current) { setFailed(!saved); if (saved && key === 'fileNamePattern') { setDraft(null); base.current = null; } }
     } catch { if (alive.current) setFailed(true); }
     finally { busy.current = false; if (alive.current) setPending(false); }
@@ -59,7 +64,7 @@ export function CaptureSettingsCard({ form, t, view, chooseDirectory = null }) {
     finally { busy.current = false; if (alive.current) setPending(false); }
   }
   const hint = (label, children) => <Tooltip label={label} side="bottom" delayMs={500} focusDelayMs={0} portal>{children}</Tooltip>;
-  const begin = () => { if (writable) { base.current = preferences.fileNamePattern; setDraft(preferences.fileNamePattern); setFailed(false); } };
+  const begin = () => { if (writable) { base.current = { pattern: preferences.fileNamePattern, source: JSON.stringify(accepted.value?.fileNamePatternSource) }; setDraft(preferences.fileNamePattern); setFailed(false); } };
   const invalid = draft !== null && !CAPTURE_FILE_NAME_PATTERN.test(draft);
   return <section className="pdsh-settings" data-pdsh-settings><section className="pdsh-group pdsh-fields-group" role="group" aria-labelledby="pdsh-capture-title">
     <div className="pdsh-row pdsh-group-header" aria-busy={pending || undefined}><h4 id="pdsh-capture-title">{t('capture')}</h4>
@@ -89,6 +94,7 @@ export function CaptureSettingsCard({ form, t, view, chooseDirectory = null }) {
     <div className="pdsh-detail-row" ref={templateRow}><span className="pdsh-label" id="pdsh-file-name-label">{t('fileNamePattern')}</span>
       {draft === null ? <div className="pdsh-value-action"><span>{preferences.fileNamePattern}</span>
         {hint(t('editFileName'), <Button className="pdsh-nickname-action" variant="ghost" aria-label={t('editFileName')} onClick={begin} disabled={!writable}><IconEditOutlineRegular /></Button>)}
+        {hasFileNameSource && <Button type="button" variant="ghost" disabled={!writable || (typeof accepted.value.fileNamePatternSource === 'object' && accepted.value.fileNamePatternSource.defaultPattern === DEFAULT_CAPTURE_EXPORT.fileNamePattern && accepted.value.fileNamePattern === DEFAULT_CAPTURE_EXPORT.fileNamePattern)} onClick={event => void save('fileNamePattern', DEFAULT_CAPTURE_EXPORT.fileNamePattern, event.currentTarget, true)}>{t('useDefaultFileName')}</Button>}
       </div> : <div className="pdsh-field pdsh-nickname-editor"><div className="pdsh-inline-editor">
         {hint(t('templateTokens'), <Input id="pdsh-file-name" aria-label={t('fileNamePattern')} aria-labelledby="pdsh-file-name-label" aria-invalid={invalid} autoFocus value={draft} disabled={!writable} onChange={event => { setDraft(event.target.value); setFailed(false); }} onKeyDown={event => {
           if (event.nativeEvent.isComposing || event.keyCode === 229) return;

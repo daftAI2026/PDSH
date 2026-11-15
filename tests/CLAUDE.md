@@ -32,7 +32,7 @@
 - `capture-bootstrap.test.ts`: 副作用适配下的真实启动编排，拒绝身份/端口、ACK 失败、关闭 unknown 与取消，系统临时根内私有目录独占创建/分别归还，只读真实 macOS ps 路径格式；不操作真实 Main。
 - `capture-control.test.ts`: 生成 Main 与真实 Host socket transport 的畸形帧、握手、控制 ACK、取消与资源归还；新增系统临时根内真实 Unix socket 两端握手及目录边界/权限/符号链接拒绝及根别名接受；不打开真实应用调试端口。
 - `capture-route.test.ts`: 官方 RPC 控制封套、owner 世代与迟到 release 围栏；Host 自己撤回 consent 即刻取消，不依赖 Renderer 消息；确认归还后的断连不永久缓存；Main/control 关闭未知不随新 owner/排队/release/重装清除。
-- `capture-settings.test.ts`: 完整 accepted capture 字段就绪门、旧 Host ready 只读提示/无写入无 picker且隐藏 fallback 目录文案、loading 不误报与后续完整快照恢复；完整但空目录沿用原目录状态；另验导出 revision/路径围栏，不改变常驻身份开关。
+- `capture-settings.test.ts`: 完整 accepted capture 字段就绪门、旧 Host ready 只读提示/无写入无 picker且隐藏 fallback 目录文案、loading 不误报与后续完整快照恢复；完整但空目录沿用原目录状态；另验模板来源原子写入、同值自定义、恢复默认及旧 Host 兼容，保留导出 revision/路径围栏，不改变常驻身份开关。
 - `inspector-ownership.test.ts`: 隔离 VM 的 PID/nonce/原调试地址围栏与 watchdog 归还，不打开真实 Main 调试端口。
 - `capture-controller.test.ts`: 新工作台初拍读取 accepted 身份遮罩，当前重拍沿用会话值并同时遮挡头像与名称；标题独立，下一工作台重读配置。另验壁纸能力重读、失败与卸载，不臆断系统权限。
 - `capture-notice.test.ts`: 官方 Toast 参数和默认生命周期委托、同文重显、旧完成围栏及 React 根回收；不另模拟宿主计时器。
@@ -71,7 +71,7 @@
 - `plugin-port.test.ts`: 请求级保存取消不卸载桥、下次请求可继续； 官方 rpc 仅发控制、Main 像素接收 nonce/重放/取消围栏和 Renderer 唯一 owner 归还。
 - `page-capture-main.test.ts`: 原 mainFrame 交付、同 URL reload、取消锁保留、独立可见视图及 DPR/PNG 声明拒绝、卸载监听归还；getter 异常不泄漏共享锁，重新装配仍串行，每次采样重新验证允许页面。
 
-- `capture-export.test.ts`: 5K默认边距、合成/JPEG分配前32MP和编码后128MB预算、无 screenshot 的默认 basename/MIME/白底归还及日志脱敏；不读用户截图。
+- `capture-export.test.ts`: 5K默认边距、合成/JPEG分配前32MP和编码后128MB预算、默认快照匹配、legacy/custom 不变及 basename/MIME/白底归还及日志脱敏；不读用户截图。
 
 - `capture-diagnosis.test.ts`: 真实 Client→Host 编排的端口冲突错误传播与统一 UUID；模拟 Main 拒绝副作用，不声称 Desktop 成功。
 
@@ -85,7 +85,7 @@
 - `host-acceptance.test.ts`: 集成 CLI 安全前置。核 owner、路径、凭据与候选身份。PNPM 来自同代 runtime 清单；失配须先拒绝。升级门守护官方访问策略与 Peer 装配，不伪造 Gateway 依赖。不启动 DSH。
 
 - `bundle-artifacts.test.ts`: 双语 README 与内部能力面的真实 tgz 闭包。核 Mac universal、Windows x64/asInvoker、执行位和字节。POSIX先改隔离文件模式，Windows改归档mode，确保坏权限样本真实变坏。拒绝子依赖、宽泛 files 与安装 hook，不执行安装。
-- `capture-defaults.test.ts`: 两代默认模板经真实 Schemastery 及序列化归一化，不写 override；旧空目录保留根 revision 围栏，自定义值、子域和卸载不越界。
+- `capture-defaults.test.ts`: 验证真实 Schemastery、官方表单克隆和 JSON 传输后的校验；旧空目录保留根 revision 围栏，自定义值、子域和卸载不越界。
 
 - `window-capture-controller.test.ts`: 不限引擎版本的 Mac 零偏移与 Windows 客户区映射。UA 访问器抛错仍须保留候选。尺寸沿用真实画布原型访问器。拒绝未知平台、缺失、错尺寸、错比例与移动几何；照片保留手绘。不冒充实机证据。
 
@@ -112,7 +112,7 @@
 
 - `bundle-fixture.ts`: 共用合成单包与双语 README 归档闭包；可解析的双架构 Mach-O 与 x64 PE 无可运行指令。不执行假 helper。
 
-- `window-capture-host-gate.test.ts`: 真实 Cordis owner-filter 与构建 Host service 连线，假 helper/uplink 验证撤权同时中止和实际 settle；已取消调用覆盖 Settings 迟到就绪、撤权与终态卸载，防止挂载时的空投影永久锁死；不取像；版本闭包在相机调用前拒绝异版本实例。
+- `window-capture-host-gate.test.ts`: 保存夹具提供完整六字段； 真实 Cordis owner-filter 与构建 Host service 连线，假 helper/uplink 验证撤权同时中止和实际 settle；已取消调用覆盖 Settings 迟到就绪、撤权与终态卸载，防止挂载时的空投影永久锁死；不取像；版本闭包在相机调用前拒绝异版本实例。
 
 - `window-capture-host-observation.test.ts`: fake child 的固定Host mount/逐调用enabled核对/phase/native/terminal日志和懒启动合同；不启动原生 helper或读取用户资料。
 
@@ -132,7 +132,7 @@
 
 - `capture-candidates.test.ts`: 候选几何、裁切、150项早停与侧栏优先。真实样式排除未登录 More；自有头像与昵称参与检测。节点移动保留 ID，替换不继承选择；不证明原生对位。
 
-- `rc-identity.test.ts`: 以 esbuild 注入 stable/RC 名称验证根配置、locale、编辑偏好键与更新边界；实例化版本化 capture 业务闭包，以 Remote iterable 终态黑盒验证只读自身 accepted Settings、启停和迟挂载恢复，不启动 helper；不验证 Manager 共存或 Desktop UI。
+- `rc-identity.test.ts`: 真实保存适配器验证完整配置且不撤回取像； 以 esbuild 注入 stable/RC 名称验证根配置、locale、编辑偏好键与更新边界；实例化版本化 capture 业务闭包，以 Remote iterable 终态黑盒验证只读自身 accepted Settings、启停和迟挂载恢复，不启动 helper；不验证 Manager 共存或 Desktop UI。
 
 - `rc-packaging.test.ts`: 独立候选身份及白名单 staging。中英短详情随 meta.detail 保留，任意 Markdown 排除。核稳定源不变、权限与拒绝覆盖；不运行实机安装。
 - `system-wallpaper-host-fixtures.ts`: 共用受控子进程、最小 JPEG 和 iterable 夹具。不作为真实原生目录或像素证据。

@@ -12,7 +12,7 @@ English · [简体中文](README.md)
 Mask sidebar titles, customize display aliases, and capture and redact this window. No session isolation.
 <!-- pdsh:description:end -->
 
-DeepSeek Harness Desktop plugin · **Version 0.5.19** · [`v0.5.19`](https://github.com/daftAI2026/PDSH/tree/v0.5.19)
+DeepSeek Harness Desktop plugin · **Version 0.5.20** · [`v0.5.20`](https://github.com/daftAI2026/PDSH/tree/v0.5.20)
 
 Supports macOS and Windows. The screenshot helper ships with the plugin and needs no separate installation.
 
@@ -35,7 +35,7 @@ In Harness, open **Plugins → Add Plugin → GitHub repository URL** and enter:
 https://github.com/daftAI2026/PDSH
 ```
 
-Choose the fixed version `v0.5.19`. Existing users can confirm an upgrade on the plugin details page.
+Choose the fixed version `v0.5.20`. Existing users can confirm an upgrade on the plugin details page.
 
 **Upgrade note:** Versions `0.3.2` and earlier need one normal load during their first upgrade. A running `0.5.0` installation does not support a no-restart upgrade. See [Upgrade Compatibility](PUBLISHING.en.md#upgrade-compatibility).
 
@@ -43,6 +43,7 @@ Choose the fixed version `v0.5.19`. Existing users can confirm an upgrade on the
 
 - Host baseline: **DeepSeek Harness Desktop 0.2.0-rc.2**, with API and layout adapters for **0.2.2-rc.1**. Desktop behavior, native capture alignment, and Windows compatibility on newer hosts require separate acceptance. Supported platforms: macOS 14+ (Apple Silicon or Intel) and Windows 10 1903+ x64.
 - Save as PNG, JPEG, or WebP; copy as PNG. The default folder is `Downloads` under your home directory. You can choose another folder. Duplicate filenames receive a number; existing files are not overwritten. If the save result is unknown, check the folder before retrying.
+- The default filename template is `PDSH-{date}-{time}`. Legacy settings keep their stored value until you choose **Use default**. Saving a template records an explicit custom choice, even when it matches an old default.
 - macOS fetches up to five representative wallpapers. Windows selects up to five installed default and theme images; it does not read the user's current wallpaper or download from the network.
 - The gallery and editing preferences stay on your device. The gallery stores no screenshots, source videos, or original filenames. A full store rejects imports rather than deleting images.
 - Masking changes only the display, not account data, original text, history, logs, or model requests. PDSH does not provide session isolation, credential migration, or forensic privacy guarantees.

@@ -7,7 +7,7 @@
 - `header-camera.tsx`: 官方 utilities 会话相机视图。仅侧栏收起且截图控制器存在时呈现。复用 Host Button/Tooltip，点击重读当前控制器，不创建取像链路。
 - `native-style-view.tsx`: 唯一真实原生控件探针视图；布局测量与 React 生命周期绑定，不持有功能配置。
 - `title-settings.tsx`: 共享唯一 `pdsh` ConfigForm 的标题即时开关；复用帽子控制器和官方控件，不建立独立 namespace，也不读身份偏好。
-- `capture-settings.tsx`: Plugins 截图区提供独立身份遮挡开关与询问/直接保存、完整目录、格式/文件名模板；旧/无效 ready 配置显示中英重启提示并锁住全部字段与目录 picker，目录位不泄漏 fallback/不误报目录故障；loading 不误报，完整后续快照恢复原 revision 写入；身份开关不改常驻 maskIdentity 或工作台标题偏好。
+- `capture-settings.tsx`: Plugins 截图区提供独立身份遮挡开关与询问/直接保存、完整目录、格式/文件名模板；旧/无效 ready 配置显示中英重启提示并锁住全部字段与目录 picker，目录位不泄漏 fallback/不误报目录故障；loading 不误报，完整后续快照恢复原 revision 写入；模板保存与来源原子提交，恢复默认绑定当前模板；来源缺失时不写未知地址；身份开关不改常驻 maskIdentity 或工作台标题偏好。
 - `capture-notice.tsx`: DOM 控制器到官方 React Toast 的适配边界；宿主拥有样式、portal 和默认消失周期，序号重挂载与完成围栏防止同文重显或旧回调干扰。
 - `native-style-probe.ts`: 原生样式效果边界；测量真实 Input/Button/Switch/字段/Tooltip，监听主题、DOM、资源加载和尺寸变化，未变不写、来源消失撤销旧值、控件重建转移局部观察权，停用精确恢复变量与观察器。
 - `native-icon.ts`: 内联 SVG 与同页官方 symbol 共用描边采样。外层提供显示尺寸，实际图稿提供坐标与描边。拒绝外部引用、重复 ID、嵌套 use 及未知几何，供入口和探针共用。

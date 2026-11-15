@@ -1,5 +1,5 @@
 /**
- * [INPUT]: 依赖真实 Cordis Loader-owner event、正式 WindowCaptureService、Host capture/save stream 与 Node 子进程边界。
+ * [INPUT]: 依赖真实 Cordis Loader-owner event、正式 WindowCaptureService、完整保存配置与 capture/save stream 与 Node 子进程边界。
  * [OUTPUT]: 验证 accepted captureEnabled 撤回同时 abort 两路并等待真实 fake-child settle；Settings 迟到就绪可恢复显式调用，但不复活已卸载服务；版本闭包不接受异版本实例。
  * [POS]: Host 生命周期集成合同；只替换 child_process.spawn 为可控假子进程，不运行 helper、不触发 TCC、不写图像。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
@@ -158,7 +158,7 @@ test('First save after late Settings readiness does not inherit the aborted moun
   const { WindowCaptureService: RuntimeWindowCaptureService } = await import('../index.js')
   const owner = root.plugin({ apply(ctx: Context) {
     ctx.provide('settings', { describe: () => ready ? [{ ns: 'pdsh', value: {
-      captureEnabled: true, saveDirectory: tmpdir(), saveFormat: 'png', fileNamePattern: 'PDSH-{date}-{time}',
+      captureEnabled: true, captureMaskIdentity: true, saveBehavior: 'ask', saveDirectory: tmpdir(), saveFormat: 'png', fileNamePattern: 'PDSH-{date}-{time}',
     } }] : [] })
     service = new RuntimeWindowCaptureService(ctx.extend({ invocation: { uplink: () => {
       uplinkReads++
@@ -185,6 +185,7 @@ test('Loader owner volatile update aborts the active Host capture and save, then
   const pendingUplink = new WaitingUplink()
   const accepted = {
     captureEnabled: true,
+    captureMaskIdentity: true, saveBehavior: 'ask',
     saveDirectory: directory,
     saveFormat: 'png',
     fileNamePattern: 'PDSH-{date}-{time}',

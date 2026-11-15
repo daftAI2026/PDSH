@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖实际共享身份、locale、编辑偏好、更新控制器与版本化 capture 业务闭包，由 esbuild 注入候选包身份。
- * [OUTPUT]: 验证 RC 配置/浏览器偏好隔离、更新无副作用及业务闭包只读自身 accepted Settings。
+ * [OUTPUT]: 验证保存完整配置围栏与独立取像开关、RC 配置/浏览器偏好隔离、更新无副作用及业务闭包只读自身 accepted Settings。
  * [POS]: 临时 RC 的运行身份与设置隔离合同；不替代官方 Manager 共存或 Desktop UI 验收。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -109,4 +109,23 @@ test('RC 业务闭包在 Settings 迟挂载后按调用恢复，缺失或 stable
     sections = [{ ns: 'pdsh', value: { captureEnabled: true } }];
     assert.equal(await captureTerminal(instance), 'disposed');
   } finally { await instance.dispose(); }
+});
+
+test('真实保存适配器拒绝缺失非后端字段，但不撤回独立取像开关', async () => {
+  const business = await captureBusiness();
+  const complete = { captureEnabled: true, captureMaskIdentity: true, saveBehavior: 'ask', saveDirectory: '/tmp/pdsh-owned-test', saveFormat: 'png', fileNamePattern: 'PDSH-{date}-{time}' };
+  for (const missing of ['saveBehavior', 'captureMaskIdentity', null]) {
+    const value = { ...complete };
+    if (missing) delete value[missing];
+    const instance = new business.CaptureRuntime({ settings: { describe: () => [{ ns: 'pdsh-rc', value }] }, logger: { info() {} } });
+    let inputRead = false;
+    async function* input() { inputRead = true; }
+    try {
+      const frames = [];
+      for await (const frame of instance.save({ requestId: '00000000-0000-4000-8000-000000000020', format: 'png', width: 1, height: 1, title: 'fixture', capturedAt: '2026-11-16T00:00:00.000Z' }, new AbortController().signal, input())) frames.push(frame);
+      assert.equal(frames.at(-1).code, missing ? 'disposed' : 'invalid-input');
+      assert.equal(inputRead, missing === null);
+      assert.equal(instance.lifetime.signal.aborted, false, '保存配置就绪门不改变取像授权');
+    } finally { await instance.dispose(); }
+  }
 });

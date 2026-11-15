@@ -1,9 +1,10 @@
 /**
  * [INPUT]: 依赖稳定壳、accepted Settings、根 Host 换载、原生后端与官方生成的内部能力面。
  * [OUTPUT]: 提供稳定 v1 截图/保存与可更新能力。壁纸分平台读取；几何仅在完整 capture 成功后按 PNG digest 暂存。
- * [POS]: 同包版本化业务闭包。根 Config 拥有权限；能力握手接续根换载，旧操作结算后撤销本代能力。
+ * [POS]: 同包版本化业务闭包。根 Config 拥有权限；保存模板复用共享来源解释；能力握手接续根换载，旧操作结算后撤销本代能力。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
+import { CAPTURE_CONFIGURATION_FIELDS, isCaptureConfigurationReady, resolveCaptureExportPreferences } from '../shared/capture-export.ts'
 import { ROOT_ENTRY_ID } from '../shared/components.ts'
 import { CAPTURE_GEOMETRY_CONTRACT, CAPTURE_RUNTIME_CONTRACT, CAPTURE_WALLPAPER_CONTRACT } from '../shared/capture-runtime-contract.ts'
 import { createHash } from 'node:crypto'
@@ -149,7 +150,7 @@ export class CaptureRuntime {
 
   constructor(private readonly ctx: Context) {
     const serviceContext = this.ctx as HostServiceContext
-    const enabled = acceptedWindowSavePreferences(serviceContext).captureEnabled === true
+    const enabled = acceptedCaptureEnabled(serviceContext)
     this.lifetime.setEnabled(enabled)
     logCaptureObservation(this.ctx, 'service-mounted', enabled)
     // +--- 无 Cordis 的后端合同不伪造 provider；生产上下文由固定壳注入 typert。 ---+
@@ -213,7 +214,7 @@ export class CaptureRuntime {
         canCommit = status === 'captured' && !signal.aborted && !captureGeneration.aborted
           && this.lifetime.signal === captureGeneration && !this.disposal
           && this.captureGeometryLease === geometryLease
-          && acceptedWindowSavePreferences(this.ctx as HostServiceContext).captureEnabled === true
+          && acceptedCaptureEnabled(this.ctx as HostServiceContext)
       } catch { /* 配置读取失败时仅撤回可选几何。 */ }
       if (this.captureGeometryLease !== geometryLease) return
       this.captureGeometryRecord = canCommit ? pendingGeometry : undefined
@@ -247,7 +248,7 @@ export class CaptureRuntime {
       lifetimeSignal: this.lifetime.signal,
       platform,
       arch,
-      enabled: () => acceptedWindowSavePreferences(this.ctx as HostServiceContext).captureEnabled === true,
+      enabled: () => acceptedCaptureEnabled(this.ctx as HostServiceContext),
       disposed: () => Boolean(this.disposal),
       reserve: () => this.lifetime.reserve(),
       list: async operationSignal => {
@@ -265,7 +266,7 @@ export class CaptureRuntime {
   async captureGeometry(pngSha256: string): Promise<CaptureGeometry | null> {
     this.refreshCaptureEnabled()
     if (this.disposal || !isCapturePngSha256(pngSha256)
-      || acceptedWindowSavePreferences(this.ctx as HostServiceContext).captureEnabled !== true) return null
+      || !acceptedCaptureEnabled(this.ctx as HostServiceContext)) return null
     const record = this.captureGeometryRecord
     return record?.pngSha256 === pngSha256 ? record.geometry : null
   }
@@ -317,8 +318,7 @@ export class CaptureRuntime {
   /** 显式调用先核对 accepted 设置；owner-scoped listener 继续负责在途同步撤权。 */
   refreshCaptureEnabled(): void {
     if (this.disposal) return
-    const preferences = acceptedWindowSavePreferences(this.ctx as HostServiceContext)
-    const enabled = preferences.captureEnabled === true
+    const enabled = acceptedCaptureEnabled(this.ctx as HostServiceContext)
     if (!enabled) {
       this.captureGeometryLease = undefined
       this.captureGeometryRecord = undefined
@@ -339,18 +339,28 @@ export class CaptureRuntime {
   }
 }
 
+// +--- 取像/壁纸只读自身开关；保存另验完整六字段，不扩大到其他能力。 ---+
+function readCaptureSetting(field: unknown): unknown {
+  if (field && typeof field === 'object' && 'get' in field && typeof field.get === 'function') return field.get()
+  return field
+}
+
+function acceptedCaptureEnabled(ctx: HostServiceContext): boolean {
+  const value = ctx.settings.describe().find(section => section.ns === ROOT_ENTRY_ID)?.value
+  return readCaptureSetting(value?.captureEnabled) === true
+}
+
 function acceptedWindowSavePreferences(ctx: HostServiceContext): WindowSavePreferences {
-  const accepted = ctx.settings.describe().find(section => section.ns === ROOT_ENTRY_ID)?.value
-  const read = (field: unknown): unknown => {
-    if (field && typeof field === 'object' && 'get' in field && typeof field.get === 'function') return field.get()
-    return field
-  }
+  const raw = ctx.settings.describe().find(section => section.ns === ROOT_ENTRY_ID)?.value
+  const accepted = Object.fromEntries([...CAPTURE_CONFIGURATION_FIELDS, 'fileNamePatternSource']
+    .map(key => [key, readCaptureSetting(raw?.[key])]))
+  const ready = isCaptureConfigurationReady(accepted)
   // 不补默认值：缺少的 accepted Setting 由 Backend fail closed，而不是替用户猜值。
   return {
-    captureEnabled: read(accepted?.captureEnabled),
-    saveDirectory: read(accepted?.saveDirectory),
-    saveFormat: read(accepted?.saveFormat),
-    fileNamePattern: read(accepted?.fileNamePattern),
+    captureEnabled: ready ? accepted.captureEnabled : false,
+    saveDirectory: accepted.saveDirectory,
+    saveFormat: accepted.saveFormat,
+    fileNamePattern: ready ? resolveCaptureExportPreferences(accepted).fileNamePattern : undefined,
   } as WindowSavePreferences
 }
 

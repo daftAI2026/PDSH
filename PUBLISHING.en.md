@@ -249,6 +249,17 @@ Source, archive, or isolated Host success does not prove Desktop behavior.
 2. Use `verify-host.ts` with the target DSH's actual PluginManager, Typert Loader, and bundled PNPM in a fresh temporary profile owned by the current user. Bind installed version, runtime bytes, and source digests. Check one root row/Client, eight feature combinations, revision writes and restoration, disable, and re-enable. Do not disable `blockExoticSubdeps`, replace the resolver, or fabricate active state. This gate takes no pixels and does not replace Desktop UI testing.
 3. Record actual Desktop acceptance separately: the target artifact's theme, entries, search expansion/collapse, three feature switches, capture coverage/scale, retake, copy, directory selection/direct save, cancellation, and disable. Verify official-manager upgrades separately; experimental reinstall is not upgrade evidence. Ordinary feature switches need no restart. Package replacement follows the Host's explicit load/restart result and preserves unsaved work.
 
+## 0.5.20 Release Decision: Settings Snapshots and Template Provenance
+
+Remove schema callbacks that fail official form projection and JSON transport.
+Host and Client share data-only schemas and the same template resolver.
+Preserve legacy values; Use default records a snapshot bound to the stored template.
+Save custom templates and their source atomically; respect old-Client single-field edits.
+The user chose to publish the tag first, then verify the real stable-package upgrade.
+Windows live tests and native pixel alignment remain independent acceptance gates.
+Real JSON, official Client validation, and isolated upgrades must pass.
+Publish only main and v0.5.20; do not create a GitHub Release or publish to npm.
+
 ## 0.5.19 Release Decision: Shorter Default Filename
 
 Use `PDSH-{date}-{time}` as the default template.

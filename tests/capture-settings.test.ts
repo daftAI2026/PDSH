@@ -1,6 +1,6 @@
 /**
  * [INPUT]: 依赖真实 CaptureSettingsCard、唯一 Host ConfigForm、React/jsdom 与仅替代原生控件外观的桩。
- * [OUTPUT]: 验证身份/标题/截图展示顺序、旧 Host 截图配置就绪围栏与后续恢复，以及截图偏好的 revision、冲突、只读/失败/卸载合同。
+ * [OUTPUT]: 验证模板来源同 revision 原子提交与旧 Host 兼容、身份/标题/截图展示顺序、旧 Host 截图配置就绪围栏与后续恢复，以及截图偏好的 revision、冲突、只读/失败/卸载合同。
  * [POS]: 唯一 pdsh ConfigForm 的拍照设置合同；旧 ready schema 不可误写 fallback 值，不读文件或像素，也不启动 Main 连接。
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
@@ -14,7 +14,7 @@ import { JSDOM } from 'jsdom';
 import * as exportModel from '../src/shared/capture-export.ts';
 import { readCaptureDirectoryPicker } from '../src/client/capture/directory.ts';
 import { dictionaries } from '../src/shared/locales.ts';
-async function fixture({ chooseDirectory = null, value = { ...exportModel.DEFAULT_CAPTURE_EXPORT, captureEnabled: true, captureMaskIdentity: true, saveDirectory: '/tmp/pdsh-default/Downloads', allowMainBridge: false }, status = 'ready', writable = true } = {}) {
+async function fixture({ chooseDirectory = null, value = { ...exportModel.DEFAULT_CAPTURE_EXPORT, captureEnabled: true, captureMaskIdentity: true, saveDirectory: '/tmp/pdsh-default/Downloads', fileNamePatternSource: 'legacy', allowMainBridge: false }, status = 'ready', writable = true } = {}) {
   const dom=new JSDOM('<body><main/></body>'), descriptors=new Map(['window','document','IS_REACT_ACT_ENVIRONMENT'].map(key=>[key,Object.getOwnPropertyDescriptor(globalThis,key)]));
   Object.assign(globalThis,{window:dom.window,document:dom.window.document,IS_REACT_ACT_ENVIRONMENT:true});
   const module={exports:{}};
@@ -23,7 +23,7 @@ async function fixture({ chooseDirectory = null, value = { ...exportModel.DEFAUL
   }});
   const {createRoot}=await import('react-dom/client'),root=createRoot(dom.window.document.querySelector('main')),listeners=new Set(),writes=[];
   let state={status,writable,revision:7,value},accepted=true;
-  const form={getSnapshot:()=>state,subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},async mutate(ops,revision){writes.push({ops,revision});if(accepted){state={...state,revision:state.revision+1,value:{...state.value,[ops[0].path[0]]:ops[0].value}};for(const fn of listeners)fn();}return accepted;}};
+  const form={getSnapshot:()=>state,subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn);},async mutate(ops,revision){writes.push({ops,revision});if(accepted){state={...state,revision:state.revision+1,value:ops.reduce((value,op)=>({...value,[op.path[0]]:op.value}),state.value)};for(const fn of listeners)fn();}return accepted;}};
   await act(async()=>root.render(React.createElement(module.exports.CaptureSettingsCard,{form,chooseDirectory,t:key=>dictionaries.zh[key]})));
   return {doc:dom.window.document,writes,accept(value){accepted=value;},async snapshot(next){await act(async()=>{state={...state,...next};for(const fn of listeners)fn();});},async readonly(){await act(async()=>{state={...state,writable:false};for(const fn of listeners)fn();});},
     async click(label='JPEG'){await act(async()=>{const button=[...dom.window.document.querySelectorAll('button')].find(button=>button.textContent===label||button.getAttribute('aria-label')===label);assert.ok(button,`Missing button ${label}`);button.click();});},
@@ -83,7 +83,7 @@ test('格式即时保存沿用 Host revision，旧授权值不影响组件设置
 });
 test('保存失败有反馈，只读不能写，不因正式宿主桥而隐藏导出选项',async()=>{
   const h=await fixture();try{h.accept(false);await h.click();assert.ok(h.doc.querySelector('[role="alert"]'));await h.readonly();await h.click();assert.equal(h.writes.length,1);}finally{await h.close();}
-  const native=await fixture();try{assert.equal(native.doc.querySelectorAll('button').length,9);assert.doesNotMatch(native.doc.body.textContent,/调试接口/);}finally{await native.close();}
+  const native=await fixture();try{assert.equal(native.doc.querySelectorAll('button').length,10);assert.doesNotMatch(native.doc.body.textContent,/调试接口/);}finally{await native.close();}
 });
 
 test('拍照总开关写入唯一 pdsh ConfigForm 并遵守 Host revision 围栏',async()=>{
@@ -160,4 +160,48 @@ test('插件详情依次显示身份、标题打码和截图设置，不改字�
   const runtime=readFileSync(new URL('../src/client/component-runtime.tsx',import.meta.url),'utf8');
   assert.match(runtime,/isCaptureConfigurationReady/,'Camera assembly must require the accepted capture-settings contract');
   assert.match(runtime,/snapshot\.status === 'ready' && isCaptureConfigurationReady\(snapshot\.value\) && snapshot\.value\?\.captureEnabled === true/,'legacy Host settings cannot default captureEnabled to on');
+});
+
+test('模板保存记录自定义意图，恢复默认与来源同一 revision 原子提交', async () => {
+  const old = 'PDSH-screenshot-{date}-{time}';
+  const h = await fixture({ value: { ...exportModel.DEFAULT_CAPTURE_EXPORT, fileNamePattern: old, fileNamePatternSource: 'legacy', captureEnabled: true, captureMaskIdentity: true } });
+  try {
+    assert.ok(h.doc.body.textContent.includes(old));
+    await h.draft(old); await h.key('Enter');
+    assert.deepEqual(JSON.parse(JSON.stringify(h.writes.at(-1))), { revision: 7, ops: [
+      { op: 'set', path: ['fileNamePattern'], value: old },
+      { op: 'set', path: ['fileNamePatternSource'], value: 'custom' },
+    ] });
+    await h.click('恢复默认');
+    assert.deepEqual(JSON.parse(JSON.stringify(h.writes.at(-1))), { revision: 8, ops: [
+      { op: 'set', path: ['fileNamePattern'], value: exportModel.DEFAULT_CAPTURE_EXPORT.fileNamePattern },
+      { op: 'set', path: ['fileNamePatternSource'], value: { defaultPattern: exportModel.DEFAULT_CAPTURE_EXPORT.fileNamePattern } },
+    ] });
+    assert.ok(!h.doc.body.textContent.includes(old));
+    assert.ok(h.doc.body.textContent.includes(exportModel.DEFAULT_CAPTURE_EXPORT.fileNamePattern));
+    await h.draft(old); await h.key('Enter');
+    assert.equal(h.writes.at(-1).ops[1].value, 'custom');
+    assert.ok(h.doc.body.textContent.includes(old), '与旧默认完全相同的明确自定义不归一化');
+  } finally { await h.close(); }
+});
+
+test('旧 Host 没有来源字段时保留旧编辑，不提交未知配置地址', async () => {
+  const h = await fixture({ value: { ...exportModel.DEFAULT_CAPTURE_EXPORT, captureEnabled: true, captureMaskIdentity: true } });
+  try {
+    assert.ok(!h.doc.body.textContent.includes('恢复默认'));
+    await h.draft('old-host-{date}'); await h.key('Enter');
+    assert.equal(h.writes[0].ops.length, 1);
+  } finally { await h.close(); }
+});
+
+test('草稿期间远端只改变来源也视为冲突，不覆盖对方意图', async () => {
+  const value = { ...exportModel.DEFAULT_CAPTURE_EXPORT, fileNamePatternSource: 'legacy', captureEnabled: true, captureMaskIdentity: true };
+  const h = await fixture({ value });
+  try {
+    await h.draft('local-{date}');
+    await h.snapshot({ revision: 8, value: { ...value, fileNamePatternSource: 'custom' } });
+    await h.key('Enter');
+    assert.equal(h.writes.length, 0);
+    assert.ok(h.doc.querySelector('[role="alert"]'));
+  } finally { await h.close(); }
 });

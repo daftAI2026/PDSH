@@ -78,3 +78,19 @@ test('编码尺寸先于JPEG临时分配校验，编码字节越界也不能交�
   const bytes=canvasFixture();bytes.source.toBlob=(fn,mime)=>fn({type:mime,size:128_000_001} as any);
   await assert.rejects(encodeCapture(bytes.source as any),/export budget/);
 });
+
+test('默认来源跟随当前模板；自定义和未知旧来源即使同值也保留', () => {
+  const old = 'PDSH-screenshot-{date}-{time}';
+  for (const fileNamePatternSource of [undefined, 'legacy', 'custom']) {
+    assert.equal(resolveCaptureExportPreferences({ fileNamePattern: old, fileNamePatternSource }).fileNamePattern, old);
+  }
+  const preferences = { fileNamePattern: old, fileNamePatternSource: { defaultPattern: old } };
+  assert.equal(resolveCaptureExportPreferences(preferences).fileNamePattern, DEFAULT_CAPTURE_EXPORT.fileNamePattern);
+  assert.equal(captureExportFileName(preferences, new Date(2026, 9, 1, 13, 2, 3)), 'PDSH-2026-10-01-13-02-03.png');
+  assert.equal(preferences.fileNamePattern, old, '解析不改写原始配置');
+});
+
+test('旧 Client 只改模板后不被已记录的默认快照吞掉', () => {
+  const fileNamePatternSource = { defaultPattern: 'PDSH-{date}-{time}' };
+  assert.equal(resolveCaptureExportPreferences({ fileNamePatternSource, fileNamePattern: 'old-client-{title}' }).fileNamePattern, 'old-client-{title}');
+});
