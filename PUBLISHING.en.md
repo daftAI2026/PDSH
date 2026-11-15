@@ -255,7 +255,7 @@ Remove schema callbacks that fail official form projection and JSON transport.
 Host and Client share data-only schemas and the same template resolver.
 Preserve legacy values; Use default records a snapshot bound to the stored template.
 Save custom templates and their source atomically; respect old-Client single-field edits.
-The user chose to publish the tag first, then verify the real stable-package upgrade.
+The user chose tag-first publication and subsequently reported successful upgrade acceptance.
 Windows live tests and native pixel alignment remain independent acceptance gates.
 Real JSON, official Client validation, and isolated upgrades must pass.
 Publish only main and v0.5.20; do not create a GitHub Release or publish to npm.
